@@ -1,8 +1,6 @@
 # Road Trip Planner: Functional Specification (MVP)
 
-Draft v0.2, 2026-10-09. Functional behavior only. No models, harness, tools, or data sources are specified here.
-
-**v0.2 changes.** Removed price display (option cards show the budget tier only) and seasonal road closures from scope.
+Functional behavior only. No models, harness, tools, or data sources are specified here.
 
 **Convention.** Items marked **Assumption** are defaults filled in during drafting. Confirm or change them before development.
 

@@ -1,8 +1,10 @@
 # Road Trip Planner: Data Sources
 
-Draft v0.2, 2026-10-09. Desk research only. Nothing here was signed up for or called. Prices and terms come from public docs pages read on this date. Items marked **(unverified)** could not be confirmed from a primary source and should be checked during evaluation.
+> **This is a research document, not a design document.** It records options found during research, with the recommendations the research suggested. It does not make design decisions or give design guidance, and it should not be read as doing so. Design decisions belong in a separate design document.
 
-This document lists the data the agent needs to deliver the [functional spec](functional-spec.md), the options for each, and a recommended starting set.
+Desk research done on 2026-10-09. Nothing here was signed up for or called. Prices and terms come from public docs pages read on that date. Items marked **(unverified)** could not be confirmed from a primary source and should be checked during evaluation.
+
+This document lists the data the agent needs to deliver the [functional spec](../design/functional-spec.md), the options for each, and a recommended starting set.
 
 ---
 
@@ -115,7 +117,7 @@ Price fields in this table are only for judging the budget tier. The spec does n
 
 ### 4.4 Hotel nightly prices (out of scope)
 
-Spec v0.2 removed price display, so no source for nightly rates is needed. For reference, LiteAPI (official hosted remote MCP) and SerpApi Google Hotels were the best options found.
+The functional spec puts price display out of scope, so no source for nightly rates is needed. For reference, LiteAPI (official hosted remote MCP) and SerpApi Google Hotels were the best options found.
 
 ### 4.5 Attractions and parks
 
@@ -171,7 +173,7 @@ The sources above lean toward parks and nature. Map and review sources (Mapbox, 
 
 ### 4.7 Seasonal hazards
 
-Spec v0.2 removed seasonal road closures from scope. Research found no national API for them anyway. State feeds each work differently and mostly cover work zones.
+The functional spec puts seasonal road closures out of scope. Research found no national API for them anyway. State feeds each work differently and mostly cover work zones.
 
 - **Hazard seasons** (hurricane season June 1 to November 30, desert heat, mountain snow) are stable facts the model already knows. No API is needed.
 - **NWS alerts** cover live warnings inside the 7-day forecast window.
