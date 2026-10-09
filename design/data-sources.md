@@ -22,18 +22,19 @@ This document lists the data the agent needs to deliver the [functional spec](fu
 | Geocoding, routes, drive times, route line | **Mapbox** | Remote MCP (`mcp.mapbox.com/mcp`, official) | Free. 100k routes and 100k geocodes per month |
 | Points of interest along a leg | **Mapbox** Search Box `category` search along a route | Same remote MCP | Free. 25k–50k per month |
 | Restaurants and hotels with rating, review count, "$$" | **Apify** Google Maps Scraper | Remote MCP (`mcp.apify.com`, official) | $5 free credit per month, then about $1.50–2 per 1,000 results |
-| Web search (closures, "best barbecue in Lockhart") | **Exa** | Remote MCP (`mcp.exa.ai/mcp`, official) | $10 free credit per month, then about $7 per 1,000 searches |
+| Web search (closures, "best barbecue in Lockhart") | Claude's built-in **`WebSearch`** | Built-in SDK tool | No separate charge on the Max plan. Counts against plan usage (see 4.8) |
 | Weather forecast (within 7 days) | **NWS** api.weather.gov | Custom tool | Free, no key |
 | Seasonal averages | **Open-Meteo** Historical API | Custom tool | Free, no key |
 | National parks: alerts, closures, things to do | **NPS Data API** | Custom tool | Free key |
 | UI map | **Mapbox GL JS** | Front end | Free. 50k map loads per month |
 
 **Why this set:**
-- It gives you three official third-party remote MCP servers (Mapbox, Apify, Exa) and three REST APIs to wrap yourself (NWS, Open-Meteo, NPS).
+- It gives you two official third-party remote MCP servers (Mapbox and Apify) and three REST APIs to wrap yourself (NWS, Open-Meteo, NPS). Web search uses the tool already built into the SDK.
 - None of them need a credit card to start. Mapbox's full free tier does need a card, but its no-card trial (10k routes, 5k searches per month) is enough for development.
-- Expected data cost is under $1 per test trip. The Claude API tokens will cost far more than the data.
+- Expected data cost is under $1 per test trip. Model usage, including web search, runs on your Max plan (see 4.8).
 
 **Good optional additions, if you want more MCP practice:**
+- **Exa** remote MCP for web search (see 4.8). Running it next to the built-in tool shows how the agent picks between two tools that do the same job.
 - **NPS and Open-Meteo hosted MCP servers** (community, see 4.5 and 4.6). Each one lets you compare a remote MCP and your own wrapper of the same API side by side.
 - **LiteAPI** remote MCP for real hotel nightly prices (see 4.4).
 - **TomTom** remote MCP as a second mapping provider (see 4.1).
@@ -163,14 +164,25 @@ The spec shows prices only when the data has them, so this is optional.
 
 | Provider | Price per 1,000 searches | Free tier | Card | Remote MCP |
 |---|---|---|---|---|
+| **Claude's built-in `WebSearch`** | Max plan: no separate charge. API key: $10, plus tokens | Included in the plan | No | Built in, not MCP |
 | **Exa** | $7 (standard), $4 (instant) | $10 credit per month | No | **Official, hosted** (`mcp.exa.ai/mcp`, `x-api-key` header) |
 | **Tavily** | $8 basic, $16 advanced | 1,000 credits per month | No | **Official, hosted** (`mcp.tavily.com/mcp/`, key in URL or header) |
-| Claude's built-in `WebSearch` | $10, plus tokens **(billing in the Agent SDK unverified)** | None | API account | Built in, not MCP |
 | Perplexity | $5 (Search API) | Unclear | Yes, prepaid | Official, hosted |
 | Brave | $5 | $5 credit per month | Yes | Local only |
 | SerpApi, Firecrawl | — | Small | — | Hosted, but paid tiers are subscriptions |
 
-**Recommendation:** Exa as the main search MCP. Keep Claude's built-in `WebSearch` available as a baseline to compare against. Tavily is a fine second choice.
+**Recommendation:** Use Claude's built-in `WebSearch`. It needs no setup, no extra key, and no extra bill. Add Exa later if you want to compare a search MCP against it. Tavily is a fine alternative to Exa.
+
+**How the built-in tool behaves:**
+- It returns result titles and links. The agent usually follows up with `WebFetch` to read a page.
+- It has no settings you can change in the SDK, such as allowed domains or result count. Exa does.
+- One `WebSearch` call may run up to eight searches behind the scenes.
+
+**Running on the Max plan:**
+- The Claude Code costs page says "Claude Max and Pro subscribers have usage included in their subscription." With your Max login, the SDK has no per-search dollar charge.
+- Searches still use up your plan's 5-hour and weekly allowance. The results go into the conversation as tokens, so a search-heavy session hits the limits sooner. You pay extra only if you turn on usage credits and go past the limits.
+- No doc says this specifically for web search. It is a reading of the general rule. Confirm it by checking the usage bars before and after a test run.
+- The Agent SDK overview says: "Unless previously approved, Anthropic does not allow third party developers to offer claude.ai login or rate limits for their products, including agents built on the Claude Agent SDK." That rule covers letting other people use an app through a subscription. Running your own learning project on your own machine, with test accounts you own, is a different case. If real users ever sign in, switch to an API key.
 
 ### 4.9 UI map
 
@@ -221,29 +233,29 @@ The spec shows prices only when the data has them, so this is optional.
 mcp_servers={
     "mapbox": {"type": "http", "url": "https://mcp.mapbox.com/mcp",
                "headers": {"Authorization": f"Bearer {MAPBOX_TOKEN}"}},
-    "exa":    {"type": "http", "url": "https://mcp.exa.ai/mcp",
-               "headers": {"x-api-key": EXA_API_KEY}},
+    "apify":  {"type": "http", "url": "https://mcp.apify.com",
+               "headers": {"Authorization": f"Bearer {APIFY_TOKEN}"}},
 }
 ```
 
 ### 6.2 Custom tools
 
 - Write each tool with `@tool(name, description, schema)` and bundle them with `create_sdk_mcp_server(...)`. Tool names become `mcp__<server>__<tool>`.
-- MCP tools are not approved by default. List them in `allowed_tools`. Wildcards like `mcp__exa__*` work.
+- MCP tools are not approved by default. List them in `allowed_tools`. Wildcards like `mcp__apify__*` work.
 - A plain dict schema makes every field required. Use full JSON Schema for optional fields and enums.
 - Return `"is_error": True` with a readable message when an API call fails, so the agent can recover.
 
 ### 6.3 Scoping sources to subagents
 
 - Each subagent (`AgentDefinition`) takes its own `tools` list, which can include MCP tool names. A tool left off the list does not exist for that subagent.
-- `AgentDefinition` also takes `mcpServers` to attach a server to one subagent only. The parent never sees that server's tool descriptions. For example, a dining subagent could get only Apify and Exa.
+- `AgentDefinition` also takes `mcpServers` to attach a server to one subagent only. The parent never sees that server's tool descriptions. For example, the Apify server could be attached to a dining subagent only.
 - Only the subagent's final report reaches the parent. Pushing search-heavy work into subagents keeps the parent's context small.
 
 ### 6.4 Keep tool results small
 
 - A tool result over 25,000 tokens is saved to a file, and the agent gets a file path instead.
 - Trim API responses inside your custom tools before returning them. For example, return name, rating, review count, price, address, and URL. Drop photos, raw reviews, and route geometry.
-- Use provider limits where they exist, such as Exa `numResults` or a result limit on the Apify actor.
+- Use provider limits where they exist, such as a result limit on the Apify actor.
 - You cannot trim a third-party MCP server's output yourself. That is a real trade-off to watch for.
 
 ### 6.5 Terms that affect the design
@@ -251,7 +263,7 @@ mcp_servers={
 - **Google:** Places and Routes results on a map must be on a Google map. Place IDs can be stored forever. Other Places content cannot be cached beyond short limits. Photos and reviews need author credit.
 - **Mapbox:** Some Mapbox docs say results must be shown on Mapbox maps. The full product terms could not be confirmed. Using Mapbox GL JS avoids the question.
 - **OpenStreetMap data** (Overpass, OpenRouteService, Nominatim): needs ODbL attribution only.
-- **Option cards need a source link** (spec 7.5). Apify and Google return a Google Maps URL. NPS returns park page URLs. Exa returns result URLs.
+- **Option cards need a source link** (spec 7.5). Apify and Google return a Google Maps URL. NPS returns park page URLs. `WebSearch` returns result URLs.
 
 ### 6.6 API keys
 
@@ -278,7 +290,7 @@ One shared server-side key per provider is fine for this project. Keep the keys 
 1. Whether Google Grounding Lite's `search_places` returns ratings, review counts, and price level.
 2. How long an Apify Google Maps Scraper run takes, and what one run really costs, including any per-run charge.
 3. Whether Mapbox's remote MCP accepts a bearer token from the Agent SDK, and whether MCP calls count against the normal API free tiers.
-4. How the Agent SDK's built-in `WebSearch` is billed. One call may count as several searches. Check `usage.server_tool_use`.
+4. How much of the Max plan allowance a search-heavy planning session uses. Check the usage bars before and after a test run.
 5. Whether LiteAPI sandbox rates look like real US prices.
 6. Whether the community-hosted NPS and Open-Meteo MCP servers are up and responsive.
 
@@ -327,6 +339,8 @@ One shared server-side key per provider is fine for this project. Keep the keys 
 - https://dev.opentripmap.org/product
 
 **Web search and Agent SDK**
+- https://code.claude.com/docs/en/costs
+- https://code.claude.com/docs/en/agent-sdk/overview
 - https://exa.ai/pricing
 - https://exa.ai/docs/reference/exa-mcp
 - https://docs.tavily.com/documentation/mcp
