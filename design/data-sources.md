@@ -10,7 +10,7 @@ This document lists the data the agent needs to deliver the [functional spec](fu
 
 - **Quality is secondary.** Stale or incomplete data is fine. The goal is to watch the agent call a source, reason over the result, and present options.
 - **Cost must be metered.** Free tiers and per-call pricing (around $1 per 1,000 calls) are fine. Monthly subscriptions and minimums are not.
-- **Mix of integration styles.** Use at least one or two **third-party remote MCP servers** (hosted by someone else, reached over HTTP). Also wrap some plain REST APIs as **custom in-process tools** with the Agent SDK's `@tool` decorator.
+- **Mix of integration styles.** Use at least one or two **third-party remote MCP servers** (hosted by someone else, reached over HTTP). Also wrap some plain REST APIs as **custom tools** defined in the agent's own code.
 - **Web search is expected.** The agent uses general web search for anything without a good structured source.
 
 ---
@@ -26,10 +26,12 @@ This document lists the data the agent needs to deliver the [functional spec](fu
 | Weather forecast (within 7 days) | **NWS** api.weather.gov | Custom tool | Free, no key |
 | Seasonal averages | **Open-Meteo** Historical API | Custom tool | Free, no key |
 | National parks: alerts, closures, things to do | **NPS Data API** | Custom tool | Free key |
+| Curated local picks: what to see, do, and eat | **Wikivoyage** | Custom tool | Free, no key |
+| Unusual places near a stop or along a leg | **Atlas Obscura** (unofficial endpoints) | Custom tool | Free, no key |
 | UI map | **Mapbox GL JS** | Front end | Free. 50k map loads per month |
 
 **Why this set:**
-- It gives you two official third-party remote MCP servers (Mapbox and Apify) and three REST APIs to wrap yourself (NWS, Open-Meteo, NPS). Web search uses the tool already built into the SDK.
+- It gives you two official third-party remote MCP servers (Mapbox and Apify) and five sources to wrap yourself as custom tools (NWS, Open-Meteo, NPS, Wikivoyage, Atlas Obscura). Web search uses the tool already built into the SDK.
 - None of them need a credit card to start. Mapbox's full free tier does need a card, but its no-card trial (10k routes, 5k searches per month) is enough for development.
 - Expected data cost is under $1 per test trip. Model usage, including web search, runs on your Max plan (see 4.8).
 
@@ -127,7 +129,8 @@ The spec shows prices only when the data has them, so this is optional.
 |---|---|---|---|
 | **NPS Data API** | Parks, alerts (closures), things to do (with duration and season), hours, campgrounds, events | Free key, 1,000 requests per hour | Community, **hosted remote** (`national-parks.caseyjhand.com/mcp`), plus local options |
 | Recreation.gov RIDB | Facilities on federal land (USFS, BLM) | Free key | None found |
-| Wikivoyage / Wikipedia | "See" and "Do" sections, general summaries | Free. 200 requests per minute with a User-Agent | — |
+| Wikivoyage / Wikipedia | "See" and "Do" sections, general summaries (see below) | Free. 200 requests per minute with a User-Agent | — |
+| Atlas Obscura | Unusual places by location (see below) | Unofficial endpoints only | None |
 | Wikidata SPARQL | Structured landmark lists | Free | Community |
 | FHWA America's Byways | 184 scenic byways | No API or bulk download | — |
 
@@ -136,6 +139,26 @@ The spec shows prices only when the data has them, so this is optional.
 - For scenic byways, the model's own knowledge plus web search is the practical answer.
 
 **Recommendation:** Wrap the NPS API as a custom tool. Optionally connect the hosted NPS MCP too, and compare the two.
+
+#### Curated and unusual places
+
+The sources above lean toward parks and nature. Map and review sources (Mapbox, Apify) rank places by category and popularity. They will find the Mapparium in Boston if the agent searches for it by name, but they won't suggest it unprompted. Two sources fill that gap: Wikivoyage for places a local editor thought worth a visit, and Atlas Obscura for odd and unusual places.
+
+**Wikivoyage** is a free travel guide written by volunteers. It runs on MediaWiki, the same software as Wikipedia.
+- **Access:** the standard MediaWiki API at `https://en.wikivoyage.org/w/api.php`. No key is needed. Requests need an identifying User-Agent and are limited to 200 per minute.
+- **Useful calls:** `action=parse&page=<town>&prop=wikitext` returns a page. `prop=sections` lists its sections, and `section=N` returns just one, such as "See" or "Eat". `action=query&list=search` finds pages by keyword.
+- **Data shape:** the API returns page markup, not JSON. Each listing in the markup is a template (`see`, `do`, `eat`, `drink`, `sleep`) with named fields: name, address, lat, long, hours, price, url, and a short description. The tool has to parse these templates into records before returning them.
+- **Limits:** coverage is uneven, and small towns often have few listings. There are no ratings. Prices are free text like "mains around $25". Some listings are years out of date.
+- **Bulk option:** full Wikivoyage database dumps are published at `dumps.wikimedia.org`.
+
+**Atlas Obscura** catalogs unusual places, such as the Mapparium or the first Dunkin' Donuts.
+- **No official API and no MCP server.** Searches for an Atlas Obscura MCP server only found unrelated products with similar names.
+- **Unofficial library:** `atlas-obscura-api` on npm ([GitHub](https://github.com/bartholomej/atlas-obscura-api)) calls the site's internal endpoints. It can search for places near a latitude and longitude, get one place's full details, and list every place with its coordinates. It describes itself as an unofficial scraper. Version 5.1.0 was published in May 2026. A tool could use the library directly, or call the same endpoints the library calls.
+- **Risks:** the endpoints are undocumented and could change or be blocked at any time. The terms of use page returned "403 Forbidden" to an automated fetch, so what it says about automated access is **(unverified)**. That 403 also suggests the site blocks some automated readers, so the agent's `WebFetch` may not be able to open Atlas Obscura pages.
+- **Apify:** search results list two Atlas Obscura Actors (crawlergang and crawlerbros). Both pages returned "404 Not Found" on 2026-10-09, so they seem to have been removed.
+- **Fallback:** web search with `site:atlasobscura.com` in the query. Result titles and snippets are often enough to suggest a place.
+
+**Recommendation:** Add both as custom tools. Wikivoyage suggests curated "See", "Do", and "Eat" picks for each stop. Atlas Obscura suggests unusual places near each stop and along each leg. Use web search as the Atlas Obscura fallback if its endpoints stop working.
 
 ### 4.6 Weather forecast and seasonal averages
 
@@ -148,7 +171,7 @@ The spec shows prices only when the data has them, so this is optional.
 | Visual Crossing | Forecast and historical summaries | 1,000 records per day free, then $0.0001 per record | Not checked |
 | OpenWeatherMap One Call 3.0 | 8-day forecast, alerts | 1,000 calls per day free, then $0.0015 per call. Card likely needed | Community |
 
-**How to get seasonal averages:** Call Open-Meteo Historical once for, say, October 1–31 across the last 10 years at Moab's coordinates. Average the highs and lows in Python. Count days with more than 1 mm of rain. That is one request, with no key and no station lookup. This makes a good custom tool, because the tool does real work before handing a small summary to the model.
+**How to get seasonal averages:** Call Open-Meteo Historical once for, say, October 1–31 across the last 10 years at Moab's coordinates. Average the highs and lows in the tool's code. Count days with more than 1 mm of rain. That is one request, with no key and no station lookup. This makes a good custom tool, because the tool does real work before handing a small summary to the model.
 
 **Recommendation:** NWS for forecasts within 7 days. Open-Meteo Historical for seasonal averages. Both as custom tools.
 
@@ -220,35 +243,39 @@ The spec shows prices only when the data has them, so this is optional.
 
 ## 6. Integration notes
 
+The Agent SDK exists for both Python and TypeScript. The language is not decided yet. The notes below describe SDK features, not a design. Option names differ slightly between the two SDKs (for example, `mcp_servers` in Python and `mcpServers` in TypeScript).
+
 ### 6.1 Remote MCP servers in the Agent SDK
 
-- Configure them in `ClaudeAgentOptions(mcp_servers={...})` with `"type": "http"`, a `url`, and `headers`.
-- **The SDK won't run a browser login for you, but it can use OAuth tokens your code gets.** Pass a token in static `headers`, or add a `headersHelper` command to the server config. The SDK runs the helper on each connection and again after a 401, and uses the JSON headers it prints. The earlier transaction-bot proof of concept did this against Keycloak with the client credentials grant.
-- **The catch with third-party servers is getting the first token.** Hosted MCP servers that offer OAuth usually expect a person to log in once in a browser (the authorization code flow). They don't usually let an unknown machine client get tokens on its own, the way your Keycloak setup did. To use OAuth with them, you'd run that browser login once in your own script and save the refresh token. Then your `headersHelper` swaps it for a fresh access token each time. Whether each provider issues refresh tokens to outside clients is **(unverified)**.
+- Configure each one in the SDK's MCP servers option with `"type": "http"`, a `url`, and `headers`.
+- **The SDK won't run a browser login for you, but it can use OAuth tokens your code gets.** Pass a token in static `headers`, or add a `headersHelper` command to the server config. The SDK runs the helper on each connection and again after a 401, and uses the JSON headers it prints. This works well with a client credentials setup on an auth server you control, such as Keycloak.
+- **The catch with third-party servers is getting the first token.** Hosted MCP servers that offer OAuth usually expect a person to log in once in a browser (the authorization code flow). They don't usually let an unknown machine client get tokens on its own. To use OAuth with them, you'd run that browser login once yourself and save the refresh token. Then the `headersHelper` swaps it for a fresh access token each time. Whether each provider issues refresh tokens to outside clients is **(unverified)**.
 - **API keys are the simpler path for this project.** A server that wants OAuth and gets no token shows the status `needs-auth`, and the agent runs without its tools. Mapbox, Apify, Exa, TomTom, and Google Grounding Lite all accept a static API key in a header.
 - Prefer a header over a key in the URL. Keys in URLs (Tavily, SerpApi) can end up in logs.
-- Check that each server connected. Read the `init` system message, or call `ClaudeSDKClient.get_mcp_status()`, and look for `failed` or `needs-auth`.
+- Check that each server connected. Read the `init` system message, or ask the SDK client for MCP server status, and look for `failed` or `needs-auth`.
 
-```python
-mcp_servers={
-    "mapbox": {"type": "http", "url": "https://mcp.mapbox.com/mcp",
-               "headers": {"Authorization": f"Bearer {MAPBOX_TOKEN}"}},
-    "apify":  {"type": "http", "url": "https://mcp.apify.com",
-               "headers": {"Authorization": f"Bearer {APIFY_TOKEN}"}},
+The config has the same shape in both SDKs:
+
+```json
+{
+  "mapbox": {"type": "http", "url": "https://mcp.mapbox.com/mcp",
+             "headers": {"Authorization": "Bearer <MAPBOX_TOKEN>"}},
+  "apify":  {"type": "http", "url": "https://mcp.apify.com",
+             "headers": {"Authorization": "Bearer <APIFY_TOKEN>"}}
 }
 ```
 
 ### 6.2 Custom tools
 
-- Write each tool with `@tool(name, description, schema)` and bundle them with `create_sdk_mcp_server(...)`. Tool names become `mcp__<server>__<tool>`.
-- MCP tools are not approved by default. List them in `allowed_tools`. Wildcards like `mcp__apify__*` work.
-- A plain dict schema makes every field required. Use full JSON Schema for optional fields and enums.
-- Return `"is_error": True` with a readable message when an API call fails, so the agent can recover.
+- The SDK wraps custom tools as an MCP server that runs inside the agent's own process. To the agent, a custom tool looks the same as a tool from a remote MCP server.
+- Each tool has a name, a description, and an input schema. Tool names become `mcp__<server>__<tool>`.
+- MCP tools are not approved by default. List them in the SDK's allowed tools option. Wildcards like `mcp__apify__*` work.
+- Mark the result as an error, with a readable message, when an API call fails. The agent can then recover.
 
 ### 6.3 Scoping sources to subagents
 
-- Each subagent (`AgentDefinition`) takes its own `tools` list, which can include MCP tool names. A tool left off the list does not exist for that subagent.
-- `AgentDefinition` also takes `mcpServers` to attach a server to one subagent only. The parent never sees that server's tool descriptions. For example, the Apify server could be attached to a dining subagent only.
+- Each subagent definition takes its own `tools` list, which can include MCP tool names. A tool left off the list does not exist for that subagent.
+- A subagent definition can also attach an MCP server to that subagent only. The parent never sees that server's tool descriptions. For example, the Apify server could be attached to a dining subagent only.
 - Only the subagent's final report reaches the parent. Pushing search-heavy work into subagents keeps the parent's context small.
 
 ### 6.4 Keep tool results small
@@ -293,6 +320,8 @@ One shared server-side key per provider is fine for this project. Keep the keys 
 4. How much of the Max plan allowance a search-heavy planning session uses. Check the usage bars before and after a test run.
 5. Whether LiteAPI sandbox rates look like real US prices.
 6. Whether the community-hosted NPS and Open-Meteo MCP servers are up and responsive.
+7. Whether the Atlas Obscura endpoints used by `atlas-obscura-api` still work, and what Atlas Obscura's terms of use say about automated access.
+8. How many Wikivoyage listings small waystation towns have, compared with cities.
 
 ---
 
@@ -337,6 +366,9 @@ One shared server-side key per provider is fine for this project. Keep the keys 
 - https://github.com/cyanheads/national-parks-mcp-server
 - https://www.nps.gov/subjects/developer/guides.htm
 - https://dev.opentripmap.org/product
+- https://en.wikivoyage.org/w/api.php
+- https://www.npmjs.com/package/atlas-obscura-api
+- https://github.com/bartholomej/atlas-obscura-api
 
 **Web search and Agent SDK**
 - https://code.claude.com/docs/en/costs
@@ -349,3 +381,4 @@ One shared server-side key per provider is fine for this project. Keep the keys 
 - https://code.claude.com/docs/en/agent-sdk/custom-tools
 - https://code.claude.com/docs/en/agent-sdk/subagents
 - https://github.com/anthropics/claude-agent-sdk-python
+- https://github.com/anthropics/claude-agent-sdk-typescript
