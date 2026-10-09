@@ -6,6 +6,8 @@ Desk research done on 2026-10-09. Nothing here was signed up for or called. Pric
 
 This document lists the data the agent needs to deliver the [functional spec](../design/functional-spec.md), the options for each, and a recommended starting set.
 
+**Follow-up testing:** [maps-mcp-evaluation.md](maps-mcp-evaluation.md) records hands-on tests of the Mapbox and TomTom MCP servers. Some of its results differ from what this document expected. For example, Mapbox's MCP server can't search along a route line, which section 4.2 assumes it can.
+
 ---
 
 ## 1. Ground rules for choosing sources
