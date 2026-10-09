@@ -1,6 +1,8 @@
 # Road Trip Planner: Functional Specification (MVP)
 
-Draft v0.1, 2026-10-09. Functional behavior only. No models, harness, tools, or data sources are specified here.
+Draft v0.2, 2026-10-09. Functional behavior only. No models, harness, tools, or data sources are specified here.
+
+**v0.2 changes.** Removed price display (option cards show the budget tier only) and seasonal road closures from scope.
 
 **Convention.** Items marked **Assumption** are defaults filled in during drafting. Confirm or change them before development.
 
@@ -22,7 +24,7 @@ Planning only. The application never books, reserves, or purchases anything.
 - Conversational trip planning with the agent
 - Feasibility checking (driving time, seasonality, must-sees vs days)
 - Recommendations for lodging, restaurants, and attractions, presented as selectable option cards
-- Budget tiers (value, mid-range, posh), with differentiated rules per stop; actual prices shown only when data provides them
+- Budget tiers (value, mid-range, posh), with differentiated rules per stop. Prices are not shown
 - Weather (forecast or seasonal averages) and clothing guidance
 - Itinerary view: summary, map, stops, legs, daily schedule in time blocks
 - Save trips, list trips, reopen trips
@@ -46,6 +48,8 @@ Planning only. The application never books, reserves, or purchases anything.
 - Avoid-tolls or avoid-highways routing
 - Direct manual editing of the itinerary
 - Exports (PDF, calendar, map links)
+- Showing prices or nightly rates. Recommendations show a budget tier only
+- Seasonal road and pass closures
 
 ---
 
@@ -68,7 +72,7 @@ Planning only. The application never books, reserves, or purchases anything.
 | Day | One calendar day of the trip, split into morning, afternoon, and evening time blocks |
 | Recommendation | A suggested hotel, restaurant, or attraction, with its rationale and source |
 | Option card | The UI element presenting a set of recommendations for one slot, with selection actions |
-| Budget tier | Value, mid-range, or posh. A relative price level the agent infers, using price data when available |
+| Budget tier | Value, mid-range, or posh. A relative price level the agent infers. Shown instead of prices |
 | Session | One conversation with the agent about one trip |
 | User memory | Durable facts and preferences about the user, applied to every trip |
 | Trip memory | Facts and decisions about one trip that do not belong in the itinerary |
@@ -130,7 +134,7 @@ The agent establishes each item below, whether or not the user volunteers it. Wh
 
 - **Daily driving:** each driving day's road time fits within the user's max hours. **Assumption:** the agent adds a buffer for fuel, meals, and short stops rather than treating max hours as pure road time.
 - **Must-sees vs days:** all must-sees fit within the trip, given drive time and time needed at each.
-- **Seasonality:** seasonal road closures (for example, high mountain passes), attractions closed off-season, and operating days and hours that conflict with the scheduled time block.
+- **Seasonality:** attractions closed off-season, and operating days and hours that conflict with the scheduled time block. Seasonal road closures are out of scope.
 - **Seasonal risks:** for example, hurricane season, extreme heat, or snow.
 - **Date windows:** when the user gives a window, the agent recommends specific dates within it, considering the checks above.
 - **Trip length:** the trip is 14 days or fewer. When the user asks for more, the agent explains the limit and proposes a 14-day version (fewer stops, or a shorter route).
@@ -149,8 +153,8 @@ The agent:
 
 ### 7.1 Budget tiers and rules
 
-- Three tiers: **value**, **mid-range**, **posh**. The agent infers a place's tier from descriptions, reviews, listing signals, and price when the data includes it.
-- When price data is available, the agent uses it in the tier judgment and option cards display it. When it is not, cards show the tier alone.
+- Three tiers: **value**, **mid-range**, **posh**. The agent infers a place's tier from descriptions, reviews, and listing signals, such as a "$$" price level when the data includes one.
+- Option cards show the tier only. They never show prices or nightly rates.
 - Tiers apply to lodging and dining. **Assumption:** attractions have no tier.
 - The user sets a **default tier** for the trip early in the conversation.
 - The user can add **rules** in natural language, and the agent applies its judgment. Examples:
@@ -184,7 +188,6 @@ Each card set presents recommendations for one slot (a stop's hotel, a meal, an 
 Each option shows:
 
 - Name, type, tier, and location
-- Price, when available
 - Rating and review count
 - Why it was recommended, tied to the user's stated preferences
 - Source link for the underlying listing or review data
@@ -300,7 +303,7 @@ The agent uses user memory to prefill section 5.2 and confirms rather than re-as
 
 **S3. Infeasible plan.** User wants Seattle to Miami in five days at four hours of driving per day. The agent states the shortfall and offers trade-offs.
 
-**S4. Seasonal conflict.** User wants a route through a high mountain pass "sometime in April." The agent flags that the pass is typically closed then and proposes later dates or an alternate route.
+**S4. Seasonal conflict.** User wants a trip "sometime in January" that includes an attraction open only in summer. The agent flags that the attraction is typically closed then and proposes later dates or a substitute.
 
 **S5. Differentiated tiers.** User sets value as the default and mid-range for any stop of two or more nights. Waystation hotel cards show value options; destination hotel cards show mid-range, with the applied rule visible.
 

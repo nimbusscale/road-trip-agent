@@ -1,6 +1,6 @@
 # Road Trip Planner: Data Sources
 
-Draft v0.1, 2026-10-09. Desk research only. Nothing here was signed up for or called. Prices and terms come from public docs pages read on this date. Items marked **(unverified)** could not be confirmed from a primary source and should be checked during evaluation.
+Draft v0.2, 2026-10-09. Desk research only. Nothing here was signed up for or called. Prices and terms come from public docs pages read on this date. Items marked **(unverified)** could not be confirmed from a primary source and should be checked during evaluation.
 
 This document lists the data the agent needs to deliver the [functional spec](functional-spec.md), the options for each, and a recommended starting set.
 
@@ -22,7 +22,7 @@ This document lists the data the agent needs to deliver the [functional spec](fu
 | Geocoding, routes, drive times, route line | **Mapbox** | Remote MCP (`mcp.mapbox.com/mcp`, official) | Free. 100k routes and 100k geocodes per month |
 | Points of interest along a leg | **Mapbox** Search Box `category` search along a route | Same remote MCP | Free. 25k–50k per month |
 | Restaurants and hotels with rating, review count, "$$" | **Apify** Google Maps Scraper | Remote MCP (`mcp.apify.com`, official) | $5 free credit per month, then about $1.50–2 per 1,000 results |
-| Web search (closures, "best barbecue in Lockhart") | Claude's built-in **`WebSearch`** | Built-in SDK tool | No separate charge on the Max plan. Counts against plan usage (see 4.8) |
+| Web search (attraction hours, "best barbecue in Lockhart") | Claude's built-in **`WebSearch`** | Built-in SDK tool | No separate charge on the Max plan. Counts against plan usage (see 4.8) |
 | Weather forecast (within 7 days) | **NWS** api.weather.gov | Custom tool | Free, no key |
 | Seasonal averages | **Open-Meteo** Historical API | Custom tool | Free, no key |
 | National parks: alerts, closures, things to do | **NPS Data API** | Custom tool | Free key |
@@ -38,7 +38,6 @@ This document lists the data the agent needs to deliver the [functional spec](fu
 **Good optional additions, if you want more MCP practice:**
 - **Exa** remote MCP for web search (see 4.8). Running it next to the built-in tool shows how the agent picks between two tools that do the same job.
 - **NPS and Open-Meteo hosted MCP servers** (community, see 4.5 and 4.6). Each one lets you compare a remote MCP and your own wrapper of the same API side by side.
-- **LiteAPI** remote MCP for real hotel nightly prices (see 4.4).
 - **TomTom** remote MCP as a second mapping provider (see 4.1).
 
 ---
@@ -49,12 +48,12 @@ This document lists the data the agent needs to deliver the [functional spec](fu
 |---|---|
 | 5.3 Skeleton, 9.4 Legs | Geocoding of cities and places. Drive time and distance between stops. Scenic vs fastest route |
 | 6.1 Daily driving | Drive time per leg, matched against max hours per day |
-| 6.1 Seasonality | Seasonal road and pass closures. Attraction hours and off-season closures |
+| 6.1 Seasonality | Attraction hours and off-season closures. Road closures are out of scope |
 | 6.1 Seasonal risks | Hurricane season, extreme heat, snow |
-| 7.2 Lodging | Hotels near a point, with rating, review count, price or price level, source link |
+| 7.2 Lodging | Hotels near a point, with rating, review count, price level, source link |
 | 7.3 Dining | Restaurants by cuisine near a point, with rating, review count, price level, hours, source link |
 | 7.4 Attractions | Attractions by interest near a stop and along a leg, with hours and estimated visit time |
-| 7.1 Budget tiers | A price signal: "$" to "$$$$", nightly rate, or hotel star class |
+| 7.1 Budget tiers | A price-level signal, such as "$" to "$$$$" or hotel star class. Used only to judge the tier. Prices are not shown |
 | 8 Weather | 7-day forecast. Monthly average highs, lows, and precipitation for any place |
 | 9.2 Map | Map tiles, a drawable route line, coordinates for every marker |
 
@@ -110,18 +109,13 @@ This is the hardest area. The big review sites have mostly closed off cheap API 
 - **Google Places** is the cleanest source, but the price jumps sharply past the free cap. The fields you need (rating, review count, price level, hours) all fall into Google's top "Enterprise" price tier. The first 1,000 such searches each month are free, which may be enough for development.
 - **Yelp** is out because of the monthly minimum. **Tripadvisor's legacy Content API** is deprecated, and its terms only allow AI use for internal, non-customer-facing purposes.
 
+Price fields in this table are only for judging the budget tier. The spec does not show prices to the user.
+
 **Recommendation:** Apify remote MCP. Google Places is the fallback if you go with the all-Google option in section 5.
 
-### 4.4 Hotel nightly prices (optional)
+### 4.4 Hotel nightly prices (out of scope)
 
-The spec shows prices only when the data has them, so this is optional.
-
-- **Apify** Google Maps results include hotel ad prices when detail scraping is on.
-- **LiteAPI** has an **official hosted remote MCP** (`mcp.liteapi.travel/api/mcp`). It offers a free self-serve sandbox key. Whether sandbox rates are real US prices is **(unverified)**.
-- **SerpApi** Google Hotels returns `rate_per_night` within 250 free searches per month.
-- **Amadeus Self-Service** shut down on 2026-07-17. **Expedia Rapid** and **Booking.com** need partner approval. All three are out.
-
-**Recommendation:** Rely on Apify's price fields first. Try LiteAPI if you want a travel-industry MCP server.
+Spec v0.2 removed price display, so no source for nightly rates is needed. For reference, LiteAPI (official hosted remote MCP) and SerpApi Google Hotels were the best options found.
 
 ### 4.5 Attractions and parks
 
@@ -175,13 +169,15 @@ The sources above lean toward parks and nature. Map and review sources (Mapbox, 
 
 **Recommendation:** NWS for forecasts within 7 days. Open-Meteo Historical for seasonal averages. Both as custom tools.
 
-### 4.7 Seasonal road closures and hazards
+### 4.7 Seasonal hazards
 
-- **No national API exists** for seasonal pass closures. State DOT feeds (Caltrans, WSDOT, 511 systems) each work differently, and most cover planned work zones, not seasonal passes.
-- **NPS alerts** cover park roads like Going-to-the-Sun Road and Trail Ridge Road.
-- **Hazard seasons** (hurricane season June 1 to November 30, desert heat, mountain snow) are stable facts the model already knows. NWS alerts cover live warnings inside the 7-day window.
+Spec v0.2 removed seasonal road closures from scope. Research found no national API for them anyway. State feeds each work differently and mostly cover work zones.
 
-**Recommendation:** Web search plus NPS alerts. Put a short list of typical open and close dates for the well-known passes (Tioga, Going-to-the-Sun, Trail Ridge, Beartooth) in the agent's instructions. Then tell the agent to confirm with web search when a trip falls in a shoulder season.
+- **Hazard seasons** (hurricane season June 1 to November 30, desert heat, mountain snow) are stable facts the model already knows. No API is needed.
+- **NWS alerts** cover live warnings inside the 7-day forecast window.
+- **Attraction closures** are still in scope. NPS alerts and park "things to do" data cover parks. Web search covers everything else.
+
+**Recommendation:** Rely on the model's knowledge for hazard seasons. Use NWS alerts for trips within 7 days.
 
 ### 4.8 General web search
 
@@ -281,7 +277,7 @@ The config has the same shape in both SDKs:
 ### 6.4 Keep tool results small
 
 - A tool result over 25,000 tokens is saved to a file, and the agent gets a file path instead.
-- Trim API responses inside your custom tools before returning them. For example, return name, rating, review count, price, address, and URL. Drop photos, raw reviews, and route geometry.
+- Trim API responses inside your custom tools before returning them. For example, return name, rating, review count, price level, address, and URL. Drop photos, raw reviews, and route geometry.
 - Use provider limits where they exist, such as a result limit on the Apify actor.
 - You cannot trim a third-party MCP server's output yourself. That is a real trade-off to watch for.
 
@@ -318,10 +314,9 @@ One shared server-side key per provider is fine for this project. Keep the keys 
 2. How long an Apify Google Maps Scraper run takes, and what one run really costs, including any per-run charge.
 3. Whether Mapbox's remote MCP accepts a bearer token from the Agent SDK, and whether MCP calls count against the normal API free tiers.
 4. How much of the Max plan allowance a search-heavy planning session uses. Check the usage bars before and after a test run.
-5. Whether LiteAPI sandbox rates look like real US prices.
-6. Whether the community-hosted NPS and Open-Meteo MCP servers are up and responsive.
-7. Whether the Atlas Obscura endpoints used by `atlas-obscura-api` still work, and what Atlas Obscura's terms of use say about automated access.
-8. How many Wikivoyage listings small waystation towns have, compared with cities.
+5. Whether the community-hosted NPS and Open-Meteo MCP servers are up and responsive.
+6. Whether the Atlas Obscura endpoints used by `atlas-obscura-api` still work, and what Atlas Obscura's terms of use say about automated access.
+7. How many Wikivoyage listings small waystation towns have, compared with cities.
 
 ---
 
@@ -353,8 +348,6 @@ One shared server-side key per provider is fine for this project. Keep the keys 
 - https://business.yelp.com/data/resources/pricing/
 - https://foursquare.com/pricing/
 - https://docs.terra.tripadvisor.com/reference/mcp
-- https://docs.liteapi.travel/reference/api-pricing-usage-costs
-- https://github.com/liteapi-travel/mcp-server
 - https://serpapi.com/pricing
 - https://www.phocuswire.com/amadeus-shut-down-self-service-apis-portal-developers
 
