@@ -22,9 +22,9 @@ Planning only. The application never books, reserves, or purchases anything.
 - Conversational trip planning with the agent
 - Feasibility checking (driving time, seasonality, must-sees vs days)
 - Recommendations for lodging, restaurants, and attractions, presented as selectable option cards
-- Budget tiers (value, mid-range, posh), with differentiated rules per stop. Prices are not shown
+- Budget tiers (value, mid-range, posh), with differentiated rules per stay. Prices are not shown
 - Weather (forecast or seasonal averages) and clothing guidance
-- Itinerary view: summary, map, stops, legs, daily schedule in time blocks
+- Itinerary view: summary, map, stays, legs, daily schedule in time blocks
 - Save trips, list trips, reopen trips
 - Resume previous chat sessions, or start a new session on an existing trip
 - User memory (across trips) and trip memory (within a trip), viewable and forgettable by the user
@@ -64,12 +64,13 @@ Planning only. The application never books, reserves, or purchases anything.
 | Term | Meaning |
 |---|---|
 | Trip | The persistent plan. Owns one itinerary, one trip memory, and many sessions |
-| Itinerary | The structured plan the agent builds: stops, legs, days, selections |
-| Stop | An overnight location. Either a **destination** (multi-night, to explore) or a **waystation** (usually one night, to break up driving). One hotel per stop regardless of nights |
-| Leg | The drive between two stops, with duration, distance, and points of interest along the way |
+| Itinerary | The structured plan the agent builds: stays, legs, days, stops, selections |
+| Stay | An overnight location. Either a **destination** (multi-night, to explore) or a **waystation** (usually one night, to break up driving). One lodging per stay regardless of nights, usually a hotel |
+| Stop | A place the party visits during a day, such as a meal, an attraction, or a quick look along the way |
+| Leg | The drive between two stays, with duration, distance, and the stops along the way |
 | Day | One calendar day of the trip, split into morning, afternoon, and evening time blocks |
 | Recommendation | A suggested hotel, restaurant, or attraction, with its rationale and source |
-| Option card | The UI element presenting a set of recommendations for one slot, with selection actions |
+| Option card | The UI element presenting a set of recommendations for one choice (a stay's lodging or a stop), with selection actions |
 | Budget tier | Value, mid-range, or posh. A relative price level the agent infers. Shown instead of prices |
 | Session | One conversation with the agent about one trip |
 | User memory | Durable facts and preferences about the user, applied to every trip |
@@ -115,9 +116,9 @@ Planning a trip involves the activities below. They are not steps in a fixed ord
 |---|---|
 | Discovery | The agent establishes the items in 5.2. It asks a few questions at a time, and doesn't hold back a first proposal until every item is answered |
 | Shape | When the route is open, two or three short sketches of the trip to choose from. Each has a name, the rough path, and a few sentences on why someone would pick it. Not offered when the user gives a fixed route |
-| Skeleton | Start, end, stops (destination or waystation), nights per stop, legs with drive times, and recommended dates if only a window was given |
+| Skeleton | Start, end, stays (destination or waystation), nights per stay, legs with drive times, and recommended dates if only a window was given |
 | Feasibility | The checks in section 6, with conflicts resolved with the user |
-| Fill | Lodging, attractions, and dining for each stop and day, through option cards |
+| Fill | Lodging, attractions, and dining for each stay and day, through option cards |
 | Weather and clothing | Section 8 |
 | Refine | Changes through chat or option card actions |
 
@@ -125,7 +126,7 @@ After any change, the agent re-checks feasibility for the affected days.
 
 ### 5.4 Agent conduct
 
-- Suggests trip length, start and end points, and nights per stop when the user has no preference, and explains why.
+- Suggests trip length, start and end points, and nights per stay when the user has no preference, and explains why.
 - Explains trade-offs in plain language rather than making silent choices.
 - Never states or implies that anything is booked or reserved.
 - Stays on the topic of trip planning; politely redirects unrelated requests.
@@ -141,14 +142,14 @@ After any change, the agent re-checks feasibility for the affected days.
 - **Seasonality:** attractions closed off-season, and operating days and hours that conflict with the scheduled time block. Seasonal road closures are out of scope.
 - **Seasonal risks:** for example, hurricane season, extreme heat, or snow.
 - **Date windows:** when the user gives a window, the agent recommends specific dates within it, considering the checks above.
-- **Trip length:** the trip is 14 days or fewer. When the user asks for more, the agent explains the limit and proposes a 14-day version (fewer stops, or a shorter route).
+- **Trip length:** the trip is 14 days or fewer. When the user asks for more, the agent explains the limit and proposes a 14-day version (fewer stays, or a shorter route).
 
 ### 6.2 When a plan is infeasible
 
 The agent:
 
 1. States which constraint fails and by how much (for example, "Day 3 needs about 9 hours of driving against your 6-hour daily preference").
-2. Proposes two or three trade-offs, such as adding a day, dropping or reordering stops, accepting a longer driving day, or switching from scenic to fastest for one leg.
+2. Proposes two or three trade-offs, such as adding a day, dropping or reordering stays or stops, accepting a longer driving day, or switching from scenic to fastest for one leg.
 3. Lets the user pick, through option cards or chat.
 4. When the user accepts an exception, such as a longer driving day or the fastest route on one leg, records it on that day or leg, with the reason. It doesn't raise it again unless a later change makes that day longer than the user agreed to. For example, the user agrees to 6 hours on the last day. If a later change makes that day 7 hours, the agent asks again.
 
@@ -170,7 +171,8 @@ The agent:
 
 ### 7.2 Lodging
 
-- One hotel per stop, regardless of nights.
+- One lodging per stay, regardless of nights.
+- The agent recommends hotels only. The user can name any lodging instead, such as a friend's house or a campground (7.6).
 - Location matters: for destinations, near what the user wants to see; for waystations, convenient to the route.
 
 ### 7.3 Dining
@@ -183,12 +185,12 @@ The agent:
 ### 7.4 Attractions and stops
 
 - Driven by stated interests and must-sees.
-- Includes scenic or notable stops along legs, not only at overnight stops.
+- Includes scenic or notable stops along legs, not only near where the party stays.
 - Each attraction carries an estimated time to spend and any seasonal or operating-hour notes.
 
 ### 7.5 Option cards
 
-Each card set presents recommendations for one slot (a stop's hotel, a meal, an attraction choice). **Assumption:** three options per set.
+Each card set presents recommendations for one choice (a stay's lodging, or a meal or attraction stop). **Assumption:** three options per set.
 
 Each option shows:
 
@@ -208,7 +210,8 @@ Selecting an option updates the itinerary, and the agent acknowledges the change
 
 ### 7.6 Item status and rationale
 
-- Every itinerary slot is either **proposed** (options shown, nothing chosen) or **selected**.
+- Every stop, and every stay's lodging, is either **proposed** (options shown, nothing chosen) or **selected**.
+- The user can also name a place directly, such as a restaurant they already want or a friend's house to stay at. The agent looks it up and marks it selected, with no option cards. Its rationale is that the user chose it.
 - Selected items keep their rationale and source, viewable from the itinerary later. This serves both the user ("why did we pick this?") and the developer reviewing agent choices.
 
 ---
@@ -216,8 +219,8 @@ Selecting an option updates the itinerary, and the agent acknowledges the change
 ## 8. Weather and clothing guidance
 
 - **Forecast** for dates within 7 days, subject to what forecast data is available.
-- **Seasonal averages** for each stop and time of year otherwise. The itinerary labels which one is shown.
-- Per stop: typical highs and lows, precipitation likelihood, and notable risks.
+- **Seasonal averages** for each stay and time of year otherwise. The itinerary labels which one is shown.
+- Per stay: typical highs and lows, precipitation likelihood, and notable risks.
 - **Clothing guidance:** short, condition-specific advice on how to dress and what to bring, tied to the planned activities. For example, layers and a warm jacket for mountains in November; rain gear for a wet season; sun protection and water for desert hikes. This is guidance, not a full packing checklist.
 - **Assumption:** when a user reopens a trip that has moved into the forecast range, the agent offers to replace averages with the forecast.
 
@@ -229,17 +232,17 @@ Displayed alongside the chat. Read-only: only the agent changes it, in response 
 
 ### 9.1 Trip summary
 
-Trip name, dates or duration, start and end, party, total driving time, number of stops, default budget posture and rules.
+Trip name, dates or duration, start and end, party, total driving time, number of stays, default budget posture and rules.
 
 ### 9.2 Map
 
 - One overall view of the whole trip. No per-day filtering.
-- Shows the route line, overnight stops, attractions, and restaurants, with distinguishable markers.
+- Shows the route line, stays, attractions, and restaurants, with distinguishable markers.
 - Selecting a marker shows that item's details.
 
-### 9.3 Stops
+### 9.3 Stays
 
-For each stop: type (destination or waystation), dates, nights, and lodging (proposed or selected).
+For each stay: type (destination or waystation), dates, nights, and lodging (proposed or selected).
 
 ### 9.4 Legs
 
@@ -251,7 +254,7 @@ For each day: day number, date, location, and morning, afternoon, and evening bl
 
 ### 9.6 Weather and clothing
 
-Section 8 content, per stop.
+Section 8 content, per stay.
 
 ### 9.7 Units
 
@@ -305,15 +308,15 @@ The agent uses user memory to prefill section 5.2 and confirms rather than re-as
 
 ## 11. Acceptance scenarios
 
-**S1. Specific route.** User asks for the Pacific Coast Highway, San Francisco to Los Angeles. The agent still asks about interests, must-sees, dates, party, driving hours, and budget posture before proposing stops and nights.
+**S1. Specific route.** User asks for the Pacific Coast Highway, San Francisco to Los Angeles. The agent still asks about interests, must-sees, dates, party, driving hours, and budget posture before proposing stays and nights.
 
-**S2. Theme and region.** User wants Texas barbecue over seven days with no start or end in mind. The agent proposes a start and end (loop or one-way), stops, and drive times, with barbecue restaurants treated as primary attractions.
+**S2. Theme and region.** User wants Texas barbecue over seven days with no start or end in mind. The agent proposes a start and end (loop or one-way), stays, and drive times, with barbecue restaurants treated as primary attractions.
 
 **S3. Infeasible plan.** User wants Seattle to Miami in five days at four hours of driving per day. The agent states the shortfall and offers trade-offs.
 
 **S4. Seasonal conflict.** User wants a trip "sometime in January" that includes an attraction open only in summer. The agent flags that the attraction is typically closed then and proposes later dates or a substitute.
 
-**S5. Differentiated tiers.** User sets value as the default and mid-range for any stop of two or more nights. Waystation hotel cards show value options; destination hotel cards show mid-range, with the applied rule visible.
+**S5. Differentiated tiers.** User sets value as the default and mid-range for any stay of two or more nights. Waystation hotel cards show value options; destination hotel cards show mid-range, with the applied rule visible.
 
 **S6. Option card navigation.** On a hotel card, the user picks "Higher tier," then selects an option. The itinerary updates and the agent confirms in chat.
 
