@@ -25,7 +25,7 @@ This index maps each data need in the [functional spec](functional-spec.md) to t
 | Source link for option cards | 7.5 | Google Places: Google Maps link and reviews link. NPS page links. Web search result links | [Google](data-sources-google.md), [NPS](data-sources-nps.md), [Web search](data-sources-web-search.md) |
 | Seasonal hours and closures | 6.1 | NPS Data API for national parks: dated visitor-center closures and road-season text. Everything else: the agent's own knowledge and web search. The agent says plainly when hours are unconfirmed | [NPS](data-sources-nps.md), [Web search](data-sources-web-search.md) |
 | Current park closures and alerts | 6.1 | NPS Data API, for visits within 7 days | [NPS](data-sources-nps.md) |
-| Seasonal risks (heat, snow, hurricanes) | 6.1 | Not decided | — |
+| Seasonal risks (heat, snow, hurricanes) | 6.1 | Heat, freezing, and snow: counts from the Open-Meteo seasonal averages tool. Hazard seasons such as hurricanes: the agent's own knowledge | [Open-Meteo](data-sources-open-meteo.md) |
 | Weather forecast, within 7 days | 8 | Google Weather API | [Google](data-sources-google.md) |
-| Seasonal weather averages | 8 | Not decided | — |
+| Seasonal weather averages | 8 | Open-Meteo Historical Weather API | [Open-Meteo](data-sources-open-meteo.md) |
 | UI map | 9.2 | Google Maps JavaScript API | [Google](data-sources-google.md) |

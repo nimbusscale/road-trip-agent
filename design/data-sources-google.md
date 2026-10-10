@@ -76,7 +76,7 @@ This document covers the Google Maps Platform APIs the app uses: Routes, Places,
 
 ## 3. Weather forecast
 
-Used for stops whose dates fall within the next 7 days (spec 8). Later dates use seasonal averages, which have no source yet.
+Used for stops whose dates fall within the next 7 days (spec 8). Later dates use seasonal averages from [Open-Meteo](data-sources-open-meteo.md).
 
 **Request:**
 

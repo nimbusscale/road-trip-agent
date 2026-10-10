@@ -13,7 +13,7 @@ This document lists the data the agent needs to deliver the [functional spec](..
 - **The ground rule on third-party MCP servers was dropped.** Every source is now wrapped as a custom tool (section 1).
 - **Attractions sources were tested by hand.** Atlas Obscura blocks automated requests, so its places now come from web search. Wikivoyage was dropped (section 4.5).
 
-**Follow-up testing:** [maps-mcp-evaluation.md](maps-mcp-evaluation.md) records hands-on tests of the Mapbox, TomTom, and Google Grounding Lite MCP servers, and of Google's Routes and Places APIs. [data-sources-attractions.md](data-sources-attractions.md) records hands-on tests of the NPS API, Wikivoyage, Atlas Obscura, and web search for attractions.
+**Follow-up testing:** [maps-mcp-evaluation.md](maps-mcp-evaluation.md) records hands-on tests of the Mapbox, TomTom, and Google Grounding Lite MCP servers, and of Google's Routes and Places APIs. [data-sources-attractions.md](data-sources-attractions.md) records hands-on tests of the NPS API, Wikivoyage, Atlas Obscura, and web search for attractions. [data-sources-weather.md](data-sources-weather.md) records hands-on tests of Open-Meteo's historical weather API for seasonal averages.
 
 ---
 
@@ -180,6 +180,8 @@ The sources above lean toward parks and nature. Map and review sources (Google, 
 | OpenWeatherMap One Call 3.0 | 8-day forecast, alerts | 1,000 calls per day free, then $0.0015 per call. Card likely needed | Community |
 
 **How to get seasonal averages:** Call Open-Meteo Historical once for, say, October 1–31 across the last 10 years at Moab's coordinates. Average the highs and lows in the tool's code. Count days with more than 1 mm of rain. That is one request, with no key and no station lookup. This makes a good custom tool, because the tool does real work before handing a small summary to the model.
+
+Hands-on results for Open-Meteo Historical are in [data-sources-weather.md](data-sources-weather.md).
 
 **Recommendation:** NWS for forecasts within 7 days, or the Google Weather API to reach 10 days on the same Google key. Open-Meteo Historical for seasonal averages, since Google keeps only 24 hours of history. All as custom tools.
 
