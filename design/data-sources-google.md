@@ -8,7 +8,7 @@ This document covers the Google Maps Platform APIs the app uses: Routes, Places,
 
 | API | Used for | Called from | Endpoint |
 |---|---|---|---|
-| Routes API | Drive times, stop order, route lines | Agent tools | `POST https://routes.googleapis.com/directions/v2:computeRoutes` |
+| Routes API | Drive times, stay order, route lines | Agent tools | `POST https://routes.googleapis.com/directions/v2:computeRoutes` |
 | Places API (New), Text Search | Hotels, restaurants, attractions, named places, places along a leg | Agent tools | `POST https://places.googleapis.com/v1/places:searchText` |
 | Weather API | Daily forecasts | Agent tools | `GET https://weather.googleapis.com/v1/forecast/days:lookup` |
 | Maps JavaScript API | The itinerary map | Browser | Loaded in the page |
@@ -27,13 +27,13 @@ This document covers the Google Maps Platform APIs the app uses: Routes, Places,
 
 | Job | API | Request | Notes |
 |---|---|---|---|
-| Drive time and distance for each leg | Routes | `computeRoutes` with the stops as `intermediates` | Returns time and distance for every leg |
+| Drive time and distance for each leg | Routes | `computeRoutes` with the stays as `intermediates` | Returns time and distance for every leg |
 | Route with scenic waypoints | Routes | Same, with waypoints the agent picks | `routeModifiers.avoidHighways` is also worth offering. It kept San Francisco to Los Angeles on CA-1 |
 | Best order for a loop | Routes | `computeRoutes` with `optimizeWaypointOrder: true` | Returns the new order in `optimizedIntermediateWaypointIndex`, with per-leg times |
 | Route line for the map | Routes | `computeRoutes` with `routes.polyline.encodedPolyline` in the field list | Goes to the UI, never to the model (2.3) |
 | Look up a place the user names | Places | Text Search with the name and town, such as "Smitty's Market, Lockhart, TX" | |
 | Map pin for a place found by web search | Places | Text Search with the name and town | Use only `location`. Don't use its hours ([web search](data-sources-web-search.md), section 4) |
-| Places by type near a stop | Places | Text Search, such as "barbecue in Lockhart, TX" | Up to 20 places per call (`pageSize`), ranked by relevance, not distance |
+| Places by type near a stay | Places | Text Search, such as "barbecue in Lockhart, TX" | Up to 20 places per call (`pageSize`), ranked by relevance, not distance |
 | Places along a leg | Places | Text Search with `searchAlongRouteParameters.polyline` and `routingParameters.origin` | Add `routingSummaries` to the field list to get each place's drive time from the start of the leg |
 | Option card details | Places | The same Text Search, with more fields | See 2.2 |
 
@@ -76,7 +76,7 @@ This document covers the Google Maps Platform APIs the app uses: Routes, Places,
 
 ## 3. Weather forecast
 
-Used for stops whose dates fall within the next 7 days (spec 8). Later dates use seasonal averages from [Open-Meteo](data-sources-open-meteo.md).
+Used for stays whose dates fall within the next 7 days (spec 8). Later dates use seasonal averages from [Open-Meteo](data-sources-open-meteo.md).
 
 **Request:**
 
@@ -99,7 +99,7 @@ GET https://weather.googleapis.com/v1/forecast/days:lookup
 
 The itinerary map (spec 9.2) uses the Maps JavaScript API.
 
-- **One map for the whole trip.** It shows the route line, overnight stops, attractions, and restaurants, with different markers for each kind. Selecting a marker shows that item's details.
+- **One map for the whole trip.** It shows the route line, stays, attractions, and restaurants, with different markers for each kind. Selecting a marker shows that item's details.
 - **The route line comes from the backend,** as the encoded polyline from the Routes API. The map library's geometry tools decode it. It never passes through the model.
 - **Places and Routes results must be shown on this Google map,** per Google's terms. Don't put them on another map library.
 

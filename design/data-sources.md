@@ -11,11 +11,11 @@ This index maps each data need in the [functional spec](functional-spec.md) to t
 | Find cities, towns, and named places | 5.2, 5.3 | Google Places Text Search | [Google](data-sources-google.md) |
 | Drive time and distance per leg | 6.1, 9.4 | Google Routes API | [Google](data-sources-google.md) |
 | Scenic routes | 5.2 | Google Routes API, with waypoints the agent picks | [Google](data-sources-google.md) |
-| Best stop order on a loop | 5.3 | Google Routes API, stop ordering option | [Google](data-sources-google.md) |
+| Best stay order on a loop | 5.3 | Google Routes API, option to put stays in the best order | [Google](data-sources-google.md) |
 | Route line for the map | 9.2 | Google Routes API, sent to the UI, not the model | [Google](data-sources-google.md) |
-| Hotels near a stop | 7.2 | Google Places Text Search | [Google](data-sources-google.md) |
-| Restaurants near a stop | 7.3 | Google Places Text Search | [Google](data-sources-google.md) |
-| Attractions near a stop | 7.4 | Google Places Text Search. General web search for mainstream sights. Web search limited to Atlas Obscura for unusual places | [Google](data-sources-google.md), [Web search](data-sources-web-search.md) |
+| Hotels near a stay | 7.2 | Google Places Text Search | [Google](data-sources-google.md) |
+| Restaurants near a stay | 7.3 | Google Places Text Search | [Google](data-sources-google.md) |
+| Attractions near a stay | 7.4 | Google Places Text Search. General web search for mainstream sights. Web search limited to Atlas Obscura for unusual places | [Google](data-sources-google.md), [Web search](data-sources-web-search.md) |
 | Notable stops along a leg | 7.4 | Google Places Text Search along the route line. Web search limited to Atlas Obscura for towns the leg passes through | [Google](data-sources-google.md), [Web search](data-sources-web-search.md) |
 | Sights and activities inside a national park | 7.4 | NPS Data API, things to do and places | [NPS](data-sources-nps.md) |
 | Visit time for attractions | 7.4 | NPS, for national parks where it is filled in. Otherwise the agent's own estimate, labeled as one | [NPS](data-sources-nps.md) |

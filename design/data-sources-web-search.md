@@ -17,11 +17,11 @@ This document covers how the agent uses web search. It records what each kind of
 
 | Search | Used for | Query pattern | Example |
 |---|---|---|---|
-| **General** | Mainstream sights near a stop (spec 7.4) | "must-see things to do in <town, state>" | "must-see things to do in Moab Utah" |
-| **Atlas Obscura** | Unusual places near a stop, or in towns a leg passes through (spec 7.4) | "<town, state> unusual places", limited to `atlasobscura.com` (2.1) | "Boston Massachusetts hidden places" |
+| **General** | Mainstream sights near a stay (spec 7.4) | "must-see things to do in <town, state>" | "must-see things to do in Moab Utah" |
+| **Atlas Obscura** | Unusual places near a stay, or in towns a leg passes through (spec 7.4) | "<town, state> unusual places", limited to `atlasobscura.com` (2.1) | "Boston Massachusetts hidden places" |
 | **Details** | Hours, seasonal closures, and visit time for one place that has no better source (spec 6.1, 7.4) | "<place name> <town> hours" | "Southwest Museum of Clocks and Watches Lockhart hours" |
 
-Both the general and Atlas Obscura searches run for each destination stop. They find different things in big places: in Boston and Moab the two lists barely overlapped. In small towns they return much the same list, so expect duplicates (section 3).
+Both the general and Atlas Obscura searches run for each destination stay. They find different things in big places: in Boston and Moab the two lists barely overlapped. In small towns they return much the same list, so expect duplicates (section 3).
 
 ### 2.1 Limiting a search to Atlas Obscura
 

@@ -1,6 +1,6 @@
 # Road Trip Planner: Data Sources, Open-Meteo Historical Weather (Design)
 
-This document covers the Open-Meteo Historical Weather API. The app uses it for seasonal weather averages and hazard counts at each stop, for dates beyond the 7-day forecast (spec 8). It records how to call it and what the tool returns. For which source covers each data need, see the [data sources index](data-sources.md). For the test results behind it, see the [seasonal weather evaluation](../research/data-sources-weather.md).
+This document covers the Open-Meteo Historical Weather API. The app uses it for seasonal weather averages and hazard counts at each stay, for dates beyond the 7-day forecast (spec 8). It records how to call it and what the tool returns. For which source covers each data need, see the [data sources index](data-sources.md). For the test results behind it, see the [seasonal weather evaluation](../research/data-sources-weather.md).
 
 ---
 
@@ -19,13 +19,13 @@ This document covers the Open-Meteo Historical Weather API. The app uses it for 
 
 ### 2.1 Input
 
-- **Coordinates of the stop.** Use the stop's own coordinates, or an attraction's when it is far from the stop, such as Tuolumne Meadows on a Yosemite stop. Open-Meteo adjusts for the elevation of the exact point. Tuolumne came out 22 °F colder than Yosemite Valley, 15 miles away.
-- **Dates.** Either exact dates for the stop, or a month when the user gave only a window, such as "sometime in May".
+- **Coordinates of the stay.** Use the stay's own coordinates, or an attraction's when it is far from the stay, such as Tuolumne Meadows on a Yosemite stay. Open-Meteo adjusts for the elevation of the exact point. Tuolumne came out 22 °F colder than Yosemite Valley, 15 miles away.
+- **Dates.** Either exact dates for the stay, or a month when the user gave only a window, such as "sometime in May".
 
 ### 2.2 Requests
 
 - **One request per year for the last 10 complete years.** For a trip in 2026, that is 2016 to 2025.
-- **Each request covers the stop's dates plus 7 days on each side.** For a stop on October 10 to 12, each year's request covers October 3 to 19. For a month, it covers that calendar month.
+- **Each request covers the stay's dates plus 7 days on each side.** For a stay on October 10 to 12, each year's request covers October 3 to 19. For a month, it covers that calendar month.
 - **Parameters:**
   ```
   latitude=38.5733&longitude=-109.5498
@@ -34,11 +34,11 @@ This document covers the Open-Meteo Historical Weather API. The app uses it for 
   &temperature_unit=fahrenheit&precipitation_unit=inch&timezone=auto
   ```
 - **Don't set `models`.** Use the default. The `era5_land` model returns no precipitation or snowfall.
-- **Cost per stop:** 10 requests of about 1 to 2.2 calls each, so 10 to 22 calls. A 14-day trip with 8 stops uses at most about 180 of the 10,000 daily calls.
+- **Cost per stay:** 10 requests of about 1 to 2.2 calls each, so 10 to 22 calls. A 14-day trip with 8 stays uses at most about 180 of the 10,000 daily calls.
 
 ### 2.3 What the tool returns
 
-The tool combines all the days from all 10 years and returns one small summary per stop:
+The tool combines all the days from all 10 years and returns one small summary per stay:
 
 | Field | How it is worked out |
 |---|---|
