@@ -67,10 +67,10 @@ Candidates and legs are not in the diagram. They are value objects: candidates a
 |---|---|---|
 | Trip | User | The container for everything below. The app creates it when the user starts a new conversation (functional spec 10.1) |
 | Trip brief | Trip | The items in functional spec 5.2. Created empty with the trip |
-| Itinerary | Trip | Points to a start place and an end place. Holds the stays and the days, each in order. Created empty with the trip |
+| Itinerary | Trip | Points to a start place and an end place. Holds a start date, empty until the dates are decided. Holds the stays and the days, each in order. Created with the trip, holding only its last day (see below) |
 | Place | Trip | Any real location: a town, hotel, restaurant, bar, attraction, friend's house, or campground. Holds the facts about it: name, coordinates, Google's place ID when there is one, and the details a tool returned, such as rating, review count, price level, weekly hours, summary, and links. The kind of place doesn't limit how it's used. A hotel can be a stay's lodging, or a stop for its bar. On a loop trip, the start and end are the same place |
-| Stay | Itinerary | One overnight location: the place it's in, usually a town, and order. Its nights are the number of days that point to it, worked out rather than stored. Its lodging is a place, empty until selected. Holds its lodging candidates, and a tier and the rule that produced it |
-| Day | Itinerary | One calendar day: date, rest day or not, three time blocks, its stops in order, and its leg, if it has one (3.3). Points to the stay where the party sleeps that night, if any |
+| Stay | Itinerary | One overnight location: the place it's in, usually a town, and order. Its nights are the number of days that point to it, worked out rather than stored. Changing its nights adds or removes its days. Its lodging is a place, empty until selected. Holds its lodging candidates, and a tier and the rule that produced it |
+| Day | Itinerary | One day of the trip: rest day or not, three time blocks, its stops in order, and its leg, if it has one (3.3). Points to the stay where the party sleeps that night. The last day points to none. Its date is worked out: the itinerary's start date plus the day's order |
 | Stop | Day | A visit during the day: a meal or an attraction. Holds its kind, time block, and order in the day. Its place is empty until selected. Holds its candidates. Meal stops have a tier and the rule that produced it |
 | Trip memory item | Trip | One free-text note (functional spec 10.2) |
 | User memory item | User | One standing preference (functional spec 10.3) |
@@ -81,7 +81,16 @@ Candidates and legs are not in the diagram. They are value objects: candidates a
 - **Staying put, with stops to drive to:** the leg starts and ends at the same stay, and passes through the day's stops.
 - **A rest day:** no leg. The coordinator marks the day as a rest day, meaning no driving (functional spec 5.2). Any stops on it, such as dinner, are near the lodging and aren't routed.
 
-**The itinerary holds two lists.** The stays are the shape of the trip, and are what the user and coordinator change. The days are the calendar. Each day points to the stay where the party sleeps that night. Neither list is built from the other: adding a night in Big Sur means adding a day that points to the Big Sur stay. A stay can't belong to one day, because it can span several. Some days have no stay, such as the last day of a one-way trip.
+**The itinerary holds two lists.** The stays are the shape of the trip, and are what the user and coordinator change. The days are the calendar. Each day points to the stay where the party sleeps that night. A stay can't belong to one day, because it can span several.
+
+**Days follow from the stays.** Each stay has one day per night, and the days run in the stays' order. After them comes the **last day**, which has no stay: the party drives to the end place and doesn't sleep anywhere on the trip. Every trip has a last day, so the itinerary is created with it, and it is never removed. A day trip is just the last day.
+
+- **Adding a night in Big Sur** adds a day pointing to the Big Sur stay, at the end of that stay's days. Every later day moves back one.
+- **Moving a stay** moves its days with it.
+- **A day has no date of its own.** Its date is the start date plus its order, so the first day, at order 0, falls on the start date. Changing the start date moves every day at once. Until the start date is set, days have no dates, and the UI shows them as Day 1, Day 2, and so on.
+- **Trip length** is the number of days. The end date is worked out from it, never stored.
+
+The trip brief and the itinerary both mention dates, for different reasons. The brief records what the user asked for: exact dates, a window such as "sometime in May," or a length such as "about a week." The itinerary's start date records what was decided. When the user gives exact dates, both are set. The brief then says the dates are fixed, so the coordinator knows not to move them.
 
 **Places are kept per trip.** A place returned twice within a trip, such as the same restaurant offered on two days, is stored once, matched by Google's place ID. Keeping places per trip means a place the user names, such as a friend's address, is never visible outside that trip (functional spec 10.4).
 
@@ -130,6 +139,8 @@ Itinerary
       Evening
         Stop 6, meal        → Firestone Grill, San Luis Obispo
         Stop 7, meal        → Madonna Inn (for its pink champagne cake)
+
+    (Later days not shown. The trip ends with a last day, with no stay, that drives to Los Angeles)
 ```
 
 The Monterey stay exists once, but two days use it: Day 1 sleeps there, and Day 2 starts from it. Neither leg stores Monterey. Stop 7 is a hotel used as a stop. A meal's kind doesn't fix its time block: lunch at Nepenthe falls in the morning block here because it is mid-route.
@@ -186,6 +197,11 @@ Itinerary
       Afternoon
         Stop 1, attraction  → Goblin Valley State Park
         Stop 2, meal        → Gifford Homestead, Capitol Reef (pie)
+
+    Day 5, the last day                       no stay
+      Leg
+        from        Torrey hotel     (worked out: last night's lodging)
+        to          Salt Lake City   (worked out: the end place)
 ```
 
 Day 2's leg starts and ends at the Moab hotel without any new rule: "where the party slept last night" and "where it sleeps tonight" are both the Moab hotel. Because Day 2 has a leg, its driving is checked. If the coordinator put Monument Valley on it, about two and a half hours each way, the driving check would flag it. Day 3 is a rest day, so it has no leg, and its dinner is close to the hotel.
@@ -244,10 +260,11 @@ Users don't pick waypoints. They pick scenic or fastest, and the coordinator pic
 
 ### 3.4 Who creates and changes what
 
-- **The coordinator,** through its tools: the trip brief, stays, days, each day's stops, each leg's route type and waypoints, approved exceptions, memory, and selections.
+- **The coordinator,** through its tools: the trip brief, the itinerary's start place, end place, and start date, stays and their nights, rest days, each day's stops, each leg's route type and waypoints, approved exceptions, memory, and selections.
   - It lays out a day by adding empty stops, each with a kind, a time block, and an order.
 - **Code inside the tools:**
   - Places, created or reused when a tool returns one.
+  - Days, added and removed as stays' nights change. The last day is created with the itinerary.
   - A leg's from, to, drive time, distance, and route line, worked out whenever the stays, a stay's lodging, the leg's route type or waypoints, or a selected stop on its day changes. The coordinator's own routing tool is for rough checks, such as the shape sketches (4.2).
   - Feasibility results (section 8).
 - **Workers:** candidates, and the places they point to. A worker gets the IDs of stops or a stay that already exist, and can only add candidates to those. It can't create, change, or select anything.
@@ -259,7 +276,8 @@ The itinerary tools carry changes through, so the coordinator doesn't have to:
 
 - **A stay moves to a different town:** the legs on either side are re-routed. Nothing else is cleared. Whether the lodging and the stops on its days still fit is a judgment call, so the coordinator talks it through with the user and clears what no longer fits. Example: moving from Monterey to Carmel keeps every stop. Skipping Monterey to drive I-5 to Bakersfield clears them all.
 - **A stay's lodging is selected or cleared:** the legs on either side are re-routed (3.3).
-- **A night is added or removed:** a day is added or removed, and the legs around it are re-routed. Stops on a removed day go away.
+- **A night is added or removed:** a day is added or removed at the end of that stay's days, and the legs around it are re-routed. Later days move, and their dates with them. Stops on a removed day go away.
+- **The start date changes:** every day's date moves with it. Nothing is re-routed, but the opening-hours check runs again, since each day can now fall on a different weekday.
 - **A stay is removed:** its days and their stops go away. The next day's leg now starts from the stay before it, and is re-routed.
 - **A stop is selected, changed, or removed:** that day's leg is re-routed through the selected stops. A day that stays put gains a leg when it gets its first stop to drive to, and loses it when the last one goes.
 
@@ -298,7 +316,7 @@ Planning goes from broad to narrow. This is the usual order in which the coordin
 
 ### 5.1 Tools
 
-- **Itinerary:** read the itinerary. Add, change, and remove stays, days, and stops. Set a leg's route type and waypoints. Record selections, clear a stop or lodging back to empty, set approved exceptions, and save each stay's weather and clothing text. Every write returns the feasibility check results (section 8).
+- **Itinerary:** read the itinerary. Set the start place, end place, and start date. Add, change, and remove stays, and set their nights. Mark rest days. Add, change, and remove stops. Set a leg's route type and waypoints. Record selections, clear a stop or lodging back to empty, set approved exceptions, and save each stay's weather and clothing text. Every write returns the feasibility check results (section 8).
 - **Trip brief:** read the trip brief, and update one or more items in it at once. Every update returns the feasibility check results (section 8), since items like max driving hours affect them.
 - **Memory:** read, add, update, and forget items in user memory and trip memory.
 - **Places:** find a named place, to resolve a town, a must-see, or a place the user names. Read a place's full record by ID, when the short line isn't enough (7.2).
