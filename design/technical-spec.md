@@ -47,56 +47,144 @@ erDiagram
     ITINERARY }o--|| PLACE : "starts at"
     ITINERARY }o--|| PLACE : "ends at"
     ITINERARY ||--o{ STAY : "has, in order"
-    ITINERARY ||--o{ LEG : "has, in order"
-    ITINERARY ||--|{ DAY : has
+    ITINERARY ||--|{ DAY : "has, in order"
     STAY }o--|| PLACE : "is in"
     STAY }o--o| PLACE : lodging
-    LEG }o--|| PLACE : "from"
-    LEG }o--|| PLACE : "to"
-    DAY ||--o| LEG : drives
     DAY }o--o| STAY : "night at"
     DAY ||--o{ STOP : "has, in order"
     STOP }o--o| PLACE : "is at"
 ```
 
-How to read the line ends: `||` is exactly one, `o|` is zero or one, `o{` is zero or more, and `|{` is one or more. For example, `DAY ||--o| LEG` means a day has zero or one leg, and every leg belongs to exactly one day.
+How to read the line ends: `||` is exactly one, `o|` is zero or one, `o{` is zero or more, and `|{` is one or more. For example, `DAY }o--o| STAY` means a day points to zero or one stay, and a stay can have many days pointing to it.
 
-Candidates are not in the diagram. They are value objects held inside stops and stays (3.2).
+Candidates and legs are not in the diagram. They are value objects: candidates are held inside stops and stays (3.2), and a leg is held inside its day (3.3).
 
 | Entity | Belongs to | What it is |
 |---|---|---|
 | Trip | User | The container for everything below. The app creates it when the user starts a new conversation (functional spec 10.1) |
 | Trip brief | Trip | The items in functional spec 5.2. Created empty with the trip |
-| Itinerary | Trip | Points to a start place and an end place. Holds the stays, legs, and days. Created empty with the trip |
-| Place | Trip | Any real location: a town, hotel, restaurant, bar, attraction, friend's house, or campground. Holds the facts about it: name, coordinates, Google's place ID when there is one, and the details a tool returned, such as rating, review count, price level, weekly hours, summary, and links. The kind of place doesn't limit how it's used. A hotel can be a stay's lodging, or a stop for its bar. On a loop, the start and end are the same place |
-| Stay | Itinerary | One overnight location: the town it's in, destination or waystation, nights, and order. Its lodging is a place, empty until selected. Holds its lodging candidates, and a tier and the rule that produced it |
-| Leg | Itinerary | The drive from one place to the next. Holds its route type (scenic or fastest), any waypoints, drive time, distance, and the route line for the UI. Also holds any approved exceptions (section 8). The route passes through the selected stops on its day, in order |
-| Day | Itinerary | One calendar day: date, rest day or not, three time blocks, and its stops in order |
+| Itinerary | Trip | Points to a start place and an end place. Holds the stays and the days, each in order. Created empty with the trip |
+| Place | Trip | Any real location: a town, hotel, restaurant, bar, attraction, friend's house, or campground. Holds the facts about it: name, coordinates, Google's place ID when there is one, and the details a tool returned, such as rating, review count, price level, weekly hours, summary, and links. The kind of place doesn't limit how it's used. A hotel can be a stay's lodging, or a stop for its bar. On a loop trip, the start and end are the same place |
+| Stay | Itinerary | One overnight location: the town it's in, destination or waystation, and order. Its nights are the number of days that point to it, worked out rather than stored. Its lodging is a place, empty until selected. Holds its lodging candidates, and a tier and the rule that produced it |
+| Day | Itinerary | One calendar day: date, rest day or not, three time blocks, its stops in order, and its leg, if it has one (3.3). Points to the stay where the party sleeps that night, if any |
 | Stop | Day | A visit during the day: a meal or an attraction. Holds its kind, time block, and order in the day. Its place is empty until selected. Holds its candidates. Meal stops have a tier and the rule that produced it |
 | Trip memory item | Trip | One free-text note (functional spec 10.2) |
 | User memory item | User | One standing preference (functional spec 10.3) |
 
-**Each driving day has exactly one leg.** Stays are overnight locations, so every leg starts one morning and ends that night. A day with no leg is a rest day or a day exploring a destination.
+**A day has at most one leg.** Whether it has one depends on what the day does. The three cases below are descriptions, not day types. The only one that is stored is whether the day is a rest day:
+
+- **Moving to a new stay:** the leg runs from last night's stay to tonight's.
+- **Staying put, with stops to drive to:** the leg starts and ends at the same stay, and passes through the day's stops.
+- **A rest day:** no leg. The coordinator marks the day as a rest day, meaning no driving (functional spec 5.2). Any stops on it, such as dinner, are near the lodging and aren't routed.
+
+**The itinerary holds two lists.** The stays are the shape of the trip, and are what the user and coordinator change. The days are the calendar. Each day points to the stay where the party sleeps that night. Neither list is built from the other: adding a night in Big Sur means adding a day that points to the Big Sur stay. A stay can't belong to one day, because it can span several. Some days have no stay, such as the last day of a one-way trip.
 
 **Places are kept per trip.** A place returned twice within a trip, such as the same restaurant offered on two days, is stored once, matched by Google's place ID. Keeping places per trip means a place the user names, such as a friend's address, is never visible outside that trip (functional spec 10.4).
 
-**Example: one driving day.** San Francisco to Monterey.
+In the examples below, labels such as Leg, Stop, meal, attraction, and rest day are terms from this model. Anything in parentheses is a comment, not data.
+
+**Example: two days on the road.** San Francisco to San Luis Obispo, on the way to Los Angeles.
 
 ```
-Day 2
-  Leg: San Francisco → Monterey, scenic.
-       Routed through the selected stops below, in order.
-  Morning
-    Stop 1, meal       → Millbrae Pancake House
-    Stop 2, attraction → Hangar One, Moffett Field
-    Stop 3, meal       → Philz Coffee, San Jose
-  Afternoon
-    Stop 4, attraction → Santa Cruz Beach Boardwalk
-  Evening
-    Stop 5, meal       → The Whaling Station
-  Night at: Monterey stay, 1 night, waystation
-    Lodging → (a Monterey hotel)
+Itinerary
+  Start place: San Francisco
+  End place:   Los Angeles
+
+  Stays, in order
+    Monterey stay         1 night, waystation   lodging → (a Monterey hotel)
+    San Luis Obispo stay  1 night, waystation   lodging → (an SLO hotel)
+
+  Days, in order
+    Day 1                                      night at → Monterey stay
+      Leg
+        from        San Francisco   (worked out: the start place)
+        to          Monterey        (worked out: tonight's stay)
+        route type  scenic          (set by the coordinator)
+        drive time  computed through the selected stops below
+      Morning
+        Stop 1, meal        → Millbrae Pancake House
+        Stop 2, attraction  → Hangar One, Moffett Field
+        Stop 3, meal        → Philz Coffee, San Jose
+      Afternoon
+        Stop 4, attraction  → Santa Cruz Beach Boardwalk
+      Evening
+        Stop 5, meal        → The Whaling Station
+
+    Day 2                                      night at → San Luis Obispo stay
+      Leg
+        from        Monterey         (worked out: last night's stay)
+        to          San Luis Obispo  (worked out: tonight's stay)
+        route type  scenic           (the stops below keep it on Highway 1 through Big Sur)
+        drive time  computed through the selected stops below
+      Morning
+        Stop 1, meal        → First Awakenings, Monterey
+        Stop 2, attraction  → Point Lobos State Natural Reserve
+        Stop 3, attraction  → Bixby Creek Bridge viewpoint
+        Stop 4, meal        → Nepenthe, Big Sur (lunch)
+      Afternoon
+        Stop 5, attraction  → Piedras Blancas elephant seal rookery
+      Evening
+        Stop 6, meal        → Firestone Grill, San Luis Obispo
+        Stop 7, meal        → Madonna Inn (for its pink champagne cake)
 ```
+
+The Monterey stay exists once, but two days use it: Day 1 sleeps there, and Day 2 starts from it. Neither leg stores Monterey. Stop 7 is a hotel used as a stop. A meal's kind doesn't fix its time block: lunch at Nepenthe falls in the morning block here because it is mid-route.
+
+**Example: a three-night stay with a rest day.** Moab, between Grand Junction and Torrey.
+
+```
+Itinerary
+  Start place: Grand Junction, CO
+  End place:   Salt Lake City
+
+  Stays, in order
+    Moab stay    destination   nights: 3 (worked out: Days 1–3 point here)
+                 lodging → (a Moab hotel)
+    Torrey stay  waystation    nights: 1 (worked out: Day 4 points here)
+                 lodging → (a Torrey hotel)
+
+  Days, in order
+    Day 1                                     night at → Moab stay
+      Leg
+        from        Grand Junction   (worked out: the start place)
+        to          Moab hotel       (worked out: tonight's lodging)
+        route type  scenic
+        waypoints   Dewey Bridge     (keeps it on Highway 128 along the river)
+      Afternoon
+        Stop 1, attraction  → Fisher Towers viewpoint
+      Evening
+        Stop 2, meal        → Moab Brewery
+
+    Day 2                                     night at → Moab stay
+      Leg                            (from and to are the same stay)
+        from        Moab hotel       (worked out: last night's lodging)
+        to          Moab hotel       (worked out: tonight's lodging)
+        drive time  computed through the selected stops below
+      Morning
+        Stop 1, meal        → Love Muffin Cafe
+        Stop 2, attraction  → Delicate Arch trail, Arches
+        Stop 3, attraction  → Windows Section, Arches
+      Afternoon
+        Stop 4, meal        → Milt's Stop & Eat
+        Stop 5, attraction  → Corona Arch trail
+      Evening
+        Stop 6, meal        → Desert Bistro
+
+    Day 3, rest day                           night at → Moab stay
+      No leg
+      Evening
+        Stop 1, meal        → The Spoke on Center (near the hotel)
+
+    Day 4                                     night at → Torrey stay
+      Leg
+        from        Moab hotel       (worked out: last night's lodging)
+        to          Torrey hotel     (worked out: tonight's lodging)
+      Afternoon
+        Stop 1, attraction  → Goblin Valley State Park
+        Stop 2, meal        → Gifford Homestead, Capitol Reef (pie)
+```
+
+Day 2's leg starts and ends at the Moab hotel without any new rule: "where the party slept last night" and "where it sleeps tonight" are both the Moab hotel. Because Day 2 has a leg, its driving is checked. If the coordinator put Monument Valley on it, about two and a half hours each way, the driving check would flag it. Day 3 is a rest day, so it has no leg, and its dinner is close to the hotel.
 
 ### 3.2 Candidates
 
@@ -121,26 +209,54 @@ The facts about the place, such as rating and hours, live on the place. Only the
 
 **The list keeps every candidate ever offered.** The option card shows the newest set. The older ones tell the worker what to leave out on "more options." Candidates never change after they're written. "More options" adds new ones.
 
-### 3.3 Who creates and changes what
+### 3.3 Legs
 
-- **The coordinator,** through its tools: the trip brief, stays, legs, each day's stops, approved exceptions, memory, and selections.
+A **leg** is the drive on one day. It is a value object held by its day, not an entity. It has no ID of its own. A day has a leg when it moves to a new stay, or when it has stops to drive to and isn't a rest day (3.1). When the day stays put, from and to are the same stay. A leg has no type. Whether it returns to the same stay is just what its from and to work out to, not a stored property. The functional spec's "loop" means a trip that ends where it started, not a leg. The leg scout is briefed with the day's ID.
+
+| Property | Where it comes from |
+|---|---|
+| From | Worked out: where the party slept the night before, or the start place |
+| To | Worked out: where the party sleeps that night, or the end place |
+| Drive time, distance, and route line | Computed by code from the route, through the day's selected stops in order |
+| Route type (scenic or fastest) and waypoints | Set by the coordinator |
+| Approved exceptions | Set by the coordinator when the user agrees (section 8) |
+
+Only the route type, waypoints, and approved exceptions are stored. The rest is worked out or computed.
+
+**Where the party sleeps is the stay's lodging once one is selected, and the stay's town until then.** A town is a place like any other. Before a hotel is picked, the leg routes to the town. When one is picked, the leg is re-routed to it. For most towns this barely changes the drive time. In a big city it can: a hotel in Santa Monica and one in Pasadena are far apart.
+
+**A waypoint is a point the route must pass through, without stopping.** The coordinator adds waypoints to steer a scenic route. Example: the fastest route from Monterey to San Luis Obispo runs inland on US-101. To keep it on Highway 1 through Big Sur, the coordinator adds a waypoint at Big Sur village. When a day already has stops on Highway 1, they pull the route onto the coast themselves, and no waypoint is needed.
+
+| | Stop | Waypoint |
+|---|---|---|
+| The party gets out | Yes | No |
+| Time block and order in the day | Yes | No |
+| Candidates and option cards | Yes | No |
+| Opening hours check | Yes | No |
+| Shown to the user | As a visit | Only as the route line on the map |
+
+Users don't pick waypoints. They pick scenic or fastest, and the coordinator picks the waypoints.
+
+### 3.4 Who creates and changes what
+
+- **The coordinator,** through its tools: the trip brief, stays, days, each day's stops, each leg's route type and waypoints, approved exceptions, memory, and selections.
   - It lays out a day by adding empty stops, each with a kind, a time block, and an order.
 - **Code inside the tools:**
-  - Days, created from the stays and their nights.
   - Places, created or reused when a tool returns one.
-  - A leg's drive time, distance, and route line, computed whenever the leg changes or a selected stop on its day changes. The coordinator's own routing tool is for rough checks, such as the shape sketches (4.2).
+  - A leg's from, to, drive time, distance, and route line, worked out whenever the stays, a stay's lodging, the leg's route type or waypoints, or a selected stop on its day changes. The coordinator's own routing tool is for rough checks, such as the shape sketches (4.2).
   - Feasibility results (section 8).
 - **Workers:** candidates, and the places they point to. A worker gets the IDs of stops or a stay that already exist, and can only add candidates to those. It can't create, change, or select anything.
 - **The UI:** nothing directly. A card click becomes a message to the coordinator (7.2).
 
-### 3.4 What happens when something changes
+### 3.5 What happens when something changes
 
 The itinerary tools carry changes through, so the coordinator doesn't have to:
 
-- **A stay moves to a different town:** its lodging and the stops on its days go back to empty. The legs on either side are re-routed.
-- **A stay's nights change:** days are added or removed. Stops on removed days go away.
-- **A stay is removed:** its days and their stops go away, and the legs on either side become one new leg.
-- **A stop on a driving day is selected, changed, or removed:** that day's leg is re-routed through the selected stops.
+- **A stay moves to a different town:** the legs on either side are re-routed. Nothing else is cleared. Whether the lodging and the stops on its days still fit is a judgment call, so the coordinator talks it through with the user and clears what no longer fits. Example: moving from Monterey to Carmel keeps every stop. Skipping Monterey to drive I-5 to Bakersfield clears them all.
+- **A stay's lodging is selected or cleared:** the legs on either side are re-routed (3.3).
+- **A night is added or removed:** a day is added or removed, and the legs around it are re-routed. Stops on a removed day go away.
+- **A stay is removed:** its days and their stops go away. The next day's leg now starts from the stay before it, and is re-routed.
+- **A stop is selected, changed, or removed:** that day's leg is re-routed through the selected stops. A day that stays put gains a leg when it gets its first stop to drive to, and loses it when the last one goes.
 
 When a stop or stay goes away, its candidates go with it. The places stay. The coordinator then sends new briefs for anything that is empty.
 
@@ -177,7 +293,7 @@ Planning goes from broad to narrow. This is the usual order in which the coordin
 
 ### 5.1 Tools
 
-- **Itinerary:** read the itinerary. Add, change, and remove stays, legs, and stops. Record selections and set approved exceptions. Every write returns the feasibility check results (section 8).
+- **Itinerary:** read the itinerary. Add, change, and remove stays, days, and stops. Set a leg's route type and waypoints. Record selections, clear a stop or lodging back to empty, and set approved exceptions. Every write returns the feasibility check results (section 8).
 - **Trip brief:** read the trip brief, and update an item in it. Every update returns the feasibility check results (section 8), since items like max driving hours affect them.
 - **Memory:** read, add, update, and forget items in user memory and trip memory.
 - **Places:** find a named place, to resolve a town, a must-see, or a place the user names. Read a place's full record by ID, when the short line isn't enough (7.2).
@@ -278,7 +394,7 @@ The itinerary write tool runs these checks after every change and returns a list
 - **Opening hours:** each meal and attraction stop is open during its time block, using the weekly hours on its selected place. This is not a preference. A closed place is always flagged.
 - **Route type:** each leg's route type matches the trip brief's route preference. Also a preference, so a leg can have an approved exception.
 
-**Exceptions** (functional spec 6.2). An exception is not an entity. It is a set of properties on the leg, since each driving day has exactly one leg:
+**Exceptions** (functional spec 6.2). An exception is not an entity. It is a set of properties on the leg, since a day has at most one leg:
 
 - **Approved drive hours:** empty unless the user agreed to a longer day.
 - **Approved route type:** empty unless the user agreed to a route type other than the default.
@@ -306,6 +422,3 @@ The coordinator turns the user's natural-language rules into a tier for each lod
 2. **Tool-call limits.** The numbers per worker, given the daily Google limits.
 3. **A reviewer.** A later worker that reads the finished itinerary with fresh eyes and checks it against the trip brief. Not in the MVP.
 4. **An interview agent.** See section 2.
-5. **Day trips from a stay.** Staying in Moab and driving to Arches is not a leg, so its drive time isn't checked. Decide whether it needs to be.
-6. **Legs and stays.** A leg points to places, with no direct link to the stays it connects. Decide whether a leg runs from a stay's town or from its lodging, and whether a stay needs a town place at all.
-7. **Moving a stay.** Whether moving a stay to a different town should clear the stops on its days (3.4).
