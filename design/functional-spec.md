@@ -64,13 +64,13 @@ Planning only. The application never books, reserves, or purchases anything.
 | Term | Meaning |
 |---|---|
 | Trip | The persistent plan. Owns one itinerary, one trip memory, and many sessions |
-| Itinerary | The structured plan the agent builds: stays, legs, days, stops, selections |
-| Stay | An overnight location. Either a **destination** (multi-night, to explore) or a **waystation** (usually one night, to break up driving). One lodging per stay regardless of nights, usually a hotel |
+| Itinerary | The structured plan of the road trip that the agent builds |
+| Stay | An overnight location, for one or more nights. One lodging per stay regardless of nights, usually a hotel |
 | Stop | A place the party visits during a day, such as a meal, an attraction, or a quick look along the way |
-| Leg | The drive between two stays, with duration, distance, and the stops along the way |
+| Leg | The drive on one day, with duration, distance, and the day's stops along the way. It runs from where the party slept to where it sleeps that night. On a day that stays put, it starts and ends at the same stay |
 | Day | One calendar day of the trip, split into morning, afternoon, and evening time blocks |
-| Recommendation | A suggested hotel, restaurant, or attraction, with its rationale and source |
-| Option card | The UI element presenting a set of recommendations for one choice (a stay's lodging or a stop), with selection actions |
+| Candidate | A hotel, restaurant, or attraction offered for a stay's lodging or a stop, with its rationale and source |
+| Option card | The UI element presenting a set of candidates for one choice (a stay's lodging or a stop), with selection actions |
 | Budget tier | Value, mid-range, or posh. A relative price level the agent infers. Shown instead of prices |
 | Session | One conversation with the agent about one trip |
 | User memory | Durable facts and preferences about the user, applied to every trip |
@@ -116,7 +116,7 @@ Planning a trip involves the activities below. They are not steps in a fixed ord
 |---|---|
 | Discovery | The agent establishes the items in 5.2. It asks a few questions at a time, and doesn't hold back a first proposal until every item is answered |
 | Shape | When the route is open, two or three short sketches of the trip to choose from. Each has a name, the rough path, and a few sentences on why someone would pick it. Not offered when the user gives a fixed route |
-| Skeleton | Start, end, stays (destination or waystation), nights per stay, legs with drive times, and recommended dates if only a window was given |
+| Skeleton | Start, end, stays, nights per stay, legs with drive times, and recommended dates if only a window was given |
 | Feasibility | The checks in section 6, with conflicts resolved with the user |
 | Fill | Lodging, attractions, and dining for each stay and day, through option cards |
 | Weather and clothing | Section 8 |
@@ -164,16 +164,16 @@ The agent:
 - Tiers apply to lodging and dining. **Assumption:** attractions have no tier.
 - The user sets a **default tier** for the trip early in the conversation.
 - The user can add **rules** in natural language, and the agent applies its judgment. Examples:
-  - "One-night waystations: value. Cities where we stay two or more nights: mid-range."
+  - "One-night stays: value. Cities where we stay two or more nights: mid-range."
   - "Posh in Savannah, value everywhere else."
   - "One special dinner on the last night."
-- Each recommendation shows which tier it is and which rule produced it.
+- Each candidate shows which tier it is and which rule produced it.
 
 ### 7.2 Lodging
 
 - One lodging per stay, regardless of nights.
 - The agent recommends hotels only. The user can name any lodging instead, such as a friend's house or a campground (7.6).
-- Location matters: for destinations, near what the user wants to see; for waystations, convenient to the route.
+- Location matters: for a stay of several nights, near what the user wants to see; for a one-night stay, convenient to the route.
 
 ### 7.3 Dining
 
@@ -190,7 +190,7 @@ The agent:
 
 ### 7.5 Option cards
 
-Each card set presents recommendations for one choice (a stay's lodging, or a meal or attraction stop). **Assumption:** three options per set.
+Each card set presents candidates for one choice (a stay's lodging, or a meal or attraction stop). **Assumption:** three options per set.
 
 Each option shows:
 
@@ -242,7 +242,7 @@ Trip name, dates or duration, start and end, party, total driving time, number o
 
 ### 9.3 Stays
 
-For each stay: type (destination or waystation), dates, nights, and lodging (proposed or selected).
+For each stay: dates, nights, and lodging (proposed or selected).
 
 ### 9.4 Legs
 
@@ -316,7 +316,7 @@ The agent uses user memory to prefill section 5.2 and confirms rather than re-as
 
 **S4. Seasonal conflict.** User wants a trip "sometime in January" that includes an attraction open only in summer. The agent flags that the attraction is typically closed then and proposes later dates or a substitute.
 
-**S5. Differentiated tiers.** User sets value as the default and mid-range for any stay of two or more nights. Waystation hotel cards show value options; destination hotel cards show mid-range, with the applied rule visible.
+**S5. Differentiated tiers.** User sets value as the default and mid-range for any stay of two or more nights. Hotel cards for one-night stays show value options; cards for longer stays show mid-range, with the applied rule visible.
 
 **S6. Option card navigation.** On a hotel card, the user picks "Higher tier," then selects an option. The itinerary updates and the agent confirms in chat.
 
