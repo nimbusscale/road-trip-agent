@@ -145,7 +145,7 @@ The leg scout gets `WebSearch` only for Atlas Obscura, and Atlas Obscura blocks 
 
 - **The trip comes from the session, never from a tool input.** Each session gets its own MCP server objects, made with the trip and user already set. They are small wrappers around shared tool code. One object can't be shared by two sessions running at once (tested: the second session silently got no tools). No tool takes a trip ID, so no agent can reach another trip, even with a made-up ID.
 - **Bad IDs are rejected** (technical spec 7.1). A stop, stay, day, or place that doesn't exist in this trip returns an error. So does selecting a place that isn't one of that stop's or stay's candidates. The tool never guesses.
-- **Workers add candidates only to the stops and stay in their worker brief.** Checking that a stop exists isn't enough. Without this check, a leg scout could add candidates to another leg's stops.
+- **IDs are short and random, with a prefix for the kind of item,** such as `stop_k7m2x9qa` (technical spec 7.1). A worker only sees the IDs in its worker brief, and can't guess any others. So it can only add candidates to its own stops and stay, without the tools needing to know which worker is calling. An ID of the wrong kind, such as a stay ID passed to `update_stop`, gets an error that says so.
 - **Errors are readable.** A failed call, a spent API limit, or a broken rule comes back as a message. The agent that called the tool can read it, and the coordinator can explain it to the user.
 - **The coordinator sees short lines, not full records** (technical spec 7.2). Only `read_place` returns a full record to the coordinator.
 
@@ -153,7 +153,6 @@ The leg scout gets `WebSearch` only for Atlas Obscura, and Atlas Obscura blocks 
 
 ## 5. Open questions
 
-1. **How the candidate tools know which worker brief a call belongs to** (section 4). A hook on each tool call reports which worker made the call, by its agent ID. Linking that agent ID to the worker brief it was given still needs a test.
-2. **Tool count for the coordinator.** It has about two dozen tools. If that proves too many for it to choose well, merge the add, update, and remove tools for each kind of item.
-3. **The size of `read_itinerary`'s output.** It returns every candidate ever offered. A 14-day trip with a few "more options" rounds could mean a few hundred candidate lines. If that gets too large, return the full history for one stop or stay at a time.
-4. **Places nobody uses.** Searches save every result, and most are never offered as candidates. That is harmless for the MVP. Clean them up later if storage grows.
+1. **Tool count for the coordinator.** It has about two dozen tools. If that proves too many for it to choose well, merge the add, update, and remove tools for each kind of item.
+2. **Repeated reads of the itinerary.** One read fits easily: a 14-day trip with a few "more options" rounds is about 300 candidate lines, or roughly 20,000 tokens. The concern is repetition. Every read stays in the coordinator's context, so ten reads during planning add up, and the older copies are out of date. Claude Code may also cut off large tool results. The default limit for MCP tools is believed to be 25,000 tokens, but that hasn't been checked for in-process MCP servers. If either becomes a problem, return the full candidate history for one stop or stay at a time.
+3. **Places nobody uses.** Searches save every result, and most are never offered as candidates. That is harmless for the MVP. Clean them up later if storage grows.
