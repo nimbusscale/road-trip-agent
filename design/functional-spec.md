@@ -73,9 +73,10 @@ Planning only. The application never books, reserves, or purchases anything.
 | Budget tier | Value, mid-range, or posh. A relative price level the agent infers. Shown instead of prices |
 | Session | One conversation with the agent about one trip |
 | User memory | Durable facts and preferences about the user, applied to every trip |
-| Trip memory | Facts and decisions about one trip that do not belong in the itinerary |
+| Trip brief | The structured facts about what the user wants from one trip: the items in section 5.2 |
+| Trip memory | Facts and decisions about one trip that do not belong in the trip brief or the itinerary |
 
-**Relationships.** A user has many trips. A trip has one itinerary, one trip memory, and many sessions. User memory spans all of that user's trips.
+**Relationships.** A user has many trips. A trip has one itinerary, one trip brief, one trip memory, and many sessions. User memory spans all of that user's trips.
 
 ---
 
@@ -89,9 +90,9 @@ The agent handles all of these:
 - **Theme and region:** "I want to explore highly rated barbecue in Texas over seven days."
 - **Loose idea:** "Somewhere warm with good hiking in March, about a week."
 
-### 5.2 What the agent must establish
+### 5.2 Trip brief
 
-The agent establishes each item below, whether or not the user volunteers it. When user memory already holds a value, the agent confirms it instead of asking from scratch.
+The trip brief holds the items below. The agent establishes each one, whether or not the user volunteers it. When user memory already holds a value, the agent confirms it instead of asking from scratch.
 
 | Item | Required | Notes |
 |---|---|---|
@@ -99,23 +100,28 @@ The agent establishes each item below, whether or not the user volunteers it. Wh
 | Start and end points | Yes | One-way or loop. Agent suggests if the user has no preference |
 | Dates | Yes | Exact dates, a window ("sometime in May"), or duration only. Maximum 14 days. No limit on how far ahead |
 | Party | Yes | Number of adults and who they are ("my wife and me", "us plus another couple"). Defaults from user memory; can differ per trip |
-| Interests and must-sees | Yes | Asked even when the user gives a precise route |
-| Max driving hours per day | Yes | Expressed in hours, not miles |
-| Route preference | Yes | Scenic or fastest |
+| Interests and must-sees | Yes | Includes why they matter to the user. Asked even when the user gives a precise route |
+| Max driving hours per day | Yes | Expressed in hours, not miles. A default for the trip, not a hard limit. A day can go over it when the user agrees |
+| Route preference | Yes | Scenic or fastest. A default for the trip. A leg can differ when the user agrees |
 | Rest days | No | Days with no driving |
 | Budget posture | Yes | Default tier plus any rules (section 7.1) |
 | Meal preferences | Yes | Hotel breakfast vs local food scene, cuisines, food interests |
 
-### 5.3 Workflow
+### 5.3 Planning activities
 
-**Assumption:** planning proceeds in this order, and the user can jump around at any point.
+Planning a trip involves the activities below. They are not steps in a fixed order, and not every trip needs all of them. The agent moves between them as the conversation needs. The user can return to any of them at any time.
 
-1. **Discovery.** Establish the items in 5.2. The agent asks a few questions at a time and does not withhold a first proposal until every item is answered.
-2. **Skeleton.** Propose start, end, stops (destination or waystation), nights per stop, legs with drive times, and recommended dates if only a window was given.
-3. **Feasibility check** (section 6). Resolve any conflicts with the user.
-4. **Fill.** Recommend lodging, attractions, and dining for each stop and day via option cards.
-5. **Weather and clothing** (section 8).
-6. **Refine.** The user asks for changes in chat or through option card actions. The agent re-checks feasibility for affected days after every change.
+| Activity | What the user gets |
+|---|---|
+| Discovery | The agent establishes the items in 5.2. It asks a few questions at a time, and doesn't hold back a first proposal until every item is answered |
+| Shape | When the route is open, two or three short sketches of the trip to choose from. Each has a name, the rough path, and a few sentences on why someone would pick it. Not offered when the user gives a fixed route |
+| Skeleton | Start, end, stops (destination or waystation), nights per stop, legs with drive times, and recommended dates if only a window was given |
+| Feasibility | The checks in section 6, with conflicts resolved with the user |
+| Fill | Lodging, attractions, and dining for each stop and day, through option cards |
+| Weather and clothing | Section 8 |
+| Refine | Changes through chat or option card actions |
+
+After any change, the agent re-checks feasibility for the affected days.
 
 ### 5.4 Agent conduct
 
@@ -130,7 +136,7 @@ The agent establishes each item below, whether or not the user volunteers it. Wh
 
 ### 6.1 Checks
 
-- **Daily driving:** each driving day's road time fits within the user's max hours. **Assumption:** the agent adds a buffer for fuel, meals, and short stops rather than treating max hours as pure road time.
+- **Daily driving:** each driving day's road time fits within the user's max hours, unless the user has agreed to a longer day. **Assumption:** the agent adds a buffer for fuel, meals, and short stops rather than treating max hours as pure road time.
 - **Must-sees vs days:** all must-sees fit within the trip, given drive time and time needed at each.
 - **Seasonality:** attractions closed off-season, and operating days and hours that conflict with the scheduled time block. Seasonal road closures are out of scope.
 - **Seasonal risks:** for example, hurricane season, extreme heat, or snow.
@@ -141,9 +147,10 @@ The agent establishes each item below, whether or not the user volunteers it. Wh
 
 The agent:
 
-1. States which constraint fails and by how much (for example, "Day 3 needs about 9 hours of driving against your 6-hour limit").
+1. States which constraint fails and by how much (for example, "Day 3 needs about 9 hours of driving against your 6-hour daily preference").
 2. Proposes two or three trade-offs, such as adding a day, dropping or reordering stops, accepting a longer driving day, or switching from scenic to fastest for one leg.
 3. Lets the user pick, through option cards or chat.
+4. When the user accepts an exception, such as a longer driving day or the fastest route on one leg, records it on that day or leg, with the reason. It doesn't raise it again unless a later change makes that day longer than the user agreed to. For example, the user agrees to 6 hours on the last day. If a later change makes that day 7 hours, the agent asks again.
 
 ---
 
@@ -263,11 +270,13 @@ Miles, Fahrenheit, and US date formats.
 
 ### 10.2 Trip memory
 
-What the agent should carry between sessions of one trip that is not captured in the itinerary. Examples:
+Trip memory holds what the user says that doesn't fit the trip brief or the itinerary. The agent carries it between sessions of one trip. Examples:
 
 - Rejected options and why ("skipped Hotel X: no parking")
 - Soft intentions ("wants one nice dinner in Austin")
 - Open items to revisit ("decide whether to add Big Sur day")
+- Personal history ("ate at this diner as a kid and wants to go back")
+- Places to avoid ("stay out of this town")
 
 ### 10.3 User memory
 
@@ -290,6 +299,7 @@ The agent uses user memory to prefill section 5.2 and confirms rather than re-as
 
 - The user can ask the agent what it remembers, at both the user level and the trip level, and the agent answers from its stored memory.
 - The user can ask the agent to forget specific items. Forgotten items no longer influence recommendations.
+- When the user asks what the agent knows about a trip, the agent gives both the trip brief and trip memory. Memory items can be forgotten. Trip brief items can be changed but not forgotten, because the agent needs them to plan.
 
 ---
 
