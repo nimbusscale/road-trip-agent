@@ -447,3 +447,4 @@ The coordinator turns the user's natural-language rules into a tier for each lod
 2. **Tool-call limits.** The numbers per worker, given the daily Google limits.
 3. **A reviewer.** A later worker that reads the finished itinerary with fresh eyes and checks it against the trip brief. Not in the MVP.
 4. **An interview agent.** See section 2.
+5. **Time blocks, stop order, and meal types.** A stop has a time block and an order in its day (section 3.1), but nothing says how the two relate. A day could list lunch first in order but put it in the evening block. One proposal: order runs through the whole day, time blocks can't go backwards, and the tools reject a write that breaks this. A meal stop also has no type, such as breakfast, lunch, dinner, or snack. If a breakfast stop at Denny's moves to the evening, the model can't say whether breakfast became dinner, or breakfast was dropped and dinner added. Settle both together.
