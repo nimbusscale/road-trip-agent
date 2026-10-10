@@ -15,7 +15,7 @@ One **coordinator** agent talks to the user for the whole trip. It sends researc
 | Leg scout | No | Adds candidates only | No | Once per leg, in parallel |
 | Weather and clothing | No | No | No | Once per trip, after the fill round |
 
-A worker is called like a tool. It gets a brief, does its work, and returns one result. It can't ask the user anything. If it needs a decision, it says so in its result, and the coordinator asks.
+A worker is called like a tool. It gets a worker brief, does its work, and returns one result. It can't ask the user anything. If it needs a decision, it says so in its result, and the coordinator asks.
 
 ---
 
@@ -283,7 +283,7 @@ The itinerary tools carry changes through, so the coordinator doesn't have to:
 - **A stay is removed:** its days and their stops go away. The next day's leg now starts from the stay before it, and is re-routed.
 - **A stop is selected, changed, or removed:** that day's leg is re-routed through the selected stops. A day that stays put gains a leg when it gets its first stop to drive to, and loses it when the last one goes.
 
-When a stop or stay goes away, its candidates go with it. The places stay. The coordinator then sends new briefs for anything that is empty.
+When a stop or stay goes away, its candidates go with it. The places stay. The coordinator then sends new worker briefs for anything that is empty.
 
 ---
 
@@ -335,7 +335,7 @@ The coordinator's instructions cover:
 - **What to establish** (functional spec 5.2), and to confirm values from user memory instead of asking again.
 - **Memory precedence** (functional spec 10.4): the current conversation, then trip memory, then user memory. When the user contradicts user memory, ask whether it applies to this trip only.
 - **The planning method:** anchors and stretches (4.1) and the rounds (4.2).
-- **When to send work to a worker,** and how to write a brief (5.3).
+- **When to send work to a worker,** and how to write a worker brief (5.3).
 - **How to handle broken feasibility rules** (functional spec 6.2): say which rule fails and by how much, then offer two or three trade-offs.
 - **Budget tiers:** how to turn the user's rules into a tier for each lodging and meal stop (section 9).
 
@@ -351,7 +351,7 @@ A **worker brief** is the part of the trip brief one worker needs:
 - Places to leave out: candidates already offered for that stop or lodging, and rejected places with the reason ("no parking")
 - The worker's tool-call limit (section 6.4)
 
-Workers never see raw user memory or anything about the user beyond the brief.
+Workers never see raw user memory or anything about the user beyond their worker brief.
 
 ---
 
@@ -363,16 +363,16 @@ The coordinator decides which worker fills each stop when it lays out the day. S
 
 Finds candidates for one stay's lodging, and for the stops near it on its days.
 
-- **Tools:** place search (hotels, restaurants, attractions near a point), web search, both general and limited to Atlas Obscura, and tools to add candidates to the stops and stay in its brief.
-- **Instructions:** fit candidates to the brief's interests and tiers. Three candidates per stop or lodging (functional spec 7.5). Attractions carry the agent's estimate of visit time, labeled as an estimate. Check hours against the dates, and say plainly when hours are unconfirmed. The web search rules from the [web search design](data-sources-web-search.md) apply.
+- **Tools:** place search (hotels, restaurants, attractions near a point), web search, both general and limited to Atlas Obscura, and tools to add candidates to the stops and stay in its worker brief.
+- **Instructions:** fit candidates to the worker brief's interests and tiers. Three candidates per stop or lodging (functional spec 7.5). Attractions carry the agent's estimate of visit time, labeled as an estimate. Check hours against the dates, and say plainly when hours are unconfirmed. The web search rules from the [web search design](data-sources-web-search.md) apply.
 - **Returns:** for each stop or lodging, the candidates it added with one line each, plus any problems found. Example: "Must-see is closed on these dates."
 
 ### 6.2 Leg scout
 
 Finds candidates for the stops along one leg, on its driving day. These can be meals or attractions, such as breakfast on the way or a quick look at a landmark.
 
-- **Tools:** the along-leg place search, web search limited to Atlas Obscura for towns the leg passes through, and a tool to add candidates to the stops in its brief.
-- **Instructions:** fit candidates to the brief's interests and tiers. Give each one's detour time, labeled as a rough figure.
+- **Tools:** the along-leg place search, web search limited to Atlas Obscura for towns the leg passes through, and a tool to add candidates to the stops in its worker brief.
+- **Instructions:** fit candidates to the worker brief's interests and tiers. Give each one's detour time, labeled as a rough figure.
 - **Returns:** for each stop, the candidates it added with one line each.
 
 ### 6.3 Weather and clothing
@@ -380,12 +380,12 @@ Finds candidates for the stops along one leg, on its driving day. These can be m
 Writes weather and clothing guidance per stay (functional spec 8).
 
 - **Tools:** the Google Weather forecast for dates within 7 days, and the Open-Meteo seasonal averages tool otherwise.
-- **Instructions:** label each stay as forecast or seasonal averages. Tie clothing advice to the planned activities in the brief. Short advice, not a packing list.
+- **Instructions:** label each stay as forecast or seasonal averages. Tie clothing advice to the planned activities in the worker brief. Short advice, not a packing list.
 - **Returns:** the per-stay weather and clothing text, which is small. The coordinator writes it to the itinerary.
 
 ### 6.4 Rules for all workers
 
-- **A tool-call limit per brief.** Google's free tier is about 33 rated place searches a day (Google design, section 5). The limit is a setting.
+- **A tool-call limit per worker brief.** Google's free tier is about 33 rated place searches a day (Google design, section 5). The limit is a setting.
 - **No user contact and no memory access.** A question for the user goes in the result.
 - **Candidates are written to the stop or stay, not into the result** (section 7).
 
@@ -443,7 +443,7 @@ The coordinator turns the user's natural-language rules into a tier for each lod
 
 ## 10. Open questions
 
-1. **Brief and result formats.** Section 5.3 lists the contents, not the exact fields. Settle them during development.
+1. **Worker brief and result formats.** Section 5.3 lists the contents, not the exact fields. Settle them during development.
 2. **Tool-call limits.** The numbers per worker, given the daily Google limits.
 3. **A reviewer.** A later worker that reads the finished itinerary with fresh eyes and checks it against the trip brief. Not in the MVP.
 4. **An interview agent.** See section 2.
