@@ -6,7 +6,7 @@ This document covers the agents' custom tools: which server each tool is on, wha
 
 ## 1. How tools are grouped into servers
 
-**Servers are grouped by job, not by vendor and not by agent.** A server's name is part of every tool name the model sees, such as `mcp__places__search_near`. Naming by job keeps that name stable when a source changes. Example: the places server holds Google Places search and the NPS tools, since both find places and say whether they're open. If NPS data later came from somewhere else, nothing the agent sees would change.
+**Servers are grouped by job, not by vendor and not by agent.** A server's name is part of every tool name the model sees, such as `mcp__places__search_near`. Naming by job keeps that name stable when a source changes. Example: the server is `places`, not `google`. If place data later came from somewhere else, nothing the agent sees would change.
 
 **One source can serve several jobs, and one job can use several sources.** The Google client is shared code used by the places, routing, and weather servers. The weather server uses Google for forecasts and Open-Meteo for seasonal averages.
 
@@ -16,7 +16,7 @@ This document covers the agents' custom tools: which server each tool is on, wha
 |---|---|---|
 | `trip` | The trip brief and the itinerary, including candidates and feasibility checks | Our storage. Google Routes, to re-route legs |
 | `memory` | User memory and trip memory | Our storage |
-| `places` | Finding places, reading their details, and checking park conditions | Google Places, NPS |
+| `places` | Finding places and reading their details | Google Places |
 | `routing` | Rough drive times for the coordinator's checks | Google Routes |
 | `weather` | Forecasts and seasonal averages | Google Weather, Open-Meteo |
 
@@ -69,7 +69,7 @@ The coordinator's tools for the brief and itinerary, plus the workers' tools for
 | `add_stay_candidates` | Adds lodging candidates to a stay | Stay ID, and for each candidate: place ID, rationale, tier and rule, how it was found with the source link, and notes for these dates |
 | `add_stop_candidates` | Adds candidates to a stop | Stop ID, and the same items per candidate |
 
-Each call is one set. The tool assigns the set number (technical spec 3.2). Both tools reject a place already offered for that stop or stay, so a worker can't offer it twice. Both return one line per candidate added, for the worker's result. Candidates are never changed after they're written. There are two tools so the leg scout, which fills stops only, never sees the stay tool.
+Each call is one set. The tool assigns the set number (technical spec 3.2). Both tools reject a place already offered for the same stop or the same stay, so a worker can't offer it there twice. The same place can still be a candidate for a different stop or stay. Example: the Palace Hotel can be a lodging candidate for a stay and also a candidate for a stop (technical spec 3.2). Both return one line per candidate added, for the worker's result. Candidates are never changed after they're written. There are two tools so the leg scout, which fills stops only, never sees the stay tool.
 
 ### 2.2 Memory
 
@@ -92,12 +92,8 @@ Every search saves its results as places in the trip and returns their IDs. A pl
 | `read_place` | Reads a place's full record | Place ID | Everything stored: hours, coordinates, rating, summary, links |
 | `search_near` | Finds hotels, restaurants, or attractions near a point | A place ID or coordinates, what to look for, and an optional price level | Matches with the details the worker needs to choose: rating, review count, price level, hours, summary, links |
 | `search_along_leg` | Finds places along a day's route | Day ID and what to look for | The same details as `search_near`, plus a rough detour time for each |
-| `park_things_to_see` | Lists sights and activities in a national park | A place ID in or near the park, and an optional keyword | Up to 30 items, with visit time when NPS has it ([NPS design](data-sources-nps.md), 3.3) |
-| `park_conditions` | Says what is closed or flagged in a national park on the trip dates | A place ID in or near the park, and the dates | Visitor-center closures on those dates, road-season text, and alerts when the visit is within 7 days ([NPS design](data-sources-nps.md), 3.2) |
 
 **`search_along_leg` reads the route line itself,** from the day's leg in the trip. The route line is large, so it never passes through the model.
-
-**Finding the park is a step inside the two park tools,** not a tool of its own ([NPS design](data-sources-nps.md), 3.1). Given a place that isn't in an NPS park, they return "not an NPS park," which is a normal result.
 
 ### 2.4 Routing
 
@@ -129,8 +125,6 @@ Weather worker only.
 | `places`: `find_place`, `read_place` | Yes | | | |
 | `places`: `search_near` | | Yes | | |
 | `places`: `search_along_leg` | | | Yes | |
-| `places`: `park_things_to_see` | | Yes | | |
-| `places`: `park_conditions` | | Yes | | Yes |
 | `routing`: `compute_route` | Yes | | | |
 | `weather`: all (2.5) | | | | Yes |
 | Built-in `WebSearch` | | Yes | Yes | |

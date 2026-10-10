@@ -215,7 +215,7 @@ A **candidate** is one place offered for a stop or for a stay's lodging, with th
 - The place it offers
 - **Rationale:** one or two sentences on why it was offered here, tied to the user's preferences. The UI shows it as a tooltip on the option card. The coordinator reads it when the user asks "why that one?"
 - Tier, and the rule that produced it
-- How it was found (Google, NPS, or web search, with the source link), and notes for these dates, such as "closed Mondays, and you're there on a Monday" (functional spec 7.5)
+- How it was found (Google or web search, with the source link), and notes for these dates, such as "closed Mondays, and you're there on a Monday" (functional spec 7.5)
 - **Set number:** which batch it came in. The tool assigns it: 0 for the first batch offered for that stop or lodging, 1 for the next "more options" batch, and so on. A place the user names is a set of one
 
 The facts about the place, such as rating and hours, live on the place. Only the reason for offering it lives on the candidate. That matters when one place is offered twice for different reasons. Example: the Palace Hotel in San Francisco, offered as lodging because "posh, from rule: last night is special," and as a stop because "Maxfield Parrish's Pied Piper painting hangs in the bar."
@@ -363,8 +363,8 @@ The coordinator decides which worker fills each stop when it lays out the day. S
 
 Finds candidates for one stay's lodging, and for the stops near it on its days.
 
-- **Tools:** place search (hotels, restaurants, attractions near a point), things to see in a national park, park conditions for the trip dates, web search, both general and limited to Atlas Obscura, and tools to add candidates to the stops and stay in its brief.
-- **Instructions:** fit candidates to the brief's interests and tiers. Three candidates per stop or lodging (functional spec 7.5). Attractions carry a visit time, labeled as an estimate when it doesn't come from NPS. Check hours against the dates, and say plainly when hours are unconfirmed. The web search rules from the [web search design](data-sources-web-search.md) apply.
+- **Tools:** place search (hotels, restaurants, attractions near a point), web search, both general and limited to Atlas Obscura, and tools to add candidates to the stops and stay in its brief.
+- **Instructions:** fit candidates to the brief's interests and tiers. Three candidates per stop or lodging (functional spec 7.5). Attractions carry the agent's estimate of visit time, labeled as an estimate. Check hours against the dates, and say plainly when hours are unconfirmed. The web search rules from the [web search design](data-sources-web-search.md) apply.
 - **Returns:** for each stop or lodging, the candidates it added with one line each, plus any problems found. Example: "Must-see is closed on these dates."
 
 ### 6.2 Leg scout
@@ -379,7 +379,7 @@ Finds candidates for the stops along one leg, on its driving day. These can be m
 
 Writes weather and clothing guidance per stay (functional spec 8).
 
-- **Tools:** the Google Weather forecast for dates within 7 days, the Open-Meteo seasonal averages tool otherwise, and park conditions for NPS alerts within 7 days.
+- **Tools:** the Google Weather forecast for dates within 7 days, and the Open-Meteo seasonal averages tool otherwise.
 - **Instructions:** label each stay as forecast or seasonal averages. Tie clothing advice to the planned activities in the brief. Short advice, not a packing list.
 - **Returns:** the per-stay weather and clothing text, which is small. The coordinator writes it to the itinerary.
 

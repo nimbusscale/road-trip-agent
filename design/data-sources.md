@@ -17,14 +17,12 @@ This index maps each data need in the [functional spec](functional-spec.md) to t
 | Restaurants near a stay | 7.3 | Google Places Text Search | [Google](data-sources-google.md) |
 | Attractions near a stay | 7.4 | Google Places Text Search. General web search for mainstream sights. Web search limited to Atlas Obscura for unusual places | [Google](data-sources-google.md), [Web search](data-sources-web-search.md) |
 | Notable stops along a leg | 7.4 | Google Places Text Search along the route line. Web search limited to Atlas Obscura for towns the leg passes through | [Google](data-sources-google.md), [Web search](data-sources-web-search.md) |
-| Sights and activities inside a national park | 7.4 | NPS Data API, things to do and places | [NPS](data-sources-nps.md) |
-| Visit time for attractions | 7.4 | NPS, for national parks where it is filled in. Otherwise the agent's own estimate, labeled as one | [NPS](data-sources-nps.md) |
+| Visit time for attractions | 7.4 | The agent's own estimate, labeled as one | None |
 | Price level, for budget tiers | 7.1 | Google Places, for restaurants. Hotels have no price level, so their tier comes from the summary text | [Google](data-sources-google.md) |
 | Weekly opening hours | 7.4 | Google Places | [Google](data-sources-google.md) |
 | Ratings and review counts | 7.5 | Google Places. Restaurants and hotels, and attractions only where a rating means something | [Google](data-sources-google.md) |
-| Source link for option cards | 7.5 | Google Places: Google Maps link and reviews link. NPS page links. Web search result links | [Google](data-sources-google.md), [NPS](data-sources-nps.md), [Web search](data-sources-web-search.md) |
-| Seasonal hours and closures | 6.1 | NPS Data API for national parks: dated visitor-center closures and road-season text. Everything else: the agent's own knowledge and web search. The agent says plainly when hours are unconfirmed | [NPS](data-sources-nps.md), [Web search](data-sources-web-search.md) |
-| Current park closures and alerts | 6.1 | NPS Data API, for visits within 7 days | [NPS](data-sources-nps.md) |
+| Source link for option cards | 7.5 | Google Places: Google Maps link and reviews link. Web search result links | [Google](data-sources-google.md), [Web search](data-sources-web-search.md) |
+| Seasonal hours and closures | 6.1 | The agent's own knowledge and web search, national parks included. The agent says plainly when hours are unconfirmed | [Web search](data-sources-web-search.md) |
 | Seasonal risks (heat, snow, hurricanes) | 6.1 | Heat, freezing, and snow: counts from the Open-Meteo seasonal averages tool. Hazard seasons such as hurricanes: the agent's own knowledge | [Open-Meteo](data-sources-open-meteo.md) |
 | Weather forecast, within 7 days | 8 | Google Weather API | [Google](data-sources-google.md) |
 | Seasonal weather averages | 8 | Open-Meteo Historical Weather API | [Open-Meteo](data-sources-open-meteo.md) |

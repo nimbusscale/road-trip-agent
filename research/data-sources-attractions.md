@@ -20,7 +20,7 @@ All testing was done on 2026-10-10. API calls were plain `curl` requests from th
 
 **What the research suggests:** wrap NPS as a custom tool. Use web search for both general picks and Atlas Obscura picks, as two different kinds of search. Drop Wikivoyage.
 
-**Outcome (2026-10-10):** NPS and web search were chosen. Wikivoyage and the Atlas Obscura library were dropped. See the [NPS](../design/data-sources-nps.md) and [web search](../design/data-sources-web-search.md) design docs.
+**Outcome (2026-10-10):** NPS and web search were chosen. Wikivoyage and the Atlas Obscura library were dropped. See the [web search](../design/data-sources-web-search.md) design doc. NPS was taken out of the MVP later that day. Its design is parked in [data-sources-nps.md](data-sources-nps.md).
 
 ---
 
