@@ -36,6 +36,8 @@ This section lists what gets stored, how the pieces relate, and who creates or c
 
 **Every entity's ID is one we create.** IDs from outside sources, such as Google's place ID, are stored as ordinary properties and can be empty.
 
+**Anything numbered in order starts at 0.** That covers a stay's order, a day's order, a stop's order in its day, and a candidate's set number. The UI counts from 1 for people, so the day stored as 0 shows as Day 1. The examples below use the people-facing labels.
+
 ### 3.1 Entities
 
 ```mermaid
@@ -67,7 +69,7 @@ Candidates and legs are not in the diagram. They are value objects: candidates a
 | Trip brief | Trip | The items in functional spec 5.2. Created empty with the trip |
 | Itinerary | Trip | Points to a start place and an end place. Holds the stays and the days, each in order. Created empty with the trip |
 | Place | Trip | Any real location: a town, hotel, restaurant, bar, attraction, friend's house, or campground. Holds the facts about it: name, coordinates, Google's place ID when there is one, and the details a tool returned, such as rating, review count, price level, weekly hours, summary, and links. The kind of place doesn't limit how it's used. A hotel can be a stay's lodging, or a stop for its bar. On a loop trip, the start and end are the same place |
-| Stay | Itinerary | One overnight location: the town it's in, destination or waystation, and order. Its nights are the number of days that point to it, worked out rather than stored. Its lodging is a place, empty until selected. Holds its lodging candidates, and a tier and the rule that produced it |
+| Stay | Itinerary | One overnight location: the place it's in, usually a town, and order. Its nights are the number of days that point to it, worked out rather than stored. Its lodging is a place, empty until selected. Holds its lodging candidates, and a tier and the rule that produced it |
 | Day | Itinerary | One calendar day: date, rest day or not, three time blocks, its stops in order, and its leg, if it has one (3.3). Points to the stay where the party sleeps that night, if any |
 | Stop | Day | A visit during the day: a meal or an attraction. Holds its kind, time block, and order in the day. Its place is empty until selected. Holds its candidates. Meal stops have a tier and the rule that produced it |
 | Trip memory item | Trip | One free-text note (functional spec 10.2) |
@@ -93,8 +95,8 @@ Itinerary
   End place:   Los Angeles
 
   Stays, in order
-    Monterey stay         1 night, waystation   lodging → (a Monterey hotel)
-    San Luis Obispo stay  1 night, waystation   lodging → (an SLO hotel)
+    Monterey stay         1 night   lodging → (a Monterey hotel)
+    San Luis Obispo stay  1 night   lodging → (an SLO hotel)
 
   Days, in order
     Day 1                                      night at → Monterey stay
@@ -140,9 +142,9 @@ Itinerary
   End place:   Salt Lake City
 
   Stays, in order
-    Moab stay    destination   nights: 3 (worked out: Days 1–3 point here)
+    Moab stay    nights: 3 (worked out: Days 1–3 point here)
                  lodging → (a Moab hotel)
-    Torrey stay  waystation    nights: 1 (worked out: Day 4 points here)
+    Torrey stay  nights: 1 (worked out: Day 4 points here)
                  lodging → (a Torrey hotel)
 
   Days, in order
@@ -196,7 +198,7 @@ A **candidate** is one place offered for a stop or for a stay's lodging, with th
 - **Rationale:** one or two sentences on why it was offered here, tied to the user's preferences. The UI shows it as a tooltip on the option card. The coordinator reads it when the user asks "why that one?"
 - Tier, and the rule that produced it
 - How it was found (Google, NPS, or web search, with the source link), and notes for these dates, such as "closed Mondays, and you're there on a Monday" (functional spec 7.5)
-- **Set number:** which batch it came in. The tool assigns it: 1 for the first batch offered for that stop or lodging, 2 for the next "more options" batch, and so on. A place the user names is a set of one
+- **Set number:** which batch it came in. The tool assigns it: 0 for the first batch offered for that stop or lodging, 1 for the next "more options" batch, and so on. A place the user names is a set of one
 
 The facts about the place, such as rating and hours, live on the place. Only the reason for offering it lives on the candidate. That matters when one place is offered twice for different reasons. Example: the Palace Hotel in San Francisco, offered as lodging because "posh, from rule: last night is special," and as a stop because "Maxfield Parrish's Pied Piper painting hangs in the bar."
 
@@ -226,7 +228,7 @@ A **leg** is the drive on one day. It is a value object held by its day, not an 
 
 Only the route type, waypoints, and approved exceptions are stored. The rest is worked out or computed.
 
-**Where the party sleeps is the stay's lodging once one is selected, and the stay's town until then.** A town is a place like any other. Before a hotel is picked, the leg routes to the town. When one is picked, the leg is re-routed to it. For most towns this barely changes the drive time. In a big city it can: a hotel in Santa Monica and one in Pasadena are far apart.
+**Where the party sleeps is the stay's lodging once one is selected, and the stay's place until then.** That place is usually a town, and a town is a place like any other. Before a hotel is picked, the leg routes to the town. When one is picked, the leg is re-routed to it. For most towns this barely changes the drive time. In a big city it can: a hotel in Santa Monica and one in Pasadena are far apart.
 
 **A waypoint is a point the route must pass through, without stopping.** The coordinator adds waypoints to steer a scenic route. Example: the fastest route from Monterey to San Luis Obispo runs inland on US-101. To keep it on Highway 1 through Big Sur, the coordinator adds a waypoint at Big Sur village. When a day already has stops on Highway 1, they pull the route onto the coast themselves, and no waypoint is needed.
 
@@ -285,7 +287,7 @@ Planning goes from broad to narrow. This is the usual order in which the coordin
    - Sketches come from the model's own knowledge, not from research. The coordinator makes one routing call per sketch to get a rough total drive time, so it doesn't pitch a trip that can't work.
    - Seasonal closures and hazards at this stage also come from the model's own knowledge. Workers confirm them later with real data.
    - Skip this round when the user already gave a fixed route.
-3. **Skeleton.** For the chosen shape: stays, destination or waystation, nights per stay, legs with drive times, and dates if only a window was given. The coordinator builds this itself with the routing and place tools, and writes it to the itinerary.
+3. **Skeleton.** For the chosen shape: stays, nights per stay, legs with drive times, and dates if only a window was given. The coordinator builds this itself with the routing and place tools, and writes it to the itinerary.
 4. **Fill.** The coordinator lays out each day's stops. Then it briefs one stay researcher per stay and one leg scout per leg, all at once. The workers add candidates to the stops and lodging, which makes them proposed.
 5. **Weather and clothing.** After the fill, because clothing advice depends on the planned activities.
 6. **Refine.** Changes from chat or option card actions. "More options", "Higher tier", and "Lower tier" each send one worker for that one stop or lodging.
@@ -297,7 +299,7 @@ Planning goes from broad to narrow. This is the usual order in which the coordin
 ### 5.1 Tools
 
 - **Itinerary:** read the itinerary. Add, change, and remove stays, days, and stops. Set a leg's route type and waypoints. Record selections, clear a stop or lodging back to empty, set approved exceptions, and save each stay's weather and clothing text. Every write returns the feasibility check results (section 8).
-- **Trip brief:** read the trip brief, and update an item in it. Every update returns the feasibility check results (section 8), since items like max driving hours affect them.
+- **Trip brief:** read the trip brief, and update one or more items in it at once. Every update returns the feasibility check results (section 8), since items like max driving hours affect them.
 - **Memory:** read, add, update, and forget items in user memory and trip memory.
 - **Places:** find a named place, to resolve a town, a must-see, or a place the user names. Read a place's full record by ID, when the short line isn't enough (7.2).
 - **Routing:** compute a route, with the option to put stays in the best order. Returns times and distances only. The route line goes to the UI.
@@ -323,7 +325,7 @@ The coordinator keeps the **trip brief** (functional spec 5.2) current with the 
 
 A **worker brief** is the part of the trip brief one worker needs:
 
-- The IDs of the stops or the stay to fill, with the day, dates, nights, and stay type they belong to
+- The IDs of the stops or the stay to fill, with the day, dates, and nights they belong to
 - For lodging and meal stops, the resolved tier and the rule that produced it
 - Interests, must-sees, and meal preferences that apply here
 - Places to leave out: candidates already offered for that stop or lodging, and rejected places with the reason ("no parking")
