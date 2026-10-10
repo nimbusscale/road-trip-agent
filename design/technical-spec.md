@@ -38,6 +38,8 @@ This section lists what gets stored, how the pieces relate, and who creates or c
 
 **Anything numbered in order starts at 0.** That covers a stay's order, a day's order, a stop's order in its day, and a candidate's set number. The UI counts from 1 for people, so the day stored as 0 shows as Day 1. The examples below use the people-facing labels.
 
+**"Worked out" means looked up from other stored data when read, and not stored.** Examples: a stay's nights, a day's date, a leg's from and to, and a candidate's status. Storing these would add a second copy that can go stale. Values that need a call to an outside service, such as a leg's drive time, are different. They are computed once and stored (3.3).
+
 ### 3.1 Entities
 
 ```mermaid
@@ -234,15 +236,15 @@ The facts about the place, such as rating and hours, live on the place. Only the
 
 A **leg** is the drive on one day. It is a value object held by its day, not an entity. It has no ID of its own. A day has a leg when it moves to a new stay, or when it has stops to drive to and isn't a rest day (3.1). When the day stays put, from and to are the same stay. A leg has no type. Whether it returns to the same stay is just what its from and to work out to, not a stored property. The functional spec's "loop" means a trip that ends where it started, not a leg. The leg scout is briefed with the day's ID.
 
-| Property | Where it comes from |
-|---|---|
-| From | Worked out: where the party slept the night before, or the start place |
-| To | Worked out: where the party sleeps that night, or the end place |
-| Drive time, distance, and route line | Computed by code from the route, through the day's selected stops in order |
-| Route type (scenic or fastest) and waypoints | Set by the coordinator |
-| Approved exceptions | Set by the coordinator when the user agrees (section 8) |
+| Property | Where it comes from | Stored |
+|---|---|---|
+| From | Worked out: where the party slept the night before, or the start place | No |
+| To | Worked out: where the party sleeps that night, or the end place | No |
+| Drive time, distance, and route line | Computed by code with Google Routes, through the day's selected stops in order | Yes |
+| Route type (scenic or fastest) and waypoints | Set by the coordinator | Yes |
+| Approved exceptions | Set by the coordinator when the user agrees (section 8) | Yes |
 
-Only the route type, waypoints, and approved exceptions are stored. The rest is worked out or computed.
+**Drive time, distance, and route line are stored because each one costs a paid call to Google Routes.** Working them out on every read would be slow and would use up the quota. Code computes them again only when something the route depends on changes: the stays, a stay's lodging, the day's selected stops, or the leg's route type or waypoints (3.5).
 
 **Where the party sleeps is the stay's lodging once one is selected, and the stay's place until then.** That place is usually a town, and a town is a place like any other. Before a hotel is picked, the leg routes to the town. When one is picked, the leg is re-routed to it. For most towns this barely changes the drive time. In a big city it can: a hotel in Santa Monica and one in Pasadena are far apart.
 
@@ -265,7 +267,7 @@ Users don't pick waypoints. They pick scenic or fastest, and the coordinator pic
 - **Code inside the tools:**
   - Places, created or reused when a tool returns one.
   - Days, added and removed as stays' nights change. The last day is created with the itinerary.
-  - A leg's from, to, drive time, distance, and route line, worked out whenever the stays, a stay's lodging, the leg's route type or waypoints, or a selected stop on its day changes. The coordinator's own routing tool is for rough checks, such as the shape sketches (4.2).
+  - A leg's drive time, distance, and route line, computed and stored whenever the stays, a stay's lodging, the leg's route type or waypoints, or a selected stop on its day changes. Its from and to are worked out when read. The coordinator's own routing tool is for rough checks, such as the shape sketches (4.2).
   - Feasibility results (section 8).
 - **Workers:** candidates, and the places they point to. A worker gets the IDs of stops or a stay that already exist, and can only add candidates to those. It can't create, change, or select anything.
 - **The UI:** nothing directly. A card click becomes a message to the coordinator (7.2).
