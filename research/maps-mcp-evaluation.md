@@ -1,21 +1,29 @@
-# Road Trip Planner: Maps MCP Evaluation (Mapbox and TomTom)
+# Road Trip Planner: Maps Evaluation (Mapbox, TomTom, and Google)
 
-> **This is a research document, not a design document.** It records what map MCP servers did when called by hand. It does not make design decisions.
+> **This is a research document, not a design document.** It records what map MCP servers and APIs did when called by hand. It does not make design decisions.
 
-This evaluates MCP servers for routing and points of interest, as candidates for the [data sources](data-sources.md) the agent needs. All calls are made by hand from a Claude Code session, not from the agent. This tests the tools, not the agent's reasoning over them.
+This evaluates MCP servers and plain APIs for routing and points of interest, as candidates for the [data sources](data-sources.md) the agent needs. Rounds 1 to 3 tested MCP servers. Round 4 tested two Google APIs that the agent's own code would wrap as custom tools. The file name still says "mcp" so links to it keep working.
+
+All calls are made by hand, not from the agent. Rounds 1 and 2 used a Claude Code session. Rounds 3 and 4 used plain requests from the shell (section 7.1). This tests the tools, not the agent's reasoning over them.
 
 ---
 
 ## 1. Status
 
-**Last updated 2026-10-09 (round 2).** This section is the hand-off between sessions. Read it first, then update it at the end of each session.
+**Last updated 2026-10-10 (round 4).** This section is the hand-off between sessions. Read it first, then update it at the end of each session.
 
-| Round | Server | Version | Status |
+| Round | Server or API | Version | Status |
 |---|---|---|---|
 | 1 | Mapbox, local (`@mapbox/mcp-server`) | 0.2.0 (8 tools) | **Done.** Results in section 5 |
 | 2 | Mapbox, local | 0.15.1 (29 tools) | **Done.** Results in section 6 |
 | 2 | TomTom, local (`@tomtom-org/tomtom-mcp`) | 1.6.12 (11 tools) | **Done.** Results in section 6 |
+| 3 | Google Maps Grounding Lite, hosted (`mapstools.googleapis.com/mcp`) | Hosted, no version shown (5 tools) | **Done.** Results in section 7 |
+| 4 | Google Routes API (`computeRoutes`) and Places API Text Search, called directly | `directions/v2`, `places/v1` | **Done.** Results in section 8 |
 | — | Mapbox hosted (`mcp.mapbox.com/mcp`), TomTom remote (`mcp.tomtom.com/maps`) | — | Not planned. Only test if the local servers behave differently from what the docs describe |
+
+**Why round 3 was added.** Research on listings found that Apify's free plan stops at $5 a month, with no pay-as-you-go. Google became the main candidate for ratings and review counts. Grounding Lite was tested first because it is Google's own hosted MCP server.
+
+**Why round 4 was added.** Grounding Lite was weak on routing and had no way to search along a route line (sections 7.6 and 7.7). Google's plain Routes and Places APIs cover both. They would be custom tools, so the agent's code would control their descriptions and trim their output.
 
 **Why round 1 used an old version.** Mapbox server versions after 0.2.0 need Node 22 or newer. The shell was on Node 20. When `npx` gets a package with no version, it quietly installs the newest release that supports the current Node, which was 0.2.0. Round 1 results describe 0.2.0 only.
 
@@ -24,8 +32,13 @@ This evaluates MCP servers for routing and points of interest, as candidates for
 - **Mapbox place details quota.** The tool description says the place details lookup is a Public Preview with a default quota of 1,000 requests a month. Find out whether that can be raised, and what it costs.
 - **`permanent` geocoding.** Geocoding responses say results "may not be retained" unless `permanent=true` is set. Find its price and whether saved stop coordinates need it.
 - **Mid-call prompts.** Mapbox 0.15.1 can stop a tool call and ask the human to pick a result (section 6.1). The agent runs with no human watching, so its MCP client has to decline these prompts or not offer to show them. Check that whatever client the agent uses does one of those.
+- **Google usage.** Check the Google Cloud console for the 25 round 3 calls and the 18 round 4 calls. Confirm they count against each API's free monthly calls, and not against the $300 trial credit. The user has to do this.
+- **Google price levels per call.** Each Places and Routes request is billed by the fields and options it asks for. Check in the console which price level each round 4 call landed in. In particular: a Text Search asking for both ratings and Gemini summaries, a search with `routingSummaries`, a traffic-aware route, and an optimized route.
+- **Google key restrictions.** The key can call every Google API. Once the APIs in use are decided, limit the key to those.
+- **Gemini summary labels.** Places returns review and overview summaries labeled "Summarized with Gemini" (section 8.3). Check whether Google's terms require showing that label wherever the text appears.
 
 **Closed:**
+- **Google search along a route.** Places Text Search takes a route line and returns detour times (section 8.4).
 - **Day numbering in `open_hours`.** Day 0 is Sunday. Place details prints days by name, and it matches the numbered periods from category search. For example, Kreuz Market closes at 18:00 on "Su" and on day 0, and at 20:00 every other day.
 
 ---
@@ -94,11 +107,11 @@ Load the schemas for every Mapbox and TomTom tool. Write down any parameter that
 ### Phase D: Write it up
 
 1. Add round 2 results to section 6, in the same style as section 5.
-2. Fill in the comparison table in section 7.
+2. Fill in the comparison table (now section 9).
 3. Update section 1 with the new status and anything still open.
 4. Check the Mapbox and TomTom account dashboards for call counts. The user has to do this.
 
-**Done when:** sections 1, 6, and 7 are current.
+**Done when:** sections 1, 6, and the comparison (now section 9) are current.
 
 ---
 
@@ -442,22 +455,270 @@ The bounding box in step 3 was worked out by hand. An agent would add a `bbox_to
 
 ---
 
-## 7. Comparison
+## 7. Round 3 results: Google Maps Grounding Lite
 
-| Need | Mapbox 0.15.1 | TomTom 1.6.12 |
+Tested 2026-10-10. 25 tool calls. Response sizes are character counts of the text the server returned.
+
+### 7.1 How it was called
+
+- **Server:** Google's hosted MCP server at `https://mapstools.googleapis.com/mcp`. Nothing runs locally.
+- **Key:** a Google Maps Platform API key, sent in the `X-Goog-Api-Key` header. It is `GOOGLE_MAPS_API_KEY` in the repo's git-ignored `.env`. The key belongs to a new Google Cloud account with a $300, 90-day trial credit. It currently allows every Google API.
+- **Client:** plain MCP requests sent with curl, not Claude Code's MCP client. The server answered `tools/call` directly, with no `initialize` step and no session.
+- **The text and structured copies match.** Each result has both, and they hold the same JSON. So, unlike Mapbox (6.1), it doesn't matter which copy a client shows.
+- **Argument names.** The schemas use camelCase, such as `textQuery`. Snake case, such as `text_query`, also worked.
+- **No mid-call prompts.**
+- **Fast.** Route and weather calls took 0.2 to 1.1 seconds. Place searches took 0.7 to 2.0 seconds.
+
+### 7.2 Tools
+
+| Tool | Takes | Returns |
 |---|---|---|
-| Drive time per leg, with waypoints | **Not from directions.** 0.15.1 returns totals only. Per-leg times need the matrix or optimization tool | **Yes.** Every leg, by default |
-| Scenic route option | No. Waypoints needed | `thrilling` exists but went inland. Waypoints still needed |
-| Route line detailed enough to draw | **No, in practice.** Full lines over 50 KB are held back. Simplified line from optimization: 31 points for Big Sur | **Yes.** Up to 1,000 points, about 22,000 characters for Big Sur |
-| Places by type near a stop | Yes. Sorted by distance, no distance limit. Austin hotels still have junk | Yes. Hard radius, distance on each result, clean hotels. Barbecue tagging misses famous places |
-| Places along a leg | Five- or six-step recipe, about 60,000 characters. Found 3 of 5 known stops | **One call.** About 12,000 to 14,000 characters. Found 3 of 5, plus McWay Falls' park |
-| Named place lookup | **Good.** 5 of 6. Failed on "Smitty's Market" | Good. 4 of 5. Failed on "Franklin Barbecue" |
-| Ratings and review counts | No. Popularity score only | No |
-| Price level | **Sometimes.** Place details, 2 of 5 places | No |
-| Hours | Weekly schedule. No seasons | Next seven days, opt-in. No seasons. Hearst Castle hours differ from Mapbox's |
-| Listing link for option cards | Business website. No review site link | Business website |
-| Response size | Large. About 1,500 characters per place, 2,000 to 4,500 per place details call | Compact. About 600 to 700 per place, 1,000 to 4,000 per route |
-| Pauses to ask the user | **Yes.** Text search with 2 to 10 results, directions with alternatives | None seen |
-| Free tier and access | Calls worked. Place details is capped at 1,000 a month by default. Dashboard check pending | Calls worked, including the routing and along-route search. Dashboard check pending |
+| `search_places` | A text query. Optional location bias and `includeExtendedDetails` | 1 to 5 places, each with an ID, coordinates, Google Maps links, and attribution. Plus a written summary of all of them |
+| `compute_routes` | One origin and one destination, as an address, coordinates, or place ID | Distance in meters and duration in seconds. No waypoints, no route line, no route options |
+| `lookup_weather` | A location. Optional date and hour | Current conditions, or one day's or one hour's forecast, up to 10 days out |
+| `resolve_names` | Up to 20 place names or addresses | One place ID per query, with a confidence level. No names or coordinates |
+| `resolve_maps_urls` | Up to 20 Google Maps links | Not tested |
 
-**Neither server covers ratings or review counts.** Both give a business website, but neither gives a link to reviews. Option cards would need another source for those, as [data-sources.md](data-sources.md) already expects.
+- **Tool descriptions are long and written as orders to the model.** They run 1,100 to 3,000 characters each. For example, `search_places` says that for a vague location, "*you must* specify it in the `text_query`". These descriptions will shape how the agent uses the tools.
+- **Ratings, price, and hours are not fields.** They appear only inside the written summary (7.3).
+
+### 7.3 Places: ratings, price, and hours
+
+| Query | Places | Result |
+|---|---|---|
+| Highly rated barbecue in Lockhart, TX | 3 | Terry Black's, Barbs B Q, Black's Barbecue |
+| Mid-range hotels in Monterey, CA | 5 | The Monterey Hotel, Monterey Bay Lodge, InterContinental the Clement, Seven Gables Inn, Monterey Bay Inn |
+| Upscale hotel in Savannah, GA | 5 | Perry Lane Hotel, JW Marriott Plant Riverside, Hotel Orielle, Hotel Bardo, Bellwether House |
+| Cheap motel near Van Horn, TX | 5 | Taylor Motel, Desert Inn, Motel 6, Super 8, Sands Motel |
+| Barbs B Q Lockhart TX opening hours | 1 | "open from 11 AM to 3 PM on Fridays through Sundays and is closed Monday through Thursday" |
+| Price level of barbecue restaurants in Lockhart, TX | 5 | A dollar range for each place, such as "between twenty and thirty dollars" |
+
+- **Every place has a rating and review count.** They appear in the summary in a fixed format, such as "**Terry Black's Barbecue Lockhart** (4.8★ (2410))". This is the only server of the three that returns them.
+- **Price and hours come back only when the query asks for them.** Prices are dollar ranges, not "$" to "$$$$".
+- **The summaries carry tier hints even without asking.** Examples: "upmarket setting", "straightforward budget property", "affordable option", "free breakfast".
+- **The small waystation town worked.** Van Horn returned five real places.
+- **Each place has a Google Maps place link and a reviews link.** Either could be the option card's source link.
+- **Extended details changed the results.** The Lockhart barbecue query with `includeExtendedDetails=true` returned 5 places instead of 3, adding Kreuz Market and Smitty's Market. Summaries added menu items and atmosphere. It took 2.0 seconds instead of 1.4. Each version was run once, so the extra places might not come from the flag.
+- **Each place is about 1,300 characters.** The summary is under a fifth of the response. The five Google Maps links per place are most of the rest.
+
+### 7.4 Places: named lookups
+
+| Query | Result |
+|---|---|
+| Franklin Barbecue, Austin, TX | Correct, single result. 4.7★ (7297) |
+| Hearst Castle | Correct, single result. 4.6★ (13782) |
+| Bixby Bridge | Correct, single result. 4.8★ (3021) |
+| Smitty's Market, Lockhart, TX | Correct, single result. Mapbox failed on this one (6.4) |
+| `resolve_names`, 6 names in one call | 6 place IDs. Confidence was "HIGH" for 5 and "MEDIUM" for Bixby Bridge. The 4 IDs above matched what `search_places` returned. Kreuz Market and the elephant seal vista were not checked |
+
+- **Named lookup was the best of the three servers.** All 4 correct, including the two that tripped Mapbox and TomTom.
+- **`resolve_names` returns IDs only.** It needs another call to be useful. `search_places` alone does the job.
+
+### 7.5 Places near stops
+
+| Search | Result |
+|---|---|
+| Hotels in downtown Austin, TX | 5 real hotels, no junk. Mostly chains: Holiday Inn Express, Hilton Garden Inn, La Quinta, Holiday Inn, Cambria. Ratings from 2.8★ to 4.7★ |
+| Barbecue restaurants in Austin, TX | Terry Black's, Franklin, Stiles Switch, Black's, Iron Works. All real barbecue places. TomTom missed Franklin and Terry Black's (6.9) |
+| Motels in Tucumcari, NM | 5 real places, all chains or plain motels. **No Blue Swallow Motel or Motel Safari**, the Route 66 motels that Mapbox and TomTom both found |
+| Restaurants in Tucumcari, NM | Del's first, then SideKix on 66 and La Cita. Two entries had 1 and 11 reviews, rated 5.0★ and 4.9★ |
+
+- **Results are not sorted by distance.** The order looks like Google's own relevance ranking.
+- **Only 5 places per call.** More options need a reworded query.
+- **The agent has to weigh review counts.** A 5.0★ rating from 1 review came back next to places with thousands.
+- **Small-town results lean toward chains.** For Tucumcari, the well-known local motels didn't make the top 5.
+
+### 7.6 Places along a leg
+
+Grounding Lite can't take a route line, so this used text queries for the Big Sur leg.
+
+| Query | Result |
+|---|---|
+| Scenic stops and attractions along Highway 1 between Carmel and San Simeon, CA | A "Big Sur National Scenic Byway" marker near Carmel, Point Lobos, Seal Beach Overlook, Limekiln State Park, Hearst Castle |
+| Viewpoints along Highway 1 in Big Sur, CA | The same byway marker, Seal Beach Overlook, Buzzards Roost Viewpoint, Willow Creek View Point, Big Sur Lookout |
+
+**Known stops:**
+
+| Stop | Result |
+|---|---|
+| Bixby Bridge | **Missed.** A direct search found it (7.4) |
+| McWay Falls | **Missed** |
+| Piedras Blancas Light Station | **Missed** |
+| Elephant seal vista | **Missed.** Seal Beach Overlook is a different spot, about 45 miles north |
+| Hearst Castle | Found |
+
+- **Found 1 of 5 known stops,** the fewest of the three servers. The places it did find were real and worth a stop.
+- **A text query is not a corridor.** There is no detour limit, results are not in route order, and two of the first five were at the Carmel end.
+- **Google's plain Places API can search along a route line.** Grounding Lite doesn't expose it.
+
+### 7.7 Routes
+
+| Run | Google | Mapbox round 1 | TomTom |
+|---|---|---|---|
+| San Francisco → Los Angeles, by coordinates | 383 mi, 6h00m | 382 mi, 6h39m | 388 mi, 6h11m |
+| Seattle → Miami, by address | 3,297 mi, 48h12m | 3,340 mi, 50h47m | 3,298 mi, 46h08m |
+| Carmel → San Simeon, by address | 91 mi, 2h19m | — | 91 mi, 2h22m |
+| San Francisco → Honolulu | `{}`, an empty result with no error | `NoRoute` with a message | Not tested |
+
+- **One leg per call.** That matches a leg in the spec. A trip with 6 stops needs 5 calls. The coastal waypoint test couldn't be run.
+- **No route options at all.** There's no way to avoid highways or pick a scenic route. Scenic routes would come only from the agent choosing stops.
+- **Responses are tiny,** about 280 characters.
+- **An impossible route returns an empty result, not an error.** The agent would have to read `{}` as "no route".
+
+### 7.8 Weather
+
+| Call | Result | Size |
+|---|---|---|
+| Moab, UT, no date | Current conditions: 63°F, partly cloudy, 3% chance of rain, wind | ~1,300 |
+| Moab, UT, 2026-10-15 (5 days out) | High 61°F, low 40°F, mostly sunny, 15% chance of rain, sunrise and sunset | ~1,700 |
+| Moab, UT, 2027-03-15 | Error: "Forecasts exceeding 10 days or 240 hours are not currently available." | ~200 |
+
+- **Forecasts reach 10 days.** NWS reaches 7.
+- **One day per call.** A forecast for a 3-night stop is 3 calls.
+- **No seasonal averages.** Dates past 10 days return a clean error. Open-Meteo is still needed for averages.
+
+### 7.9 Call log
+
+| Tool | Calls |
+|---|---|
+| `search_places` | 17 |
+| `compute_routes` | 4 |
+| `lookup_weather` | 3 |
+| `resolve_names` | 1 |
+| **Total** | **25** |
+
+Two `tools/list` calls were also made. The free tier is 10,000 calls a month.
+
+---
+
+## 8. Round 4 results: Google Routes API and Places Text Search
+
+Tested 2026-10-10. 18 calls: 9 to the Routes API and 9 to Places Text Search. These are plain APIs, not MCP servers. The agent's code would wrap them as custom tools.
+
+### 8.1 How it was called
+
+- **Endpoints:** `routes.googleapis.com/directions/v2:computeRoutes` and `places.googleapis.com/v1/places:searchText`. Both take a POST with a JSON body.
+- **Key:** the same key as round 3, in the `X-Goog-Api-Key` header.
+- **Every request lists the fields it wants,** in an `X-Goog-FieldMask` header. There is no default list. The fields asked for also set the price of the call. For example, asking for `rating` makes a Text Search an "Enterprise" call.
+- **Fast.** Every call took 0.2 to 1.3 seconds.
+
+### 8.2 Routes API
+
+Fields asked for: total and per-leg distance and time, road summary, route line, and warnings.
+
+| Run | Google | Compare |
+|---|---|---|
+| San Francisco → Los Angeles, fastest | 383 mi, 5h59m, via I-5. Route line of 1,655 points in 6,739 characters | Mapbox 382 mi, 6h39m. TomTom 388 mi, 6h11m |
+| Same, 6 coastal waypoints | 445 mi, 8h45m. **Time and distance for each of the 7 legs** | Mapbox 456 mi, 10h05m. TomTom 443 mi, 9h04m |
+| Same, `avoidHighways` | 468 mi, 10h46m, **on CA-1** | Mapbox's "exclude motorways" and TomTom's `thrilling` both went inland |
+| Same, traffic-aware, leaving 9 AM on 2027-03-15 | 5h58m. Barely different from the plain run | — |
+| Seattle → Miami | 3,297 mi, 48h12m. Route line of 16,307 points in 63,964 characters. Warnings for tolls and a time zone change | Mapbox 3,340 mi. TomTom 3,298 mi |
+| Carmel → San Simeon | 91 mi, 2h19m. Route line of 2,301 points in 7,811 characters | TomTom 91 mi, 2h22m, 1,000 points in about 22,000 characters |
+| Texas loop, 5 stops, `optimizeWaypointOrder` | Austin → Dallas → Lockhart → San Antonio → Fredericksburg → Austin. 640 mi, 10h00m, with per-leg times | Mapbox's optimizer picked the same loop in reverse, 640 mi, 11h01m |
+| San Francisco → Honolulu | `{}`, an empty result with no error | Same as Grounding Lite (7.7) |
+
+- **Per-leg times come back with waypoints.** This maps straight onto the spec's legs and daily driving checks.
+- **Avoiding highways kept to the coast.** It is the only "avoid" option of the three providers that produced the Pacific Coast Highway. This is one route, so it may not hold elsewhere.
+- **The route line is full detail in a compact format.** Google encodes it as a short string of characters. Big Sur came back at more than twice TomTom's detail in about a third of the characters.
+- **Long routes are still too big for the model.** Seattle to Miami's line was 64,000 characters. The line should go to the map, not into the agent's context.
+- **Warnings are plain English,** such as "This route has tolls." and "Your destination is in a different time zone."
+- **Ordering stops is a flag on the same call.** No separate optimizer tool is needed.
+- **An impossible route returns an empty result,** not an error.
+
+### 8.3 Places Text Search near stops
+
+Fields asked for: name, address, location, type, rating, review count, price level, price range, weekly hours, Google Maps link, website, business status, and three kinds of summary.
+
+| Query | Places | Price level | Result |
+|---|---|---|---|
+| barbecue in Lockhart, TX | 7 | **All 7.** "Moderate" or "inexpensive", plus a dollar range like $20–30 | The five famous places, plus Lockhart Chisholm Trail BBQ and Riley's Pit BBQ |
+| hotels in downtown Austin, TX | 10 | **None** | All real hotels, all chains. No junk |
+| motels in Tucumcari, NM (asked for 20) | 20 | **None** | Motel Safari and Blue Swallow Motel came 7th and 8th. Grounding Lite's top 5 missed both (7.5) |
+| Hearst Castle | 1 | None | Correct. Hours 8 AM to 6 PM daily, with no seasonal changes, the same as Mapbox |
+
+- **Ratings and review counts are fields,** not text. For example, `"rating": 4.8, "userRatingCount": 2410`.
+- **Price level came back for restaurants only.** No hotel or motel had one. A hotel's tier would have to come from the summary text, such as "chain hotel" or "vintage rooms".
+- **Up to 20 places per call,** against Grounding Lite's 5.
+- **Hours are a weekly schedule.** For example, Barbs B Q is "Monday: Closed" through Thursday, then 11 AM to 3 PM.
+
+**Three kinds of summary.** Here they are for Kreuz Market:
+
+| Field | Source | Example |
+|---|---|---|
+| `editorialSummary` | Google's own one-liner | "Landmark serving sausage & BBQ without sauce or forks in a sprawling, cafeterialike setting." |
+| `generativeSummary` | Gemini overview | "Lively Texas barbecue venue serving smoked brisket and sausage." |
+| `reviewSummary` | Gemini summary of reviews | "People say this barbecue restaurant serves delicious brisket, sausage, and ribs. They also highlight the friendly staff, the historic atmosphere, and the live music. Some reviews mention the food can be dry." |
+
+- **The review summary is the only text that mentions downsides.** For example, "the food can be dry" and "despite the small dining area".
+- **Coverage varies.** In Lockhart, all 7 places had a review summary and an overview, but only 3 had an editorial summary. In Tucumcari, the smaller motels were more often missing one or more summaries. Buckaroo Motel had none.
+- **Gemini summaries come labeled.** Each includes the text "Summarized with Gemini" and a link to report the content.
+- **Size depends on the fields.** With all fields, each place was 2,000 to 2,700 characters. With only name, rating, review count, price level, and link, each was about 400.
+
+### 8.4 Text Search along a route line
+
+The search takes a route line from the Routes API. With `routingSummaries`, each place also comes back with two drive legs: start of the route to the place, and the place to the end. Fields asked for: name, location, type, rating, review count, and the routing summaries.
+
+| Query | Route | Places | Result |
+|---|---|---|---|
+| tourist attraction | Carmel → San Simeon | 16 | McWay Falls View Point, Elephant Seal Vista Point (13,842 reviews), Ragged Point, China Vista Point, Whale Peak, Hearst Castle Welcome Sign. Some noise: "Village of Fae", "Mission ranch" (2 reviews), Blue Whale Mural |
+| scenic viewpoint | Carmel → San Simeon | 18 | Nearly all real viewpoints: Bixby Bridge Vista Point, Hurricane Point, Notleys Landing, Ragged Point, Big Sur Lookout |
+| restaurant for lunch | Carmel → San Simeon | 10 | Nepenthe, Big Sur River Inn, Big Sur Roadhouse, The Restaurant at Ragged Point. 5 of the 10 were in Carmel, at the start |
+| barbecue | Dallas → Austin | 20 | 10 of the 20 were within 2 miles of Dallas or Austin. The rest were spread along I-35, including Terry Black's in Waco |
+
+**Known stops:**
+
+| Stop | Result |
+|---|---|
+| Bixby Bridge | Found ("Bixby Bridge Vista Point", viewpoint search) |
+| McWay Falls | Found ("McWay Falls View Point", attraction search) |
+| Piedras Blancas Light Station | **Missed** |
+| Elephant seal vista | Found ("Elephant Seal Vista Point") |
+| Hearst Castle | **Partly.** Only "Hearst Castle Welcome Sign". The castle sits about 5 km from CA-1, the same reason Mapbox dropped it (6.5) |
+
+- **Found 3 of 5 known stops in two calls,** the same count as Mapbox and TomTom. Each call was about 11,000 to 12,000 characters.
+- **The detour time can be worked out.** Add the two legs, then subtract the route's own time. Most Big Sur stops came out at 0 to 2 minutes, which is right for pull-outs on CA-1.
+- **One detour looked wrong.** Hurricane Point sits on CA-1 but came out at 35 minutes. Detour times are a hint, not a fact.
+- **Results are not in route order.** The first leg's distance gives each place's position along the route, so the tool can sort them.
+- **Results bunch up at the ends.** Half of the Dallas to Austin barbecue and half of the Big Sur lunch spots were at the start or end. The tool may need to drop places near the ends, or the query may need to name the middle of the route.
+- **The route line goes into the request.** Big Sur's was 7,800 characters. The tool's code should pass it from the route call, so the model never handles it.
+- **Each place was about 690 characters** with this field list.
+
+### 8.5 Call log
+
+| API | Calls |
+|---|---|
+| Routes `computeRoutes` | 9 (1 traffic-aware, 1 with stop ordering) |
+| Places Text Search near stops | 5 |
+| Places Text Search along a route | 4 |
+| **Total** | **18** |
+
+Free calls per month, from Google's price list: Routes at the basic level, 10,000. Text Search with ratings, 1,000. Text Search with ratings and Gemini summaries, 1,000. Which level each call landed in is still to be checked (section 1).
+
+---
+
+## 9. Comparison
+
+| Need | Mapbox 0.15.1 | TomTom 1.6.12 | Google Grounding Lite | Google Routes and Places APIs |
+|---|---|---|---|---|
+| Drive time per leg, with waypoints | **Not from directions.** 0.15.1 returns totals only. Per-leg times need the matrix or optimization tool | **Yes.** Every leg, by default | One leg per call. No waypoints | **Yes.** Every leg |
+| Scenic route option | No. Waypoints needed | `thrilling` exists but went inland. Waypoints still needed | No route options of any kind | `avoidHighways` kept to CA-1 in the one test |
+| Route line detailed enough to draw | **No, in practice.** Full lines over 50 KB are held back. Simplified line from optimization: 31 points for Big Sur | **Yes.** Up to 1,000 points, about 22,000 characters for Big Sur | **No.** No route line at all | **Yes.** Full detail. About 7,800 characters for Big Sur, 64,000 for Seattle to Miami |
+| Ordering stops on a loop | Optimization tool, up to 12 stops | Not tested | No | A flag on the route call |
+| Places by type near a stop | Yes. Sorted by distance, no distance limit. Austin hotels still have junk | Yes. Hard radius, distance on each result, clean hotels. Barbecue tagging misses famous places | Yes. 5 per call, ranked by relevance. Clean hotels, famous barbecue found. Small towns lean toward chains | Yes. Up to 20 per call, ranked by relevance. Found the Tucumcari motels Grounding Lite missed |
+| Places along a leg | Five- or six-step recipe, about 60,000 characters. Found 3 of 5 known stops | **One call.** About 12,000 to 14,000 characters. Found 3 of 5, plus McWay Falls' park | No route input. Text queries found 1 of 5 | **One call per query.** About 11,000 to 12,000 characters. Found 3 of 5, plus a Hearst Castle sign. Detour time per place |
+| Named place lookup | **Good.** 5 of 6. Failed on "Smitty's Market" | Good. 4 of 5. Failed on "Franklin Barbecue" | **Best.** 4 of 4, including both of those | Hearst Castle correct. Only one test |
+| Ratings and review counts | No. Popularity score only | No | **Yes.** Every place, inside the summary text | **Yes.** As separate fields |
+| Price level | **Sometimes.** Place details, 2 of 5 places | No | When the query asks. Dollar ranges in the text | Restaurants: a level and a dollar range. Hotels: none |
+| Hours | Weekly schedule. No seasons | Next seven days, opt-in. No seasons. Hearst Castle hours differ from Mapbox's | When the query asks. Weekly schedule in the text. Seasons not tested | Weekly schedule field. No seasons |
+| Descriptive text | Attribute flags | None | One written paragraph per place | Up to three summaries per place, including downsides from reviews |
+| Listing link for option cards | Business website. No review site link | Business website | Google Maps place link and reviews link | Google Maps link, reviews link, and website |
+| Weather | Not tested | Not tested | Current conditions and daily forecast up to 10 days. No averages | Not tested. The Weather API exists |
+| Response size | Large. About 1,500 characters per place, 2,000 to 4,500 per place details call | Compact. About 600 to 700 per place, 1,000 to 4,000 per route | About 1,300 per place, mostly links. About 280 per route | Set by the field list. 400 to 2,700 per place. The tool can trim it |
+| Pauses to ask the user | **Yes.** Text search with 2 to 10 results, directions with alternatives | None seen | None seen | Not applicable. Not MCP |
+| Free tier and access | Calls worked. Place details is capped at 1,000 a month by default. Dashboard check pending | Calls worked, including the routing and along-route search. Dashboard check pending | Calls worked. 10,000 free calls a month. Dashboard check pending | Calls worked. 10,000 routes and 1,000 rated place searches free a month. Dashboard check pending |
+
+**Only Google returns ratings and review counts.** Grounding Lite puts them in a written summary. The plain Places API returns them as fields.
+
+**Grounding Lite is the weakest for routing and along-leg search.** It has no waypoints, no route line, and no route input for place search.
+
+**Google's plain APIs covered every row that Mapbox or TomTom covered.** They matched TomTom on along-leg search and beat it on route line size. They are not MCP servers, so the agent's code writes their tool descriptions and decides what to return.

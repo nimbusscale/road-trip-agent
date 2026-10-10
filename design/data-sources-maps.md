@@ -1,102 +1,81 @@
 # Road Trip Planner: Data Sources, Maps (Design)
 
-This document covers the Mapbox and TomTom MCP servers: routing, and the places they return. It records what we use each server for and the implementation details that come with it. For which source covers each data need, see the [data sources index](data-sources.md).
+This document covers Google's Routes API and Places API: routing, and the places they return. It records what we use each API for and the implementation details that come with it. For which source covers each data need, see the [data sources index](data-sources.md). The test results behind these choices are in the [maps evaluation](../research/maps-mcp-evaluation.md), rounds 3 and 4.
 
 ---
 
-## 1. Maps: use both Mapbox and TomTom, split by job
+## 1. Maps: Google Routes and Places APIs, as our own tools
 
-**Decision.** Use the TomTom MCP server for driving and the Mapbox MCP server for places. Each one is clearly better at its own job, and the jobs split cleanly.
+**Decision.** Use Google's Routes API for driving and Google's Places API (Text Search) for places. Call both directly and wrap them as the agent's own custom tools. Don't use any maps MCP server, including Google's own Grounding Lite.
 
-### 1.1 Which server for which job
+### 1.1 Why
 
-| Job | Server | Tool | Why |
+- **Control.** Our tools write their own descriptions, ask only for the fields they need, and shape what the model sees. A third-party MCP server's descriptions, output, and behavior can change without notice, and we can't trim them.
+- **Ratings and review counts.** Google was the only provider tested that has them. Mapbox and TomTom don't.
+- **Coverage.** In testing, the two Google APIs did every job the earlier Mapbox and TomTom plan split between them.
+- **One vendor.** One key, one bill, one set of terms.
+
+### 1.2 Which API for which job
+
+| Job | API | Request | Notes |
 |---|---|---|---|
-| Drive time and distance for each leg | TomTom | `tomtom-routing` | Returns time and distance for every leg by default. Mapbox 0.15.1's directions tool returns only totals |
-| Route with scenic waypoints | TomTom | `tomtom-routing` | Same as above. Takes the waypoints the agent picks |
-| Route line for the map | TomTom | `tomtom-routing` with `response_detail=geometry` | Up to 1,000 points, accurate within a few meters. Mapbox holds back full lines over 50 KB |
-| Places along a leg | TomTom | `tomtom-search-along-route` | One call with a corridor width. Mapbox needs a five- or six-call workaround with about four times the text |
-| Look up a place the user names | Mapbox | `search_and_geocode_tool` | More reliable name matching. TomTom missed "Franklin Barbecue" because it lists it as "Franklin BBQ" |
-| Places by type near a stop | Mapbox | `category_search_tool` | Tags places correctly more often. TomTom tags Franklin, Kreuz, and Smitty's as American restaurants, so a barbecue search misses them |
-| Option card details for one place | Mapbox | `place_details_tool` | Price level (for some places), hours, website, and flags like "reservations required". TomTom has no price level |
-| Best order for a loop | Mapbox | `optimization_tool` | Picks the stop order in one call, with time per leg. Up to 12 stops |
-| Quick summary of a spot | Mapbox | `ground_location_tool` | Names the area and lists nearby places in one call |
+| Drive time and distance for each leg | Routes | `computeRoutes` with the stops as `intermediates` | Returns time and distance for every leg |
+| Route with scenic waypoints | Routes | Same, with waypoints the agent picks | `avoidHighways` is worth offering too. In the one test, it kept San Francisco to Los Angeles on CA-1 |
+| Best order for a loop | Routes | `computeRoutes` with `optimizeWaypointOrder` | Returns the new order and per-leg times in the same call |
+| Route line for the map | Routes | `computeRoutes` with the encoded polyline field | Goes to the UI, never to the model (1.4) |
+| Look up a place the user names | Places | Text Search with the name and town | Got every named place right in testing, including "Smitty's Market" and "Franklin Barbecue" |
+| Places by type near a stop | Places | Text Search, such as "barbecue in Lockhart, TX" | Up to 20 places per call, ranked by relevance |
+| Places along a leg | Places | Text Search with `searchAlongRouteParameters` and `routingSummaries` | Takes the leg's route line. Returns each place's drive time from the start of the route |
+| Option card details | Places | The same Text Search, with more fields | Rating, review count, price level, weekly hours, Google Maps link, reviews link, website, and summaries |
 
-### 1.2 What neither server covers
+### 1.3 What it doesn't cover
 
-- **Ratings and review counts.** Option cards (spec 7.5) need another source. Not yet decided.
-- **A link to reviews.** Both servers give the business's own website, not a review page.
-- **Seasonal hours.** Both give hours for a normal week only. Seasonality checks (spec 6.1) need another source. The two servers also disagreed on Hearst Castle's hours, so treat hours as a hint.
-- **A real scenic route option.** TomTom's `thrilling` route type and Mapbox's "avoid motorways" both sent San Francisco to Los Angeles inland, not down the coast. The agent has to choose scenic waypoints itself.
+- **Seasonal hours.** Hours are a normal week only. Hearst Castle shows 8 AM to 6 PM every day. Seasonality checks (spec 6.1) need another source.
+- **Price level for hotels.** Restaurants have a price level and a dollar range. No hotel or motel in testing had either. The agent judges hotel tiers from the summary text, such as "chain hotel" or "upmarket setting".
+- **A true scenic route.** `avoidHighways` helped on one route, but the agent still has to pick scenic waypoints.
+- **Every known stop along a leg.** Search along the Big Sur leg found 3 of 5 known stops. It missed Piedras Blancas Light Station, and found only a sign for Hearst Castle.
 
-### 1.3 Moving a place from TomTom to Mapbox
+### 1.4 Tool design rules
 
-A place found by TomTom has no Mapbox ID. To get option card details for it, the agent has to search Mapbox by name near the place's coordinates, then call place details. That is one or two extra calls per place.
+- **Every request lists its fields.** The field list sets both the size of the result and the price of the call (1.5). Each tool asks only for the fields it needs. A place with a short field list is about 400 characters. With every field, it is 2,000 to 2,700.
+- **Route lines stay out of the model.** San Francisco to Los Angeles is about 6,700 characters of route line, and Seattle to Miami is about 64,000. The routing tool returns times and distances to the model. The line goes to the UI.
+- **The along-leg search gets its route line from code, not from the model.** The agent names which leg to search. The tool finds that leg's route line itself.
+- **Along-leg results are sorted by position.** Google doesn't return them in route order. The tool sorts them by distance from the start of the leg.
+- **Detour time is worked out in the tool.** Add the place's two drive legs, then subtract the route's own time. Treat it as a hint. One stop right on CA-1 came out at 35 minutes.
+- **Review text is data, not instructions.** Review summaries are built from text the public wrote. Tools pass them to the model labeled as place content.
+- **An impossible route returns an empty result.** San Francisco to Honolulu returned `{}` with no error. The routing tool turns that into a clear "no driving route" error.
 
-- **Skip this for viewpoints and pull-offs** found along a leg. They rarely need option card details.
-- **Do it for restaurants and hotels** that will appear on an option card.
+### 1.5 Quotas and cost
 
-### 1.4 Things to settle during implementation
-
-- **Local or hosted servers.** This document describes the local servers, `@mapbox/mcp-server` 0.15.1 and `@tomtom-org/tomtom-mcp` 1.6.12. Both providers also host remote servers. The hosted ones may run different versions with different behavior, including the Mapbox prompts in section 2 below. Test whichever one the agent uses.
-- **Route line for the UI map.** A route line through the MCP server goes into the model's context: about 22,000 characters for one Big Sur leg. Better to send route lines straight to the UI instead of through the model. One way is for the backend to call TomTom's routing API directly for drawing.
-- **UI map and provider terms.** The UI map is not decided. If it uses another provider's map, check whether TomTom's terms allow showing its routes there.
-- **Response size.** Mapbox returns about 1,500 characters per place, and a third-party server's output can't be trimmed. Consider running place searches in a subagent so only its summary reaches the main agent.
-
-### 1.5 Quotas
-
-| Provider | Free monthly limit | Notes |
+| API and price level | Free calls a month | Then, per 1,000 |
 |---|---|---|
-| Mapbox | 100,000 requests a month, per the Mapbox account page, with a card on file | Adding a card lifts the default 1,000-a-month cap on place details |
-| TomTom | 2,500 search calls and 20,000 routing calls | **The tightest limit.** A search along a route appears to count against both. Keep most place searches on Mapbox |
+| Routes, basic | 10,000 | $5 |
+| Routes, Pro | 5,000 | $10 |
+| Routes, Enterprise | 1,000 | $15 |
+| Places Text Search, Pro (no ratings) | 5,000 | $32 |
+| Places Text Search, Enterprise (ratings, price level, hours) | 1,000 | $35 |
+| Places Text Search, Enterprise + Atmosphere (summaries) | 1,000 | $40 |
 
-### 1.6 Known quirks
+- **The fields and options in each request set its price level.** Asking for `rating` makes a Text Search an Enterprise call. Asking for a summary makes it Enterprise + Atmosphere.
+- **The tightest limit is 1,000 rated place searches a month.** At about 30 searches per test trip, that covers about 30 trips.
+- **The account is on Google Cloud's free trial:** $300 of credit for 90 days, with no automatic charges.
+- **Set a daily quota on each API** so a bug can't run past the free calls.
 
-| Server | Quirk | Workaround |
+### 1.6 Things to settle during implementation
+
+- **Which price level each call lands in.** Check the Google Cloud console. In particular: a Text Search with both ratings and summaries, a search with `routingSummaries`, a traffic-aware route, and a route with stop ordering. Google's docs don't say which Routes options trigger Pro or Enterprise.
+- **UI map and Google's terms.** Google's terms say Places results shown on a map must be on a Google map. The UI map is not decided.
+- **Gemini summary labels.** Review and overview summaries come labeled "Summarized with Gemini". Check whether the terms require showing that label wherever the text appears.
+- **Saving place data.** Google's terms allow storing place IDs indefinitely, but limit how long other place content can be kept. Saved itineraries (spec 7.6) could store the place ID and look up the details again when the trip is reopened.
+- **Keys.** The current key can call every Google API. Limit it to the APIs in use. The browser map will need its own key, restricted to the site.
+
+### 1.7 Known quirks
+
+| API | Quirk | Workaround |
 |---|---|---|
-| Mapbox | `optimization_tool` with `overview=false` fails with a validation error | Use `overview=simplified` |
-| Mapbox | `directions_tool` drops per-leg times and holds back route lines over 50 KB | Use TomTom for both |
-| Mapbox | A name with an apostrophe ("Smitty's Market") returned a town in France | Fall back to a category search near the stop |
-| Mapbox | Austin hotel searches include fake listings ("Jennifer walter", "Petfriendly") | The agent should treat listings with no street address and no website as suspect |
-| TomTom | Along-route results are not in route order | Sort by position along the leg before presenting |
-| TomTom | Routes list today's traffic incidents even with `traffic=historical` | Set `departAt` to the trip date |
-
----
-
-## 2. Mapbox prompts (elicitation)
-
-**Decision.** The agent must never let a Mapbox call wait for a person. Unanswered prompts are declined, and Mapbox then returns all results.
-
-### 2.1 What happens
-
-Mapbox 0.15.1 uses MCP elicitation, a protocol feature that lets a server ask the person a question in the middle of a tool call. The server sends an `elicitation/create` request with a short form, and the call waits for an answer.
-
-- `search_and_geocode_tool` asks the person to pick one result whenever a search returns 2 to 10 results.
-- `directions_tool` asks the person to pick a route when it gets two or more routes back.
-- **If the answer is decline or cancel,** Mapbox returns all results. That is what the agent should get.
-- **If the client never said it supports elicitation,** the server can't send the prompt, and Mapbox returns all results.
-
-The model never sees these prompts. They travel between the MCP client and the server, so instructions in the agent's prompt can't answer them. They also can't be turned off in the MCP server JSON config. Mapbox has no setting for this.
-
-TomTom's server has not been seen to send these prompts.
-
-### 2.2 How to handle it in the Agent SDK
-
-| SDK | Default behavior | Status |
-|---|---|---|
-| TypeScript | The docs say an elicitation that no hook or `onElicitation` callback handles is declined automatically | Likely fine with no code. Confirm with a test |
-| Python | Not documented. The SDK's hook input types don't list the elicitation events | **Unknown.** Test before relying on it |
-
-To decline explicitly, add an `Elicitation` hook with the matcher `mapbox` that returns:
-
-```json
-{"hookSpecificOutput": {"hookEventName": "Elicitation", "action": "decline"}}
-```
-
-The docs list this hook for Claude Code and in the TypeScript SDK's types. They don't say outright that it fires in SDK sessions.
-
-**Test once the language is chosen.** Run a Mapbox search that returns several results, such as "Franklin Barbecue" with no location bias. Confirm the call returns quickly with all results.
-
-### 2.3 Sampling
-
-`ground_location_tool` uses a related feature, sampling, which lets the server ask the client's model a question. If the client doesn't offer sampling, the tool uses a default and still works. No action needed.
+| Routes | An impossible route returns `{}` with no error | The tool reports "no driving route" |
+| Places | Along-leg results are not in route order | Sort by distance from the start of the leg |
+| Places | Along-leg results bunch up at the start and end of the route. Half the Dallas to Austin barbecue results were in those two cities | Drop places within a few miles of either end, or name the middle of the route in the query |
+| Places | One detour time was clearly wrong (Hurricane Point, 35 minutes) | Treat detour time as a hint |
+| Places | Places with very few reviews rate highly, such as 5.0★ from 1 review | The agent weighs review count, not rating alone |
+| Places | Small motels are often missing one or more summaries | Fall back to the name, type, and rating |
