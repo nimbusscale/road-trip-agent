@@ -1,6 +1,6 @@
 # Road Trip Planner: Technical Specification (MVP)
 
-This document covers how the app works under the hood. So far it covers the agents: which agents exist, what each one does, which tools each one gets, and what goes in each agent's instructions. Sessions, memory, and other parts will be added as they are designed. It is written at the level of design, not of any one SDK's configuration. For the planning behavior it implements, see the [functional spec](functional-spec.md). For the tools' data sources, see the [data sources index](data-sources.md).
+This document covers how the app works under the hood. So far it covers the agents: which agents exist, what each one does, which tools each one gets, and what goes in each agent's instructions. Sessions, memory, and other parts will be added as they are designed. It is written at the level of design, not of any one SDK's configuration. For the planning behavior it implements, see the [functional spec](functional-spec.md). For each tool's server, inputs, and which agents get it, see the [tool design](tool-design.md). For the tools' data sources, see the [data sources index](data-sources.md).
 
 ---
 
@@ -21,6 +21,8 @@ A worker is called like a tool. It gets a brief, does its work, and returns one 
 
 ## 2. Decisions
 
+- **TypeScript for the whole app, on the Claude Agent SDK.** The back end and the UI share one definition of the data model: the itinerary, places, candidates, and option cards. The trip tools write these shapes, the read tool returns them, and the UI draws them. In two languages, every field change would be made twice.
+- **Each agent sees only its own tools.** Tools are grouped into servers by job, and each agent gets a list of exactly the tools it uses (the [tool design](tool-design.md), section 3).
 - **No separate interview agent, for now.** We considered an agent that scopes the trip with the user, then hands a summary to the coordinator once and ends. Discovery and refinement mix too often for a split to pay off yet (functional spec 5.3: the user can jump around). Revisit it if the coordinator's discovery turns out weak. If it is added later, the summary it hands over is the trip brief in section 5.3, so the coordinator doesn't change.
 - **Workers write candidates directly and return a short summary.** Full place details go on the place, and from there to the option cards. The coordinator sees only one line per candidate (section 7).
 - **Mechanical feasibility checks run in code.** The itinerary write tool checks every change and returns any broken rules (section 8). The agent handles the judgment: which trade-offs to offer.
@@ -194,6 +196,7 @@ A **candidate** is one place offered for a stop or for a stay's lodging, with th
 - **Rationale:** one or two sentences on why it was offered here, tied to the user's preferences. The UI shows it as a tooltip on the option card. The coordinator reads it when the user asks "why that one?"
 - Tier, and the rule that produced it
 - How it was found (Google, NPS, or web search, with the source link), and notes for these dates, such as "closed Mondays, and you're there on a Monday" (functional spec 7.5)
+- **Set number:** which batch it came in. The tool assigns it: 1 for the first batch offered for that stop or lodging, 2 for the next "more options" batch, and so on. A place the user names is a set of one
 
 The facts about the place, such as rating and hours, live on the place. Only the reason for offering it lives on the candidate. That matters when one place is offered twice for different reasons. Example: the Palace Hotel in San Francisco, offered as lodging because "posh, from rule: last night is special," and as a stop because "Maxfield Parrish's Pied Piper painting hangs in the bar."
 
@@ -207,7 +210,7 @@ The facts about the place, such as rating and hours, live on the place. Only the
 
 **The selected place must be one of the candidates.** When the user names a place directly, such as "dinner at the Whaling Station," the select tool adds one candidate for it with the user's reason as the rationale, then selects it. Every selection then has a rationale (functional spec 7.6).
 
-**The list keeps every candidate ever offered.** The option card shows the newest set. The older ones tell the worker what to leave out on "more options." Candidates never change after they're written. "More options" adds new ones.
+**The list keeps every candidate ever offered, in the order offered.** The option card shows the newest set, the one with the highest set number. A set number is needed because sets vary in size: a worker may find only two good hotels in a small town. The older candidates let the user go back to one offered earlier ("actually, the hotel with the pool"), and tell the worker what to leave out on "more options." Candidates never change after they're written. "More options" adds new ones.
 
 ### 3.3 Legs
 
@@ -293,14 +296,14 @@ Planning goes from broad to narrow. This is the usual order in which the coordin
 
 ### 5.1 Tools
 
-- **Itinerary:** read the itinerary. Add, change, and remove stays, days, and stops. Set a leg's route type and waypoints. Record selections, clear a stop or lodging back to empty, and set approved exceptions. Every write returns the feasibility check results (section 8).
+- **Itinerary:** read the itinerary. Add, change, and remove stays, days, and stops. Set a leg's route type and waypoints. Record selections, clear a stop or lodging back to empty, set approved exceptions, and save each stay's weather and clothing text. Every write returns the feasibility check results (section 8).
 - **Trip brief:** read the trip brief, and update an item in it. Every update returns the feasibility check results (section 8), since items like max driving hours affect them.
 - **Memory:** read, add, update, and forget items in user memory and trip memory.
 - **Places:** find a named place, to resolve a town, a must-see, or a place the user names. Read a place's full record by ID, when the short line isn't enough (7.2).
 - **Routing:** compute a route, with the option to put stays in the best order. Returns times and distances only. The route line goes to the UI.
 - **Workers:** call the stay researcher, leg scout, and weather and clothing workers.
 
-The coordinator has no place search for hotels, restaurants, or attractions, and no web search. That work belongs to workers, which keeps place results out of the coordinator's context.
+The full list, with the server each tool is on, is in the [tool design](tool-design.md). The coordinator has no place search for hotels, restaurants, or attractions, and no web search. That work belongs to workers, which keeps place results out of the coordinator's context.
 
 ### 5.2 Instructions
 
@@ -338,7 +341,7 @@ The coordinator decides which worker fills each stop when it lays out the day. S
 
 Finds candidates for one stay's lodging, and for the stops near it on its days.
 
-- **Tools:** place search (hotels, restaurants, attractions near a point), the NPS tools (find the park, park conditions, things to see), web search, both general and limited to Atlas Obscura, and a tool to add candidates to the stops and stay in its brief.
+- **Tools:** place search (hotels, restaurants, attractions near a point), things to see in a national park, park conditions for the trip dates, web search, both general and limited to Atlas Obscura, and tools to add candidates to the stops and stay in its brief.
 - **Instructions:** fit candidates to the brief's interests and tiers. Three candidates per stop or lodging (functional spec 7.5). Attractions carry a visit time, labeled as an estimate when it doesn't come from NPS. Check hours against the dates, and say plainly when hours are unconfirmed. The web search rules from the [web search design](data-sources-web-search.md) apply.
 - **Returns:** for each stop or lodging, the candidates it added with one line each, plus any problems found. Example: "Must-see is closed on these dates."
 
@@ -354,7 +357,7 @@ Finds candidates for the stops along one leg, on its driving day. These can be m
 
 Writes weather and clothing guidance per stay (functional spec 8).
 
-- **Tools:** the Google Weather forecast for dates within 7 days, the Open-Meteo seasonal averages tool otherwise, and NPS park conditions for alerts within 7 days.
+- **Tools:** the Google Weather forecast for dates within 7 days, the Open-Meteo seasonal averages tool otherwise, and park conditions for NPS alerts within 7 days.
 - **Instructions:** label each stay as forecast or seasonal averages. Tie clothing advice to the planned activities in the brief. Short advice, not a packing list.
 - **Returns:** the per-stay weather and clothing text, which is small. The coordinator writes it to the itinerary.
 
@@ -371,7 +374,7 @@ Writes weather and clothing guidance per stay (functional spec 8).
 ### 7.1 IDs
 
 - **A candidate is referred to by its stop or stay, plus its place.** Tools take a stop or stay ID and a place ID, such as "select place X for stop Y."
-- **Users never see IDs.** They refer to a place by name ("the Van Zandt") or position ("the second one"). The coordinator maps that to an ID. Candidates keep their order, so "the second one" has one meaning.
+- **Users never see IDs.** They refer to a place by name ("the Van Zandt") or position ("the second one"). The coordinator maps that to an ID. "The second one" means the second candidate on the option card, in the newest set.
 - **Tools reject bad IDs.** A stop, stay, or place that doesn't exist, or a place that isn't one of that stop's candidates, returns an error. The tool never guesses.
 
 ### 7.2 What the coordinator sees
@@ -380,7 +383,7 @@ The coordinator never sees full place records, such as hours tables, coordinates
 
 - **Worker results:** each candidate's line includes its place ID, name, and gist. Example: "Hotel Van Zandt, mid-range, 4.6 stars, on Rainey Street, walkable to the barbecue spots."
 - **Option card actions:** a Select click reaches the coordinator as a message with the same line, not only the IDs. Example: "User selected Hotel Van Zandt for the Austin hotel." The coordinator then calls the select tool and confirms in chat (functional spec 7.5).
-- **Reading the itinerary:** the read tool returns the name and line for every selected place and current candidate, in card order. In a new session (functional spec 10.1) this is all the coordinator knows about the trip's places.
+- **Reading the itinerary:** the read tool returns the name and line for every selected place, and for every candidate ever offered for each stop and stay, in the order offered, with its set number. In a new session (functional spec 10.1) this is all the coordinator knows about the trip's places.
 - **Anything more,** such as "is it open Mondays?", comes from reading the place's full record by ID.
 
 ---
