@@ -11,8 +11,9 @@ This document lists the data the agent needs to deliver the [functional spec](..
 - **Tripadvisor Terra access is gated.** Tripadvisor reviews your site before granting access (section 4.3).
 - **Google's Routes and Places APIs were tested by hand.** They covered every maps and listings need tested, including ratings and search along a route (sections 4.1 to 4.3, and 5).
 - **The ground rule on third-party MCP servers was dropped.** Every source is now wrapped as a custom tool (section 1).
+- **Attractions sources were tested by hand.** Atlas Obscura blocks automated requests, so its places now come from web search. Wikivoyage was dropped (section 4.5).
 
-**Follow-up testing:** [maps-mcp-evaluation.md](maps-mcp-evaluation.md) records hands-on tests of the Mapbox, TomTom, and Google Grounding Lite MCP servers, and of Google's Routes and Places APIs.
+**Follow-up testing:** [maps-mcp-evaluation.md](maps-mcp-evaluation.md) records hands-on tests of the Mapbox, TomTom, and Google Grounding Lite MCP servers, and of Google's Routes and Places APIs. [data-sources-attractions.md](data-sources-attractions.md) records hands-on tests of the NPS API, Wikivoyage, Atlas Obscura, and web search for attractions.
 
 ---
 
@@ -32,16 +33,15 @@ This document lists the data the agent needs to deliver the [functional spec](..
 | Routes, drive time per leg, stop order, route line | **Google Routes API** | Custom tool | Free. 10k basic routes per month |
 | Restaurants, hotels, and attractions with rating, review count, price level | **Google Places API** Text Search | Custom tool | Free. 1k rated searches per month |
 | Points of interest along a leg | **Google Places API** Text Search along a route line | Same custom tool | Shares the 1k above |
-| Web search (attraction hours, "best barbecue in Lockhart") | Claude's built-in **`WebSearch`** | Built-in SDK tool | No separate charge on the Max plan. Counts against plan usage (see 4.8) |
+| Web search (attraction hours, "best barbecue in Lockhart") | Claude's built-in **`WebSearch`** | Built-in Claude Code tool | No separate charge on the Max plan. Counts against plan usage (see 4.8) |
 | Weather forecast | **NWS** api.weather.gov (7 days), or **Google Weather API** (10 days) | Custom tool | NWS: free, no key. Google: 10k calls per month free |
 | Seasonal averages | **Open-Meteo** Historical API | Custom tool | Free, no key |
 | National parks: alerts, closures, things to do | **NPS Data API** | Custom tool | Free key |
-| Curated local picks: what to see, do, and eat | **Wikivoyage** | Custom tool | Free, no key |
-| Unusual places near a stop or along a leg | **Atlas Obscura** (unofficial endpoints) | Custom tool | Free, no key |
+| Unusual places near a stop or along a leg | **Atlas Obscura**, through web search limited to its domain | Built-in Claude Code tool | Same as web search |
 | UI map | **Google Maps JavaScript API** | Front end | Free. 10k map loads per month |
 
 **Why this set:**
-- Every source is a custom tool, so our code controls the tool descriptions and what reaches the model (section 1). Web search uses the tool already built into the SDK.
+- Every source is a custom tool, so our code controls the tool descriptions and what reaches the model (section 1). Web search uses the tool already built into Claude Code.
 - Google's Places API was the only listings source tested that returns ratings and review counts with metered pricing and no subscription.
 - One Google key covers routing, places, weather, and the map. Google's terms want Places results shown on a Google map, which the Maps JavaScript API covers.
 - Google needs a billing account with a card. A new Google Cloud account gets $300 of credit for 90 days, with no automatic charges.
@@ -145,6 +145,8 @@ The functional spec puts price display out of scope, so no source for nightly ra
 
 **Recommendation:** Wrap the NPS API as a custom tool.
 
+Hands-on results for NPS, Wikivoyage, and Atlas Obscura are in [data-sources-attractions.md](data-sources-attractions.md).
+
 #### Curated and unusual places
 
 The sources above lean toward parks and nature. Map and review sources (Google, Mapbox, Apify) rank places by category and popularity. They will find the Mapparium in Boston if the agent searches for it by name, but they won't suggest it unprompted. Two sources fill that gap: Wikivoyage for places a local editor thought worth a visit, and Atlas Obscura for odd and unusual places.
@@ -163,7 +165,7 @@ The sources above lean toward parks and nature. Map and review sources (Google, 
 - **Apify:** search results list two Atlas Obscura Actors (crawlergang and crawlerbros). Both pages returned "404 Not Found" on 2026-10-09, so they seem to have been removed.
 - **Fallback:** web search with `site:atlasobscura.com` in the query. Result titles and snippets are often enough to suggest a place.
 
-**Recommendation:** Add both as custom tools. Wikivoyage suggests curated "See", "Do", and "Eat" picks for each stop. Atlas Obscura suggests unusual places near each stop and along each leg. Use web search as the Atlas Obscura fallback if its endpoints stop working.
+**Recommendation (updated 2026-10-10 after testing):** Use web search limited to `atlasobscura.com` for unusual places. Use general web search for mainstream picks. Don't use Wikivoyage or the unofficial Atlas Obscura library. See the [attractions evaluation](data-sources-attractions.md).
 
 ### 4.6 Weather forecast and seasonal averages
 
@@ -206,7 +208,7 @@ The functional spec puts seasonal road closures out of scope. Research found no 
 
 **How the built-in tool behaves:**
 - It returns result titles and links. The agent usually follows up with `WebFetch` to read a page.
-- It has no settings you can change in the SDK, such as allowed domains or result count. Exa does.
+- The model can limit each search to certain domains with the tool's `allowed_domains` input. The result count can't be set. Exa's can.
 - One `WebSearch` call may run up to eight searches behind the scenes.
 
 **Running on the Max plan:**
@@ -320,6 +322,8 @@ One shared server-side key per provider is fine for this project. Keep the keys 
 | `@modelcontextprotocol/server-google-maps` | Archived and deprecated |
 | Self-hosted OSRM, Valhalla, Nominatim | Too heavy to run for the whole US |
 | Apify | Free plan stops at $5 a month with no pay-as-you-go. More needs a $19-a-month subscription |
+| Wikivoyage | Coverage gaps and same-name town collisions. Web search covered every town tested, including one Wikivoyage had no page for ([attractions evaluation](data-sources-attractions.md), section 3) |
+| `atlas-obscura-api` and Atlas Obscura's internal endpoints | The site blocks automated requests. The library gets through only by pretending to be a browser ([attractions evaluation](data-sources-attractions.md), section 4) |
 | Tripadvisor Terra | Access needs Tripadvisor to review and approve the site first |
 | Third-party MCP servers (Mapbox, TomTom, Google Grounding Lite, Apify, Exa, community NPS and Open-Meteo) | Ground rule in section 1. Mapbox and TomTom were also replaced by Google's APIs, which did each of their jobs in testing |
 
@@ -329,12 +333,13 @@ One shared server-side key per provider is fine for this project. Keep the keys 
 
 **Still open:**
 1. How much of the Max plan allowance a search-heavy planning session uses. Check the usage bars before and after a test run.
-2. Whether the Atlas Obscura endpoints used by `atlas-obscura-api` still work, and what Atlas Obscura's terms of use say about automated access.
-3. How many Wikivoyage listings small waystation towns have, compared with cities.
-4. Which Google price level each kind of request lands in, checked in the Google Cloud console. See the [evaluation](maps-mcp-evaluation.md), section 1.
-5. Whether Google's terms require showing the "Summarized with Gemini" label.
+2. Which Google price level each kind of request lands in, checked in the Google Cloud console. See the [evaluation](maps-mcp-evaluation.md), section 1.
+3. Whether Google's terms require showing the "Summarized with Gemini" label.
+4. What Atlas Obscura's terms of use say about automated access. The terms page blocks automated reads.
 
 **Answered or no longer needed:**
+- Atlas Obscura's endpoints are behind a Cloudflare block. Every request from an honest client gets a 403. The library gets through only by pretending to be a browser ([attractions evaluation](data-sources-attractions.md), section 4).
+- Small waystation towns usually have a Wikivoyage page with 5 to 15 listings. Some towns have none, and some names point to a different town ([attractions evaluation](data-sources-attractions.md), section 3).
 - Grounding Lite's `search_places` returns ratings and review counts inside its written summary, not as fields. Price level and hours come back only when the query asks for them.
 - Apify run time and cost, Mapbox bearer tokens, and the community-hosted MCP servers are no longer needed. None of them are used.
 

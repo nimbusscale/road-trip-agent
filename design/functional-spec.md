@@ -186,7 +186,7 @@ Each card set presents recommendations for one slot (a stop's hotel, a meal, an 
 Each option shows:
 
 - Name, type, tier, and location
-- Rating and review count
+- Rating and review count, for restaurants and hotels. Attractions show them only where a rating means something. A national park or a historic plaque, for example, shows none. Which attractions qualify is settled during development
 - Why it was recommended, tied to the user's stated preferences
 - Source link for the underlying listing or review data
 - Notes (seasonal hours, reservations advised)

@@ -32,6 +32,7 @@ This document covers the Google Maps Platform APIs the app uses: Routes, Places,
 | Best order for a loop | Routes | `computeRoutes` with `optimizeWaypointOrder: true` | Returns the new order in `optimizedIntermediateWaypointIndex`, with per-leg times |
 | Route line for the map | Routes | `computeRoutes` with `routes.polyline.encodedPolyline` in the field list | Goes to the UI, never to the model (2.3) |
 | Look up a place the user names | Places | Text Search with the name and town, such as "Smitty's Market, Lockhart, TX" | |
+| Map pin for a place found by web search | Places | Text Search with the name and town | Use only `location`. Don't use its hours ([web search](data-sources-web-search.md), section 4) |
 | Places by type near a stop | Places | Text Search, such as "barbecue in Lockhart, TX" | Up to 20 places per call (`pageSize`), ranked by relevance, not distance |
 | Places along a leg | Places | Text Search with `searchAlongRouteParameters.polyline` and `routingParameters.origin` | Add `routingSummaries` to the field list to get each place's drive time from the start of the leg |
 | Option card details | Places | The same Text Search, with more fields | See 2.2 |
@@ -41,7 +42,7 @@ This document covers the Google Maps Platform APIs the app uses: Routes, Places,
 | Card item (spec 7.5) | Field |
 |---|---|
 | Name, type, location | `displayName`, `primaryType`, `formattedAddress`, `location` |
-| Rating and review count | `rating`, `userRatingCount` |
+| Rating and review count | `rating`, `userRatingCount`. Shown for restaurants and hotels. For attractions, only where a rating means something (spec 7.5) |
 | Tier signal (spec 7.1) | `priceLevel` and `priceRange` for restaurants. Hotels don't have them, so the agent judges hotel tiers from the summaries |
 | Hours, for notes and feasibility checks | `regularOpeningHours.weekdayDescriptions` |
 | Source link | `googleMapsUri`. The reviews link is inside `reviewSummary` |
