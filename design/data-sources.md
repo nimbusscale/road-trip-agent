@@ -21,7 +21,7 @@ This index maps each data need in the [functional spec](functional-spec.md) to t
 | Weekly opening hours | 7.4 | Google Places | [Google](data-sources-google.md) |
 | Ratings and review counts | 7.5 | Google Places | [Google](data-sources-google.md) |
 | Source link for option cards | 7.5 | Google Places: Google Maps link and reviews link | [Google](data-sources-google.md) |
-| Seasonal hours and closures | 6.1 | Not decided | — |
+| Seasonal hours and closures | 6.1 | No dedicated source. The agent uses its own knowledge and web search, and says plainly when hours are unconfirmed. The NPS Data API for national parks is not decided | — |
 | Seasonal risks (heat, snow, hurricanes) | 6.1 | Not decided | — |
 | Weather forecast, within 7 days | 8 | Google Weather API | [Google](data-sources-google.md) |
 | Seasonal weather averages | 8 | Not decided | — |
