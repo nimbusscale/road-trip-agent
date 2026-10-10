@@ -8,21 +8,21 @@ This index maps each data need in the [functional spec](functional-spec.md) to t
 
 | Need | Spec | Source | Doc |
 |---|---|---|---|
-| Find cities, towns, and named places | 5.2, 5.3 | Google Places Text Search | [Maps](data-sources-maps.md) |
-| Drive time and distance per leg | 6.1, 9.4 | Google Routes API | [Maps](data-sources-maps.md) |
-| Scenic routes | 5.2 | Google Routes API, with waypoints the agent picks | [Maps](data-sources-maps.md) |
-| Best stop order on a loop | 5.3 | Google Routes API, stop ordering option | [Maps](data-sources-maps.md) |
-| Route line for the map | 9.2 | Google Routes API, sent to the UI, not the model | [Maps](data-sources-maps.md) |
-| Hotels near a stop | 7.2 | Google Places Text Search | [Maps](data-sources-maps.md) |
-| Restaurants near a stop | 7.3 | Google Places Text Search | [Maps](data-sources-maps.md) |
-| Attractions near a stop | 7.4 | Google Places Text Search. Other sources not decided | [Maps](data-sources-maps.md) |
-| Notable stops along a leg | 7.4 | Google Places Text Search along the route line. Other sources not decided | [Maps](data-sources-maps.md) |
-| Price level, for budget tiers | 7.1 | Google Places, for restaurants. Hotels have no price level, so their tier comes from the summary text | [Maps](data-sources-maps.md) |
-| Weekly opening hours | 7.4 | Google Places | [Maps](data-sources-maps.md) |
-| Ratings and review counts | 7.5 | Google Places | [Maps](data-sources-maps.md) |
-| Source link for option cards | 7.5 | Google Places: Google Maps link and reviews link | [Maps](data-sources-maps.md) |
+| Find cities, towns, and named places | 5.2, 5.3 | Google Places Text Search | [Google](data-sources-google.md) |
+| Drive time and distance per leg | 6.1, 9.4 | Google Routes API | [Google](data-sources-google.md) |
+| Scenic routes | 5.2 | Google Routes API, with waypoints the agent picks | [Google](data-sources-google.md) |
+| Best stop order on a loop | 5.3 | Google Routes API, stop ordering option | [Google](data-sources-google.md) |
+| Route line for the map | 9.2 | Google Routes API, sent to the UI, not the model | [Google](data-sources-google.md) |
+| Hotels near a stop | 7.2 | Google Places Text Search | [Google](data-sources-google.md) |
+| Restaurants near a stop | 7.3 | Google Places Text Search | [Google](data-sources-google.md) |
+| Attractions near a stop | 7.4 | Google Places Text Search. Other sources not decided | [Google](data-sources-google.md) |
+| Notable stops along a leg | 7.4 | Google Places Text Search along the route line. Other sources not decided | [Google](data-sources-google.md) |
+| Price level, for budget tiers | 7.1 | Google Places, for restaurants. Hotels have no price level, so their tier comes from the summary text | [Google](data-sources-google.md) |
+| Weekly opening hours | 7.4 | Google Places | [Google](data-sources-google.md) |
+| Ratings and review counts | 7.5 | Google Places | [Google](data-sources-google.md) |
+| Source link for option cards | 7.5 | Google Places: Google Maps link and reviews link | [Google](data-sources-google.md) |
 | Seasonal hours and closures | 6.1 | Not decided | — |
 | Seasonal risks (heat, snow, hurricanes) | 6.1 | Not decided | — |
-| Weather forecast | 8 | Not decided | — |
+| Weather forecast, within 7 days | 8 | Google Weather API | [Google](data-sources-google.md) |
 | Seasonal weather averages | 8 | Not decided | — |
-| UI map | 9.2 | Not decided | — |
+| UI map | 9.2 | Google Maps JavaScript API | [Google](data-sources-google.md) |
