@@ -36,7 +36,7 @@ This section lists what gets stored, how the pieces relate, and who creates or c
 
 **Every entity's ID is one we create.** IDs from outside sources, such as Google's place ID, are stored as ordinary properties and can be empty.
 
-**Anything numbered in order starts at 0.** That covers a stay's order, a day's order, a stop's order in its day and time block, and a candidate's set number. The UI counts from 1 for people, so the day stored as 0 shows as Day 1. The examples below use the people-facing labels.
+**Anything numbered in order starts at 0.** That covers a stay's order, a day's order, a stop's order in its day, and a candidate's set number. The UI counts from 1 for people, so the day stored as 0 shows as Day 1. The examples below use the people-facing labels.
 
 **"Worked out" means looked up from other stored data when read, and not stored.** Examples: a stay's nights, a day's date, a leg's from and to, and a candidate's status. Storing these would add a second copy that can go stale. Values that need a call to an outside service, such as a leg's drive time, are different. They are computed once and stored (3.3).
 
@@ -72,8 +72,8 @@ Candidates and legs are not in the diagram. They are value objects: candidates a
 | Itinerary | Trip | Points to a start place and an end place. Holds a start date. The coordinator sets all three during discovery, before the skeleton (4.2). Holds the stays and the days, each in order. Created with the trip, holding only its last day (see below) |
 | Place | Trip | Any real location: a town, hotel, restaurant, bar, attraction, friend's house, or campground. Holds the facts about it: Google's place ID, coordinates, and the details a tool returned, such as Google's name, rating, review count, price level, weekly hours, summary, and links. Cards show Google's name whenever Google has one. A name given by an agent is used only for a place Google has no name for, which in practice means an address, such as "Mike's house." It is set by the first candidate that offers the place, or by `update_itinerary` for a start or end place. So a user's nickname, such as "the pink hotel," never replaces "Madonna Inn." The type cards show is set by the first candidate that offers it. Places are matched by Google place ID only. The kind of place doesn't limit how it's used. A hotel can be a stay's lodging, or a stop for its bar. On a loop trip, the start and end are the same place |
 | Stay | Itinerary | One overnight location: the place it's in, usually a town, and order. Its nights are the number of days that point to it, worked out rather than stored. Changing its nights adds or removes its days. Its lodging is a place, empty until selected. Holds its lodging candidates, the places the user rejected for its lodging with their reasons, and a tier with the rule that produced it and the number of nights it was set for (section 9). Holds its weather and clothing text, labeled forecast or seasonal averages, with the place and dates it was written for. That text is empty until the weather worker runs (6.3) |
-| Day | Itinerary | One day of the trip: rest day or not, its stops in order, its leg, if it has one (3.3), and its approvals (section 8). Points to the stay where the party sleeps that night. The last day points to none. Its date is worked out: the itinerary's start date plus the day's order |
-| Stop | Day | A visit during the day: a meal or an attraction. Holds its kind, its purpose, its search area, its time block (below), and its order within that block. The purpose is a short note on what the stop is for, such as "dessert" or "stargazing, about 1 a.m." The search area says where its candidates are searched: near a stay, by the stay's ID, or along the day's leg. Kind, purpose, and search area are set when the stop is added and never change (6). Its place is empty until selected. Holds its candidates, and the places the user rejected for it with their reasons. Meal stops have a tier and the rule that produced it. Holds the drive time from the previous stop, computed and stored with the day's leg (3.3). Holds its approvals, such as one to keep it despite its opening hours (section 8) |
+| Day | Itinerary | One day of the trip: rest day or not, its own start time if the user agreed to one (below), its stops in order, its leg, if it has one (3.3), and its approvals (section 8). Points to the stay where the party sleeps that night. The last day points to none. Its date is worked out: the itinerary's start date plus the day's order |
+| Stop | Day | A visit during the day: a meal or an attraction. Holds its kind, its purpose, its search area, its order in the day, its set time or none, and its visit time (below). The purpose is a short note on what the stop is for, never when, such as "dessert" or "stargazing." The search area says where its candidates are searched: near a stay, by the stay's ID, or along the day's leg. Kind, purpose, and search area are set when the stop is added and never change (6). Its place is empty until selected. Holds its candidates, and the places the user rejected for it with their reasons. Meal stops have a tier and the rule that produced it. Holds the drive time from the previous stop, computed and stored with the day's leg (3.3). Holds its approvals, such as one to keep it despite its opening hours (section 8) |
 | Trip memory item | Trip | One free-text note (functional spec 10.2) |
 | User memory item | User | One standing preference (functional spec 10.3) |
 
@@ -94,14 +94,18 @@ Candidates and legs are not in the diagram. They are value objects: candidates a
 
 **The trip brief holds what the user wants. The itinerary holds the plan.** No fact is stored in both. The start date and the start and end places live only in the itinerary. The brief holds wishes that the plan is checked against, such as the trip length, max driving hours, and route preference. Code reads the brief to run those checks, but changing the brief never changes the itinerary. Example: if the user shortens the trip in the brief from five days to four, nothing in the itinerary moves. The trip-length check warns, and the coordinator removes a night with the user.
 
-**A day has six time blocks, each four hours long, starting at midnight:** overnight (12–4 a.m.), early morning (4–8 a.m.), morning (8 a.m.–12 p.m.), afternoon (12–4 p.m.), evening (4–8 p.m.), and night (8 p.m.–12 a.m.). The blocks are fixed, not settings. Each stop sits in one block. A block says roughly when the party will be there, without a clock time, and gives the opening-hours check a window to test (section 8).
+**A day has a schedule, worked out in code.** The itinerary shows a time for every stop and drive. It is a plan, not a promise: drive times are averages, and visit times are estimates. The checks need real times, and the user expects to see them.
 
-- **A block describes a stop. It doesn't judge it.** No rule says which block a place belongs in. Denny's can go in any block, and a speakeasy that opens at 7 p.m. only works at night. Whether a place is open then is the hours check's job.
-- **A block is not an entity.** It is one of six fixed values held on the stop, the same way the stop holds its kind. Blocks hold no data of their own and are never added or removed. If a block someday needs data, such as a note that the user is busy that afternoon, make it an entity then.
-- **A stop's order is counted within its day and block.** The day's full order is worked out: the blocks in clock order, then the stops in order inside each block. There is only one order, so it can't disagree with the blocks. Example: moving Denny's from dinner to breakfast sets its block to morning and places it first in that block, in one change.
-
-- **A meal is just a meal.** It has no type, such as breakfast or dinner. The party decides what each meal is. A meal moved from the morning to the evening is simply a meal in the evening, checked against evening hours.
-- **A stop after midnight belongs to the calendar day.** A 1 a.m. stop is in the next day's overnight block. A drive that runs past midnight isn't handled in the MVP. Nor is the drive back from a stop after midnight on the last day: Moab Day 5 is routed Torrey hotel → Panorama Point → Salt Lake City, though the party really returns to the hotel and leaves in the morning. Here the times barely differ, because the road to Salt Lake City runs back through Torrey.
+- **The day starts at its start time.** A day holds its own start time when the user agrees to one, such as 5:30 a.m. for a sunrise hike. Otherwise it uses the trip brief's usual start time, which defaults to 8 a.m. On a day with a leg, the party leaves where it slept at that time.
+- **A day's stops are in one order.** The coordinator sets it, and code never reorders stops.
+- **A stop either has a set time or follows the stop before it.** A set time means "not before," such as dinner at 7 or a sunrise hike at 6. Most stops have none. If the party would get there early, the gap shows as free time. If it would get there late, the late check warns (section 8).
+- **Code works out every time when the itinerary is read.** A stop starts when the stop before it ends plus the drive to it, or at its set time if that is later. It ends after its visit time. After the last stop comes the drive to where the party sleeps, or to the end place, with its own times. Each drive includes the buffer from the daily driving check (section 8). Nothing new is stored: drive times are already stored with the leg (3.3), and everything else is worked out.
+- **A stop with no selected place takes no time.** It has no place, so it has no drive time or visit time. The schedule puts it where the stop before it ends, or at its set time. Times firm up as stops are selected.
+- **A stop holds its own visit time.** Selecting a place sets it: the candidate's estimate for an attraction, the time the user gave for a place they named, or one hour for a meal. The coordinator can change it when the user asks, such as "plan five hours for that hike." Selecting a different place sets it again, since it's a different place. The candidate keeps the worker's estimate.
+- **A time describes a stop. It doesn't judge it.** No rule says when a place belongs in the day. Denny's can be at any time, and a speakeasy that opens at 7 p.m. only works at night. Whether a place is open then is the hours check's job.
+- **A meal is just a meal.** It has no type, such as breakfast or dinner. Its time says when, and its purpose says what, such as "burgers and shakes" or "dessert," never "lunch" or "about 1 a.m." A purpose never changes, so it must not say when: a stop can move.
+- **A day can run past midnight.** It runs from its start time until its last stop ends. A stop after midnight stays on the day it follows. Its set time is written as the next day, such as "1:00 a.m., next day," so it can't be mistaken for an early start. The opening-hours check reads the real date and time. Example: stargazing at 1 a.m. after Moab Day 4 is the last stop on Day 4, not the first on Day 5.
+- **A late-night stop near the lodging is routed on the way in.** Moab Day 4 is routed Capitol Gorge → Panorama Point → Torrey hotel, though the party really checks in first and drives out again at night. The times barely differ, because Panorama Point is close to Torrey.
 
 **Places are kept per trip.** A place returned twice within a trip, such as the same restaurant offered on two days, is stored once, matched by Google's place ID. Keeping places per trip means a place the user names, such as a friend's address, is never visible outside that trip (functional spec 10.4).
 
@@ -113,6 +117,7 @@ In the examples below, labels such as Leg, Stop, meal, attraction, and rest day 
 Trip brief (only the items this example uses)
   Trip length       3 days
   Route preference  scenic
+  Usual start time  8:00 a.m.
 
 Itinerary
   Start place: San Francisco
@@ -125,54 +130,54 @@ Itinerary
 
   Days, in order
     Day 1, Thu May 13 (worked out)             night at → Monterey stay
+      Starts        8:00 a.m.       (worked out: the trip brief's usual start time)
       Leg
         from        San Francisco   (worked out: the start place)
         to          Monterey        (worked out: tonight's stay)
         drive time  computed through the selected stops below
-      Morning
-        Stop 1, meal        → Millbrae Pancake House
-        Stop 2, attraction  → Hangar One, Moffett Field
-        Stop 3, meal        → Philz Coffee, San Jose
-      Afternoon
-        Stop 4, attraction  → Santa Cruz Beach Boardwalk
-      Evening
-        Stop 5, meal        → The Whaling Station
+      Stops, in order (times worked out, rounded)
+        Stop 1, meal        → Millbrae Pancake House        8:25 a.m.
+        Stop 2, attraction  → Hangar One, Moffett Field     9:50 a.m.
+        Stop 3, meal        → Philz Coffee, San Jose        12:05 p.m.
+        Stop 4, attraction  → Santa Cruz Beach Boardwalk    1:55 p.m.
+        Stop 5, meal        → The Whaling Station           7:00 p.m.  (set time)
 
     Day 2, Fri May 14 (worked out)             night at → San Luis Obispo stay
+      Starts        8:00 a.m.        (worked out: the trip brief's usual start time)
       Leg
         from        Monterey         (worked out: last night's stay)
         to          San Luis Obispo  (worked out: tonight's stay)
-        waypoints   Big Sur village  (keeps it on Highway 1 before any stops are selected)
+        waypoints   Big Sur village  (keeps it on Highway 1 during the fill)
         drive time  computed through the selected stops below
-      Morning
-        Stop 1, meal        → First Awakenings, Monterey
+      Stops, in order (times worked out, rounded)
+        Stop 1, meal        → First Awakenings, Monterey    8:10 a.m.
                               (search area: near the Monterey stay, before the drive)
-        Stop 2, attraction  → Point Lobos State Natural Reserve
-        Stop 3, attraction  → Bixby Creek Bridge viewpoint
-      Afternoon
-        Stop 4, meal        → Nepenthe, Big Sur
-        Stop 5, attraction  → Piedras Blancas elephant seal rookery
-      Evening
-        Stop 6, meal        → Firestone Grill, San Luis Obispo
-      Night
-        Stop 7, meal        → Madonna Inn (for its pink champagne cake)
+        Stop 2, attraction  → Point Lobos State Natural Reserve      9:25 a.m.
+        Stop 3, attraction  → Bixby Creek Bridge viewpoint  11:10 a.m.
+        Stop 4, meal        → Nepenthe, Big Sur             12:05 p.m.
+        Stop 5, attraction  → Piedras Blancas elephant seal rookery  2:35 p.m.
+        Stop 6, meal        → Firestone Grill, San Luis Obispo       6:30 p.m.  (set time)
+        Stop 7, meal        → Copper Café, Madonna Inn (pink champagne cake)  7:35 p.m.
 
     Day 3, Sat May 15, the last day            no stay
+      Starts        8:00 a.m.        (worked out: the trip brief's usual start time)
       Leg
         from        San Luis Obispo  (worked out: last night's stay)
         to          Mike's house     (worked out: the end place)
         drive time  computed with no stops
+        arrives     about 12:00 p.m.
       Approvals
         route type   fastest (the user wants to get to LA quickly)
 ```
 
-The Monterey stay exists once, but two days use it: Day 1 sleeps there, and Day 2 starts from it. Neither leg stores Monterey. Stop 7 is a hotel used as a stop. Meals have no type: Nepenthe is a meal in the afternoon block, and the cake at the Madonna Inn is a meal in the night block. The night stop's purpose, "dessert," is what tells its worker to look for cake. Day 2's waypoint keeps the route on the coast during the fill, when the leg scout searches along it and no stops are selected yet. It stays once stops are selected. Code places it among them, between Bixby Creek Bridge and Nepenthe, where it changes nothing (3.3). Day 3 differs from the trip's scenic default, so it holds a route type approval with the user's reason.
+The Monterey stay exists once, but two days use it: Day 1 sleeps there, and Day 2 starts from it. Neither leg stores Monterey. Stop 7 is a café inside a hotel, so it uses the café's own listing, not the hotel's (6.4). Meals have no type: Nepenthe is a meal at noon, and the cake at the Madonna Inn's café is a meal after dinner. Stop 7's purpose, "dessert," is what tells its worker to look for cake. Only the dinners have set times. The other stops follow one another, and the gap before each dinner shows as free time. Day 2's waypoint keeps the route on the coast during the fill, when the leg scout searches along it and few stops are selected yet. It stays once stops are selected. Code places it among them, between Bixby Creek Bridge and Nepenthe, where it changes nothing (3.3). Day 3 differs from the trip's scenic default, so it holds a route type approval with the user's reason.
 
 **Example: a three-night stay with a rest day.** Moab, between Grand Junction and Torrey.
 
 ```
 Trip brief (only the items this example uses)
   Trip length       5 days
+  Usual start time  8:00 a.m.
   Max driving       4 hours a day
   Route preference  scenic
   Budget            value by default, mid-range for stays of 2+ nights
@@ -192,40 +197,39 @@ Itinerary
 
   Days, in order
     Day 1, Sun Oct 10 (worked out)            night at → Moab stay
+      Starts        8:00 a.m.        (worked out: the trip brief's usual start time)
       Leg
         from        Grand Junction   (worked out: the start place)
         to          Moab hotel       (worked out: tonight's lodging)
         waypoints   Dewey Bridge     (keeps it on Highway 128 along the river)
-      Afternoon
-        Stop 1, attraction  → Fisher Towers viewpoint
+      Stops, in order (times worked out, rounded)
+        Stop 1, attraction  → Fisher Towers viewpoint       9:50 a.m.
                               (assume: found by web search, so its hours aren't known)
-      Evening
-        Stop 2, meal        → Moab Brewery
+        Stop 2, meal        → Moab Brewery                  6:00 p.m.  (set time)
 
     Day 2, Mon Oct 11 (worked out)            night at → Moab stay
+      Starts        5:30 a.m.        (the day's own: the user agreed to it for the sunrise hike)
       Leg                            (from and to are the same stay)
         from        Moab hotel       (worked out: last night's lodging)
         to          Moab hotel       (worked out: tonight's lodging)
         drive time  computed through the selected stops below
-      Early morning
-        Stop 1, attraction  → Delicate Arch trail, Arches (sunrise hike)
+      Stops, in order (times worked out, rounded)
+        Stop 1, attraction  → Delicate Arch trail, Arches   6:00 a.m.  (set time)
                               (assume: open 24 hours, so it's open long enough)
-      Morning
-        Stop 2, attraction  → Windows Section, Arches
-        Stop 3, meal        → Love Muffin Cafe (late breakfast, back in town)
-      Afternoon
-        Stop 4, meal        → Milt's Stop & Eat
+        Stop 2, attraction  → Windows Section, Arches       8:50 a.m.
+        Stop 3, meal        → Love Muffin Cafe (back in town)   10:20 a.m.
+        Stop 4, meal        → Milt's Stop & Eat             12:00 p.m.  (set time)
                               (assume: closes at 12:30 p.m., so it's open but not long enough)
-        Stop 5, attraction  → Corona Arch trail
-      Evening
-        Stop 6, meal        → Desert Bistro
+        Stop 5, attraction  → Corona Arch trail             1:15 p.m.
+        Stop 6, meal        → Desert Bistro                 7:00 p.m.  (set time)
 
     Day 3, Tue Oct 12 (worked out), rest day  night at → Moab stay
       No leg
-      Evening
-        Stop 1, meal        → The Spoke on Center (near the hotel)
+      Stops, in order
+        Stop 1, meal        → The Spoke on Center (near the hotel)   6:30 p.m.  (set time)
 
     Day 4, Wed Oct 13 (worked out)            night at → Torrey stay
+      Starts        8:00 a.m.        (worked out: the trip brief's usual start time)
       Leg
         from        Moab hotel       (worked out: last night's lodging)
         to          Torrey hotel     (worked out: tonight's lodging)
@@ -233,28 +237,27 @@ Itinerary
                     (about 4 hours of road time, plus the buffer, over the 4-hour default)
       Approvals
         drive hours  5       (the user wants Goblin Valley and Capitol Reef on the way)
-      Morning
-        Stop 1, attraction  → Goblin Valley State Park
-      Afternoon
-        Stop 2, meal        → Gifford Homestead, Capitol Reef (pie)
+      Stops, in order (times worked out, rounded)
+        Stop 1, attraction  → Goblin Valley State Park      9:55 a.m.
+        Stop 2, meal        → Gifford Homestead, Capitol Reef (pie)   1:20 p.m.
                               (assume: closed Wednesdays, so it's closed)
-        Stop 3, attraction  → Capitol Gorge, at the end of the Scenic Drive
+        Stop 3, attraction  → Capitol Gorge, at the end of the Scenic Drive   2:40 p.m.
+        Stop 4, attraction  → Panorama Point, Capitol Reef (stargazing)
+                                                            1:00 a.m., next day  (set time)
+                              (search area: near the Torrey stay)
 
     Day 5, Thu Oct 14 (worked out), the last day   no stay
+      Starts        10:00 a.m.       (the day's own: a late start after stargazing)
       Leg
         from        Torrey hotel     (worked out: last night's lodging)
         to          Salt Lake City   (worked out: the end place)
-        drive time  computed through the selected stops below
-      Overnight
-        Stop 1, attraction  → Panorama Point, Capitol Reef (stargazing, about 1 a.m.)
-                              (the party drives back to the Torrey hotel to sleep,
-                               then leaves for Salt Lake City in the morning)
-                              (search area: near the Torrey stay)
+        drive time  computed with no stops
+        arrives     about 1:45 p.m.
 ```
 
-Day 2's leg starts and ends at the Moab hotel without any new rule: "where the party slept last night" and "where it sleeps tonight" are both the Moab hotel. Because Day 2 has a leg, its driving is checked. If the coordinator put Monument Valley on it, about two and a half hours each way, the driving check would warn about it. Day 3 is a rest day, so it has no leg, and its dinner is close to the hotel. Days 2 and 3 start and end at the Moab stay, so every stop on them is near it. Panorama Point is on the last day, which has no stay, so it is near the Torrey stay, where the party slept the night before.
+Day 2's leg starts and ends at the Moab hotel without any new rule: "where the party slept last night" and "where it sleeps tonight" are both the Moab hotel. Because Day 2 has a leg, its driving is checked. If the coordinator put Monument Valley on it, about two and a half hours each way, the driving check would warn about it. Day 3 is a rest day, so it has no leg, and its dinner is close to the hotel. Days 2 and 3 start and end at the Moab stay, so every stop on them is near it. Panorama Point is at 1 a.m. after Day 4, so it is Day 4's last stop. It is near the Torrey stay, where the party sleeps that night.
 
-The hours marked "assume" are for walking through the example, not real hours. Between them, Fisher Towers, Delicate Arch, Milt's, and Gifford Homestead cover the four results of the opening-hours check (section 8). The Moab stay is mid-range and the Torrey stay is value, from the trip's budget rule (section 9). Day 4 runs over the trip's 4-hour default, so it holds a drive hours approval with the user's reason. The stargazing stop is at 1 a.m., so it belongs to Day 5, in its overnight block (3.1).
+The hours marked "assume" are for walking through the example, not real hours. Between them, Fisher Towers, Delicate Arch, Milt's, and Gifford Homestead cover the four results of the opening-hours check (section 8). Milt's and Gifford Homestead are planted problems. The example shows them before they are settled, so neither has an approval. In a finished itinerary they would be moved, swapped, or approved. The Moab stay is mid-range and the Torrey stay is value, from the trip's budget rule (section 9). Day 4 runs over the trip's 4-hour default, so it holds a drive hours approval with the user's reason. The stargazing stop's time is written as the next day (3.1). Day 2 starts at 5:30 a.m. for the sunrise hike, and Day 5 starts at 10 a.m. after the late night. The user agreed to both, so each day holds its own start time. The other days use the trip brief's 8 a.m.
 
 ### 3.2 Candidates
 
@@ -264,7 +267,7 @@ A **candidate** is one place offered for a stop or for a stay's lodging, with th
 - **Rationale:** one or two sentences on why it was offered here, tied to the user's preferences. The UI shows it as a tooltip on the option card. The coordinator reads it when the user asks "why that one?"
 - Tier, and the rule that produced it, for lodging and meal stops
 - How it was found (Google or web search, with the source link), and notes, such as hours for these dates ("closed Mondays, and you're there on a Monday") or "reservations advised" (functional spec 7.5)
-- **Visit time,** for attraction stops: the worker's estimate, labeled as one (6.1). The opening-hours check uses it (section 8)
+- **Visit time,** for attraction stops: the worker's estimate, labeled as one (6.1). Selecting the candidate copies it to the stop, and the schedule uses the stop's copy (3.1)
 - **Detour time,** for stops along the drive: the extra minutes off the leg's route. The tool works it out when the candidate is added, not the worker: from the along-leg search when the place came from there, or with one routing call when it was found another way, such as on Atlas Obscura. It's a rough figure ([Google design](data-sources-google.md), 2.4). Once the stop is selected, its stored drive time from the previous stop gives the real figure
 - **Set number:** which batch it came in. The tool assigns it: 0 for the first batch offered for that stop or lodging, 1 for the next "more options" batch, and so on. A set holds one to three candidates. A place the user specifies is a set of one
 
@@ -307,7 +310,7 @@ The leg holds no approvals. The day does (section 8), so they survive when a leg
 | | Stop | Waypoint |
 |---|---|---|
 | The party gets out | Yes | No |
-| Time block and order within it | Yes | No |
+| A time in the day's schedule | Yes | No |
 | Candidates and option cards | Yes | No |
 | Opening hours check | Yes | No |
 | Shown to the user | As a visit | Only as the route line on the map |
@@ -322,8 +325,8 @@ Users don't pick waypoints. They pick scenic or fastest, and the coordinator pic
 
 ### 3.4 Who creates and changes what
 
-- **The coordinator,** through its tools: the trip brief, the itinerary's start place, end place, and start date, stays and their nights, rest days, each day's stops, each leg's waypoints, approvals on days and stops, memory, and selections.
-  - It lays out a day by adding empty stops, each with a kind, a purpose, a search area, a time block, and an order within that block. It sets the order. Code never reorders stops.
+- **The coordinator,** through its tools: the trip brief, the itinerary's start place, end place, and start date, stays and their nights, rest days, each day's start time, each day's stops with their set times and visit times, each leg's waypoints, approvals on days and stops, memory, and selections.
+  - It lays out a day by adding empty stops, each with a kind, a purpose, a search area, a set time or none, and an order in the day. It sets the order. Code never reorders stops.
 - **Code inside the tools:**
   - Places, created or reused when a tool returns one.
   - Days, added and removed as stays' nights change. The last day is created with the itinerary.
@@ -342,7 +345,7 @@ The itinerary tools carry changes through, so the coordinator doesn't have to:
 - **The start date changes:** every day's date moves with it. Nothing is re-routed, but the opening-hours check runs again, since each day can now fall on a different weekday.
 - **A stay's place or dates change:** its weather and clothing text is kept, but marked out of date, because the place and dates it was written for no longer match. Its dates change whenever the start date or an earlier stay's nights change. The UI labels the text as out of date, and the check results include a note for it (section 8). The coordinator reruns the weather worker for those stays at the end of a turn, once no change is still being discussed with the user. Example: adding a Big Sur night and then removing it raises the note and then clears it, with no rerun.
 - **A stay is removed:** its days go away. The next day's leg now starts from the stay before it, and is re-routed. Removing a stay is refused while any stop is on its days, or while any stop anywhere has the stay as its search area. The error lists those stops by name and ID. The coordinator asks the user what to do with each one, then moves or removes it. Code never deletes a stop the coordinator didn't name.
-- **A stop's selected place, date, or time block changes:** its opening hours approval stays, but no longer applies, because it records what it was given for (section 8). The opening-hours check runs fresh. A stop's date changes when the start date moves, when an earlier stay gains or loses a night, or when the stop moves to another day.
+- **A stop's selected place, date, or time changes:** the opening-hours check runs fresh. A stop's time changes whenever anything before it on its day changes, since times are worked out (3.1). Its date changes when the start date moves, when an earlier stay gains or loses a night, or when the stop moves to another day. Its opening hours approval stays. It applies while the place is the same and no less of the visit falls within opening hours (section 8).
 - **A stop is selected, cleared, changed, or removed:** that day's leg is re-routed through the selected stops. A day that stays put gains a leg when its first stop is selected, and loses it when the last selected stop goes.
 
 When a stop or stay goes away, its candidates go with it. The places stay. The coordinator then sends new worker briefs for new stops, and for any stop or lodging whose candidates no longer fit.
@@ -381,7 +384,7 @@ Planning goes from broad to narrow. This is the usual order in which the coordin
 
 ### 5.1 Tools
 
-- **Itinerary:** read the itinerary. Set the start place, end place, and start date. Add, change, and remove stays, and set their nights. Mark rest days. Add, change, move, and remove stops. Set a leg's waypoints. Record selections, clear a stop's or lodging's selection, and set and remove approvals on days and stops. Reads can cover the whole itinerary, or one day, stay, or stop. Every write returns what code worked out and the feasibility check results (section 8).
+- **Itinerary:** read the itinerary. Set the start place, end place, and start date. Add, change, and remove stays, and set their nights. Mark rest days, and set a day's start time. Add, change, move, and remove stops. Set a leg's waypoints. Record selections, clear a stop's or lodging's selection, and set and remove approvals on days and stops. Reads can cover the whole itinerary, or one day, stay, or stop. Every write returns what code worked out and the feasibility check results (section 8).
 - **Trip brief:** read the trip brief, and update one or more items in it at once. Every update returns the feasibility check results (section 8), since items like max driving hours affect them.
 - **Memory:** read, add, update, and forget items in user memory and trip memory.
 - **Places:** find a named place, to resolve a town, a must-see, or a place the user names. Read a place's full record by ID, when the short line isn't enough (7.2).
@@ -406,6 +409,7 @@ The coordinator's instructions cover:
 - **When to rerun the weather worker:** at the end of a turn, for stays whose weather is out of date, once no change is still being discussed (3.5).
 - **Budget tiers:** how to turn the user's rules into a tier for each lodging and meal stop (section 9).
 - **Visit time for a place the user specifies:** ask how long they'll spend there, offering a typical figure for them to confirm or change.
+- **Visit times and pace:** when the user wants a different visit time for a selected stop, change it on the stop. When they say something about their pace, such as "we're slow," save it to trip memory and apply it to later visit times.
 
 ### 5.3 Trip brief and worker briefs
 
@@ -415,7 +419,7 @@ A **worker brief** is the part of the trip brief one worker needs:
 
 - The IDs of the stops or the stay to fill, with the day, dates, and nights they belong to
 - For lodging and meal stops, the resolved tier and the rule that produced it
-- Each stop's purpose, such as "dessert" or "sunrise hike"
+- Each stop's purpose, such as "dessert" or "sunrise hike," and its time in the day's schedule
 - Interests, must-sees, and meal preferences that apply here
 - Places to leave out: candidates already offered for that stop or lodging, and its rejected places with the reason ("no parking")
 
@@ -434,7 +438,7 @@ The coordinator decides which worker fills each stop when it lays out the day, b
 Finds candidates for one stay's lodging, and for the stops whose search area is that stay. These can be on the stay's own days, or on the next day, such as breakfast before driving on.
 
 - **Tools:** place search near a stay or stop in its worker brief (hotels, restaurants, attractions), find a named place, to look up something found by web search, web search, both general and limited to Atlas Obscura, and tools to add candidates to the stops and stay in its worker brief.
-- **Instructions:** fit candidates to the worker brief's interests and tiers. Three candidates per stop or lodging (functional spec 7.5), added in one call. Attractions carry the agent's estimate of visit time, labeled as an estimate. Check hours against the dates, and say plainly when hours are unconfirmed. The web search rules from the [web search design](data-sources-web-search.md) apply.
+- **Instructions:** fit candidates to the worker brief's interests and tiers. Three candidates per stop or lodging (functional spec 7.5), added in one call. Attractions carry the agent's estimate of visit time, labeled as an estimate. Check hours against each stop's date and time, and say plainly when hours are unconfirmed. The web search rules from the [web search design](data-sources-web-search.md) apply.
 - **Returns:** for each stop or lodging, the candidates it added with one line each, plus any problems found. Example: "Must-see is closed on these dates."
 
 ### 6.2 Leg scout
@@ -451,7 +455,7 @@ Writes weather and clothing guidance per stay (functional spec 8).
 
 - **Tools:** one weather tool, which returns the Google Weather forecast when every one of a stay's dates is within 7 days, and Open-Meteo seasonal averages otherwise. Code picks which, from the stay's dates. Also a tool to save each stay's weather and clothing text.
 - **Instructions:** label each stay as forecast or seasonal averages. Tie clothing advice to the planned activities in the worker brief. Short advice, not a packing list.
-- **A stay's planned activities are the stops whose search area is that stay,** wherever they fall, plus the stops along the legs of its days. Code gathers them for the brief. So a stop on the last day, which has no stay, is still covered. Example: Panorama Point at 1 a.m. is near the Torrey stay, so Torrey's weather brief includes freezing-night stargazing.
+- **A stay's planned activities are the stops whose search area is that stay,** wherever they fall, plus the stops along the legs of its days. Code gathers them for the brief. So a stop on the last day, which has no stay, is still covered, such as breakfast near the Torrey stay before the drive to Salt Lake City. Example: Panorama Point at 1 a.m. is near the Torrey stay, so Torrey's weather brief includes freezing-night stargazing.
 - **Returns:** one line per stay. The worker saves the full text to the itinerary itself, the same way other workers write candidates.
 
 ### 6.4 Rules for all workers
@@ -500,9 +504,9 @@ The itinerary write tools run these checks after every change.
 | Trip length vs the brief | Warning |
 | Daily driving | Warning |
 | Opening hours: open, but not long enough | Warning |
-| Opening hours: closed for the whole block | Warning |
+| Opening hours: closed for the whole visit | Warning |
 | Opening hours: not known | Note |
-| Block fit | Warning |
+| Late for a set time | Warning |
 | Stop order | Note |
 | Weather out of date | Note |
 | Stay tier set for different nights | Note |
@@ -511,16 +515,16 @@ The itinerary write tools run these checks after every change.
 - **Trip length:** 14 days or fewer. A hard limit, with no exceptions. A write that would make the trip longer is refused, and the error gives the limit, so the coordinator can tell the user.
 - **Trip length vs the brief:** the itinerary's number of days matches the trip length in the brief. A warning if not. Example: adding a night in Big Sur makes a 3-day trip 4 days. If the user agrees to the new length, the coordinator updates the brief, so no approval is needed.
 - **Daily driving:** road time, including detours to the day's stops, plus a buffer for fuel and short breaks, fits the user's max hours. The buffer is a share of road time, starting at 10%, as a setting. Max hours is a preference, so a day can hold a drive hours approval (below).
-- **Opening hours:** each meal and attraction stop is checked against the weekly hours on its selected place, on its day's date, during its time block (3.1). There are four results:
-  - **Open long enough:** nothing is said. Long enough means the place has an open stretch of at least the stop's visit time that starts within the block. The visit can run into the next block. Example: a 5-hour hike in the morning block passes at a park open from 6 a.m. to 8 p.m. A meal counts as one hour. An attraction uses its candidate's visit time.
-  - **Open, but not long enough:** a warning. It gives the opening or closing time and the drive time from the previous stop, and says the drive time is an average. Example: "Closes at 2 p.m. It's about 40 minutes from your previous stop, so allow extra time for traffic." A stop with no drive time, such as one on a rest day, gets the message without it.
-  - **Closed for the whole block:** a warning.
+- **Opening hours:** each meal and attraction stop is checked against the weekly hours on its selected place, from its worked-out arrival to the end of its visit time (3.1). There are four results:
+  - **Open long enough:** nothing is said. The place is open from the party's arrival to the end of the visit. Example: a 5-hour hike starting at 9 a.m. passes at a park open from 6 a.m. to 8 p.m.
+  - **Open, but not long enough:** a warning. The place is open for part of the visit: it opens after the party arrives, or closes before the visit ends. The warning gives the opening or closing time and the arrival time, and says the times are estimates. Example: "Milt's closes at 12:30 p.m. You'd get there at noon, with an hour planned. Times are estimates from average drive times."
+  - **Closed for the whole visit:** a warning.
   - **Hours not known:** a note, not a warning. The card says "Hours not confirmed. Check before you go." This covers a place with no hours on Google, and any place found by web search, since Google's hours aren't used for those ([web search design](data-sources-web-search.md), section 4).
   - The itinerary is a plan, not a guarantee. The user can keep a warned stop anyway, and the stop then holds an approval (below).
   - **Code reads Google's structured hours,** which give each opening and closing as a day and a time ([Google design](data-sources-google.md), 2.2). So hours that run past midnight read correctly: a bar open Monday 5 p.m. to 2 a.m. is open at 1 a.m. on Tuesday.
   - **Only weekly hours are checked.** Google's hours are a normal week only. Seasonal closures, such as an attraction open only in summer, aren't checked in code in the MVP. A worker that finds one says so in its result, and the coordinator raises it (6.1).
-- **Block fit:** a block's stops fit in it. Code adds up each stop's visit time and its drive time from the previous stop. A warning when the total runs more than a set amount past the block's four hours. The amount is a setting, starting at one hour. Example: a 5-hour hike in the morning, after an hour's drive, is 6 hours in a 4-hour block, so it gets a warning. A day can hold a block fit approval (below). A visit can run into the next block, so this is the only check that notices a long morning crowding the afternoon.
-- **Stop order:** whether the day's stops could be driven in a faster order. This runs whenever the leg is re-routed and has at least two selected stops. So it also catches a backtrack left behind by another change, such as a new night that puts Monterey stops behind the party. Code makes one extra Routes call over the whole leg with Google's best-order option, and compares the result with the day's order. Our waypoints are left out of this call, because Google rejects pass-through points when it picks an order. The result is a note, not a warning, and only when the faster order saves at least a set number of minutes. The minimum is a setting, starting at 15. The note gives the time saved and which stops would move, with their blocks. Example: "A faster order saves 25 minutes. It moves Corona Arch from the afternoon to the morning." Google doesn't know when meals happen, so many faster orders make no sense, such as dinner in the morning. The coordinator decides whether a note is worth raising with the user. The best-order option is billed at the Routes Pro level.
+- **Late for a set time:** a warning when the party would reach a stop more than a set allowance after its set time. The allowance is a setting, starting at 15 minutes. Example: "You'd reach dinner at 8:15, but it's set for 7." It also catches a day that starts too late for its first set time, such as a 6 a.m. sunrise hike on a day that starts at 8. It needs no approval, because every answer changes the plan. The coordinator moves the set time, changes the day's start time, or cuts or shortens something earlier. Stops with no set time just move later, so a long visit matters only when it pushes into a set time or past opening hours.
+- **Stop order:** whether the day's stops could be driven in a faster order. This runs whenever the leg is re-routed and has at least two selected stops. So it also catches a backtrack left behind by another change, such as a new night that puts Monterey stops behind the party. Code makes one extra Routes call over the whole leg with Google's best-order option, and compares the result with the day's order. Our waypoints are left out of this call, because Google rejects pass-through points when it picks an order. The result is a note, not a warning, and only when the faster order saves at least a set number of minutes. The minimum is a setting, starting at 15. The note gives the time saved, the stops in the faster order, and any set times that order would miss. Code works those out from the drive times the best-order call returns, with no extra call. Example: "A faster order saves 25 minutes by doing Corona Arch before Windows. Dinner would still be on time." Google doesn't know about set times or when meals happen, so many faster orders make no sense, such as dinner in the morning. The coordinator decides whether a note is worth raising with the user. The best-order option is billed at the Routes Pro level.
 - **Weather out of date:** a stay's weather and clothing text no longer matches the stay's place or dates (3.5).
 
 **Approvals** (functional spec 6.2). When the user agrees to keep something a check warned about, the coordinator records an approval. A warning with an approval is accepted. One without is still open. A day and a stop each hold a list of approvals. The day holds them, not its leg, so they survive when the leg goes away. An approval is not an entity. It has a kind, the approved value, and a reason. The value's shape depends on the kind:
@@ -529,20 +533,17 @@ The itinerary write tools run these checks after every change.
 |---|---|---|
 | Drive hours | Day | The hours the user agreed to |
 | Route type | Day | The route type the user agreed to, such as fastest |
-| Block fit | Day | The block, and the hours the user agreed to for it |
-| Opening hours | Stop | The place, date, and time block it was given for |
+| Opening hours | Stop | The place, and how many minutes of the visit fall within its opening hours |
 
-An item holds at most one approval of each kind, or for block fit, one per block. Setting one replaces any of the same kind. The list changes only through the tools ([tool design](tool-design.md), 2.1). Every approval needs a reason. Removing one doesn't.
+An item holds at most one approval of each kind. Setting one replaces any of the same kind. The list changes only through the tools ([tool design](tool-design.md), 2.1). Every approval needs a reason. Removing one doesn't.
 
-**Why a list, with a shape for each kind.** One list gives every approval the same rule: a kind, a value, and a reason. Adding a kind later doesn't add a property to the day or stop. Each kind keeps its own value shape. A single "value" field would have to hold a number for drive hours, a route type, or a place, date, and block, and code would have to check that the value matches the kind. In code, this is a tagged union: the `kind` field tells code which other fields are present. The tools still take one named input per kind, such as "approve drive hours," not a generic "set approval." Those are easier for the model to fill in correctly. The model never edits the list directly.
+**Why a list, with a shape for each kind.** One list gives every approval the same rule: a kind, a value, and a reason. Adding a kind later doesn't add a property to the day or stop. Each kind keeps its own value shape. A single "value" field would have to hold a number for drive hours, a route type, or a place and a number of minutes, and code would have to check that the value matches the kind. In code, this is a tagged union: the `kind` field tells code which other fields are present. The tools still take one named input per kind, such as "approve drive hours," not a generic "set approval." Those are easier for the model to fill in correctly. The model never edits the list directly.
 
 **Drive hours.** The daily driving check compares against the approved hours when there are some, and the trip brief's max when there aren't. The default lives only in the trip brief, so changing it there applies to every day at once. Storing the approved hours, instead of a yes or no flag, means nothing has to be reset. Example: the user approves 6 hours on the last day. If a later change makes that day 7 hours, it is over 6, so it gets a warning again. If a change makes it shorter, nothing is said.
 
-**Block fit.** The same pattern as drive hours, for one block. Example: the user approves 6 hours in the morning for a long hike. If a later change makes that block 7 hours, it gets a warning again.
-
 **Route type.** No check reads it. Route type changes nothing in the call to Google, so a check could only compare a label with itself (3.3). The approval records the user's choice, so the coordinator doesn't raise it again, in this session or a later one. It also sets the leg's route type shown in the itinerary.
 
-**Opening hours.** The approval applies only while the stop's selected place, date, and time block all match what it was given for. When any of them changes, it stops applying, and nothing has to be cleared. This is the same pattern as the stay's weather text, which records the place and dates it was written for (3.5).
+**Opening hours.** The same pattern as drive hours. The approval records the selected place, and how many minutes of the visit fall within its opening hours. It applies while the place is the same and at least that many minutes are open. Example: the user keeps Milt's with 30 of its 60 minutes before closing. If a later change cuts that to 10 minutes, or moves the stop to a day Milt's is closed, it gets a warning again. If a change gives it more time, nothing is said. A different place starts over, and nothing has to be cleared. Recording a time instead wouldn't work: any change earlier in the day moves every later time.
 
 **Approval goes through the coordinator.** When a check warns about a day or a stop, the coordinator offers the trade-offs in functional spec 6.2, and accepting the exception is one of them. The choice can be an option card. As with any card, the click reaches the coordinator as a message, and the coordinator records the approval. When the user already agreed in chat, such as "cut a day and drive it in one go," the coordinator sets it without asking again.
 
@@ -565,5 +566,5 @@ The coordinator turns the user's natural-language rules into a tier for each lod
 1. **Worker brief and result formats.** Section 5.3 lists the contents, not the exact fields. Settle them during development.
 2. **A reviewer.** A later worker that reads the finished itinerary with fresh eyes and checks it against the trip brief. Not in the MVP.
 3. **An interview agent.** See section 2.
-4. **A full walk-through of time blocks and the hours check.** The six time blocks, meals with no type, and the four-result hours check (section 8) were settled without running a whole trip through them. Walk both examples in 3.1, San Francisco and Moab, from laying out the days to a finished itinerary. Look for holes like the one in stop order, settled in 3.1 and section 8.
+4. **A full walk-through of the day's schedule and the hours check.** Walk both examples in 3.1, San Francisco and Moab, from laying out the days to a finished itinerary. The second walk-through replaced time blocks with a worked-out schedule (3.1). Its other findings are being settled.
 5. **A full object model.** Section 3 describes entities and value objects in prose, and properties keep getting added piecemeal, such as the stop's approval and the stay's weather text. Write a proper model: each object's properties, the methods or rules on it, and how it's stored. A class diagram would give new properties a clear home.

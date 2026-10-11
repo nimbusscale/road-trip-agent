@@ -24,7 +24,7 @@ Planning only. The application never books, reserves, or purchases anything.
 - Recommendations for lodging, restaurants, and attractions, presented as selectable option cards
 - Budget tiers (value, mid-range, posh), with differentiated rules per stay. Prices are not shown
 - Weather (forecast or seasonal averages) and clothing guidance
-- Itinerary view: summary, map, stays, legs, daily schedule in time blocks
+- Itinerary view: summary, map, stays, legs, daily schedule with times
 - Save trips, list trips, reopen trips
 - Resume previous chat sessions, or start a new session on an existing trip
 - User memory (across trips) and trip memory (within a trip), viewable and forgettable by the user
@@ -68,7 +68,7 @@ Planning only. The application never books, reserves, or purchases anything.
 | Stay | An overnight location, for one or more nights. One lodging per stay regardless of nights, usually a hotel |
 | Stop | A place the party visits during a day, such as a meal, an attraction, or a quick look along the way |
 | Leg | The drive on one day, with duration, distance, and the day's stops along the way. It runs from where the party slept to where it sleeps that night. On a day that stays put, it starts and ends at the same stay |
-| Day | One calendar day of the trip, split into six four-hour time blocks starting at midnight: overnight, early morning, morning, afternoon, evening, and night |
+| Day | One day of the trip, with a schedule: a start time, and a time for each stop and drive. A day can run past midnight, such as for stargazing |
 | Candidate | A hotel, restaurant, or attraction offered for a stay's lodging or a stop, with its rationale and source |
 | Option card | The UI element presenting a set of candidates for one choice (a stay's lodging or a stop), with selection actions |
 | Budget tier | Value, mid-range, or posh. A relative price level the agent infers. Shown instead of prices |
@@ -104,6 +104,7 @@ The trip brief holds the items below. The agent establishes each one, whether or
 | Max driving hours per day | Yes | Expressed in hours, not miles. A default for the trip, not a hard limit. A day can go over it when the user agrees |
 | Route preference | Yes | Scenic or fastest. A default for the trip. A leg can differ when the user agrees |
 | Rest days | No | Days with no driving |
+| Usual start time | No | When the party usually gets going each day. Defaults to 8 a.m. A day can start at another time when the user agrees, such as for a sunrise hike |
 | Budget posture | Yes | Default tier plus any rules (section 7.1) |
 | Meal preferences | Yes | Hotel breakfast vs local food scene, cuisines, food interests |
 
@@ -140,7 +141,7 @@ After any change, the agent re-checks feasibility for the affected days.
 
 - **Daily driving:** each driving day's road time fits within the user's max hours, unless the user has agreed to a longer day. **Assumption:** the agent adds a buffer for fuel, meals, and short stops rather than treating max hours as pure road time.
 - **Must-sees vs days:** all must-sees fit within the trip, given drive time and time needed at each.
-- **Opening hours:** operating days and hours that conflict with the scheduled time block. Code checks weekly hours only. Attractions closed off-season are left to the agent's judgment in the MVP. Seasonal road closures are out of scope.
+- **Opening hours:** operating days and hours that conflict with the scheduled time of a visit. Code checks weekly hours only. Attractions closed off-season are left to the agent's judgment in the MVP. Seasonal road closures are out of scope.
 - **Seasonal risks:** for example, hurricane season, extreme heat, or snow.
 - **Trip length:** the itinerary has the number of days the user asked for. A different number is a warning. The trip is 14 days or fewer. When the user asks for more, the agent explains the limit and proposes a 14-day version (fewer stays, or a shorter route).
 
@@ -177,7 +178,7 @@ The agent:
 
 ### 7.3 Dining
 
-- Restaurants are placed into time blocks on each day.
+- Restaurants are placed in each day's schedule.
 - The agent asks about breakfast (hotel or local) and other meal habits, and applies the answer.
 - Interest-driven trips (for example, barbecue) treat restaurants as attractions in their own right.
 - **Open question:** whether every meal gets a recommendation, depending on data availability (section 12).
@@ -250,7 +251,7 @@ For each leg: from, to, drive duration, distance, scenic or fastest, and notable
 
 ### 9.5 Daily itinerary
 
-For each day: day number, date, location, and its time blocks containing driving, attractions, and meals. Rest days are marked.
+For each day: day number, date, location, start time, and its schedule: drives, attractions, and meals, each with a time, and the free time between them. Rest days are marked. The times are a plan, worked out from average drive times and estimated visit times.
 
 ### 9.6 Weather and clothing
 
