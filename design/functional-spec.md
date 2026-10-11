@@ -54,7 +54,6 @@ Planning only. The application never books, reserves, or purchases anything.
 ## 3. Users and accounts
 
 - One account per person. Each trip belongs to exactly one user and is visible only to that user.
-- A trip covers one travel party of one or more adults.
 - **Home screen:** list of the user's trips (name, region, dates, last updated), a "New trip" action, and the ability to open any trip.
 
 ---
@@ -99,7 +98,6 @@ The trip brief holds the items below. The agent establishes each one, whether or
 |---|---|---|
 | Region, route, or theme | Yes | |
 | Trip length | Yes | Number of days. Maximum 14 days |
-| Party | Yes | Number of adults and who they are ("my wife and me", "us plus another couple"). Defaults from user memory; can differ per trip |
 | Interests and must-sees | Yes | Includes why they matter to the user. Asked even when the user gives a precise route |
 | Max driving hours per day | Yes | Expressed in hours, not miles. A default for the trip, not a hard limit. A day can go over it when the user agrees |
 | Route preference | Yes | Scenic or fastest. A default for the trip. A leg can differ when the user agrees |
@@ -233,7 +231,7 @@ Displayed alongside the chat. Read-only: only the agent changes it, in response 
 
 ### 9.1 Trip summary
 
-Trip name, dates, start and end, party, total driving time, number of stays, default budget posture and rules.
+Trip name, dates, start and end, total driving time, number of stays, default budget posture and rules.
 
 ### 9.2 Map
 
@@ -247,7 +245,7 @@ For each stay: dates, nights, and lodging (proposed or selected).
 
 ### 9.4 Legs
 
-For each leg: from, to, drive duration, distance, scenic or fastest, and notable stops along the way.
+For each leg: from, to, drive duration, distance, and notable stops along the way. A leg shows scenic or fastest only when the user chose a different route for that day than for the trip, with the reason.
 
 ### 9.5 Daily itinerary
 
@@ -287,7 +285,6 @@ Trip memory holds what the user says that doesn't fit the trip brief or the itin
 
 Durable preferences that apply to every trip. Examples:
 
-- Usual party makeup (for example, "usually my wife and me")
 - Typical max driving hours and route preference
 - Default budget posture and rules
 - Meal habits ("prefer the local food scene over hotel breakfast")
@@ -310,7 +307,7 @@ The agent uses user memory to prefill section 5.2 and confirms rather than re-as
 
 ## 11. Acceptance scenarios
 
-**S1. Specific route.** User asks for the Pacific Coast Highway, San Francisco to Los Angeles. The agent still asks about interests, must-sees, dates, party, driving hours, and budget posture before proposing stays and nights.
+**S1. Specific route.** User asks for the Pacific Coast Highway, San Francisco to Los Angeles. The agent still asks about interests, must-sees, dates, driving hours, and budget posture before proposing stays and nights.
 
 **S2. Theme and region.** User wants Texas barbecue over seven days with no start or end in mind. The agent proposes a start and end (loop or one-way), stays, and drive times, with barbecue restaurants treated as primary attractions.
 
@@ -328,7 +325,7 @@ The agent uses user memory to prefill section 5.2 and confirms rather than re-as
 
 **S9. Cross-trip memory.** On a second trip, the agent opens by confirming the user's usual driving hours and meal preferences rather than asking from scratch.
 
-**S10. Per-trip override.** User memory says the usual party is the user and their spouse. On a new trip, the user says "just me this time." The agent plans for one adult, asks whether this changes the usual party, and leaves user memory unchanged when the user says it is a one-off. On the user's next trip, the agent again proposes the usual party.
+**S10. Per-trip override.** User memory says the user usually drives up to 6 hours a day. On a new trip, the user says "only 4 hours a day this time." The agent plans for 4 hours, asks whether this changes their usual limit, and leaves user memory unchanged when the user says it is a one-off. On the user's next trip, the agent again proposes 6 hours.
 
 ---
 

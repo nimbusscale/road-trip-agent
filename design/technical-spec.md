@@ -136,6 +136,7 @@ Itinerary
         to          Monterey        (worked out: tonight's stay)
         drive time  computed through the selected stops below
       Stops, in order (times worked out, rounded)
+                    (all five named by the user, so no worker fills them)
         Stop 1, meal        → Millbrae Pancake House        8:25 a.m.
         Stop 2, attraction  → Hangar One, Moffett Field     9:50 a.m.
         Stop 3, meal        → Philz Coffee, San Jose        12:05 p.m.
@@ -268,7 +269,7 @@ A **candidate** is one place offered for a stop or for a stay's lodging, with th
 - Tier, and the rule that produced it, for lodging and meal stops
 - How it was found (Google or web search, with the source link), and notes, such as hours for these dates ("closed Mondays, and you're there on a Monday") or "reservations advised" (functional spec 7.5)
 - **Visit time,** for attraction stops: the worker's estimate, labeled as one (6.1). Selecting the candidate copies it to the stop, and the schedule uses the stop's copy (3.1)
-- **Detour time,** for stops along the drive: the extra minutes off the leg's route. The tool works it out when the candidate is added, not the worker: from the along-leg search when the place came from there, or with one routing call when it was found another way, such as on Atlas Obscura. It's a rough figure ([Google design](data-sources-google.md), 2.4). Once the stop is selected, its stored drive time from the previous stop gives the real figure
+- **Detour time,** for stops along the drive: the extra minutes off the leg's route. The tool works it out when the candidate is added, not the worker, with one routing call against the leg as it is then. Nothing from the worker's search is reused, so nothing has to be stored or cleared. It's a rough figure ([Google design](data-sources-google.md), 2.4), and the card labels it as of when it was offered. Once the stop is selected, its stored drive time from the previous stop gives the real figure
 - **Set number:** which batch it came in. The tool assigns it: 0 for the first batch offered for that stop or lodging, 1 for the next "more options" batch, and so on. A set holds one to three candidates. A place the user specifies is a set of one
 
 The facts about the place, such as rating and hours, live on the place. Only the reason for offering it lives on the candidate. That matters when one place is offered twice for different reasons. Example: the Palace Hotel in San Francisco, offered as lodging because "posh, from rule: last night is special," and as a stop because "Maxfield Parrish's Pied Piper painting hangs in the bar."
@@ -378,8 +379,10 @@ Planning goes from broad to narrow. This is the usual order in which the coordin
    - Seasonal closures and hazards at this stage also come from the model's own knowledge. Workers may report a closure they find, but code checks only weekly hours (section 8).
    - Skip this round when the user already gave a fixed route.
 3. **Skeleton.** For the chosen shape: stays, nights per stay, and legs with drive times. The coordinator builds this itself with the routing and place tools, and writes it to the itinerary.
-   - **Must-sees come first.** The coordinator adds a stop for each must-see and selects it right away with `select_user_place`. The user already named it, so no worker is needed. The selected stops pull each leg through them, so the route and the time of day are built around the must-sees. Example: selecting the Santa Cruz Boardwalk pulls San Francisco Day 1 onto the coast. Without it, the route stays inland on US-101, and the leg scout searches the wrong road.
-4. **Fill.** The coordinator lays out each day's other stops, around the must-sees. Then it briefs one stay researcher per stay and one leg scout per leg, all at once. A day that starts and ends at the same stay has no leg scout. Its stops are near that stay, so that stay's researcher fills them. The workers add candidates to the stops and lodging, which makes them proposed.
+   - **Must-sees come first.** For each must-see that is one place, the coordinator adds a stop and selects it right away with `select_user_place`. The user already named it, so no worker is needed. The selected stops pull each leg through them, so the route and the times are built around the must-sees. Example: selecting the Santa Cruz Boardwalk pulls San Francisco Day 1 onto the coast from Santa Cruz south. Without it, the route stays inland on US-101 all the way to Monterey.
+   - **Must-sees that aren't one place.** For an area, such as Capitol Reef or Arches, the coordinator makes sure the leg passes through it, adding a waypoint inside it if needed. Then it lays out stops that name the area in their purpose, such as "a short hike in Capitol Reef," for a worker to fill. For a road, such as the Big Sur coast, it sets waypoints (4.1). For an activity, such as stargazing, it adds a stop with that purpose for a worker to fill.
+   - **The route preference is for the stretches nobody has decided.** Before the fill, the coordinator sets waypoints on scenic legs where the road is still open. Example: a leg from Half Moon Bay to Santa Cruz goes down Highway 1, not inland on US-101 and back to the coast on CA-92. Stops the user chose decide their own part of the road. If they are inland, the leg runs inland there, and the coordinator doesn't question it. A day with its own route type approval, such as San Francisco Day 3, gets no scenic waypoints.
+4. **Fill.** The coordinator lays out each day's other stops, around the must-sees. Then it briefs one stay researcher per stay and one leg scout per leg with stops along it, all at once. A day that starts and ends at the same stay has no leg scout. Its stops are near that stay, so that stay's researcher fills them. The workers add candidates to the stops and lodging, which makes them proposed.
 5. **Weather and clothing.** After the fill, because clothing advice depends on the planned activities.
 6. **Refine.** Changes from chat or option card actions. "More options", "Higher tier", and "Lower tier" each send one worker for that one stop or lodging. "Higher tier" and "Lower tier" also change the stored tier, with the rule "the user asked for a higher tier" or "a lower tier," so a later "More options" stays at the new tier.
 
@@ -426,6 +429,7 @@ A **worker brief** is the part of the trip brief one worker needs:
 - The IDs of the stops or the stay to fill, with the day, dates, and nights they belong to
 - For lodging and meal stops, the resolved tier and the rule that produced it
 - Each stop's purpose, such as "dessert" or "sunrise hike," and its time in the day's schedule
+- The day's other stops in order, with their times and purposes, and the names of any that are selected, so the worker knows what comes before and after each of its stops
 - Interests, must-sees, and meal preferences that apply here
 - Places to leave out: candidates already offered for that stop or lodging, and its rejected places with the reason ("no parking")
 
@@ -452,8 +456,8 @@ Finds candidates for one stay's lodging, and for the stops whose search area is 
 Finds candidates for the stops along one leg, on its driving day. These can be meals or attractions, such as breakfast on the way or a quick look at a landmark.
 
 - **Tools:** the along-leg place search, find a named place, to look up something found by web search, web search limited to Atlas Obscura for towns the leg passes through (a hook enforces the limit), and a tool to add candidates to the stops in its worker brief.
-- **Instructions:** fit candidates to the worker brief's interests and tiers. Add all of a stop's candidates in one call. The tool works out each one's detour time.
-- **Returns:** for each stop, the candidates it added with one line each.
+- **Instructions:** fit candidates to the worker brief's interests and tiers, and to where each stop falls among the day's other stops. Add all of a stop's candidates in one call. The tool works out each one's detour time. Check hours against each stop's date and time, and say plainly when hours are unconfirmed. Name the towns for the Atlas Obscura search from your own knowledge of the route and from the addresses in the along-leg results.
+- **Returns:** for each stop, the candidates it added with one line each, plus any problems found. Example: "Gifford Homestead is closed on Wednesdays, and Day 4 is a Wednesday."
 
 ### 6.3 Weather and clothing
 
@@ -553,7 +557,7 @@ An item holds at most one approval of each kind. Setting one replaces any of the
 
 **Drive hours.** The daily driving check compares against the approved hours when there are some, and the trip brief's max when there aren't. The default lives only in the trip brief, so changing it there applies to every day at once. Storing the approved hours, instead of a yes or no flag, means nothing has to be reset. Example: the user approves 6 hours on the last day. If a later change makes that day 7 hours, it is over 6, so it gets a warning again. If a change makes it shorter, nothing is said.
 
-**Route type.** No check reads it. Route type changes nothing in the call to Google, so a check could only compare a label with itself (3.3). The approval records the user's choice, so the coordinator doesn't raise it again, in this session or a later one. It also sets the leg's route type shown in the itinerary.
+**Route type.** No check reads it. Route type changes nothing in the call to Google, so a check could only compare a label with itself (3.3). The approval records the user's choice, so the coordinator doesn't raise it again, in this session or a later one, and adds no scenic waypoints that day. The itinerary shows a leg's route type only when its day holds this approval, with the reason. Other legs follow the trip's preference and show no label, since the user's own stops may have chosen the road (4.2).
 
 **Opening hours.** The same pattern as drive hours. The approval records the selected place, and how many minutes of the visit fall within its opening hours. It applies while the place is the same and at least that many minutes are open. Example: the user keeps Milt's with 30 of its 60 minutes before closing. If a later change cuts that to 10 minutes, or moves the stop to a day Milt's is closed, it gets a warning again. If a change gives it more time, nothing is said. A different place starts over, and nothing has to be cleared. Recording a time instead wouldn't work: any change earlier in the day moves every later time.
 
