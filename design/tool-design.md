@@ -52,7 +52,7 @@ The coordinator's tools for the trip brief and itinerary, plus the workers' tool
 | `update_trip_brief` | Changes one or more items in the trip brief. Items not given are left alone. An item that holds a list, such as must-sees, is replaced as a whole | The items and their new values |
 | `update_itinerary` | Changes the itinerary's own properties. Properties not given are left alone | Any of: start place ID, end place ID, start date. For a loop, the start and end are the same place |
 | `add_stay` | Adds a stay, and one day for each of its nights | Place ID (usually a town), the stay it goes after or "first", and number of nights. Optional: lodging tier and the rule that produced it. Rejected until the itinerary has a start date, start place, and end place (technical spec 4.2) |
-| `update_stay` | Changes a stay | Stay ID, and any of: a new place ID, the stay it now goes after or "first", number of nights, lodging tier and rule. Changing the nights adds or removes days at the end of the stay's days. Removing a night is refused while that day holds stops, and the error lists them |
+| `update_stay` | Changes a stay | Stay ID, and any of: a new place ID, the stay it now goes after or "first", number of nights, lodging tier and rule. Changing the nights adds or removes days at the end of the stay's days. Setting the tier records the stay's current nights with it (technical spec section 9). Removing a night is refused while that day holds stops, and the error lists them |
 | `remove_stay` | Removes a stay and its days. Refused while any stop is on its days, or while any stop anywhere has the stay as its search area. The error lists those stops by name and ID (technical spec 3.5) | Stay ID |
 | `update_day` | Changes a day: whether it's a rest day, and its approvals. A day that moves to a new stay, and the last day, can't be rest days. Marking a rest day removes the day's leg and its waypoints (technical spec 3.1). Setting an approval replaces any of the same kind, or for block fit, any for the same block (technical spec section 8) | Day ID, and any of: rest day or not, approve drive hours (hours and a reason), approve route type (type and a reason), approve block fit (block, hours, and a reason), and remove an approval (its kind, and the block for block fit). An approval without a reason is rejected |
 | `add_stops` | Adds empty stops to one time block of a day, in order. The reply gives the new stops' IDs, in order | Day ID, time block, the stop the list goes after in that block or "first", and an ordered list of one or more stops. Each item takes a kind (meal or attraction), a purpose (a short note on what the stop is for, such as "dessert"), and a search area: near a stay, as its ID, or along the leg. Meals also take a tier and the rule that produced it. A stay that isn't where the party slept the night before or sleeps that night is rejected. "Along the leg" is rejected on a day that starts and ends at the same stay |
@@ -81,8 +81,7 @@ The coordinator's tools for the trip brief and itinerary, plus the workers' tool
 | Tool | Does | Takes |
 |---|---|---|
 | `add_stay_candidates` | Adds one set of lodging candidates to a stay | Stay ID, and for each candidate: place ID, name, type, rationale, tier and rule, how it was found with the source link, and notes, such as "closed Mondays" or "reservations advised" |
-| `add_nearby_stop_candidates` | Adds one set of candidates to a stop near a stay | Stop ID, and for each candidate: place ID, name, type, rationale, how it was found with the source link, and notes. Meal stops also take a tier and rule. Attraction stops also take a visit time, the worker's estimate |
-| `add_route_stop_candidates` | Adds one set of candidates to a stop along the drive | The same as `add_nearby_stop_candidates`, plus each candidate's detour time in minutes, from `search_along_leg` |
+| `add_stop_candidates` | Adds one set of candidates to a stop. For a stop along the leg, works out each candidate's detour time itself, from the stop's day's leg: from `search_along_leg` when the place came from there, or with one routing call when it didn't. A stop near a stay gets no detour time | Stop ID, and for each candidate: place ID, name, type, rationale, how it was found with the source link, and notes. Meal stops also take a tier and rule. Attraction stops also take a visit time, the worker's estimate |
 
 **The place ID comes from a search or from `find_place`.** A place found by web search is looked up with `find_place`, by name and town. If Google doesn't list it but the source gives a street address, the worker looks up the address instead. If there's neither, the worker drops the find ([web search design](data-sources-web-search.md), section 4).
 
@@ -96,7 +95,7 @@ The coordinator's tools for the trip brief and itinerary, plus the workers' tool
 
 **Adding a set to a stop or stay that already has a selection keeps the selection.** That happens when the user asks for more options after choosing. The selected place is still one of the candidates, in an older set. Candidates are never changed after they're written.
 
-**There are three tools so each one asks only for what it means.** Detour time is the extra driving off a leg's route, and only stops along the drive have one. The stay researcher's stops near a stay have no route to detour from, even on a day it drives between them. So the leg scout gets only `add_route_stop_candidates`, and the stay researcher gets the other two. Code checks the stop's search area: `add_nearby_stop_candidates` takes only stops near a stay, and `add_route_stop_candidates` only stops along the leg.
+**One tool for every stop, because code knows whether a detour applies.** Detour time is the extra driving off a leg's route, and only stops along the leg have one. The stop's search area already says which kind it is (technical spec 3.1), so the worker passes the same inputs either way. Example: candidates for Goblin Valley, along the Moab Day 4 leg, get detour times off the Moab-to-Torrey route. Candidates for lunch near the Moab stay don't, because there's no route to detour from. Each worker's brief holds only its own stops, so the stay researcher and the leg scout share the tool.
 
 ### 2.2 Memory
 
@@ -182,8 +181,7 @@ Weather worker only.
 | `trip`: `clear_selection` | Yes | | | |
 | `trip`: `set_stay_weather` | | | | Yes |
 | `trip`: `add_stay_candidates` | | Yes | | |
-| `trip`: `add_nearby_stop_candidates` | | Yes | | |
-| `trip`: `add_route_stop_candidates` | | | Yes | |
+| `trip`: `add_stop_candidates` | | Yes | Yes | |
 | `memory`: `read_memory` | Yes | | | |
 | `memory`: `add_memory_item` | Yes | | | |
 | `memory`: `update_memory_item` | Yes | | | |

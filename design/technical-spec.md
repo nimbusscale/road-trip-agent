@@ -71,7 +71,7 @@ Candidates and legs are not in the diagram. They are value objects: candidates a
 | Trip brief | Trip | The items in functional spec 5.2. Created empty with the trip |
 | Itinerary | Trip | Points to a start place and an end place. Holds a start date. The coordinator sets all three during discovery, before the skeleton (4.2). Holds the stays and the days, each in order. Created with the trip, holding only its last day (see below) |
 | Place | Trip | Any real location: a town, hotel, restaurant, bar, attraction, friend's house, or campground. Holds the facts about it: Google's place ID, coordinates, and the details a tool returned, such as Google's name, rating, review count, price level, weekly hours, summary, and links. Also holds the name and type that cards show, set by the first candidate that offers it, from a worker or from the user. Until then, cards use Google's name. Places are matched by Google place ID only. The kind of place doesn't limit how it's used. A hotel can be a stay's lodging, or a stop for its bar. On a loop trip, the start and end are the same place |
-| Stay | Itinerary | One overnight location: the place it's in, usually a town, and order. Its nights are the number of days that point to it, worked out rather than stored. Changing its nights adds or removes its days. Its lodging is a place, empty until selected. Holds its lodging candidates, and a tier and the rule that produced it. Holds its weather and clothing text, labeled forecast or seasonal averages, with the place and dates it was written for. That text is empty until the weather worker runs (6.3) |
+| Stay | Itinerary | One overnight location: the place it's in, usually a town, and order. Its nights are the number of days that point to it, worked out rather than stored. Changing its nights adds or removes its days. Its lodging is a place, empty until selected. Holds its lodging candidates, and a tier with the rule that produced it and the number of nights it was set for (section 9). Holds its weather and clothing text, labeled forecast or seasonal averages, with the place and dates it was written for. That text is empty until the weather worker runs (6.3) |
 | Day | Itinerary | One day of the trip: rest day or not, its stops in order, its leg, if it has one (3.3), and its approvals (section 8). Points to the stay where the party sleeps that night. The last day points to none. Its date is worked out: the itinerary's start date plus the day's order |
 | Stop | Day | A visit during the day: a meal or an attraction. Holds its kind, its purpose, its search area, its time block (below), and its order within that block. The purpose is a short note on what the stop is for, such as "dessert" or "stargazing, about 1 a.m." The search area says where its candidates are searched: near a stay, by the stay's ID, or along the day's leg. Kind, purpose, and search area are set when the stop is added and never change (6). Its place is empty until selected. Holds its candidates. Meal stops have a tier and the rule that produced it. Holds the drive time from the previous stop, computed and stored with the day's leg (3.3). Holds its approvals, such as one to keep it despite its opening hours (section 8) |
 | Trip memory item | Trip | One free-text note (functional spec 10.2) |
@@ -265,7 +265,7 @@ A **candidate** is one place offered for a stop or for a stay's lodging, with th
 - Tier, and the rule that produced it, for lodging and meal stops
 - How it was found (Google or web search, with the source link), and notes, such as hours for these dates ("closed Mondays, and you're there on a Monday") or "reservations advised" (functional spec 7.5)
 - **Visit time,** for attraction stops: the worker's estimate, labeled as one (6.1). The opening-hours check uses it (section 8)
-- **Detour time,** for stops along the drive: the extra minutes off the leg's route, from the along-leg search. It's a rough figure ([Google design](data-sources-google.md), 2.4). Once the stop is selected, its stored drive time from the previous stop gives the real figure
+- **Detour time,** for stops along the drive: the extra minutes off the leg's route. The tool works it out when the candidate is added, not the worker: from the along-leg search when the place came from there, or with one routing call when it was found another way, such as on Atlas Obscura. It's a rough figure ([Google design](data-sources-google.md), 2.4). Once the stop is selected, its stored drive time from the previous stop gives the real figure
 - **Set number:** which batch it came in. The tool assigns it: 0 for the first batch offered for that stop or lodging, 1 for the next "more options" batch, and so on. A set holds one to three candidates. A place the user specifies is a set of one
 
 The facts about the place, such as rating and hours, live on the place. Only the reason for offering it lives on the candidate. That matters when one place is offered twice for different reasons. Example: the Palace Hotel in San Francisco, offered as lodging because "posh, from rule: last night is special," and as a stop because "Maxfield Parrish's Pied Piper painting hangs in the bar."
@@ -336,7 +336,7 @@ The itinerary tools carry changes through, so the coordinator doesn't have to:
 
 - **A stay moves to a different town:** the legs on either side are re-routed. The tools leave its lodging and the stops on its days alone, because whether they still fit is a judgment call. The coordinator talks it through with the user. Then it removes the stops that no longer fit, and clears the lodging selection if the hotel no longer fits. Example: moving from Monterey to Carmel keeps every stop and the hotel. Skipping Monterey to drive I-5 to Bakersfield removes every stop on its days and clears its lodging. The old lodging candidates stay in the stay's history, and the next set offered replaces them on the option card.
 - **A stay's lodging is selected or cleared:** every leg that starts or ends at the stay is re-routed (3.3). For a three-night stay, that is the day in, the days that stay put, and the day out.
-- **A night is added or removed:** a day is added or removed at the end of that stay's days, and the legs around it are re-routed. Later days move, and their dates with them. Removing a night is refused while that day holds stops.
+- **A night is added or removed:** a day is added or removed at the end of that stay's days, and the legs around it are re-routed. Later days move, and their dates with them. Removing a night is refused while that day holds stops. The stay's tier was set for its old number of nights, so the check results include a note for it (section 9).
 - **The start date changes:** every day's date moves with it. Nothing is re-routed, but the opening-hours check runs again, since each day can now fall on a different weekday.
 - **A stay's place or dates change:** its weather and clothing text is kept, but marked out of date, because the place and dates it was written for no longer match. Its dates change whenever the start date or an earlier stay's nights change. The UI labels the text as out of date, and the check results include a note for it (section 8). The coordinator reruns the weather worker for those stays at the end of a turn, once no change is still being discussed with the user. Example: adding a Big Sur night and then removing it raises the note and then clears it, with no rerun.
 - **A stay is removed:** its days go away. The next day's leg now starts from the stay before it, and is re-routed. Removing a stay is refused while any stop is on its days, or while any stop anywhere has the stay as its search area. The error lists those stops by name and ID. The coordinator asks the user what to do with each one, then moves or removes it. Code never deletes a stop the coordinator didn't name.
@@ -368,9 +368,10 @@ Planning goes from broad to narrow. This is the usual order in which the coordin
    - Seasonal closures and hazards at this stage also come from the model's own knowledge. Workers may report a closure they find, but code checks only weekly hours (section 8).
    - Skip this round when the user already gave a fixed route.
 3. **Skeleton.** For the chosen shape: stays, nights per stay, and legs with drive times. The coordinator builds this itself with the routing and place tools, and writes it to the itinerary.
-4. **Fill.** The coordinator lays out each day's stops. Then it briefs one stay researcher per stay and one leg scout per leg, all at once. A day that starts and ends at the same stay has no leg scout. Its stops are near that stay, so that stay's researcher fills them. The workers add candidates to the stops and lodging, which makes them proposed.
+   - **Must-sees come first.** The coordinator adds a stop for each must-see and selects it right away with `select_user_place`. The user already named it, so no worker is needed. The selected stops pull each leg through them, so the route and the time of day are built around the must-sees. Example: selecting the Santa Cruz Boardwalk pulls San Francisco Day 1 onto the coast. Without it, the route stays inland on US-101, and the leg scout searches the wrong road.
+4. **Fill.** The coordinator lays out each day's other stops, around the must-sees. Then it briefs one stay researcher per stay and one leg scout per leg, all at once. A day that starts and ends at the same stay has no leg scout. Its stops are near that stay, so that stay's researcher fills them. The workers add candidates to the stops and lodging, which makes them proposed.
 5. **Weather and clothing.** After the fill, because clothing advice depends on the planned activities.
-6. **Refine.** Changes from chat or option card actions. "More options", "Higher tier", and "Lower tier" each send one worker for that one stop or lodging.
+6. **Refine.** Changes from chat or option card actions. "More options", "Higher tier", and "Lower tier" each send one worker for that one stop or lodging. "Higher tier" and "Lower tier" also change the stored tier, with the rule "the user asked for a higher tier" or "a lower tier," so a later "More options" stays at the new tier.
 
 ---
 
@@ -437,7 +438,7 @@ Finds candidates for one stay's lodging, and for the stops whose search area is 
 Finds candidates for the stops along one leg, on its driving day. These can be meals or attractions, such as breakfast on the way or a quick look at a landmark.
 
 - **Tools:** the along-leg place search, find a named place, to look up something found by web search, web search limited to Atlas Obscura for towns the leg passes through (a hook enforces the limit), and a tool to add candidates to the stops in its worker brief.
-- **Instructions:** fit candidates to the worker brief's interests and tiers. Add all of a stop's candidates in one call. Give each one's detour time in minutes, from the along-leg search. It's a rough figure.
+- **Instructions:** fit candidates to the worker brief's interests and tiers. Add all of a stop's candidates in one call. The tool works out each one's detour time.
 - **Returns:** for each stop, the candidates it added with one line each.
 
 ### 6.3 Weather and clothing
@@ -498,6 +499,7 @@ The itinerary write tools run these checks after every change.
 | Block fit | Warning |
 | Stop order | Note |
 | Weather out of date | Note |
+| Stay tier set for different nights | Note |
 
 
 - **Trip length:** 14 days or fewer. A hard limit, with no exceptions. A write that would make the trip longer is refused, and the error gives the limit, so the coordinator can tell the user.
@@ -545,6 +547,10 @@ The checks that need judgment stay with the agent: must-sees vs days, seasonal r
 ## 9. Budget tiers
 
 The coordinator turns the user's natural-language rules into a tier for each lodging and meal stop before briefing a worker. Example: the user says "value by default, mid-range for stays of 2+ nights." A 2-night stay's lodging is briefed as "mid-range, from rule: 2+ nights." The worker searches at that tier and stores the tier and rule with each candidate. That is where the card's "which rule produced it" comes from (functional spec 7.1).
+
+**A stay's tier records the nights it was set for.** A rule like "2+ nights" depends on them. When the stay's nights no longer match, the check results include a note: "Moab's nights changed from 3 to 1. Its tier was set for 3." It works like out-of-date weather (3.5). The coordinator rechecks anything that depended on nights, including meal preferences such as "hotel breakfast on one-night stays, local cafés on longer ones." It asks the user before changing anything. Example: "Moab is one night now, and your rule says value for one-night stays. Keep the Red Cliffs Lodge, or see value options?" It sends a worker only if the user wants new options. A selected hotel stays selected either way. Setting the tier again, even to the same one, records the current nights and clears the note.
+
+**Meal rules are applied by the coordinator.** It decides which day or place a rule covers, and asks the user when that's unclear. Example: does "mid-range for stays of 2+ nights" cover dinner in Moab on the day the party arrives?
 
 ---
 
