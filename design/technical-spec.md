@@ -70,7 +70,7 @@ Candidates and legs are not in the diagram. They are value objects: candidates a
 | Trip | User | The container for everything below. The app creates it when the user starts a new conversation (functional spec 10.1) |
 | Trip brief | Trip | The items in functional spec 5.2. Created empty with the trip |
 | Itinerary | Trip | Points to a start place and an end place. Holds a start date, empty until the dates are decided. Holds the stays and the days, each in order. Created with the trip, holding only its last day (see below) |
-| Place | Trip | Any real location: a town, hotel, restaurant, bar, attraction, friend's house, or campground. Holds the facts about it: name, coordinates, Google's place ID when there is one, and the details a tool returned, such as rating, review count, price level, weekly hours, summary, and links. The kind of place doesn't limit how it's used. A hotel can be a stay's lodging, or a stop for its bar. On a loop trip, the start and end are the same place |
+| Place | Trip | Any real location: a town, hotel, restaurant, bar, attraction, friend's house, or campground. Holds the facts about it: Google's place ID, coordinates, and the details a tool returned, such as Google's name, rating, review count, price level, weekly hours, summary, and links. Also holds the name and type that cards show, set by the first candidate that offers it, from a worker or from the user. Until then, cards use Google's name. Places are matched by Google place ID only. The kind of place doesn't limit how it's used. A hotel can be a stay's lodging, or a stop for its bar. On a loop trip, the start and end are the same place |
 | Stay | Itinerary | One overnight location: the place it's in, usually a town, and order. Its nights are the number of days that point to it, worked out rather than stored. Changing its nights adds or removes its days. Its lodging is a place, empty until selected. Holds its lodging candidates, and a tier and the rule that produced it. Holds its weather and clothing text, labeled forecast or seasonal averages, with the place and dates it was written for. That text is empty until the weather worker runs (6.3) |
 | Day | Itinerary | One day of the trip: rest day or not, its stops in order, and its leg, if it has one (3.3). Points to the stay where the party sleeps that night. The last day points to none. Its date is worked out: the itinerary's start date plus the day's order |
 | Stop | Day | A visit during the day: a meal or an attraction. Holds its kind, time block (below), and order in the day. Its place is empty until selected. Holds its candidates. Meal stops have a tier and the rule that produced it. Holds the drive time from the previous stop, computed and stored with the day's leg (3.3). Holds an approval to keep it despite its opening hours, with the reason (section 8) |
@@ -220,10 +220,11 @@ A **candidate** is one place offered for a stop or for a stay's lodging, with th
 
 - The place it offers
 - **Rationale:** one or two sentences on why it was offered here, tied to the user's preferences. The UI shows it as a tooltip on the option card. The coordinator reads it when the user asks "why that one?"
-- Tier, and the rule that produced it
-- How it was found (Google or web search, with the source link), and notes for these dates, such as "closed Mondays, and you're there on a Monday" (functional spec 7.5)
-- **Visit time,** for attractions: the worker's estimate, labeled as one (6.1). The opening-hours check uses it (section 8)
-- **Set number:** which batch it came in. The tool assigns it: 0 for the first batch offered for that stop or lodging, 1 for the next "more options" batch, and so on. A place the user specifies is a set of one
+- Tier, and the rule that produced it, for lodging and meal stops
+- How it was found (Google or web search, with the source link), and notes, such as hours for these dates ("closed Mondays, and you're there on a Monday") or "reservations advised" (functional spec 7.5)
+- **Visit time,** for attraction stops: the worker's estimate, labeled as one (6.1). The opening-hours check uses it (section 8)
+- **Detour time,** for stops along the drive: the extra minutes off the leg's route, from the along-leg search. It's a rough figure ([Google design](data-sources-google.md), 2.4). Once the stop is selected, its stored drive time from the previous stop gives the real figure
+- **Set number:** which batch it came in. The tool assigns it: 0 for the first batch offered for that stop or lodging, 1 for the next "more options" batch, and so on. A set holds one to three candidates. A place the user specifies is a set of one
 
 The facts about the place, such as rating and hours, live on the place. Only the reason for offering it lives on the candidate. That matters when one place is offered twice for different reasons. Example: the Palace Hotel in San Francisco, offered as lodging because "posh, from rule: last night is special," and as a stop because "Maxfield Parrish's Pied Piper painting hangs in the bar."
 
@@ -235,7 +236,7 @@ The facts about the place, such as rating and hours, live on the place. Only the
 | Empty | Some | Proposed |
 | Set | Some | Selected |
 
-**The selected place must be one of the candidates.** When the user specifies a place directly, such as "dinner at the Whaling Station," the select tool adds one candidate for it, then selects it. Its rationale is the user's reason, and how it was found is "specified by the user." For an attraction, the coordinator asks the user how long they'll spend there, offering a typical figure. Example: "People usually spend about two hours at Hearst Castle. Does that sound right?" Every selection then has a rationale (functional spec 7.6).
+**The selected place must be one of the candidates.** When the user specifies a place directly, such as "dinner at the Whaling Station," a separate select tool adds one candidate for it, then selects it. Its rationale is the user's reason, and how it was found is "specified by the user." The coordinator gives it a name and type, such as "Mike's house," which is what the card shows for a place looked up by address. For an attraction, the coordinator asks the user how long they'll spend there, offering a typical figure. Example: "People usually spend about two hours at Hearst Castle. Does that sound right?" Every selection then has a rationale (functional spec 7.6).
 
 **The list keeps every candidate ever offered, in the order offered.** The option card shows the newest set, the one with the highest set number. A set number is needed because sets vary in size: a worker may find only two good hotels in a small town. The older candidates let the user go back to one offered earlier ("actually, the hotel with the pool"), and tell the worker what to leave out on "more options." Candidates never change after they're written. "More options" adds new ones.
 
@@ -373,16 +374,16 @@ The coordinator decides which worker fills each stop when it lays out the day. S
 
 Finds candidates for one stay's lodging, and for the stops near it on its days.
 
-- **Tools:** place search (hotels, restaurants, attractions near a point), web search, both general and limited to Atlas Obscura, and tools to add candidates to the stops and stay in its worker brief.
-- **Instructions:** fit candidates to the worker brief's interests and tiers. Three candidates per stop or lodging (functional spec 7.5). Attractions carry the agent's estimate of visit time, labeled as an estimate. Check hours against the dates, and say plainly when hours are unconfirmed. The web search rules from the [web search design](data-sources-web-search.md) apply.
+- **Tools:** place search (hotels, restaurants, attractions near a point), find a named place, to look up something found by web search, web search, both general and limited to Atlas Obscura, and tools to add candidates to the stops and stay in its worker brief.
+- **Instructions:** fit candidates to the worker brief's interests and tiers. Three candidates per stop or lodging (functional spec 7.5), added in one call. Attractions carry the agent's estimate of visit time, labeled as an estimate. Check hours against the dates, and say plainly when hours are unconfirmed. The web search rules from the [web search design](data-sources-web-search.md) apply.
 - **Returns:** for each stop or lodging, the candidates it added with one line each, plus any problems found. Example: "Must-see is closed on these dates."
 
 ### 6.2 Leg scout
 
 Finds candidates for the stops along one leg, on its driving day. These can be meals or attractions, such as breakfast on the way or a quick look at a landmark.
 
-- **Tools:** the along-leg place search, web search limited to Atlas Obscura for towns the leg passes through, and a tool to add candidates to the stops in its worker brief.
-- **Instructions:** fit candidates to the worker brief's interests and tiers. Give each one's detour time, labeled as a rough figure.
+- **Tools:** the along-leg place search, find a named place, to look up something found by web search, web search limited to Atlas Obscura for towns the leg passes through, and a tool to add candidates to the stops in its worker brief.
+- **Instructions:** fit candidates to the worker brief's interests and tiers. Add all of a stop's candidates in one call. Give each one's detour time in minutes, from the along-leg search. It's a rough figure.
 - **Returns:** for each stop, the candidates it added with one line each.
 
 ### 6.3 Weather and clothing
@@ -430,10 +431,11 @@ The itinerary write tools run these checks after every change and return a list 
 
 - **Trip length:** 14 days or fewer. A hard limit, with no exceptions.
 - **Daily driving:** road time, including detours to the day's stops, plus a buffer for fuel and short breaks, fits the user's max hours. The buffer is a setting. Max hours is a preference, so a leg can have an approved exception (below).
-- **Opening hours:** each meal and attraction stop is checked against the weekly hours on its selected place, on its day's date, during its time block (3.1). There are three results:
+- **Opening hours:** each meal and attraction stop is checked against the weekly hours on its selected place, on its day's date, during its time block (3.1). There are four results:
   - **Open long enough:** nothing is said. Long enough means open, within the block, for at least the stop's visit time. A meal counts as one hour. An attraction uses its candidate's visit time.
   - **Open, but not long enough:** a warning. It gives the opening or closing time and the drive time from the previous stop, and says the drive time is an average. Example: "Closes at 2 p.m. It's about 40 minutes from your previous stop, so allow extra time for traffic."
   - **Closed for the whole block:** a flag.
+  - **Hours not known:** a note, not a warning. The card says "Hours not confirmed. Check before you go." This covers a place with no hours on Google, and any place found by web search, since Google's hours aren't used for those ([web search design](data-sources-web-search.md), section 4).
   - The itinerary is a plan, not a guarantee. The user can keep a warned or flagged stop anyway, and the stop then holds an approval (below).
 - **Route type:** each leg's route type matches the trip brief's route preference. Also a preference, so a leg can have an approved exception.
 
