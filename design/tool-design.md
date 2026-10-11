@@ -53,8 +53,9 @@ The coordinator's tools for the trip brief and itinerary, plus the workers' tool
 | `update_stay` | Changes a stay | Stay ID, and any of: a new place ID, the stay it now goes after or "first", number of nights, lodging tier and rule. Changing the nights adds or removes days at the end of the stay's days |
 | `remove_stay` | Removes a stay, its days, and their stops | Stay ID |
 | `set_rest_day` | Marks a day as a rest day, or not | Day ID, and rest day or not |
-| `add_stop` | Adds an empty stop to a day | Day ID, time block, the stop it goes after in that block or "first", and kind (meal or attraction). Meals also take a tier and the rule that produced it |
-| `update_stop` | Changes a stop, or moves it, including to another day | Stop ID, and any of: kind, tier and rule, approve opening hours (a reason; the tool records the stop's current place, date, and time block), remove an approval (its kind), and a move. A move takes a day ID, a time block, and the stop it goes after in that block or "first". Changing a stop's block is a move, even on the same day. A moved stop keeps its candidates and selection. The legs of the day it left and the day it joined are both re-routed. An approval without a reason is rejected |
+| `add_stops` | Adds empty stops to one time block of a day, in order. The reply gives the new stops' IDs, in order | Day ID, time block, the stop the list goes after in that block or "first", and an ordered list of one or more stops. Each item takes a kind (meal or attraction), a purpose (a short note on what the stop is for, such as "dessert"), and a search area: near a stay, as its ID, or along the leg. Meals also take a tier and the rule that produced it. A stay that isn't where the party slept the night before or sleeps that night is rejected. "Along the leg" is rejected on a day that starts and ends at the same stay |
+| `update_stop` | Changes a stop's tier or its approvals. Its kind, purpose, and search area can't change | Stop ID, and any of: tier and rule (meal stops), approve opening hours (a reason; the tool records the stop's current place, date, and time block), and remove an approval (its kind). An approval without a reason is rejected |
+| `move_stop` | Moves a stop within its day or to another day. It keeps its candidates and selection. The legs of the day it left and the day it joined are both re-routed. A move that would change the stop's search area is rejected, and the error says to remove the stop and add a new one | Stop ID, day ID, time block, and the stop it goes after in that block or "first". All are required. Changing a stop's block is a move, even on the same day |
 | `remove_stop` | Removes a stop and its candidates | Stop ID |
 | `update_leg` | Changes a day's leg. Properties not given are left alone, and an empty value clears one. Rejects a day with no leg, such as a rest day. Code places the waypoints among the day's selected stops (technical spec 3.3). Setting an approval replaces any of the same kind (technical spec section 8) | Day ID, and any of: waypoints as place IDs, approve drive hours (hours and a reason), approve route type (type and a reason), and remove an approval (its kind). An approval without a reason is rejected |
 | `select_candidate` | Selects one of a stop's or a stay's candidates | Stop or stay ID, and a place ID. A place that isn't already a candidate there is rejected, and the error says to use `select_user_place` |
@@ -62,12 +63,16 @@ The coordinator's tools for the trip brief and itinerary, plus the workers' tool
 | `clear_selection` | Clears the selected place from a stop or a stay's lodging. Its candidates stay, so its status goes back to proposed (technical spec 3.2). The legs it affects are re-routed (technical spec 3.5) | Stop or stay ID |
 | `set_stay_weather` | Saves a stay's weather and clothing text. Called by the weather worker, not the coordinator | Stay ID, the text, and whether it is a forecast or seasonal averages. The tool records the stay's current place and dates with it, so later changes can mark it out of date (technical spec 3.5) |
 
+**A stop's kind, purpose, and search area are fixed** (technical spec 6). Its candidates were found for that kind and purpose, in that area. A stop with a different kind, purpose, or area is a different stop, so the coordinator removes it and adds a new one. A move keeps the search area when it stays valid. A stop near a stay can move to any day that starts or ends at that stay. A stop along the leg can move only within its own day, since another day has a different leg. Example: moving Moab lunch from Day 2 to Day 3 is allowed. Moving it to the Torrey day is rejected.
+
+**Laying out a day takes one `add_stops` call per time block.** San Francisco Day 2 takes four calls, one each for the morning, afternoon, evening, and night, instead of seven. A whole day in one call would need a list of blocks, each holding a list of stops. That nesting is harder for the model to fill in correctly.
+
 **There are no tools to add or remove days.** Days follow from stays' nights, and the last day is created with the itinerary (technical spec 3.1).
 
 **Where an item goes.** Tools never take position numbers, which are easy to get wrong after items have been added or removed. Instead, a tool takes the item to go after, or the word "first". That input is required whenever an item is placed. It is never left blank. In the update tools a blank means "don't move it," so a blank can't also mean "first."
 
 - **Stays** take the stay they go after, or "first". Example: to put Big Sur between Monterey and San Luis Obispo, add it after the Monterey stay.
-- **Stops** always take a day and a time block, plus the stop they go after in that block, or "first" in that block. `add_stop` and a move in `update_stop` work the same way. If the stop given isn't in that day and block, the tool rejects the call. The day and block double as a check that the coordinator meant the ones it named. Example: to move Denny's from dinner to breakfast, move it to the morning block, "first".
+- **Stops** always take a day and a time block, plus the stop they go after in that block, or "first" in that block. `add_stops` and `move_stop` work the same way. `add_stops` places its whole list after the stop given, in list order. If the stop given isn't in that day and block, the tool rejects the call. The day and block double as a check that the coordinator meant the ones it named. Example: to move Denny's from dinner to breakfast, move it to the morning block, "first".
 
 **Adding candidates (workers):**
 
@@ -89,7 +94,7 @@ The coordinator's tools for the trip brief and itinerary, plus the workers' tool
 
 **Adding a set to a stop or stay that already has a selection keeps the selection.** That happens when the user asks for more options after choosing. The selected place is still one of the candidates, in an older set. Candidates are never changed after they're written.
 
-**There are three tools so each one asks only for what it means.** Detour time is the extra driving off a leg's route, and only stops along the drive have one. The stay researcher's stops near a stay have no route to detour from, even on a day it drives between them. So the leg scout gets only `add_route_stop_candidates`, and the stay researcher gets the other two.
+**There are three tools so each one asks only for what it means.** Detour time is the extra driving off a leg's route, and only stops along the drive have one. The stay researcher's stops near a stay have no route to detour from, even on a day it drives between them. So the leg scout gets only `add_route_stop_candidates`, and the stay researcher gets the other two. Code checks the stop's search area: `add_nearby_stop_candidates` takes only stops near a stay, and `add_route_stop_candidates` only stops along the leg.
 
 ### 2.2 Memory
 
@@ -115,7 +120,7 @@ Every search saves its results as places in the trip's data and returns their ID
 
 **`find_place` adds where to search to the text,** as in "McDonald's, Salinas, CA." That keeps a lookup from returning matches from anywhere. It asks Google for hours and ratings as well as the basics, so a place the user names, such as "dinner at the Whaling Station," can go through the opening-hours check. Each match's address shows the agent whether it found the right place. For a place found by web search, only Google's location is used, not its hours or rating ([web search design](data-sources-web-search.md), section 4).
 
-**`search_near` finds the point and the dates itself,** from the stop or stay. The point is the stay's lodging if one is selected, or the stay's town if not. For a stop, it's the stay of the stop's day. How far counts as near is a setting. To search somewhere farther, the worker names it in the query, such as "restaurants in Tuolumne Meadows." Hours come back for the stop's or stay's dates only, such as "Sat Oct 10: 11 AM–9 PM. Sun Oct 11: closed." If the itinerary has no dates yet, they come back for the whole week.
+**`search_near` finds the point and the dates itself,** from the stop or stay. The point is the stay's lodging if one is selected, or the stay's town if not. For a stop, it's the stay in the stop's search area. A stop along the leg is rejected, and the error says to use `search_along_leg`. How far counts as near is a setting. To search somewhere farther, the worker names it in the query, such as "restaurants in Tuolumne Meadows." Hours come back for the stop's or stay's dates only, such as "Sat Oct 10: 11 AM–9 PM. Sun Oct 11: closed." If the itinerary has no dates yet, they come back for the whole week.
 
 **There is no price level input.** Results show each restaurant's price level, and the worker judges the tier from it, as it does for hotels from their summaries. A price filter would likely drop places with no price level listed (not tested).
 
@@ -165,8 +170,9 @@ Weather worker only.
 | `trip`: `update_stay` | Yes | | | |
 | `trip`: `remove_stay` | Yes | | | |
 | `trip`: `set_rest_day` | Yes | | | |
-| `trip`: `add_stop` | Yes | | | |
+| `trip`: `add_stops` | Yes | | | |
 | `trip`: `update_stop` | Yes | | | |
+| `trip`: `move_stop` | Yes | | | |
 | `trip`: `remove_stop` | Yes | | | |
 | `trip`: `update_leg` | Yes | | | |
 | `trip`: `select_candidate` | Yes | | | |
@@ -190,7 +196,7 @@ Weather worker only.
 | Built-in `WebFetch` | | Yes | | |
 | Built-in `Agent`, to call workers | Yes | | | |
 
-That's 23 tools for the coordinator, counting `Agent`, 6 for the stay researcher, 4 for the leg scout, and 2 for the weather worker.
+That's 24 tools for the coordinator, counting `Agent`, 6 for the stay researcher, 4 for the leg scout, and 2 for the weather worker.
 
 The leg scout gets `WebSearch` only for Atlas Obscura, and a hook enforces it (section 4). Atlas Obscura blocks `WebFetch` ([web search design](data-sources-web-search.md), section 3), so the leg scout gets no `WebFetch`.
 

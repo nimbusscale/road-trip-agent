@@ -73,7 +73,7 @@ Candidates and legs are not in the diagram. They are value objects: candidates a
 | Place | Trip | Any real location: a town, hotel, restaurant, bar, attraction, friend's house, or campground. Holds the facts about it: Google's place ID, coordinates, and the details a tool returned, such as Google's name, rating, review count, price level, weekly hours, summary, and links. Also holds the name and type that cards show, set by the first candidate that offers it, from a worker or from the user. Until then, cards use Google's name. Places are matched by Google place ID only. The kind of place doesn't limit how it's used. A hotel can be a stay's lodging, or a stop for its bar. On a loop trip, the start and end are the same place |
 | Stay | Itinerary | One overnight location: the place it's in, usually a town, and order. Its nights are the number of days that point to it, worked out rather than stored. Changing its nights adds or removes its days. Its lodging is a place, empty until selected. Holds its lodging candidates, and a tier and the rule that produced it. Holds its weather and clothing text, labeled forecast or seasonal averages, with the place and dates it was written for. That text is empty until the weather worker runs (6.3) |
 | Day | Itinerary | One day of the trip: rest day or not, its stops in order, and its leg, if it has one (3.3). Points to the stay where the party sleeps that night. The last day points to none. Its date is worked out: the itinerary's start date plus the day's order |
-| Stop | Day | A visit during the day: a meal or an attraction. Holds its kind, time block (below), and order within that block. Its place is empty until selected. Holds its candidates. Meal stops have a tier and the rule that produced it. Holds the drive time from the previous stop, computed and stored with the day's leg (3.3). Holds its approvals, such as one to keep it despite its opening hours (section 8) |
+| Stop | Day | A visit during the day: a meal or an attraction. Holds its kind, its purpose, its search area, its time block (below), and its order within that block. The purpose is a short note on what the stop is for, such as "dessert" or "stargazing, about 1 a.m." The search area says where its candidates are searched: near a stay, by the stay's ID, or along the day's leg. Kind, purpose, and search area are set when the stop is added and never change (6). Its place is empty until selected. Holds its candidates. Meal stops have a tier and the rule that produced it. Holds the drive time from the previous stop, computed and stored with the day's leg (3.3). Holds its approvals, such as one to keep it despite its opening hours (section 8) |
 | Trip memory item | Trip | One free-text note (functional spec 10.2) |
 | User memory item | User | One standing preference (functional spec 10.3) |
 
@@ -146,6 +146,7 @@ Itinerary
         drive time  computed through the selected stops below
       Morning
         Stop 1, meal        → First Awakenings, Monterey
+                              (search area: near the Monterey stay, before the drive)
         Stop 2, attraction  → Point Lobos State Natural Reserve
         Stop 3, attraction  → Bixby Creek Bridge viewpoint
       Afternoon
@@ -165,7 +166,7 @@ Itinerary
         drive time  computed with no stops
 ```
 
-The Monterey stay exists once, but two days use it: Day 1 sleeps there, and Day 2 starts from it. Neither leg stores Monterey. Stop 7 is a hotel used as a stop. Meals have no type: Nepenthe is a meal in the afternoon block, and the cake at the Madonna Inn is a meal in the night block. Day 2's waypoint keeps the route on the coast during the fill, when the leg scout searches along it and no stops are selected yet. It stays once stops are selected. Code places it among them, between Bixby Creek Bridge and Nepenthe, where it changes nothing (3.3). Day 3 differs from the trip's scenic default, so it holds a route type approval with the user's reason.
+The Monterey stay exists once, but two days use it: Day 1 sleeps there, and Day 2 starts from it. Neither leg stores Monterey. Stop 7 is a hotel used as a stop. Meals have no type: Nepenthe is a meal in the afternoon block, and the cake at the Madonna Inn is a meal in the night block. The night stop's purpose, "dessert," is what tells its worker to look for cake. Day 2's waypoint keeps the route on the coast during the fill, when the leg scout searches along it and no stops are selected yet. It stays once stops are selected. Code places it among them, between Bixby Creek Bridge and Nepenthe, where it changes nothing (3.3). Day 3 differs from the trip's scenic default, so it holds a route type approval with the user's reason.
 
 **Example: a three-night stay with a rest day.** Moab, between Grand Junction and Torrey.
 
@@ -248,9 +249,10 @@ Itinerary
         Stop 1, attraction  → Panorama Point, Capitol Reef (stargazing, about 1 a.m.)
                               (the party drives back to the Torrey hotel to sleep,
                                then leaves for Salt Lake City in the morning)
+                              (search area: near the Torrey stay)
 ```
 
-Day 2's leg starts and ends at the Moab hotel without any new rule: "where the party slept last night" and "where it sleeps tonight" are both the Moab hotel. Because Day 2 has a leg, its driving is checked. If the coordinator put Monument Valley on it, about two and a half hours each way, the driving check would flag it. Day 3 is a rest day, so it has no leg, and its dinner is close to the hotel.
+Day 2's leg starts and ends at the Moab hotel without any new rule: "where the party slept last night" and "where it sleeps tonight" are both the Moab hotel. Because Day 2 has a leg, its driving is checked. If the coordinator put Monument Valley on it, about two and a half hours each way, the driving check would flag it. Day 3 is a rest day, so it has no leg, and its dinner is close to the hotel. Days 2 and 3 start and end at the Moab stay, so every stop on them is near it. Panorama Point is on the last day, which has no stay, so it is near the Torrey stay, where the party slept the night before.
 
 The hours marked "assume" are for walking through the example, not real hours. Between them, Fisher Towers, Delicate Arch, Milt's, and Gifford Homestead cover the four results of the opening-hours check (section 8). The Moab stay is mid-range and the Torrey stay is value, from the trip's budget rule (section 9). Day 4 runs over the trip's 4-hour default, so it holds a drive hours approval with the user's reason. The stargazing stop is at 1 a.m., so it belongs to Day 5, in its overnight block (3.1).
 
@@ -318,7 +320,7 @@ Users don't pick waypoints. They pick scenic or fastest, and the coordinator pic
 ### 3.4 Who creates and changes what
 
 - **The coordinator,** through its tools: the trip brief, the itinerary's start place, end place, and start date, stays and their nights, rest days, each day's stops, each leg's waypoints, approvals on legs and stops, memory, and selections.
-  - It lays out a day by adding empty stops, each with a kind, a time block, and an order within that block. It sets the order. Code never reorders stops.
+  - It lays out a day by adding empty stops, each with a kind, a purpose, a search area, a time block, and an order within that block. It sets the order. Code never reorders stops.
 - **Code inside the tools:**
   - Places, created or reused when a tool returns one.
   - Days, added and removed as stays' nights change. The last day is created with the itinerary.
@@ -365,7 +367,7 @@ Planning goes from broad to narrow. This is the usual order in which the coordin
    - Seasonal closures and hazards at this stage also come from the model's own knowledge. Workers confirm them later with real data.
    - Skip this round when the user already gave a fixed route.
 3. **Skeleton.** For the chosen shape: stays, nights per stay, legs with drive times, and dates if only a window was given. The coordinator builds this itself with the routing and place tools, and writes it to the itinerary.
-4. **Fill.** The coordinator lays out each day's stops. Then it briefs one stay researcher per stay and one leg scout per leg, all at once. The workers add candidates to the stops and lodging, which makes them proposed.
+4. **Fill.** The coordinator lays out each day's stops. Then it briefs one stay researcher per stay and one leg scout per leg, all at once. A day that starts and ends at the same stay has no leg scout. Its stops are near that stay, so that stay's researcher fills them. The workers add candidates to the stops and lodging, which makes them proposed.
 5. **Weather and clothing.** After the fill, because clothing advice depends on the planned activities.
 6. **Refine.** Changes from chat or option card actions. "More options", "Higher tier", and "Lower tier" each send one worker for that one stop or lodging.
 
@@ -405,6 +407,7 @@ A **worker brief** is the part of the trip brief one worker needs:
 
 - The IDs of the stops or the stay to fill, with the day, dates, and nights they belong to
 - For lodging and meal stops, the resolved tier and the rule that produced it
+- Each stop's purpose, such as "dessert" or "sunrise hike"
 - Interests, must-sees, and meal preferences that apply here
 - Places to leave out: candidates already offered for that stop or lodging, and rejected places with the reason ("no parking")
 
@@ -414,11 +417,13 @@ Workers never see raw user memory or anything about the user beyond their worker
 
 ## 6. Workers
 
-The coordinator decides which worker fills each stop when it lays out the day. Stops near a stay go to that stay's researcher. Stops along the drive go to the leg scout.
+The coordinator decides which worker fills each stop when it lays out the day, by setting the stop's search area (3.1). A stop near a stay goes to that stay's researcher. A stop along the leg goes to the leg scout. "More options" for a stop goes to the same worker. Example: on San Francisco Day 2, breakfast in Monterey comes before the drive south. It is near the Monterey stay, so the Monterey researcher fills it, even though the party sleeps in San Luis Obispo that night.
+
+**A stop's search area is the stay where the party slept the night before, or where it sleeps that night,** or the day's leg. The leg is allowed only on a day that moves to a new stay or to the end place. A stop that belongs somewhere else is a different stop. So the search area never changes: a move that would change it is rejected, and the coordinator removes the stop and adds a new one ([tool design](tool-design.md), 2.1). Kind and purpose are fixed the same way, since a stop's candidates were found for them.
 
 ### 6.1 Stay researcher
 
-Finds candidates for one stay's lodging, and for the stops near it on its days.
+Finds candidates for one stay's lodging, and for the stops whose search area is that stay. These can be on the stay's own days, or on the next day, such as breakfast before driving on.
 
 - **Tools:** place search near a stay or stop in its worker brief (hotels, restaurants, attractions), find a named place, to look up something found by web search, web search, both general and limited to Atlas Obscura, and tools to add candidates to the stops and stay in its worker brief.
 - **Instructions:** fit candidates to the worker brief's interests and tiers. Three candidates per stop or lodging (functional spec 7.5), added in one call. Attractions carry the agent's estimate of visit time, labeled as an estimate. Check hours against the dates, and say plainly when hours are unconfirmed. The web search rules from the [web search design](data-sources-web-search.md) apply.
