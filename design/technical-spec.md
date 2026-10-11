@@ -101,7 +101,7 @@ Candidates and legs are not in the diagram. They are value objects: candidates a
 - **A stop's order is counted within its day and block.** The day's full order is worked out: the blocks in clock order, then the stops in order inside each block. There is only one order, so it can't disagree with the blocks. Example: moving Denny's from dinner to breakfast sets its block to morning and places it first in that block, in one change.
 
 - **A meal is just a meal.** It has no type, such as breakfast or dinner. The party decides what each meal is. A meal moved from the morning to the evening is simply a meal in the evening, checked against evening hours.
-- **A stop after midnight belongs to the calendar day.** A 1 a.m. stop is in the next day's overnight block. A drive that runs past midnight isn't handled in the MVP.
+- **A stop after midnight belongs to the calendar day.** A 1 a.m. stop is in the next day's overnight block. A drive that runs past midnight isn't handled in the MVP. Nor is the drive back from a stop after midnight on the last day: Moab Day 5 is routed Torrey hotel → Panorama Point → Salt Lake City, though the party really returns to the hotel and leaves in the morning. Here the times barely differ, because the road to Salt Lake City runs back through Torrey.
 
 **Places are kept per trip.** A place returned twice within a trip, such as the same restaurant offered on two days, is stored once, matched by Google's place ID. Keeping places per trip means a place the user names, such as a friend's address, is never visible outside that trip (functional spec 10.4).
 
@@ -447,6 +447,7 @@ Writes weather and clothing guidance per stay (functional spec 8).
 
 - **Tools:** one weather tool, which returns the Google Weather forecast when every one of a stay's dates is within 7 days, and Open-Meteo seasonal averages otherwise. Code picks which, from the stay's dates. Also a tool to save each stay's weather and clothing text.
 - **Instructions:** label each stay as forecast or seasonal averages. Tie clothing advice to the planned activities in the worker brief. Short advice, not a packing list.
+- **A stay's planned activities are the stops whose search area is that stay,** wherever they fall, plus the stops along the legs of its days. Code gathers them for the brief. So a stop on the last day, which has no stay, is still covered. Example: Panorama Point at 1 a.m. is near the Torrey stay, so Torrey's weather brief includes freezing-night stargazing.
 - **Returns:** one line per stay. The worker saves the full text to the itinerary itself, the same way other workers write candidates.
 
 ### 6.4 Rules for all workers
@@ -504,7 +505,7 @@ The itinerary write tools run these checks after every change.
 
 - **Trip length:** 14 days or fewer. A hard limit, with no exceptions. A write that would make the trip longer is refused, and the error gives the limit, so the coordinator can tell the user.
 - **Trip length vs the brief:** the itinerary's number of days matches the trip length in the brief. A warning if not. Example: adding a night in Big Sur makes a 3-day trip 4 days. If the user agrees to the new length, the coordinator updates the brief, so no approval is needed.
-- **Daily driving:** road time, including detours to the day's stops, plus a buffer for fuel and short breaks, fits the user's max hours. The buffer is a setting. Max hours is a preference, so a day can hold a drive hours approval (below).
+- **Daily driving:** road time, including detours to the day's stops, plus a buffer for fuel and short breaks, fits the user's max hours. The buffer is a share of road time, starting at 10%, as a setting. Max hours is a preference, so a day can hold a drive hours approval (below).
 - **Opening hours:** each meal and attraction stop is checked against the weekly hours on its selected place, on its day's date, during its time block (3.1). There are four results:
   - **Open long enough:** nothing is said. Long enough means the place has an open stretch of at least the stop's visit time that starts within the block. The visit can run into the next block. Example: a 5-hour hike in the morning block passes at a park open from 6 a.m. to 8 p.m. A meal counts as one hour. An attraction uses its candidate's visit time.
   - **Open, but not long enough:** a warning. It gives the opening or closing time and the drive time from the previous stop, and says the drive time is an average. Example: "Closes at 2 p.m. It's about 40 minutes from your previous stop, so allow extra time for traffic." A stop with no drive time, such as one on a rest day, gets the message without it.

@@ -24,7 +24,7 @@ This document covers the Open-Meteo Historical Weather API. The app uses it for 
 
 ### 2.2 Requests
 
-- **One request per year for the last 10 complete years.** For a trip in 2026, that is 2016 to 2025.
+- **One request per year for the last 10 complete years, counted back from today,** not from the trip's year. Planning on October 11, 2026, that is 2016 to 2025, even for a trip in 2027. 2026 isn't complete yet.
 - **Each request covers the stay's dates plus 7 days on each side.** For a stay on October 10 to 12, each year's request covers October 3 to 19.
 - **Parameters:**
   ```
