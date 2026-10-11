@@ -166,7 +166,7 @@ The agent:
   - "One-night stays: value. Cities where we stay two or more nights: mid-range."
   - "Posh in Savannah, value everywhere else."
   - "One special dinner on the last night."
-- Each candidate shows which tier it is and which rule produced it.
+- Each candidate shows which tier it is and which rule produced it. A place the user named shows "your choice" instead.
 
 ### 7.2 Lodging
 
@@ -203,7 +203,7 @@ Actions on the card set:
 
 - **Select** an option
 - **More options** in the same tier
-- **Higher tier** / **Lower tier**
+- **Higher tier** / **Lower tier**, on lodging and meal cards only. Attractions have no tier
 
 Selecting an option updates the itinerary, and the agent acknowledges the change in chat. The user can also select by chat ("take the second one").
 
@@ -274,7 +274,7 @@ Miles, Fahrenheit, and US date formats.
 
 Trip memory holds what the user says that doesn't fit the trip brief or the itinerary. The agent carries it between sessions of one trip. Examples:
 
-- Rejected options and why ("skipped Hotel X: no parking")
+- Rejections that aren't about one place ("no chain restaurants"). A rejected place is kept with the trip itself and never offered again
 - Why the user chose an option, when they say ("picked the one with the pool")
 - Soft intentions ("wants one nice dinner in Austin")
 - Open items to revisit ("decide whether to add Big Sur day")
