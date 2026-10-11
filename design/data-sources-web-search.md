@@ -42,17 +42,17 @@ The agent's instructions tell it to limit Atlas Obscura searches to `atlasobscur
 
 ## 4. Option cards for places found by search
 
-A place found by search has no structured record behind it. The card shows what is known and says plainly what isn't.
+A place found by search is looked up on Google for its location, hours, and rating. The card shows what is known and says plainly what isn't.
 
 | Card item (spec 7.4, 7.5) | What to show |
 |---|---|
 | Label | "Unusual find (Atlas Obscura)" for Atlas Obscura places. None for general search |
 | Name, type | From the search result |
-| Location | From a Google Places lookup by name and town, used only for the map pin ([Google](data-sources-google.md), 2.1). If Google has no match, look up the street address from the search result instead. If there is none, drop the find ([tool design](tool-design.md), 2.1) |
-| Rating and review count | None. Show "Not rated" (spec 7.5) |
+| Location | From a Google Places lookup by name and town ([Google](data-sources-google.md), 2.1). If Google has no match, look up the street address from the search result instead. If there is none, drop the find ([tool design](tool-design.md), 2.1) |
+| Rating and review count | From the Google lookup, when it has them. Otherwise "Not rated" (spec 7.5) |
 | Why | The search result's description, tied to the user's stated interests |
 | Visit time | From a details search if one turns up. Otherwise the agent's estimate, labeled as one |
-| Notes | Hours or seasonal closures from a details search, with their own source link. If nothing is found: "Hours not confirmed. Check before you go." |
+| Notes | Seasonal closures, or hours that differ from Google's, from a details search, with their own source link. If Google has no hours and nothing is found: "Hours not confirmed. Check before you go." |
 | Source link | The Atlas Obscura page or the page the place came from |
 
-**Don't take hours from Google Places for these places.** Small or odd places often have missing or wrong hours there. A details search with a source link is better, and "not confirmed" is better than a guess.
+**Use Google's hours and rating when the lookup has them.** The same place gets the same hours however it was found, so the opening-hours check treats it like any other place. Small or odd places often have no hours on Google, and then the card says they aren't confirmed. When a details search finds hours that differ from Google's, the worker says so in the candidate's notes, with the source link.
