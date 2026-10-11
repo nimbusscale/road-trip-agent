@@ -55,7 +55,7 @@ Planning only. The application never books, reserves, or purchases anything.
 
 - One account per person. Each trip belongs to exactly one user and is visible only to that user.
 - A trip covers one travel party of one or more adults.
-- **Home screen:** list of the user's trips (name, region, dates or duration, last updated), a "New trip" action, and the ability to open any trip.
+- **Home screen:** list of the user's trips (name, region, dates, last updated), a "New trip" action, and the ability to open any trip.
 
 ---
 
@@ -266,7 +266,7 @@ Miles, Fahrenheit, and US date formats.
 
 ### 10.1 Sessions
 
-- **Assumption:** every session belongs to a trip. Starting a new conversation from the home screen creates a new trip, which the agent names once the destination or theme is clear.
+- **Assumption:** every session belongs to a trip. Starting a new conversation from the home screen creates a new trip, which is named once the destination or theme is clear. The name is built from the trip brief's region, route, or theme and the start month, such as "Pacific Coast Highway, May 2027." Renaming a trip is not in the MVP.
 - From a trip, the user sees its sessions (date and short title) and can:
   - **Resume** a previous session. The transcript is restored and the agent continues with that conversation's context.
   - **Start a new session.** The agent starts from the current itinerary, trip memory, and user memory, without the earlier transcripts.
@@ -276,6 +276,7 @@ Miles, Fahrenheit, and US date formats.
 Trip memory holds what the user says that doesn't fit the trip brief or the itinerary. The agent carries it between sessions of one trip. Examples:
 
 - Rejected options and why ("skipped Hotel X: no parking")
+- Why the user chose an option, when they say ("picked the one with the pool")
 - Soft intentions ("wants one nice dinner in Austin")
 - Open items to revisit ("decide whether to add Big Sur day")
 - Personal history ("ate at this diner as a kid and wants to go back")
