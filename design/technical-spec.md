@@ -107,19 +107,24 @@ The trip brief and the itinerary both mention dates, for different reasons. The 
 
 In the examples below, labels such as Leg, Stop, meal, attraction, and rest day are terms from this model. Anything in parentheses is a comment, not data.
 
-**Example: two days on the road.** San Francisco to San Luis Obispo, on the way to Los Angeles.
+**Example: three days on the road.** San Francisco to a friend's house in Los Angeles, along the coast.
 
 ```
+Trip brief (only the items this example uses)
+  Dates             exact: May 13–15, 2027, fixed
+  Route preference  scenic
+
 Itinerary
   Start place: San Francisco
-  End place:   Los Angeles
+  End place:   Mike's house, Silver Lake, Los Angeles   (an address the user named)
+  Start date:  May 13, 2027
 
   Stays, in order
     Monterey stay         1 night   lodging → (a Monterey hotel)
     San Luis Obispo stay  1 night   lodging → (an SLO hotel)
 
   Days, in order
-    Day 1                                      night at → Monterey stay
+    Day 1, Thu May 13 (worked out)             night at → Monterey stay
       Leg
         from        San Francisco   (worked out: the start place)
         to          Monterey        (worked out: tonight's stay)
@@ -134,11 +139,12 @@ Itinerary
       Evening
         Stop 5, meal        → The Whaling Station
 
-    Day 2                                      night at → San Luis Obispo stay
+    Day 2, Fri May 14 (worked out)             night at → San Luis Obispo stay
       Leg
         from        Monterey         (worked out: last night's stay)
         to          San Luis Obispo  (worked out: tonight's stay)
-        route type  scenic           (the stops below keep it on Highway 1 through Big Sur)
+        route type  scenic
+        waypoints   Big Sur village  (keeps it on Highway 1 before any stops are selected)
         drive time  computed through the selected stops below
       Morning
         Stop 1, meal        → First Awakenings, Monterey
@@ -152,26 +158,41 @@ Itinerary
       Night
         Stop 7, meal        → Madonna Inn (for its pink champagne cake)
 
-    (Later days not shown. The trip ends with a last day, with no stay, that drives to Los Angeles)
+    Day 3, Sat May 15, the last day            no stay
+      Leg
+        from        San Luis Obispo  (worked out: last night's stay)
+        to          Mike's house     (worked out: the end place)
+        route type  fastest
+        approved route type  fastest (the user wants to get to LA quickly)
+        drive time  computed with no stops
 ```
 
-The Monterey stay exists once, but two days use it: Day 1 sleeps there, and Day 2 starts from it. Neither leg stores Monterey. Stop 7 is a hotel used as a stop. Meals have no type: Nepenthe is a meal in the afternoon block, and the cake at the Madonna Inn is a meal in the night block.
+The Monterey stay exists once, but two days use it: Day 1 sleeps there, and Day 2 starts from it. Neither leg stores Monterey. Stop 7 is a hotel used as a stop. Meals have no type: Nepenthe is a meal in the afternoon block, and the cake at the Madonna Inn is a meal in the night block. Day 2's waypoint keeps the route on the coast during the fill, when the leg scout searches along it and no stops are selected yet. Day 3 differs from the trip's scenic default, so it holds an approved route type with the user's reason.
 
 **Example: a three-night stay with a rest day.** Moab, between Grand Junction and Torrey.
 
 ```
+Trip brief (only the items this example uses)
+  Dates             a window: sometime in October 2027, about five days
+  Max driving       4 hours a day
+  Route preference  scenic
+  Budget            value by default, mid-range for stays of 2+ nights
+
 Itinerary
   Start place: Grand Junction, CO
   End place:   Salt Lake City
+  Start date:  October 10, 2027   (picked by the coordinator from the window)
 
   Stays, in order
     Moab stay    nights: 3 (worked out: Days 1–3 point here)
                  lodging → (a Moab hotel)
+                 tier: mid-range, from rule: stays of 2+ nights
     Torrey stay  nights: 1 (worked out: Day 4 points here)
                  lodging → (a Torrey hotel)
+                 tier: value, from rule: the trip default
 
   Days, in order
-    Day 1                                     night at → Moab stay
+    Day 1, Sun Oct 10 (worked out)            night at → Moab stay
       Leg
         from        Grand Junction   (worked out: the start place)
         to          Moab hotel       (worked out: tonight's lodging)
@@ -179,44 +200,63 @@ Itinerary
         waypoints   Dewey Bridge     (keeps it on Highway 128 along the river)
       Afternoon
         Stop 1, attraction  → Fisher Towers viewpoint
+                              (assume: found by web search, so its hours aren't known)
       Evening
         Stop 2, meal        → Moab Brewery
 
-    Day 2                                     night at → Moab stay
+    Day 2, Mon Oct 11 (worked out)            night at → Moab stay
       Leg                            (from and to are the same stay)
         from        Moab hotel       (worked out: last night's lodging)
         to          Moab hotel       (worked out: tonight's lodging)
         drive time  computed through the selected stops below
+      Early morning
+        Stop 1, attraction  → Delicate Arch trail, Arches (sunrise hike)
+                              (assume: open 24 hours, so it's open long enough)
       Morning
-        Stop 1, meal        → Love Muffin Cafe
-        Stop 2, attraction  → Delicate Arch trail, Arches
-        Stop 3, attraction  → Windows Section, Arches
+        Stop 2, attraction  → Windows Section, Arches
+        Stop 3, meal        → Love Muffin Cafe (late breakfast, back in town)
       Afternoon
         Stop 4, meal        → Milt's Stop & Eat
+                              (assume: closes at 12:30 p.m., so it's open but not long enough)
         Stop 5, attraction  → Corona Arch trail
       Evening
         Stop 6, meal        → Desert Bistro
 
-    Day 3, rest day                           night at → Moab stay
+    Day 3, Tue Oct 12 (worked out), rest day  night at → Moab stay
       No leg
       Evening
         Stop 1, meal        → The Spoke on Center (near the hotel)
 
-    Day 4                                     night at → Torrey stay
+    Day 4, Wed Oct 13 (worked out)            night at → Torrey stay
       Leg
         from        Moab hotel       (worked out: last night's lodging)
         to          Torrey hotel     (worked out: tonight's lodging)
-      Afternoon
+        route type  scenic
+        approved drive hours  5      (the user wants Goblin Valley and Capitol Reef on the way)
+        drive time  computed through the selected stops below
+                    (about 4 hours of road time, plus the buffer, over the 4-hour default)
+      Morning
         Stop 1, attraction  → Goblin Valley State Park
+      Afternoon
         Stop 2, meal        → Gifford Homestead, Capitol Reef (pie)
+                              (assume: closed for the season from October 1, so it's closed)
+        Stop 3, attraction  → Capitol Gorge, at the end of the Scenic Drive
 
-    Day 5, the last day                       no stay
+    Day 5, Thu Oct 14 (worked out), the last day   no stay
       Leg
         from        Torrey hotel     (worked out: last night's lodging)
         to          Salt Lake City   (worked out: the end place)
+        route type  scenic
+        drive time  computed through the selected stops below
+      Overnight
+        Stop 1, attraction  → Panorama Point, Capitol Reef (stargazing, about 1 a.m.)
+                              (the party drives back to the Torrey hotel to sleep,
+                               then leaves for Salt Lake City in the morning)
 ```
 
 Day 2's leg starts and ends at the Moab hotel without any new rule: "where the party slept last night" and "where it sleeps tonight" are both the Moab hotel. Because Day 2 has a leg, its driving is checked. If the coordinator put Monument Valley on it, about two and a half hours each way, the driving check would flag it. Day 3 is a rest day, so it has no leg, and its dinner is close to the hotel.
+
+The hours marked "assume" are for walking through the example, not real hours. Between them, Fisher Towers, Delicate Arch, Milt's, and Gifford Homestead cover the four results of the opening-hours check (section 8). The Moab stay is mid-range and the Torrey stay is value, from the trip's budget rule (section 9). Day 4 runs over the trip's 4-hour default, so it holds approved drive hours with the user's reason. The stargazing stop is at 1 a.m., so it belongs to Day 5, in its overnight block (3.1).
 
 ### 3.2 Candidates
 
