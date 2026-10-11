@@ -41,23 +41,25 @@ The coordinator's tools for the trip brief and itinerary, plus the workers' tool
 | Tool | Does | Returns |
 |---|---|---|
 | `read_trip_brief` | Reads the trip brief | Every item in functional spec 5.2 |
-| `read_itinerary` | Reads the whole itinerary | Start and end places, start date, stays with their nights, and days with their dates, stops, and legs. For each stop and stay: its selected place, if any, and every candidate ever offered, in the order offered, each with its set number. Each place is shown as its name and short line (technical spec 7.2). Each stay's weather and clothing text, marked out of date when the stay's place or dates no longer match the ones it was written for. Current feasibility results |
+| `read_itinerary` | Reads the whole itinerary, or one part of it. Optional scope: a day ID (the day, its leg, its stops, and their candidates), a stay ID (the stay, its days and their stops, and stops on other days whose search area is this stay), or a stop ID (the stop and its full candidate history) | With no scope: start and end places, start date, stays with their nights, and days with their dates, stops, and legs. For each stop and stay: its selected place, if any, and every candidate ever offered, in the order offered, each with its set number. Each place is shown as its name and short line (technical spec 7.2). Each stay's weather and clothing text, marked out of date when the stay's place or dates no longer match the ones it was written for. Each day's and stop's approvals. Current feasibility results. A scoped read returns the same details for its part only, with the results for that part |
 
-**Writing.** Every write returns the feasibility results (technical spec, section 8). It also makes the follow-on changes itself, such as re-routing legs or adding days (technical spec 3.5):
+**Scoped reads keep the coordinator's context small.** A whole read of a 14-day trip with a few "more options" rounds is about 300 candidate lines, or roughly 20,000 tokens. Every read stays in context, and older copies go out of date. Most questions are about one part, such as "what's on Day 2" or "what's tied to Moab," so the coordinator asks for that part by ID. Claude Code may also cut off large tool results. The default limit for MCP tools is believed to be 25,000 tokens, but that hasn't been checked for in-process MCP servers. The scopes are IDs, not a query language, so a bad request gets an error instead of quietly returning nothing.
+
+**Writing.** Every write makes the follow-on changes itself, such as re-routing legs or adding days (technical spec 3.5). Its reply carries only what code worked out: each re-routed leg's new drive time and distance, anything the tool did on its own, such as days added, and the check results for the days it touched, marked new or already known (technical spec, section 8). It doesn't echo back what the coordinator sent. Example: "Moved Corona Arch to Day 3, morning. Day 2: 2 h 10 m → 1 h 30 m. Day 3: 0 h → 45 m. No new warnings." For more, the coordinator uses a scoped read:
 
 | Tool | Does | Takes |
 |---|---|---|
 | `update_trip_brief` | Changes one or more items in the trip brief. Items not given are left alone. An item that holds a list, such as must-sees, is replaced as a whole | The items and their new values |
 | `update_itinerary` | Changes the itinerary's own properties. Properties not given are left alone | Any of: start place ID, end place ID, start date. For a loop, the start and end are the same place |
 | `add_stay` | Adds a stay, and one day for each of its nights | Place ID (usually a town), the stay it goes after or "first", and number of nights. Optional: lodging tier and the rule that produced it. Rejected until the itinerary has a start date, start place, and end place (technical spec 4.2) |
-| `update_stay` | Changes a stay | Stay ID, and any of: a new place ID, the stay it now goes after or "first", number of nights, lodging tier and rule. Changing the nights adds or removes days at the end of the stay's days |
-| `remove_stay` | Removes a stay, its days, and their stops | Stay ID |
-| `set_rest_day` | Marks a day as a rest day, or not | Day ID, and rest day or not |
+| `update_stay` | Changes a stay | Stay ID, and any of: a new place ID, the stay it now goes after or "first", number of nights, lodging tier and rule. Changing the nights adds or removes days at the end of the stay's days. Removing a night is refused while that day holds stops, and the error lists them |
+| `remove_stay` | Removes a stay and its days. Refused while any stop is on its days, or while any stop anywhere has the stay as its search area. The error lists those stops by name and ID (technical spec 3.5) | Stay ID |
+| `update_day` | Changes a day: whether it's a rest day, and its approvals. A day that moves to a new stay, and the last day, can't be rest days. Marking a rest day removes the day's leg and its waypoints (technical spec 3.1). Setting an approval replaces any of the same kind, or for block fit, any for the same block (technical spec section 8) | Day ID, and any of: rest day or not, approve drive hours (hours and a reason), approve route type (type and a reason), approve block fit (block, hours, and a reason), and remove an approval (its kind, and the block for block fit). An approval without a reason is rejected |
 | `add_stops` | Adds empty stops to one time block of a day, in order. The reply gives the new stops' IDs, in order | Day ID, time block, the stop the list goes after in that block or "first", and an ordered list of one or more stops. Each item takes a kind (meal or attraction), a purpose (a short note on what the stop is for, such as "dessert"), and a search area: near a stay, as its ID, or along the leg. Meals also take a tier and the rule that produced it. A stay that isn't where the party slept the night before or sleeps that night is rejected. "Along the leg" is rejected on a day that starts and ends at the same stay |
 | `update_stop` | Changes a stop's tier or its approvals. Its kind, purpose, and search area can't change | Stop ID, and any of: tier and rule (meal stops), approve opening hours (a reason; the tool records the stop's current place, date, and time block), and remove an approval (its kind). An approval without a reason is rejected |
 | `move_stop` | Moves a stop within its day or to another day. It keeps its candidates and selection. The legs of the day it left and the day it joined are both re-routed. A move that would change the stop's search area is rejected, and the error says to remove the stop and add a new one | Stop ID, day ID, time block, and the stop it goes after in that block or "first". All are required. Changing a stop's block is a move, even on the same day |
-| `remove_stop` | Removes a stop and its candidates | Stop ID |
-| `update_leg` | Changes a day's leg. Properties not given are left alone, and an empty value clears one. Rejects a day with no leg, such as a rest day. Code places the waypoints among the day's selected stops (technical spec 3.3). Setting an approval replaces any of the same kind (technical spec section 8) | Day ID, and any of: waypoints as place IDs, approve drive hours (hours and a reason), approve route type (type and a reason), and remove an approval (its kind). An approval without a reason is rejected |
+| `remove_stops` | Removes stops and their candidates | A list of one or more stop IDs |
+| `update_leg` | Sets a day's waypoints. An empty list clears them. Rejects a day with no leg, such as a rest day. Code places the waypoints among the day's selected stops (technical spec 3.3) | Day ID, and waypoints as place IDs |
 | `select_candidate` | Selects one of a stop's or a stay's candidates | Stop or stay ID, and a place ID. A place that isn't already a candidate there is rejected, and the error says to use `select_user_place` |
 | `select_user_place` | Selects a place the user specified, such as a friend's house. Adds it as a candidate in a new set of one, marked "specified by the user," then selects it (technical spec 3.2) | Stop or stay ID, place ID, name, type, and the user's reason. Attraction stops also take a visit time. A place that's already a candidate there is rejected, and the error says to use `select_candidate` |
 | `clear_selection` | Clears the selected place from a stop or a stay's lodging. Its candidates stay, so its status goes back to proposed (technical spec 3.2). The legs it affects are re-routed (technical spec 3.5) | Stop or stay ID |
@@ -169,11 +171,11 @@ Weather worker only.
 | `trip`: `add_stay` | Yes | | | |
 | `trip`: `update_stay` | Yes | | | |
 | `trip`: `remove_stay` | Yes | | | |
-| `trip`: `set_rest_day` | Yes | | | |
+| `trip`: `update_day` | Yes | | | |
 | `trip`: `add_stops` | Yes | | | |
 | `trip`: `update_stop` | Yes | | | |
 | `trip`: `move_stop` | Yes | | | |
-| `trip`: `remove_stop` | Yes | | | |
+| `trip`: `remove_stops` | Yes | | | |
 | `trip`: `update_leg` | Yes | | | |
 | `trip`: `select_candidate` | Yes | | | |
 | `trip`: `select_user_place` | Yes | | | |
@@ -216,5 +218,4 @@ The leg scout gets `WebSearch` only for Atlas Obscura, and a hook enforces it (s
 ## 5. Open questions
 
 1. **Tool count for the coordinator.** It has about two dozen tools. If that proves too many for it to choose well, merge the add, update, and remove tools for each kind of item.
-2. **Repeated reads of the itinerary.** One read fits easily: a 14-day trip with a few "more options" rounds is about 300 candidate lines, or roughly 20,000 tokens. The concern is repetition. Every read stays in the coordinator's context, so ten reads during planning add up, and the older copies are out of date. Claude Code may also cut off large tool results. The default limit for MCP tools is believed to be 25,000 tokens, but that hasn't been checked for in-process MCP servers. If either becomes a problem, return the full candidate history for one stop or stay at a time.
-3. **Places nobody uses.** Searches save every result, and most are never offered as candidates. That is harmless for the MVP. Clean them up later if storage grows.
+2. **Places nobody uses.** Searches save every result, and most are never offered as candidates. That is harmless for the MVP. Clean them up later if storage grows.

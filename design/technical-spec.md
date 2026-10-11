@@ -13,7 +13,7 @@ One **coordinator** agent talks to the user for the whole trip. It sends researc
 | Coordinator | Yes | Yes | Yes | For the whole session |
 | Stay researcher | No | Adds candidates only | No | Once per stay, in parallel |
 | Leg scout | No | Adds candidates only | No | Once per leg, in parallel |
-| Weather and clothing | No | Saves each stay's weather text only | No | Once per trip, after the fill round |
+| Weather and clothing | No | Saves each stay's weather text only | No | After the fill round, and again for stays whose weather is out of date |
 
 A worker is called like a tool. It gets a worker brief, does its work, and returns one result. It can't ask the user anything. If it needs a decision, it says so in its result, and the coordinator asks.
 
@@ -72,16 +72,16 @@ Candidates and legs are not in the diagram. They are value objects: candidates a
 | Itinerary | Trip | Points to a start place and an end place. Holds a start date. The coordinator sets all three during discovery, before the skeleton (4.2). Holds the stays and the days, each in order. Created with the trip, holding only its last day (see below) |
 | Place | Trip | Any real location: a town, hotel, restaurant, bar, attraction, friend's house, or campground. Holds the facts about it: Google's place ID, coordinates, and the details a tool returned, such as Google's name, rating, review count, price level, weekly hours, summary, and links. Also holds the name and type that cards show, set by the first candidate that offers it, from a worker or from the user. Until then, cards use Google's name. Places are matched by Google place ID only. The kind of place doesn't limit how it's used. A hotel can be a stay's lodging, or a stop for its bar. On a loop trip, the start and end are the same place |
 | Stay | Itinerary | One overnight location: the place it's in, usually a town, and order. Its nights are the number of days that point to it, worked out rather than stored. Changing its nights adds or removes its days. Its lodging is a place, empty until selected. Holds its lodging candidates, and a tier and the rule that produced it. Holds its weather and clothing text, labeled forecast or seasonal averages, with the place and dates it was written for. That text is empty until the weather worker runs (6.3) |
-| Day | Itinerary | One day of the trip: rest day or not, its stops in order, and its leg, if it has one (3.3). Points to the stay where the party sleeps that night. The last day points to none. Its date is worked out: the itinerary's start date plus the day's order |
+| Day | Itinerary | One day of the trip: rest day or not, its stops in order, its leg, if it has one (3.3), and its approvals (section 8). Points to the stay where the party sleeps that night. The last day points to none. Its date is worked out: the itinerary's start date plus the day's order |
 | Stop | Day | A visit during the day: a meal or an attraction. Holds its kind, its purpose, its search area, its time block (below), and its order within that block. The purpose is a short note on what the stop is for, such as "dessert" or "stargazing, about 1 a.m." The search area says where its candidates are searched: near a stay, by the stay's ID, or along the day's leg. Kind, purpose, and search area are set when the stop is added and never change (6). Its place is empty until selected. Holds its candidates. Meal stops have a tier and the rule that produced it. Holds the drive time from the previous stop, computed and stored with the day's leg (3.3). Holds its approvals, such as one to keep it despite its opening hours (section 8) |
 | Trip memory item | Trip | One free-text note (functional spec 10.2) |
 | User memory item | User | One standing preference (functional spec 10.3) |
 
 **A day has at most one leg.** Whether it has one depends on what the day does. The three cases below are descriptions, not day types. The only one that is stored is whether the day is a rest day:
 
-- **Moving to a new stay:** the leg runs from last night's stay to tonight's.
-- **Staying put, with stops to drive to:** the leg starts and ends at the same stay, and passes through the day's stops.
-- **A rest day:** no leg. The coordinator marks the day as a rest day, meaning no driving (functional spec 5.2). Any stops on it, such as dinner, are near the lodging and aren't routed.
+- **Moving to a new stay, or to the end place:** the leg runs from last night's stay, or the start place, to tonight's stay, or the end place. The last day always has a leg.
+- **Staying put, with selected stops:** the leg starts and ends at the same stay, and passes through the day's selected stops. The day gets its leg when its first stop is selected, and loses it when the last selected stop is cleared or removed. Empty stops have no place, so there is nothing to route through.
+- **A rest day:** no leg. The coordinator marks the day as a rest day, meaning no driving (functional spec 5.2). Any stops on it, such as dinner, are near the lodging and aren't routed. Only a day that stays put can be a rest day: a day that moves to a new stay, and the last day, have to drive. Marking a rest day removes the day's leg, with its waypoints. The day's approvals stay. Unmarking it brings the leg back from the selected stops, without the old waypoints.
 
 **The itinerary holds two lists.** The stays are the shape of the trip, and are what the user and coordinator change. The days are the calendar. Each day points to the stay where the party sleeps that night. A stay can't belong to one day, because it can span several.
 
@@ -161,9 +161,9 @@ Itinerary
       Leg
         from        San Luis Obispo  (worked out: last night's stay)
         to          Mike's house     (worked out: the end place)
-        approvals
-          route type   fastest (the user wants to get to LA quickly)
         drive time  computed with no stops
+      Approvals
+        route type   fastest (the user wants to get to LA quickly)
 ```
 
 The Monterey stay exists once, but two days use it: Day 1 sleeps there, and Day 2 starts from it. Neither leg stores Monterey. Stop 7 is a hotel used as a stop. Meals have no type: Nepenthe is a meal in the afternoon block, and the cake at the Madonna Inn is a meal in the night block. The night stop's purpose, "dessert," is what tells its worker to look for cake. Day 2's waypoint keeps the route on the coast during the fill, when the leg scout searches along it and no stops are selected yet. It stays once stops are selected. Code places it among them, between Bixby Creek Bridge and Nepenthe, where it changes nothing (3.3). Day 3 differs from the trip's scenic default, so it holds a route type approval with the user's reason.
@@ -229,10 +229,10 @@ Itinerary
       Leg
         from        Moab hotel       (worked out: last night's lodging)
         to          Torrey hotel     (worked out: tonight's lodging)
-        approvals
-          drive hours  5       (the user wants Goblin Valley and Capitol Reef on the way)
         drive time  computed through the selected stops below
                     (about 4 hours of road time, plus the buffer, over the 4-hour default)
+      Approvals
+        drive hours  5       (the user wants Goblin Valley and Capitol Reef on the way)
       Morning
         Stop 1, attraction  → Goblin Valley State Park
       Afternoon
@@ -252,7 +252,7 @@ Itinerary
                               (search area: near the Torrey stay)
 ```
 
-Day 2's leg starts and ends at the Moab hotel without any new rule: "where the party slept last night" and "where it sleeps tonight" are both the Moab hotel. Because Day 2 has a leg, its driving is checked. If the coordinator put Monument Valley on it, about two and a half hours each way, the driving check would flag it. Day 3 is a rest day, so it has no leg, and its dinner is close to the hotel. Days 2 and 3 start and end at the Moab stay, so every stop on them is near it. Panorama Point is on the last day, which has no stay, so it is near the Torrey stay, where the party slept the night before.
+Day 2's leg starts and ends at the Moab hotel without any new rule: "where the party slept last night" and "where it sleeps tonight" are both the Moab hotel. Because Day 2 has a leg, its driving is checked. If the coordinator put Monument Valley on it, about two and a half hours each way, the driving check would warn about it. Day 3 is a rest day, so it has no leg, and its dinner is close to the hotel. Days 2 and 3 start and end at the Moab stay, so every stop on them is near it. Panorama Point is on the last day, which has no stay, so it is near the Torrey stay, where the party slept the night before.
 
 The hours marked "assume" are for walking through the example, not real hours. Between them, Fisher Towers, Delicate Arch, Milt's, and Gifford Homestead cover the four results of the opening-hours check (section 8). The Moab stay is mid-range and the Torrey stay is value, from the trip's budget rule (section 9). Day 4 runs over the trip's 4-hour default, so it holds a drive hours approval with the user's reason. The stargazing stop is at 1 a.m., so it belongs to Day 5, in its overnight block (3.1).
 
@@ -284,16 +284,17 @@ The facts about the place, such as rating and hours, live on the place. Only the
 
 ### 3.3 Legs
 
-A **leg** is the drive on one day. It is a value object held by its day, not an entity. It has no ID of its own. A day has a leg when it moves to a new stay, or when it has stops to drive to and isn't a rest day (3.1). When the day stays put, from and to are the same stay. A leg has no type. Whether it returns to the same stay is just what its from and to work out to, not a stored property. The drive between two stops on a leg is a **segment**. Google Routes uses different names: it calls a segment a "leg" and our leg a "route". Code that calls Google needs a comment saying so. The functional spec's "loop" means a trip that ends where it started, not a leg. The leg scout is briefed with the day's ID.
+A **leg** is the drive on one day. It is a value object held by its day, not an entity. It has no ID of its own. A day has a leg when it moves to a new stay or to the end place, or when it stays put with selected stops and isn't a rest day (3.1). When the day stays put, from and to are the same stay. A leg has no type. Whether it returns to the same stay is just what its from and to work out to, not a stored property. The drive between two stops on a leg is a **segment**. Google Routes uses different names: it calls a segment a "leg" and our leg a "route". Code that calls Google needs a comment saying so. The functional spec's "loop" means a trip that ends where it started, not a leg. The leg scout is briefed with the day's ID.
 
 | Property | Where it comes from | Stored |
 |---|---|---|
 | From | Worked out: where the party slept the night before, or the start place | No |
 | To | Worked out: where the party sleeps that night, or the end place | No |
 | Drive time, distance, and route line | Computed by code with Google Routes, through the day's selected stops in the day's order, with the leg's waypoints placed among them (3.1) | Yes |
-| Route type (scenic or fastest) | Worked out: the leg's route type approval if it has one, otherwise the trip brief's route preference | No |
+| Route type (scenic or fastest) | Worked out: the day's route type approval if it has one, otherwise the trip brief's route preference | No |
 | Waypoints | Set by the coordinator | Yes |
-| Approvals | Set by the coordinator when the user agrees (section 8) | Yes |
+
+The leg holds no approvals. The day does (section 8), so they survive when a leg goes away, such as on a day marked as a rest day.
 
 **Drive time, distance, and route line are stored because each one costs a paid call to Google Routes.** Working them out on every read would be slow and would use up the quota. Code computes them again only when something the route depends on changes: the stays, a stay's lodging, the day's selected stops, or the leg's waypoints (3.5).
 
@@ -315,11 +316,11 @@ Users don't pick waypoints. They pick scenic or fastest, and the coordinator pic
 
 **Code places each waypoint among the day's selected stops.** The coordinator doesn't say where a waypoint goes in the day's order. Code lists the leg's from, its selected stops in order, and its to. It puts the waypoint in the gap between two neighbors where it adds the least straight-line distance. That distance comes from the coordinates already stored on each place, so this needs no call to Google. A leg with more than one waypoint has them placed one at a time, in the order the coordinator gave. Example: on San Francisco Day 2, with only First Awakenings in Monterey selected, Big Sur village goes between First Awakenings and San Luis Obispo. Between the Monterey hotel and First Awakenings it would add about 50 miles, going south and back. Straight-line distance can guess wrong where the road bends far from it, such as around a bay. It works because a waypoint sits on the road the coordinator wants.
 
-**Route type isn't stored on the leg.** It changes nothing in the call to Google, so a stored label could only be compared with itself. A leg's route type is the trip brief's route preference, unless the leg holds a route type approval (section 8). The coordinator makes a leg scenic with waypoints, or with stops that already pull the route onto the scenic road. Google's avoid-highways option was tested as a scenic setting and rejected. It stayed on US-101 instead of Big Sur, added hours to long Western legs, and picked old back roads such as the TransAmerica Trail.
+**Route type isn't stored on the leg.** It changes nothing in the call to Google, so a stored label could only be compared with itself. A leg's route type is the trip brief's route preference, unless its day holds a route type approval (section 8). The coordinator makes a leg scenic with waypoints, or with stops that already pull the route onto the scenic road. Google's avoid-highways option was tested as a scenic setting and rejected. It stayed on US-101 instead of Big Sur, added hours to long Western legs, and picked old back roads such as the TransAmerica Trail.
 
 ### 3.4 Who creates and changes what
 
-- **The coordinator,** through its tools: the trip brief, the itinerary's start place, end place, and start date, stays and their nights, rest days, each day's stops, each leg's waypoints, approvals on legs and stops, memory, and selections.
+- **The coordinator,** through its tools: the trip brief, the itinerary's start place, end place, and start date, stays and their nights, rest days, each day's stops, each leg's waypoints, approvals on days and stops, memory, and selections.
   - It lays out a day by adding empty stops, each with a kind, a purpose, a search area, a time block, and an order within that block. It sets the order. Code never reorders stops.
 - **Code inside the tools:**
   - Places, created or reused when a tool returns one.
@@ -334,13 +335,13 @@ Users don't pick waypoints. They pick scenic or fastest, and the coordinator pic
 The itinerary tools carry changes through, so the coordinator doesn't have to:
 
 - **A stay moves to a different town:** the legs on either side are re-routed. The tools leave its lodging and the stops on its days alone, because whether they still fit is a judgment call. The coordinator talks it through with the user. Then it removes the stops that no longer fit, and clears the lodging selection if the hotel no longer fits. Example: moving from Monterey to Carmel keeps every stop and the hotel. Skipping Monterey to drive I-5 to Bakersfield removes every stop on its days and clears its lodging. The old lodging candidates stay in the stay's history, and the next set offered replaces them on the option card.
-- **A stay's lodging is selected or cleared:** the legs on either side are re-routed (3.3).
-- **A night is added or removed:** a day is added or removed at the end of that stay's days, and the legs around it are re-routed. Later days move, and their dates with them. Stops on a removed day go away.
+- **A stay's lodging is selected or cleared:** every leg that starts or ends at the stay is re-routed (3.3). For a three-night stay, that is the day in, the days that stay put, and the day out.
+- **A night is added or removed:** a day is added or removed at the end of that stay's days, and the legs around it are re-routed. Later days move, and their dates with them. Removing a night is refused while that day holds stops.
 - **The start date changes:** every day's date moves with it. Nothing is re-routed, but the opening-hours check runs again, since each day can now fall on a different weekday.
-- **A stay's place or dates change:** its weather and clothing text is kept, but marked out of date, because the place and dates it was written for no longer match. Its dates change whenever the start date or an earlier stay's nights change. The UI labels the text as out of date. The coordinator reruns the weather worker for those stays before calling the itinerary done.
-- **A stay is removed:** its days and their stops go away. The next day's leg now starts from the stay before it, and is re-routed.
+- **A stay's place or dates change:** its weather and clothing text is kept, but marked out of date, because the place and dates it was written for no longer match. Its dates change whenever the start date or an earlier stay's nights change. The UI labels the text as out of date, and the check results include a note for it (section 8). The coordinator reruns the weather worker for those stays at the end of a turn, once no change is still being discussed with the user. Example: adding a Big Sur night and then removing it raises the note and then clears it, with no rerun.
+- **A stay is removed:** its days go away. The next day's leg now starts from the stay before it, and is re-routed. Removing a stay is refused while any stop is on its days, or while any stop anywhere has the stay as its search area. The error lists those stops by name and ID. The coordinator asks the user what to do with each one, then moves or removes it. Code never deletes a stop the coordinator didn't name.
 - **A stop's selected place, date, or time block changes:** its opening hours approval stays, but no longer applies, because it records what it was given for (section 8). The opening-hours check runs fresh. A stop's date changes when the start date moves, when an earlier stay gains or loses a night, or when the stop moves to another day.
-- **A stop is selected, cleared, changed, or removed:** that day's leg is re-routed through the selected stops. A day that stays put gains a leg when it gets its first stop to drive to, and loses it when the last one goes.
+- **A stop is selected, cleared, changed, or removed:** that day's leg is re-routed through the selected stops. A day that stays put gains a leg when its first stop is selected, and loses it when the last selected stop goes.
 
 When a stop or stay goes away, its candidates go with it. The places stay. The coordinator then sends new worker briefs for new stops, and for any stop or lodging whose candidates no longer fit.
 
@@ -377,7 +378,7 @@ Planning goes from broad to narrow. This is the usual order in which the coordin
 
 ### 5.1 Tools
 
-- **Itinerary:** read the itinerary. Set the start place, end place, and start date. Add, change, and remove stays, and set their nights. Mark rest days. Add, change, and remove stops. Set a leg's waypoints. Record selections, clear a stop's or lodging's selection, and set and remove approvals on legs and stops. Every write returns the feasibility check results (section 8).
+- **Itinerary:** read the itinerary. Set the start place, end place, and start date. Add, change, and remove stays, and set their nights. Mark rest days. Add, change, move, and remove stops. Set a leg's waypoints. Record selections, clear a stop's or lodging's selection, and set and remove approvals on days and stops. Reads can cover the whole itinerary, or one day, stay, or stop. Every write returns what code worked out and the feasibility check results (section 8).
 - **Trip brief:** read the trip brief, and update one or more items in it at once. Every update returns the feasibility check results (section 8), since items like max driving hours affect them.
 - **Memory:** read, add, update, and forget items in user memory and trip memory.
 - **Places:** find a named place, to resolve a town, a must-see, or a place the user names. Read a place's full record by ID, when the short line isn't enough (7.2).
@@ -395,7 +396,9 @@ The coordinator's instructions cover:
 - **Memory precedence** (functional spec 10.4): the current conversation, then trip memory, then user memory. When the user contradicts user memory, ask whether it applies to this trip only.
 - **The planning method:** anchors and stretches (4.1) and the rounds (4.2).
 - **When to send work to a worker,** and how to write a worker brief (5.3).
-- **How to handle broken feasibility rules** (functional spec 6.2): say which rule fails and by how much, then offer two or three trade-offs.
+- **How to handle broken feasibility rules** (functional spec 6.2): say which rule fails and by how much, then offer two or three trade-offs. Raise each warning once. Stay quiet about results marked already known.
+- **Before removing a stay or a night,** ask the user what to do with each stop on it, then move or remove them (3.5).
+- **When to rerun the weather worker:** at the end of a turn, for stays whose weather is out of date, once no change is still being discussed (3.5).
 - **Budget tiers:** how to turn the user's rules into a tier for each lodging and meal stop (section 9).
 - **Visit time for a place the user specifies:** ask how long they'll spend there, offering a typical figure for them to confirm or change.
 
@@ -459,7 +462,7 @@ Writes weather and clothing guidance per stay (functional spec 8).
 
 - **IDs are short random strings, with a prefix for the kind of item.** Example: `stop_k7m2x9qa`. The prefix is `stay_`, `day_`, `stop_`, `place_`, or `mem_` (a memory item). After it come 8 random lowercase letters and digits, leaving out ones that are easy to confuse when copied, such as `0` and `o` or `1` and `l`. That gives about a trillion combinations.
   - **Random, not counted.** A worker can only reach the stops and stay in its worker brief, because those are the only IDs it sees. Any other ID it makes up doesn't exist, so the tool rejects it. Counted IDs such as `stop-12` and `stop-13` would let a slip land on a real stop.
-  - **Short, not UUIDs.** An ID like this is about 5 tokens, against about 20 for a UUID. The itinerary holds hundreds of IDs, and the coordinator reads it often ([tool design](tool-design.md), open question 2).
+  - **Short, not UUIDs.** An ID like this is about 5 tokens, against about 20 for a UUID. The itinerary holds hundreds of IDs, and the coordinator reads it often ([tool design](tool-design.md), 2.1).
   - **The prefix catches mix-ups.** If a stay ID is passed to a stop tool, the error can say so, instead of just "not found."
 - **A candidate is referred to by its stop or stay, plus its place.** Tools take a stop or stay ID and a place ID, such as "select place X for stop Y."
 - **Users never see IDs.** They refer to a place by name ("the Van Zandt") or position ("the second one"). The coordinator maps that to an ID. "The second one" means the second candidate on the option card, in the newest set.
@@ -478,41 +481,62 @@ The coordinator never sees full place records, such as hours tables, coordinates
 
 ## 8. Feasibility checks in code
 
-The itinerary write tools run these checks after every change and return a list of flags and warnings:
+The itinerary write tools run these checks after every change.
 
-- **Trip length:** 14 days or fewer. A hard limit, with no exceptions.
+**Each result is a warning or a note.** A **warning** means the plan probably won't work as it stands. The coordinator must raise it with the user. It stays until the plan changes or the user approves it (below). A **note** is information only. The coordinator decides whether to mention it, and it never needs approval. One limit is **refused** instead: the write doesn't happen, and the error says why.
+
+**Results are worked out, not stored as decisions.** Code works them out fresh from the plan after every change. It keeps the last set, so each write can mark its results as **new** or **already known**, and list any that went away. A write returns results for the days it touched. A full read returns them all. Example: on Moab Day 2, the user agrees to keep the stop order. Later writes still return the stop-order note, marked already known, so the coordinator doesn't raise it again.
+
+| Check | Level |
+|---|---|
+| Trip length over 14 days | Refused |
+| Trip length vs the brief | Warning |
+| Daily driving | Warning |
+| Opening hours: open, but not long enough | Warning |
+| Opening hours: closed for the whole block | Warning |
+| Opening hours: not known | Note |
+| Block fit | Warning |
+| Stop order | Note |
+| Weather out of date | Note |
+
+
+- **Trip length:** 14 days or fewer. A hard limit, with no exceptions. A write that would make the trip longer is refused, and the error gives the limit, so the coordinator can tell the user.
 - **Trip length vs the brief:** the itinerary's number of days matches the trip length in the brief. A warning if not. Example: adding a night in Big Sur makes a 3-day trip 4 days. If the user agrees to the new length, the coordinator updates the brief, so no approval is needed.
-- **Daily driving:** road time, including detours to the day's stops, plus a buffer for fuel and short breaks, fits the user's max hours. The buffer is a setting. Max hours is a preference, so a leg can hold a drive hours approval (below).
+- **Daily driving:** road time, including detours to the day's stops, plus a buffer for fuel and short breaks, fits the user's max hours. The buffer is a setting. Max hours is a preference, so a day can hold a drive hours approval (below).
 - **Opening hours:** each meal and attraction stop is checked against the weekly hours on its selected place, on its day's date, during its time block (3.1). There are four results:
   - **Open long enough:** nothing is said. Long enough means the place has an open stretch of at least the stop's visit time that starts within the block. The visit can run into the next block. Example: a 5-hour hike in the morning block passes at a park open from 6 a.m. to 8 p.m. A meal counts as one hour. An attraction uses its candidate's visit time.
-  - **Open, but not long enough:** a warning. It gives the opening or closing time and the drive time from the previous stop, and says the drive time is an average. Example: "Closes at 2 p.m. It's about 40 minutes from your previous stop, so allow extra time for traffic."
-  - **Closed for the whole block:** a flag.
+  - **Open, but not long enough:** a warning. It gives the opening or closing time and the drive time from the previous stop, and says the drive time is an average. Example: "Closes at 2 p.m. It's about 40 minutes from your previous stop, so allow extra time for traffic." A stop with no drive time, such as one on a rest day, gets the message without it.
+  - **Closed for the whole block:** a warning.
   - **Hours not known:** a note, not a warning. The card says "Hours not confirmed. Check before you go." This covers a place with no hours on Google, and any place found by web search, since Google's hours aren't used for those ([web search design](data-sources-web-search.md), section 4).
-  - The itinerary is a plan, not a guarantee. The user can keep a warned or flagged stop anyway, and the stop then holds an approval (below).
+  - The itinerary is a plan, not a guarantee. The user can keep a warned stop anyway, and the stop then holds an approval (below).
   - **Code reads Google's structured hours,** which give each opening and closing as a day and a time ([Google design](data-sources-google.md), 2.2). So hours that run past midnight read correctly: a bar open Monday 5 p.m. to 2 a.m. is open at 1 a.m. on Tuesday.
   - **Only weekly hours are checked.** Google's hours are a normal week only. Seasonal closures, such as an attraction open only in summer, aren't checked in code in the MVP. A worker that finds one says so in its result, and the coordinator raises it (6.1).
-- **Block fit:** a block's stops fit in it. Code adds up each stop's visit time and its drive time from the previous stop. A warning when the total runs more than a set amount past the block's four hours. The amount is a setting, starting at one hour. Example: a 5-hour hike in the morning, after an hour's drive, is 6 hours in a 4-hour block, so it is flagged. A visit can run into the next block, so this is the only check that notices a long morning crowding the afternoon.
-- **Stop order:** whether the day's stops could be driven in a faster order. This runs when a selected stop on the day changes. Code makes one extra Routes call over the whole leg with Google's best-order option, and compares the result with the day's order. Our waypoints are left out of this call, because Google rejects pass-through points when it picks an order. The result is a note, not a warning, and only when the faster order saves at least a set number of minutes. The minimum is a setting, starting at 15. The note gives the time saved and which stops would move, with their blocks. Example: "A faster order saves 25 minutes. It moves Corona Arch from the afternoon to the morning." Google doesn't know when meals happen, so many faster orders make no sense, such as dinner in the morning. The coordinator decides whether a note is worth raising with the user. The best-order option is billed at the Routes Pro level.
+- **Block fit:** a block's stops fit in it. Code adds up each stop's visit time and its drive time from the previous stop. A warning when the total runs more than a set amount past the block's four hours. The amount is a setting, starting at one hour. Example: a 5-hour hike in the morning, after an hour's drive, is 6 hours in a 4-hour block, so it gets a warning. A day can hold a block fit approval (below). A visit can run into the next block, so this is the only check that notices a long morning crowding the afternoon.
+- **Stop order:** whether the day's stops could be driven in a faster order. This runs whenever the leg is re-routed and has at least two selected stops. So it also catches a backtrack left behind by another change, such as a new night that puts Monterey stops behind the party. Code makes one extra Routes call over the whole leg with Google's best-order option, and compares the result with the day's order. Our waypoints are left out of this call, because Google rejects pass-through points when it picks an order. The result is a note, not a warning, and only when the faster order saves at least a set number of minutes. The minimum is a setting, starting at 15. The note gives the time saved and which stops would move, with their blocks. Example: "A faster order saves 25 minutes. It moves Corona Arch from the afternoon to the morning." Google doesn't know when meals happen, so many faster orders make no sense, such as dinner in the morning. The coordinator decides whether a note is worth raising with the user. The best-order option is billed at the Routes Pro level.
+- **Weather out of date:** a stay's weather and clothing text no longer matches the stay's place or dates (3.5).
 
-**Approvals** (functional spec 6.2). When the user agrees to keep something a check flagged, the coordinator records an approval. A leg and a stop each hold a list of approvals. An approval is not an entity. It has a kind, the approved value, and a reason. The value's shape depends on the kind:
+**Approvals** (functional spec 6.2). When the user agrees to keep something a check warned about, the coordinator records an approval. A warning with an approval is accepted. One without is still open. A day and a stop each hold a list of approvals. The day holds them, not its leg, so they survive when the leg goes away. An approval is not an entity. It has a kind, the approved value, and a reason. The value's shape depends on the kind:
 
 | Kind | On | Value |
 |---|---|---|
-| Drive hours | Leg | The hours the user agreed to |
-| Route type | Leg | The route type the user agreed to, such as fastest |
+| Drive hours | Day | The hours the user agreed to |
+| Route type | Day | The route type the user agreed to, such as fastest |
+| Block fit | Day | The block, and the hours the user agreed to for it |
 | Opening hours | Stop | The place, date, and time block it was given for |
 
-An item holds at most one approval of each kind. Setting one replaces any of the same kind. The list changes only through the tools ([tool design](tool-design.md), 2.1). Every approval needs a reason. Removing one doesn't.
+An item holds at most one approval of each kind, or for block fit, one per block. Setting one replaces any of the same kind. The list changes only through the tools ([tool design](tool-design.md), 2.1). Every approval needs a reason. Removing one doesn't.
 
-**Why a list, with a shape for each kind.** One list gives every approval the same rule: a kind, a value, and a reason. Adding a kind later doesn't add a property and a tool input to the leg or stop. Each kind keeps its own value shape. A single "value" field would have to hold a number for drive hours, a route type, or a place, date, and block, and code would have to check that the value matches the kind. In code, this is a tagged union: the `kind` field tells code which other fields are present. The tools still take one named input per kind, such as "approve drive hours," not a generic "set approval." Those are easier for the model to fill in correctly. The model never edits the list directly.
+**Why a list, with a shape for each kind.** One list gives every approval the same rule: a kind, a value, and a reason. Adding a kind later doesn't add a property to the day or stop. Each kind keeps its own value shape. A single "value" field would have to hold a number for drive hours, a route type, or a place, date, and block, and code would have to check that the value matches the kind. In code, this is a tagged union: the `kind` field tells code which other fields are present. The tools still take one named input per kind, such as "approve drive hours," not a generic "set approval." Those are easier for the model to fill in correctly. The model never edits the list directly.
 
-**Drive hours.** The daily driving check compares against the approved hours when there are some, and the trip brief's max when there aren't. The default lives only in the trip brief, so changing it there applies to every leg at once. Storing the approved hours, instead of a yes or no flag, means nothing has to be reset. Example: the user approves 6 hours on the last day. If a later change makes that day 7 hours, it is over 6, so it is flagged again. If a change makes it shorter, nothing is flagged.
+**Drive hours.** The daily driving check compares against the approved hours when there are some, and the trip brief's max when there aren't. The default lives only in the trip brief, so changing it there applies to every day at once. Storing the approved hours, instead of a yes or no flag, means nothing has to be reset. Example: the user approves 6 hours on the last day. If a later change makes that day 7 hours, it is over 6, so it gets a warning again. If a change makes it shorter, nothing is said.
+
+**Block fit.** The same pattern as drive hours, for one block. Example: the user approves 6 hours in the morning for a long hike. If a later change makes that block 7 hours, it gets a warning again.
 
 **Route type.** No check reads it. Route type changes nothing in the call to Google, so a check could only compare a label with itself (3.3). The approval records the user's choice, so the coordinator doesn't raise it again, in this session or a later one. It also sets the leg's route type shown in the itinerary.
 
 **Opening hours.** The approval applies only while the stop's selected place, date, and time block all match what it was given for. When any of them changes, it stops applying, and nothing has to be cleared. This is the same pattern as the stay's weather text, which records the place and dates it was written for (3.5).
 
-**Approval goes through the coordinator.** When a check flags a leg or a stop, the coordinator offers the trade-offs in functional spec 6.2, and accepting the exception is one of them. The choice can be an option card. As with any card, the click reaches the coordinator as a message, and the coordinator records the approval. When the user already agreed in chat, such as "cut a day and drive it in one go," the coordinator sets it without asking again.
+**Approval goes through the coordinator.** When a check warns about a day or a stop, the coordinator offers the trade-offs in functional spec 6.2, and accepting the exception is one of them. The choice can be an option card. As with any card, the click reaches the coordinator as a message, and the coordinator records the approval. When the user already agreed in chat, such as "cut a day and drive it in one go," the coordinator sets it without asking again.
 
 The checks that need judgment stay with the agent: must-sees vs days, seasonal risks, and seasonal closures.
 
