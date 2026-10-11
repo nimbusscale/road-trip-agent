@@ -54,7 +54,7 @@ The coordinator's tools for the trip brief and itinerary, plus the workers' tool
 | `remove_stay` | Removes a stay, its days, and their stops | Stay ID |
 | `set_rest_day` | Marks a day as a rest day, or not | Day ID, and rest day or not |
 | `add_stop` | Adds an empty stop to a day | Day ID, the stop it goes after or "first", kind (meal or attraction), and time block. Meals also take a tier and the rule that produced it |
-| `update_stop` | Changes a stop, or moves it, including to another day | Stop ID, and any of: kind, time block, tier and rule, and a move. A move takes a day ID and the stop it goes after or "first". A moved stop keeps its candidates and selection. The legs of the day it left and the day it joined are both re-routed |
+| `update_stop` | Changes a stop, or moves it, including to another day | Stop ID, and any of: kind, time block, tier and rule, approval to keep it despite its opening hours and the reason, and a move. A move takes a day ID and the stop it goes after or "first". A moved stop keeps its candidates and selection. The legs of the day it left and the day it joined are both re-routed. An approval without a reason is rejected |
 | `remove_stop` | Removes a stop and its candidates | Stop ID |
 | `update_leg` | Changes a day's leg. Properties not given are left alone, and an empty value clears one. Rejects a day with no leg, such as a rest day | Day ID, and any of: route type (scenic or fastest), waypoints, approved drive hours, approved route type, and the reason for an approval. An approved value without a reason is rejected |
 | `select_place` | Selects a candidate for a stop or a stay's lodging | Stop or stay ID, and a place ID that is one of its candidates. For a place the user named, a place ID and the user's reason. The tool adds it as a candidate in a new set of one, then selects it (technical spec 3.2) |
@@ -73,7 +73,7 @@ The coordinator's tools for the trip brief and itinerary, plus the workers' tool
 | Tool | Does | Takes |
 |---|---|---|
 | `add_stay_candidates` | Adds lodging candidates to a stay | Stay ID, and for each candidate: place ID, rationale, tier and rule, how it was found with the source link, and notes about the trip dates, such as "closed Mondays" |
-| `add_stop_candidates` | Adds candidates to a stop | Stop ID, and the same items per candidate |
+| `add_stop_candidates` | Adds candidates to a stop | Stop ID, and the same items per candidate. Attractions also take a visit time, the worker's estimate |
 
 Each call is one set. The tool assigns the set number (technical spec 3.2). Both tools reject a place already offered for the same stop or the same stay, so a worker can't offer it there twice. The same place can still be a candidate for a different stop or stay. Example: the Palace Hotel can be a lodging candidate for a stay and also a candidate for a stop (technical spec 3.2). Both return one line per candidate added. The worker passes those lines on in the result it returns to the coordinator. Candidates are never changed after they're written. There are two tools so the leg scout, which fills stops only, never sees the stay tool.
 

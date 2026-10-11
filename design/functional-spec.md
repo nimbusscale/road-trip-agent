@@ -68,7 +68,7 @@ Planning only. The application never books, reserves, or purchases anything.
 | Stay | An overnight location, for one or more nights. One lodging per stay regardless of nights, usually a hotel |
 | Stop | A place the party visits during a day, such as a meal, an attraction, or a quick look along the way |
 | Leg | The drive on one day, with duration, distance, and the day's stops along the way. It runs from where the party slept to where it sleeps that night. On a day that stays put, it starts and ends at the same stay |
-| Day | One calendar day of the trip, split into morning, afternoon, and evening time blocks |
+| Day | One calendar day of the trip, split into six four-hour time blocks starting at midnight: overnight, early morning, morning, afternoon, evening, and night |
 | Candidate | A hotel, restaurant, or attraction offered for a stay's lodging or a stop, with its rationale and source |
 | Option card | The UI element presenting a set of candidates for one choice (a stay's lodging or a stop), with selection actions |
 | Budget tier | Value, mid-range, or posh. A relative price level the agent infers. Shown instead of prices |
@@ -250,7 +250,7 @@ For each leg: from, to, drive duration, distance, scenic or fastest, and notable
 
 ### 9.5 Daily itinerary
 
-For each day: day number, date, location, and morning, afternoon, and evening blocks containing driving, attractions, and meals. Rest days are marked.
+For each day: day number, date, location, and its time blocks containing driving, attractions, and meals. Rest days are marked.
 
 ### 9.6 Weather and clothing
 
