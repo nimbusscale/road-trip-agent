@@ -36,7 +36,7 @@ This section lists what gets stored, how the pieces relate, and who creates or c
 
 **Every entity's ID is one we create.** IDs from outside sources, such as Google's place ID, are stored as ordinary properties and can be empty.
 
-**Anything numbered in order starts at 0.** That covers a stay's order, a day's order, a stop's order in its day, and a candidate's set number. The UI counts from 1 for people, so the day stored as 0 shows as Day 1. The examples below use the people-facing labels.
+**Anything numbered in order starts at 0.** That covers a stay's order, a day's order, a stop's order in its day and time block, and a candidate's set number. The UI counts from 1 for people, so the day stored as 0 shows as Day 1. The examples below use the people-facing labels.
 
 **"Worked out" means looked up from other stored data when read, and not stored.** Examples: a stay's nights, a day's date, a leg's from and to, and a candidate's status. Storing these would add a second copy that can go stale. Values that need a call to an outside service, such as a leg's drive time, are different. They are computed once and stored (3.3).
 
@@ -73,7 +73,7 @@ Candidates and legs are not in the diagram. They are value objects: candidates a
 | Place | Trip | Any real location: a town, hotel, restaurant, bar, attraction, friend's house, or campground. Holds the facts about it: Google's place ID, coordinates, and the details a tool returned, such as Google's name, rating, review count, price level, weekly hours, summary, and links. Also holds the name and type that cards show, set by the first candidate that offers it, from a worker or from the user. Until then, cards use Google's name. Places are matched by Google place ID only. The kind of place doesn't limit how it's used. A hotel can be a stay's lodging, or a stop for its bar. On a loop trip, the start and end are the same place |
 | Stay | Itinerary | One overnight location: the place it's in, usually a town, and order. Its nights are the number of days that point to it, worked out rather than stored. Changing its nights adds or removes its days. Its lodging is a place, empty until selected. Holds its lodging candidates, and a tier and the rule that produced it. Holds its weather and clothing text, labeled forecast or seasonal averages, with the place and dates it was written for. That text is empty until the weather worker runs (6.3) |
 | Day | Itinerary | One day of the trip: rest day or not, its stops in order, and its leg, if it has one (3.3). Points to the stay where the party sleeps that night. The last day points to none. Its date is worked out: the itinerary's start date plus the day's order |
-| Stop | Day | A visit during the day: a meal or an attraction. Holds its kind, time block (below), and order in the day. Its place is empty until selected. Holds its candidates. Meal stops have a tier and the rule that produced it. Holds the drive time from the previous stop, computed and stored with the day's leg (3.3). Holds an approval to keep it despite its opening hours, with the reason (section 8) |
+| Stop | Day | A visit during the day: a meal or an attraction. Holds its kind, time block (below), and order within that block. Its place is empty until selected. Holds its candidates. Meal stops have a tier and the rule that produced it. Holds the drive time from the previous stop, computed and stored with the day's leg (3.3). Holds an approval to keep it despite its opening hours, with the reason (section 8) |
 | Trip memory item | Trip | One free-text note (functional spec 10.2) |
 | User memory item | User | One standing preference (functional spec 10.3) |
 
@@ -95,6 +95,10 @@ Candidates and legs are not in the diagram. They are value objects: candidates a
 The trip brief and the itinerary both mention dates, for different reasons. The brief records what the user asked for: exact dates, a window such as "sometime in May," or a length such as "about a week." The itinerary's start date records what was decided. When the user gives exact dates, both are set. The brief then says the dates are fixed, so the coordinator knows not to move them.
 
 **A day has six time blocks, each four hours long, starting at midnight:** overnight (12–4 a.m.), early morning (4–8 a.m.), morning (8 a.m.–12 p.m.), afternoon (12–4 p.m.), evening (4–8 p.m.), and night (8 p.m.–12 a.m.). The blocks are fixed, not settings. Each stop sits in one block. A block says roughly when the party will be there, without a clock time, and gives the opening-hours check a window to test (section 8).
+
+- **A block describes a stop. It doesn't judge it.** No rule says which block a place belongs in. Denny's can go in any block, and a speakeasy that opens at 7 p.m. only works at night. Whether a place is open then is the hours check's job.
+- **A block is not an entity.** It is one of six fixed values held on the stop, the same way the stop holds its kind. Blocks hold no data of their own and are never added or removed. If a block someday needs data, such as a note that the user is busy that afternoon, make it an entity then.
+- **A stop's order is counted within its day and block.** The day's full order is worked out: the blocks in clock order, then the stops in order inside each block. There is only one order, so it can't disagree with the blocks. Example: moving Denny's from dinner to breakfast sets its block to morning and places it first in that block, in one change.
 
 - **A meal is just a meal.** It has no type, such as breakfast or dinner. The party decides what each meal is. A meal moved from the morning to the evening is simply a meal in the evening, checked against evening hours.
 - **A stop after midnight belongs to the calendar day.** A 1 a.m. stop is in the next day's overnight block. A drive that runs past midnight isn't handled in the MVP.
@@ -242,13 +246,13 @@ The facts about the place, such as rating and hours, live on the place. Only the
 
 ### 3.3 Legs
 
-A **leg** is the drive on one day. It is a value object held by its day, not an entity. It has no ID of its own. A day has a leg when it moves to a new stay, or when it has stops to drive to and isn't a rest day (3.1). When the day stays put, from and to are the same stay. A leg has no type. Whether it returns to the same stay is just what its from and to work out to, not a stored property. The functional spec's "loop" means a trip that ends where it started, not a leg. The leg scout is briefed with the day's ID.
+A **leg** is the drive on one day. It is a value object held by its day, not an entity. It has no ID of its own. A day has a leg when it moves to a new stay, or when it has stops to drive to and isn't a rest day (3.1). When the day stays put, from and to are the same stay. A leg has no type. Whether it returns to the same stay is just what its from and to work out to, not a stored property. The drive between two stops on a leg is a **segment**. Google Routes uses different names: it calls a segment a "leg" and our leg a "route". Code that calls Google needs a comment saying so. The functional spec's "loop" means a trip that ends where it started, not a leg. The leg scout is briefed with the day's ID.
 
 | Property | Where it comes from | Stored |
 |---|---|---|
 | From | Worked out: where the party slept the night before, or the start place | No |
 | To | Worked out: where the party sleeps that night, or the end place | No |
-| Drive time, distance, and route line | Computed by code with Google Routes, through the day's selected stops in order | Yes |
+| Drive time, distance, and route line | Computed by code with Google Routes, through the day's selected stops in the day's order (3.1) | Yes |
 | Route type (scenic or fastest) and waypoints | Set by the coordinator | Yes |
 | Approved exceptions | Set by the coordinator when the user agrees (section 8) | Yes |
 
@@ -261,7 +265,7 @@ A **leg** is the drive on one day. It is a value object held by its day, not an 
 | | Stop | Waypoint |
 |---|---|---|
 | The party gets out | Yes | No |
-| Time block and order in the day | Yes | No |
+| Time block and order within it | Yes | No |
 | Candidates and option cards | Yes | No |
 | Opening hours check | Yes | No |
 | Shown to the user | As a visit | Only as the route line on the map |
@@ -275,7 +279,7 @@ Users don't pick waypoints. They pick scenic or fastest, and the coordinator pic
 ### 3.4 Who creates and changes what
 
 - **The coordinator,** through its tools: the trip brief, the itinerary's start place, end place, and start date, stays and their nights, rest days, each day's stops, each leg's route type and waypoints, approved exceptions, memory, and selections.
-  - It lays out a day by adding empty stops, each with a kind, a time block, and an order.
+  - It lays out a day by adding empty stops, each with a kind, a time block, and an order within that block. It sets the order. Code never reorders stops.
 - **Code inside the tools:**
   - Places, created or reused when a tool returns one.
   - Days, added and removed as stays' nights change. The last day is created with the itinerary.
@@ -441,6 +445,7 @@ The itinerary write tools run these checks after every change and return a list 
   - **Hours not known:** a note, not a warning. The card says "Hours not confirmed. Check before you go." This covers a place with no hours on Google, and any place found by web search, since Google's hours aren't used for those ([web search design](data-sources-web-search.md), section 4).
   - The itinerary is a plan, not a guarantee. The user can keep a warned or flagged stop anyway, and the stop then holds an approval (below).
 - **Route type:** each leg's route type matches the trip brief's route preference. Also a preference, so a leg can have an approved exception.
+- **Stop order:** whether the day's stops could be driven in a faster order. This runs when a selected stop on the day changes. Code makes one extra Routes call over the whole leg with Google's best-order option, and compares the result with the day's order. Our waypoints are left out of this call, because Google rejects pass-through points when it picks an order. The result is a note, not a warning, and only when the faster order saves at least a set number of minutes. The minimum is a setting, starting at 15. The note gives the time saved and which stops would move, with their blocks. Example: "A faster order saves 25 minutes. It moves Corona Arch from the afternoon to the morning." Google doesn't know when meals happen, so many faster orders make no sense, such as dinner in the morning. The coordinator decides whether a note is worth raising with the user. The best-order option is billed at the Routes Pro level.
 
 **Exceptions** (functional spec 6.2). An exception is not an entity. It is a set of properties on the leg, since a day has at most one leg:
 
@@ -471,6 +476,5 @@ The coordinator turns the user's natural-language rules into a tier for each lod
 1. **Worker brief and result formats.** Section 5.3 lists the contents, not the exact fields. Settle them during development.
 2. **A reviewer.** A later worker that reads the finished itinerary with fresh eyes and checks it against the trip brief. Not in the MVP.
 3. **An interview agent.** See section 2.
-4. **How a driving day's stops get their order.** The leg is routed through the stops in order (3.3), so the order sets the drive time. Either the coordinator sets the order, or code picks it with Google's best-order option. If code picks it, a rule has to keep stops in time-block order. Example: an evening stop shouldn't be routed before a morning one.
-5. **A full walk-through of time blocks and the hours check.** The six time blocks, meals with no type, and the four-result hours check (section 8) were settled without running a whole trip through them. Walk both examples in 3.1, San Francisco and Moab, from laying out the days to a finished itinerary. Look for holes like question 4.
-6. **A full object model.** Section 3 describes entities and value objects in prose, and properties keep getting added piecemeal, such as the stop's approval and the stay's weather text. Write a proper model: each object's properties, the methods or rules on it, and how it's stored. A class diagram would give new properties a clear home.
+4. **A full walk-through of time blocks and the hours check.** The six time blocks, meals with no type, and the four-result hours check (section 8) were settled without running a whole trip through them. Walk both examples in 3.1, San Francisco and Moab, from laying out the days to a finished itinerary. Look for holes like the one in stop order, settled in 3.1 and section 8.
+5. **A full object model.** Section 3 describes entities and value objects in prose, and properties keep getting added piecemeal, such as the stop's approval and the stay's weather text. Write a proper model: each object's properties, the methods or rules on it, and how it's stored. A class diagram would give new properties a clear home.

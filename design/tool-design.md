@@ -53,8 +53,8 @@ The coordinator's tools for the trip brief and itinerary, plus the workers' tool
 | `update_stay` | Changes a stay | Stay ID, and any of: a new place ID, the stay it now goes after or "first", number of nights, lodging tier and rule. Changing the nights adds or removes days at the end of the stay's days |
 | `remove_stay` | Removes a stay, its days, and their stops | Stay ID |
 | `set_rest_day` | Marks a day as a rest day, or not | Day ID, and rest day or not |
-| `add_stop` | Adds an empty stop to a day | Day ID, the stop it goes after or "first", kind (meal or attraction), and time block. Meals also take a tier and the rule that produced it |
-| `update_stop` | Changes a stop, or moves it, including to another day | Stop ID, and any of: kind, time block, tier and rule, approval to keep it despite its opening hours and the reason, and a move. A move takes a day ID and the stop it goes after or "first". A moved stop keeps its candidates and selection. The legs of the day it left and the day it joined are both re-routed. An approval without a reason is rejected |
+| `add_stop` | Adds an empty stop to a day | Day ID, time block, the stop it goes after in that block or "first", and kind (meal or attraction). Meals also take a tier and the rule that produced it |
+| `update_stop` | Changes a stop, or moves it, including to another day | Stop ID, and any of: kind, tier and rule, approval to keep it despite its opening hours and the reason, and a move. A move takes a day ID, a time block, and the stop it goes after in that block or "first". Changing a stop's block is a move, even on the same day. A moved stop keeps its candidates and selection. The legs of the day it left and the day it joined are both re-routed. An approval without a reason is rejected |
 | `remove_stop` | Removes a stop and its candidates | Stop ID |
 | `update_leg` | Changes a day's leg. Properties not given are left alone, and an empty value clears one. Rejects a day with no leg, such as a rest day | Day ID, and any of: route type (scenic or fastest), waypoints as place IDs, approved drive hours, approved route type, and the reason for an approval. An approved value without a reason is rejected |
 | `select_candidate` | Selects one of a stop's or a stay's candidates | Stop or stay ID, and a place ID. A place that isn't already a candidate there is rejected, and the error says to use `select_user_place` |
@@ -67,7 +67,7 @@ The coordinator's tools for the trip brief and itinerary, plus the workers' tool
 **Where an item goes.** Tools never take position numbers, which are easy to get wrong after items have been added or removed. Instead, a tool takes the item to go after, or the word "first". That input is required whenever an item is placed. It is never left blank. In the update tools a blank means "don't move it," so a blank can't also mean "first."
 
 - **Stays** take the stay they go after, or "first". Example: to put Big Sur between Monterey and San Luis Obispo, add it after the Monterey stay.
-- **Stops** always take a day, plus the stop they go after or "first" in that day. `add_stop` and a move in `update_stop` work the same way. If the stop given isn't on that day, the tool rejects the call. The day doubles as a check that the coordinator meant the day it named.
+- **Stops** always take a day and a time block, plus the stop they go after in that block, or "first" in that block. `add_stop` and a move in `update_stop` work the same way. If the stop given isn't in that day and block, the tool rejects the call. The day and block double as a check that the coordinator meant the ones it named. Example: to move Denny's from dinner to breakfast, move it to the morning block, "first".
 
 **Adding candidates (workers):**
 
