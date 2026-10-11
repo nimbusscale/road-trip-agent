@@ -13,7 +13,7 @@ One **coordinator** agent talks to the user for the whole trip. It sends researc
 | Coordinator | Yes | Yes | Yes | For the whole session |
 | Stay researcher | No | Adds candidates only | No | Once per stay, in parallel |
 | Leg scout | No | Adds candidates only | No | Once per leg, in parallel |
-| Weather and clothing | No | No | No | Once per trip, after the fill round |
+| Weather and clothing | No | Saves each stay's weather text only | No | Once per trip, after the fill round |
 
 A worker is called like a tool. It gets a worker brief, does its work, and returns one result. It can't ask the user anything. If it needs a decision, it says so in its result, and the coordinator asks.
 
@@ -268,6 +268,10 @@ A **leg** is the drive on one day. It is a value object held by its day, not an 
 
 Users don't pick waypoints. They pick scenic or fastest, and the coordinator picks the waypoints.
 
+**A waypoint is a place ID, never a plain name.** A name can resolve somewhere unexpected without any error. In testing, "Dewey Bridge, UT" resolved to Salt Lake City and turned a 2-hour drive into an 8-hour one. The coordinator looks a waypoint up with `find_place` first.
+
+**Route type is a label.** It changes nothing in the call to Google, and the route-type check compares only the label (section 8). The coordinator makes a leg scenic with waypoints, or with stops that already pull the route onto the scenic road. Google's avoid-highways option was tested as a scenic setting and rejected. It stayed on US-101 instead of Big Sur, added hours to long Western legs, and picked old back roads such as the TransAmerica Trail.
+
 ### 3.4 Who creates and changes what
 
 - **The coordinator,** through its tools: the trip brief, the itinerary's start place, end place, and start date, stays and their nights, rest days, each day's stops, each leg's route type and waypoints, approved exceptions, memory, and selections.
@@ -277,7 +281,7 @@ Users don't pick waypoints. They pick scenic or fastest, and the coordinator pic
   - Days, added and removed as stays' nights change. The last day is created with the itinerary.
   - A leg's drive time, distance, and route line, computed and stored whenever the stays, a stay's lodging, the leg's route type or waypoints, or a selected stop on its day changes. Its from and to are worked out when read. The coordinator's own routing tool is for rough checks, such as the shape sketches (4.2).
   - Feasibility results (section 8).
-- **Workers:** candidates, and the places they point to. A worker gets the IDs of stops or a stay that already exist, and can only add candidates to those. It can't create, change, or select anything.
+- **Workers:** candidates, and the places they point to. A worker gets the IDs of stops or a stay that already exist, and can only add candidates to those. It can't create, change, or select anything. The weather worker is the exception: it saves each stay's weather and clothing text, and adds no candidates.
 - **The UI:** nothing directly. A card click becomes a message to the coordinator (7.2).
 
 ### 3.5 What happens when something changes
@@ -328,11 +332,11 @@ Planning goes from broad to narrow. This is the usual order in which the coordin
 
 ### 5.1 Tools
 
-- **Itinerary:** read the itinerary. Set the start place, end place, and start date. Add, change, and remove stays, and set their nights. Mark rest days. Add, change, and remove stops. Set a leg's route type and waypoints. Record selections, clear a stop's or lodging's selection, set approved exceptions, and save each stay's weather and clothing text. Every write returns the feasibility check results (section 8).
+- **Itinerary:** read the itinerary. Set the start place, end place, and start date. Add, change, and remove stays, and set their nights. Mark rest days. Add, change, and remove stops. Set a leg's route type and waypoints. Record selections, clear a stop's or lodging's selection, and set approved exceptions. Every write returns the feasibility check results (section 8).
 - **Trip brief:** read the trip brief, and update one or more items in it at once. Every update returns the feasibility check results (section 8), since items like max driving hours affect them.
 - **Memory:** read, add, update, and forget items in user memory and trip memory.
 - **Places:** find a named place, to resolve a town, a must-see, or a place the user names. Read a place's full record by ID, when the short line isn't enough (7.2).
-- **Routing:** compute a route, with the option to put stays in the best order. Returns times and distances only. The route line goes to the UI.
+- **Routing:** compute a rough route, with the option to put the middle points in the fastest order. Returns times and distances, and the place each plain name resolved to. No route line.
 - **Workers:** call the stay researcher, leg scout, and weather and clothing workers.
 
 The full list, with the server each tool is on, is in the [tool design](tool-design.md). The coordinator has no place search for hotels, restaurants, or attractions, and no web search. That work belongs to workers, which keeps place results out of the coordinator's context.
@@ -360,7 +364,6 @@ A **worker brief** is the part of the trip brief one worker needs:
 - For lodging and meal stops, the resolved tier and the rule that produced it
 - Interests, must-sees, and meal preferences that apply here
 - Places to leave out: candidates already offered for that stop or lodging, and rejected places with the reason ("no parking")
-- The worker's tool-call limit (section 6.4)
 
 Workers never see raw user memory or anything about the user beyond their worker brief.
 
@@ -374,7 +377,7 @@ The coordinator decides which worker fills each stop when it lays out the day. S
 
 Finds candidates for one stay's lodging, and for the stops near it on its days.
 
-- **Tools:** place search (hotels, restaurants, attractions near a point), find a named place, to look up something found by web search, web search, both general and limited to Atlas Obscura, and tools to add candidates to the stops and stay in its worker brief.
+- **Tools:** place search near a stay or stop in its worker brief (hotels, restaurants, attractions), find a named place, to look up something found by web search, web search, both general and limited to Atlas Obscura, and tools to add candidates to the stops and stay in its worker brief.
 - **Instructions:** fit candidates to the worker brief's interests and tiers. Three candidates per stop or lodging (functional spec 7.5), added in one call. Attractions carry the agent's estimate of visit time, labeled as an estimate. Check hours against the dates, and say plainly when hours are unconfirmed. The web search rules from the [web search design](data-sources-web-search.md) apply.
 - **Returns:** for each stop or lodging, the candidates it added with one line each, plus any problems found. Example: "Must-see is closed on these dates."
 
@@ -382,7 +385,7 @@ Finds candidates for one stay's lodging, and for the stops near it on its days.
 
 Finds candidates for the stops along one leg, on its driving day. These can be meals or attractions, such as breakfast on the way or a quick look at a landmark.
 
-- **Tools:** the along-leg place search, find a named place, to look up something found by web search, web search limited to Atlas Obscura for towns the leg passes through, and a tool to add candidates to the stops in its worker brief.
+- **Tools:** the along-leg place search, find a named place, to look up something found by web search, web search limited to Atlas Obscura for towns the leg passes through (a hook enforces the limit), and a tool to add candidates to the stops in its worker brief.
 - **Instructions:** fit candidates to the worker brief's interests and tiers. Add all of a stop's candidates in one call. Give each one's detour time in minutes, from the along-leg search. It's a rough figure.
 - **Returns:** for each stop, the candidates it added with one line each.
 
@@ -390,13 +393,13 @@ Finds candidates for the stops along one leg, on its driving day. These can be m
 
 Writes weather and clothing guidance per stay (functional spec 8).
 
-- **Tools:** the Google Weather forecast for dates within 7 days, and the Open-Meteo seasonal averages tool otherwise.
+- **Tools:** one weather tool, which returns the Google Weather forecast when every one of a stay's dates is within 7 days, and Open-Meteo seasonal averages otherwise. Code picks which, from the stay's dates. Also a tool to save each stay's weather and clothing text.
 - **Instructions:** label each stay as forecast or seasonal averages. Tie clothing advice to the planned activities in the worker brief. Short advice, not a packing list.
-- **Returns:** the per-stay weather and clothing text, which is small. The coordinator writes it to the itinerary.
+- **Returns:** one line per stay. The worker saves the full text to the itinerary itself, the same way other workers write candidates.
+- **Runs only once the itinerary has a start date.** Without dates, there's nothing to forecast or average. The coordinator tells the user weather will come once the dates are set.
 
 ### 6.4 Rules for all workers
 
-- **A tool-call limit per worker brief.** Google's free tier is about 33 rated place searches a day (Google design, section 5). The limit is a setting.
 - **No user contact and no memory access.** A question for the user goes in the result.
 - **Candidates are written to the stop or stay, not into the result** (section 7).
 
@@ -466,9 +469,8 @@ The coordinator turns the user's natural-language rules into a tier for each lod
 ## 10. Open questions
 
 1. **Worker brief and result formats.** Section 5.3 lists the contents, not the exact fields. Settle them during development.
-2. **Tool-call limits.** The numbers per worker, given the daily Google limits.
-3. **A reviewer.** A later worker that reads the finished itinerary with fresh eyes and checks it against the trip brief. Not in the MVP.
-4. **An interview agent.** See section 2.
-5. **How a driving day's stops get their order.** The leg is routed through the stops in order (3.3), so the order sets the drive time. Either the coordinator sets the order, or code picks it with Google's best-order option. If code picks it, a rule has to keep stops in time-block order. Example: an evening stop shouldn't be routed before a morning one.
-6. **A full walk-through of time blocks and the hours check.** The six time blocks, meals with no type, and the three-result hours check (section 8) were settled without running a whole trip through them. Walk both examples in 3.1, San Francisco and Moab, from laying out the days to a finished itinerary. Look for holes like question 5.
-7. **A full object model.** Section 3 describes entities and value objects in prose, and properties keep getting added piecemeal, such as the stop's approval and the stay's weather text. Write a proper model: each object's properties, the methods or rules on it, and how it's stored. A class diagram would give new properties a clear home.
+2. **A reviewer.** A later worker that reads the finished itinerary with fresh eyes and checks it against the trip brief. Not in the MVP.
+3. **An interview agent.** See section 2.
+4. **How a driving day's stops get their order.** The leg is routed through the stops in order (3.3), so the order sets the drive time. Either the coordinator sets the order, or code picks it with Google's best-order option. If code picks it, a rule has to keep stops in time-block order. Example: an evening stop shouldn't be routed before a morning one.
+5. **A full walk-through of time blocks and the hours check.** The six time blocks, meals with no type, and the four-result hours check (section 8) were settled without running a whole trip through them. Walk both examples in 3.1, San Francisco and Moab, from laying out the days to a finished itinerary. Look for holes like question 4.
+6. **A full object model.** Section 3 describes entities and value objects in prose, and properties keep getting added piecemeal, such as the stop's approval and the stay's weather text. Write a proper model: each object's properties, the methods or rules on it, and how it's stored. A class diagram would give new properties a clear home.

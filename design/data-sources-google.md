@@ -28,10 +28,10 @@ This document covers the Google Maps Platform APIs the app uses: Routes, Places,
 | Job | API | Request | Notes |
 |---|---|---|---|
 | Drive time and distance for each leg | Routes | `computeRoutes` with the stays as `intermediates` | Returns time and distance for every leg |
-| Route with scenic waypoints | Routes | Same, with waypoints the agent picks | `routeModifiers.avoidHighways` is also worth offering. It kept San Francisco to Los Angeles on CA-1 |
-| Best order for a loop | Routes | `computeRoutes` with `optimizeWaypointOrder: true` | Returns the new order in `optimizedIntermediateWaypointIndex`, with per-leg times |
+| Route with scenic waypoints | Routes | Same, with waypoints the agent picks, each as a place ID | Don't use `routeModifiers.avoidHighways` as a scenic setting (2.4) |
+| Best order for a loop | Routes | `computeRoutes` with `optimizeWaypointOrder: true` | Returns the new order in `optimizedIntermediateWaypointIndex`, with per-leg times. Fails if any intermediate is a pass-through waypoint (`via: true`): "Waypoint optimization does not support via waypoint" |
 | Route line for the map | Routes | `computeRoutes` with `routes.polyline.encodedPolyline` in the field list | Goes to the UI, never to the model (2.3) |
-| Look up a place the user names | Places | Text Search with the name and town, such as "Smitty's Market, Lockhart, TX" | |
+| Look up a named place | Places | Text Search with the name plus where to search, such as "Smitty's Market, Lockhart, TX" | Ask for hours and ratings too, so a place the user names can go through the opening-hours check |
 | Map pin for a place found by web search | Places | Text Search with the name and town, or with the street address if that finds no match | Use only `location`. Don't use its hours ([web search](data-sources-web-search.md), section 4) |
 | Places by type near a stay | Places | Text Search, such as "barbecue in Lockhart, TX" | Up to 20 places per call (`pageSize`), ranked by relevance, not distance |
 | Places along a leg | Places | Text Search with `searchAlongRouteParameters.polyline` and `routingParameters.origin` | Add `routingSummaries` to the field list to get each place's drive time from the start of the leg |
@@ -70,7 +70,8 @@ This document covers the Google Maps Platform APIs the app uses: Routes, Places,
 | Places | Along-leg search can miss well-known stops. On the Big Sur leg it missed Piedras Blancas Light Station and found only a sign for Hearst Castle | Run more than one query per leg, such as "tourist attraction" and "scenic viewpoint" |
 | Places | One detour time was clearly wrong: a viewpoint on CA-1 came out at 35 minutes | Treat detour time as a hint |
 | Places | Places with very few reviews rate highly, such as 5.0★ from 1 review | The agent weighs review count, not rating alone |
-| Routes | No true scenic route option | The agent picks scenic waypoints, and can try `avoidHighways` |
+| Routes | No true scenic route option. `avoidHighways` failed as one: Monterey to San Luis Obispo stayed on US-101, Denver to Moab went from 5h28m to 8h13m, and Moab to Torrey used old back roads such as the TransAmerica Trail | The agent picks scenic waypoints. Route type is only a label (tool design 2.4) |
+| Routes | A plain-name waypoint can resolve far away with no error. "Dewey Bridge, UT" resolved to Salt Lake City, and the route grew from 2 hours to 8 | Waypoints on legs are place IDs. Where plain names are allowed, return what each resolved to |
 
 ---
 
@@ -121,7 +122,8 @@ The itinerary map (spec 9.2) uses the Maps JavaScript API.
 - **The fields and options in each request set its price level.** Asking for `rating` makes a Text Search an Enterprise call. Asking for a summary makes it Enterprise + Atmosphere.
 - **The tightest limit is 1,000 rated place searches a month.** At about 30 searches per test trip, that covers about 30 trips.
 - **The account is on Google Cloud's free trial:** $300 of credit for 90 days. Google doesn't charge until the account is upgraded, so the trial is a hard stop.
-- **The tools enforce a daily call limit per API.** Google's console doesn't offer a usable daily cap for these APIs, and budgets only send alerts. The tools count calls per API per day and refuse calls past the limit, with an error the agent can explain. The limits are settings, not fixed numbers. For scale, 1,000 free rated place searches a month is about 33 a day, or about one test trip.
+- **There is no daily call cap, for now.** Google's console doesn't offer a usable daily cap for these APIs, and a cap in our tools would need a stored count, since the app runs in a container that can restart at any time. The risk is accepted: a runaway agent could use up a lot of the credit quickly. A budget alert is set at $100. If it fires, revisit a cap. Until then, watch actual usage and adjust.
+- **The number of searches per trip drives the cost,** not the fields asked for. Asking for hours adds 0.3¢ a call. At about 30 searches per test trip, a trip costs about $1.20 past the free calls.
 - **Billing data lags.** Google's billing dashboard can take up to 48 hours to show usage.
 
 ---

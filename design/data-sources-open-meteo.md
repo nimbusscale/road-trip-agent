@@ -20,12 +20,12 @@ This document covers the Open-Meteo Historical Weather API. The app uses it for 
 ### 2.1 Input
 
 - **Coordinates of the stay.** Use the stay's own coordinates, or an attraction's when it is far from the stay, such as Tuolumne Meadows on a Yosemite stay. Open-Meteo adjusts for the elevation of the exact point. Tuolumne came out 22 °F colder than Yosemite Valley, 15 miles away.
-- **Dates.** Either exact dates for the stay, or a month when the user gave only a window, such as "sometime in May".
+- **Dates.** The stay's dates. The weather worker runs only once the itinerary has a start date (technical spec 6.3).
 
 ### 2.2 Requests
 
 - **One request per year for the last 10 complete years.** For a trip in 2026, that is 2016 to 2025.
-- **Each request covers the stay's dates plus 7 days on each side.** For a stay on October 10 to 12, each year's request covers October 3 to 19. For a month, it covers that calendar month.
+- **Each request covers the stay's dates plus 7 days on each side.** For a stay on October 10 to 12, each year's request covers October 3 to 19.
 - **Parameters:**
   ```
   latitude=38.5733&longitude=-109.5498

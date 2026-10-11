@@ -34,7 +34,7 @@ Web search is Claude's built-in `WebSearch` and `WebFetch` ([web search design](
 
 ### 2.1 Trip
 
-The coordinator's tools for the trip brief and itinerary, plus the workers' tools for adding candidates.
+The coordinator's tools for the trip brief and itinerary, plus the workers' tools for adding candidates and saving weather text.
 
 **Reading:**
 
@@ -56,11 +56,11 @@ The coordinator's tools for the trip brief and itinerary, plus the workers' tool
 | `add_stop` | Adds an empty stop to a day | Day ID, the stop it goes after or "first", kind (meal or attraction), and time block. Meals also take a tier and the rule that produced it |
 | `update_stop` | Changes a stop, or moves it, including to another day | Stop ID, and any of: kind, time block, tier and rule, approval to keep it despite its opening hours and the reason, and a move. A move takes a day ID and the stop it goes after or "first". A moved stop keeps its candidates and selection. The legs of the day it left and the day it joined are both re-routed. An approval without a reason is rejected |
 | `remove_stop` | Removes a stop and its candidates | Stop ID |
-| `update_leg` | Changes a day's leg. Properties not given are left alone, and an empty value clears one. Rejects a day with no leg, such as a rest day | Day ID, and any of: route type (scenic or fastest), waypoints, approved drive hours, approved route type, and the reason for an approval. An approved value without a reason is rejected |
+| `update_leg` | Changes a day's leg. Properties not given are left alone, and an empty value clears one. Rejects a day with no leg, such as a rest day | Day ID, and any of: route type (scenic or fastest), waypoints as place IDs, approved drive hours, approved route type, and the reason for an approval. An approved value without a reason is rejected |
 | `select_candidate` | Selects one of a stop's or a stay's candidates | Stop or stay ID, and a place ID. A place that isn't already a candidate there is rejected, and the error says to use `select_user_place` |
 | `select_user_place` | Selects a place the user specified, such as a friend's house. Adds it as a candidate in a new set of one, marked "specified by the user," then selects it (technical spec 3.2) | Stop or stay ID, place ID, name, type, and the user's reason. Attraction stops also take a visit time. A place that's already a candidate there is rejected, and the error says to use `select_candidate` |
 | `clear_selection` | Clears the selected place from a stop or a stay's lodging. Its candidates stay, so its status goes back to proposed (technical spec 3.2). The legs it affects are re-routed (technical spec 3.5) | Stop or stay ID |
-| `set_stay_weather` | Saves a stay's weather and clothing text from the weather worker | Stay ID, the text, and whether it is a forecast or seasonal averages. The tool records the stay's current place and dates with it, so later changes can mark it out of date (technical spec 3.5) |
+| `set_stay_weather` | Saves a stay's weather and clothing text. Called by the weather worker, not the coordinator | Stay ID, the text, and whether it is a forecast or seasonal averages. The tool records the stay's current place and dates with it, so later changes can mark it out of date (technical spec 3.5) |
 
 **There are no tools to add or remove days.** Days follow from stays' nights, and the last day is created with the itinerary (technical spec 3.1).
 
@@ -108,10 +108,16 @@ Every search saves its results as places in the trip's data and returns their ID
 
 | Tool | Does | Takes | Returns |
 |---|---|---|---|
-| `find_place` | Finds a named place: a town, a must-see, an address, a place the user names, or a place a worker found by web search | Text, and an optional point to search near | The best few matches, each with place ID, name, and short line |
+| `find_place` | Finds a named place: a town, a must-see, an address, a place the user names, or a place a worker found by web search | Text, and where to search: a town, region, or state. When unsure, the state | The best few matches, each with place ID, name, address, and type |
 | `read_place` | Reads a place's full record | Place ID | Everything stored: hours, coordinates, rating, summary, links |
-| `search_near` | Finds hotels, restaurants, or attractions near a point | A place ID or coordinates, what to look for, and an optional price level | Matches with the details the worker needs to choose: rating, review count, price level, hours, summary, links |
-| `search_along_leg` | Finds places along a day's route | Day ID and what to look for | The same details as `search_near`, plus a rough detour time for each |
+| `search_near` | Finds hotels, restaurants, or attractions near a stay | A stop or stay ID from the worker brief, and what to look for | Matches with the details the worker needs to choose: rating, review count, price level, hours on the stop's or stay's dates, summary, links |
+| `search_along_leg` | Finds places along a day's route | Day ID and what to look for | The same details as `search_near`, plus a rough detour time for each. Places within a few miles of either end are dropped, and the rest are sorted by position along the route ([Google design](data-sources-google.md), 2.3 and 2.4). The few miles is a setting |
+
+**`find_place` adds where to search to the text,** as in "McDonald's, Salinas, CA." That keeps a lookup from returning matches from anywhere. It asks Google for hours and ratings as well as the basics, so a place the user names, such as "dinner at the Whaling Station," can go through the opening-hours check. Each match's address shows the agent whether it found the right place. For a place found by web search, only Google's location is used, not its hours or rating ([web search design](data-sources-web-search.md), section 4).
+
+**`search_near` finds the point and the dates itself,** from the stop or stay. The point is the stay's lodging if one is selected, or the stay's town if not. For a stop, it's the stay of the stop's day. How far counts as near is a setting. To search somewhere farther, the worker names it in the query, such as "restaurants in Tuolumne Meadows." Hours come back for the stop's or stay's dates only, such as "Sat Oct 10: 11 AM–9 PM. Sun Oct 11: closed." If the itinerary has no dates yet, they come back for the whole week.
+
+**There is no price level input.** Results show each restaurant's price level, and the worker judges the tier from it, as it does for hotels from their summaries. A price filter would likely drop places with no price level listed (not tested).
 
 **`search_along_leg` reads the route line itself,** from the day's leg in the trip. The route line is large, so it never passes through the leg scout's context.
 
@@ -119,9 +125,17 @@ Every search saves its results as places in the trip's data and returns their ID
 
 | Tool | Does | Takes | Returns |
 |---|---|---|---|
-| `compute_route` | Works out a rough route for the coordinator's checks, such as a shape sketch (technical spec 4.2) | Points in order, as place IDs or plain names. Optional: route type, waypoints, and putting the middle points in the best order | Drive time and distance from each point to the next, and in total, and the order used. The route line goes to the UI, not to the model (technical spec 5.1) |
+| `compute_route` | Works out a rough route for the coordinator's planning, such as a shape sketch (technical spec 4.2). One call can cover the whole trip | Points in order, as place IDs or plain names. Route type, scenic or fastest. Waypoints, which can be an empty list. Order: "keep" or "fastest" | Drive time and distance from each point to the next, and in total. The order used. The place each plain name resolved to. No route line |
 
-Plain names are allowed so a sketch doesn't need a lookup for every town. Routes on the itinerary's legs are computed and stored by the `trip` tools when a write changes them, not with this tool (technical spec 3.4).
+**Points are where the party stops,** usually towns that might become stays. **Waypoints** are places the road must pass through without stopping, to steer the route.
+
+**Order "fastest" lets Google rearrange the middle points** into the fastest driving order. The first and last points stay where they are. "Keep" leaves them as given. Google can't rearrange points and steer through waypoints in one call, so "fastest" with waypoints is rejected with an error that says so. To get both, call once with "fastest", then again with "keep" and the waypoints.
+
+**Plain names are allowed** so a sketch doesn't need a lookup for every town. A name can resolve somewhere unexpected without any error. In testing, "Dewey Bridge, UT" resolved to Salt Lake City. So the tool returns the place each name resolved to, and the coordinator can spot a bad match. Waypoints on the itinerary's legs are always place IDs (technical spec 3.3).
+
+**Route type is a label.** It changes nothing in the call to Google. A route is made scenic with waypoints, or with stops that already pull it onto the scenic road (technical spec 3.3).
+
+Routes on the itinerary's legs are computed and stored by the `trip` tools when a write changes them, one day at a time, not with this tool (technical spec 3.4).
 
 ### 2.5 Weather
 
@@ -129,8 +143,11 @@ Weather worker only.
 
 | Tool | Does | Takes | Returns |
 |---|---|---|---|
-| `forecast` | Daily forecast | A place ID and dates within the next 7 days | Daily highs, lows, conditions, and chances of rain and thunderstorms ([Google design](data-sources-google.md), section 3) |
-| `seasonal_averages` | Typical weather for the dates | A place ID and dates | Average highs and lows, chances of rain and snow, and shares of hot days and freezing nights, labeled as typical for the dates ([Open-Meteo design](data-sources-open-meteo.md), 2.3) |
+| `stay_weather` | Weather for a stay's dates | Stay ID, and a place ID: the stay's town, or an attraction far from it, such as Tuolumne Meadows on a Yosemite stay | A daily forecast if every one of the stay's dates is within 7 days: highs, lows, conditions, and chances of rain and thunderstorms ([Google design](data-sources-google.md), section 3). Seasonal averages otherwise: average highs and lows, chances of rain and snow, and shares of hot days and freezing nights ([Open-Meteo design](data-sources-open-meteo.md), 2.3). Labeled with which one it is |
+
+**Code picks the source, not the worker.** The dates come from the stay, so the worker can't ask for a forecast too far out. The weather worker runs only once the itinerary has a start date.
+
+**The weather worker saves its own text** with `set_stay_weather` (2.1), and returns one line per stay to the coordinator.
 
 ---
 
@@ -138,21 +155,42 @@ Weather worker only.
 
 | Tool | Coordinator | Stay researcher | Leg scout | Weather and clothing worker |
 |---|---|---|---|---|
-| `trip`: both reads, and the trip brief and itinerary writes (2.1) | Yes | | | |
-| `trip`: `add_stay_candidates`, `add_nearby_stop_candidates` | | Yes | | |
+| `trip`: `read_trip_brief` | Yes | | | |
+| `trip`: `read_itinerary` | Yes | | | |
+| `trip`: `update_trip_brief` | Yes | | | |
+| `trip`: `update_itinerary` | Yes | | | |
+| `trip`: `add_stay` | Yes | | | |
+| `trip`: `update_stay` | Yes | | | |
+| `trip`: `remove_stay` | Yes | | | |
+| `trip`: `set_rest_day` | Yes | | | |
+| `trip`: `add_stop` | Yes | | | |
+| `trip`: `update_stop` | Yes | | | |
+| `trip`: `remove_stop` | Yes | | | |
+| `trip`: `update_leg` | Yes | | | |
+| `trip`: `select_candidate` | Yes | | | |
+| `trip`: `select_user_place` | Yes | | | |
+| `trip`: `clear_selection` | Yes | | | |
+| `trip`: `set_stay_weather` | | | | Yes |
+| `trip`: `add_stay_candidates` | | Yes | | |
+| `trip`: `add_nearby_stop_candidates` | | Yes | | |
 | `trip`: `add_route_stop_candidates` | | | Yes | |
-| `memory`: all (2.2) | Yes | | | |
+| `memory`: `read_memory` | Yes | | | |
+| `memory`: `add_memory_item` | Yes | | | |
+| `memory`: `update_memory_item` | Yes | | | |
+| `memory`: `forget_memory_item` | Yes | | | |
 | `places`: `find_place` | Yes | Yes | Yes | |
 | `places`: `read_place` | Yes | | | |
 | `places`: `search_near` | | Yes | | |
 | `places`: `search_along_leg` | | | Yes | |
 | `routing`: `compute_route` | Yes | | | |
-| `weather`: all (2.5) | | | | Yes |
-| Built-in `WebSearch` | | Yes | Yes | |
+| `weather`: `stay_weather` | | | | Yes |
+| Built-in `WebSearch` | | Yes | Yes, Atlas Obscura only | |
 | Built-in `WebFetch` | | Yes | | |
 | Built-in `Agent`, to call workers | Yes | | | |
 
-The leg scout gets `WebSearch` only for Atlas Obscura, and Atlas Obscura blocks `WebFetch` ([web search design](data-sources-web-search.md), section 3). So the leg scout gets no `WebFetch`.
+That's 23 tools for the coordinator, counting `Agent`, 6 for the stay researcher, 4 for the leg scout, and 2 for the weather worker.
+
+The leg scout gets `WebSearch` only for Atlas Obscura, and a hook enforces it (section 4). Atlas Obscura blocks `WebFetch` ([web search design](data-sources-web-search.md), section 3), so the leg scout gets no `WebFetch`.
 
 ---
 
@@ -161,6 +199,7 @@ The leg scout gets `WebSearch` only for Atlas Obscura, and Atlas Obscura blocks 
 - **The trip comes from the session, never from a tool input.** Each session gets its own MCP server objects, made with the trip and user already set. They are small wrappers around shared tool code. One object can't be shared by two sessions running at once (tested: the second session silently got no tools). No tool takes a trip ID, so no agent can reach another trip, even with a made-up ID.
 - **Bad IDs are rejected** (technical spec 7.1). A stop, stay, day, or place that doesn't exist in this trip returns an error. So does selecting a place that isn't one of that stop's or stay's candidates. The tool never guesses.
 - **IDs are short and random, with a prefix for the kind of item,** such as `stop_k7m2x9qa` (technical spec 7.1). A worker only sees the IDs in its worker brief, and can't guess any others. So it can only add candidates to its own stops and stay, without the tools needing to know which worker is calling. An ID of the wrong kind, such as a stay ID passed to `update_stop`, gets an error that says so.
+- **The leg scout's web search is limited by a hook, not only by its instructions.** A PreToolUse hook, code our app runs before every tool call, sees which kind of agent is calling. It denies a leg scout's `WebSearch` unless the search is limited to `atlasobscura.com`, with a reason the leg scout can read.
 - **Errors are readable.** A failed call, a spent API limit, or a broken rule comes back as a message. The agent that called the tool can read it, and the coordinator can explain it to the user.
 - **The coordinator sees short lines, not full records** (technical spec 7.2). Only `read_place` returns a full record to the coordinator.
 
