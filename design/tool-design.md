@@ -54,9 +54,9 @@ The coordinator's tools for the trip brief and itinerary, plus the workers' tool
 | `remove_stay` | Removes a stay, its days, and their stops | Stay ID |
 | `set_rest_day` | Marks a day as a rest day, or not | Day ID, and rest day or not |
 | `add_stop` | Adds an empty stop to a day | Day ID, time block, the stop it goes after in that block or "first", and kind (meal or attraction). Meals also take a tier and the rule that produced it |
-| `update_stop` | Changes a stop, or moves it, including to another day | Stop ID, and any of: kind, tier and rule, approval to keep it despite its opening hours and the reason, and a move. A move takes a day ID, a time block, and the stop it goes after in that block or "first". Changing a stop's block is a move, even on the same day. A moved stop keeps its candidates and selection. The legs of the day it left and the day it joined are both re-routed. An approval without a reason is rejected |
+| `update_stop` | Changes a stop, or moves it, including to another day | Stop ID, and any of: kind, tier and rule, approve opening hours (a reason; the tool records the stop's current place, date, and time block), remove an approval (its kind), and a move. A move takes a day ID, a time block, and the stop it goes after in that block or "first". Changing a stop's block is a move, even on the same day. A moved stop keeps its candidates and selection. The legs of the day it left and the day it joined are both re-routed. An approval without a reason is rejected |
 | `remove_stop` | Removes a stop and its candidates | Stop ID |
-| `update_leg` | Changes a day's leg. Properties not given are left alone, and an empty value clears one. Rejects a day with no leg, such as a rest day. Code places the waypoints among the day's selected stops (technical spec 3.3) | Day ID, and any of: route type (scenic or fastest), waypoints as place IDs, approved drive hours, approved route type, and the reason for an approval. An approved value without a reason is rejected |
+| `update_leg` | Changes a day's leg. Properties not given are left alone, and an empty value clears one. Rejects a day with no leg, such as a rest day. Code places the waypoints among the day's selected stops (technical spec 3.3). Setting an approval replaces any of the same kind (technical spec section 8) | Day ID, and any of: waypoints as place IDs, approve drive hours (hours and a reason), approve route type (type and a reason), and remove an approval (its kind). An approval without a reason is rejected |
 | `select_candidate` | Selects one of a stop's or a stay's candidates | Stop or stay ID, and a place ID. A place that isn't already a candidate there is rejected, and the error says to use `select_user_place` |
 | `select_user_place` | Selects a place the user specified, such as a friend's house. Adds it as a candidate in a new set of one, marked "specified by the user," then selects it (technical spec 3.2) | Stop or stay ID, place ID, name, type, and the user's reason. Attraction stops also take a visit time. A place that's already a candidate there is rejected, and the error says to use `select_candidate` |
 | `clear_selection` | Clears the selected place from a stop or a stay's lodging. Its candidates stay, so its status goes back to proposed (technical spec 3.2). The legs it affects are re-routed (technical spec 3.5) | Stop or stay ID |
@@ -125,7 +125,7 @@ Every search saves its results as places in the trip's data and returns their ID
 
 | Tool | Does | Takes | Returns |
 |---|---|---|---|
-| `compute_route` | Works out a rough route for the coordinator's planning, such as a shape sketch (technical spec 4.2). One call can cover the whole trip | Points in order, each a place ID or a plain name, and each marked as a stop or as pass-through. Route type, scenic or fastest. Order: "keep" or "fastest" | Drive time and distance from each stop to the next, and in total. The order used. The place each plain name resolved to. No route line |
+| `compute_route` | Works out a rough route for the coordinator's planning, such as a shape sketch (technical spec 4.2). One call can cover the whole trip | Points in order, each a place ID or a plain name, and each marked as a stop or as pass-through. Order: "keep" or "fastest" | Drive time and distance from each stop to the next, and in total. The order used. The place each plain name resolved to. No route line |
 
 **A point is a stop or a pass-through point.** Stops are where the party stops, usually towns that might become stays. Pass-through points are waypoints: places the road must pass through without stopping, to steer the route. They go in the same list, where the coordinator wants them. Example: Grand Junction (stop), Dewey Bridge (pass-through), Moab (stop). A pass-through point doesn't split the times. Grand Junction to Moab comes back as one drive time, through Dewey Bridge.
 
@@ -135,7 +135,7 @@ Every search saves its results as places in the trip's data and returns their ID
 
 **Plain names are allowed** so a sketch doesn't need a lookup for every town. A name can resolve somewhere unexpected without any error. In testing, "Dewey Bridge, UT" resolved to Salt Lake City. So the tool returns the place each name resolved to, and the coordinator can spot a bad match. Waypoints on the itinerary's legs are always place IDs (technical spec 3.3).
 
-**Route type is a label.** It changes nothing in the call to Google. A route is made scenic with waypoints, or with stops that already pull it onto the scenic road (technical spec 3.3).
+**There is no route type input.** It would change nothing in the call to Google. A route is made scenic with waypoints, or with stops that already pull it onto the scenic road (technical spec 3.3).
 
 Routes on the itinerary's legs are computed and stored by the `trip` tools when a write changes them, one day at a time, not with this tool (technical spec 3.4).
 
