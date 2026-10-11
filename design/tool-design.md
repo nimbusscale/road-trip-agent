@@ -125,11 +125,13 @@ Every search saves its results as places in the trip's data and returns their ID
 
 | Tool | Does | Takes | Returns |
 |---|---|---|---|
-| `compute_route` | Works out a rough route for the coordinator's planning, such as a shape sketch (technical spec 4.2). One call can cover the whole trip | Points in order, as place IDs or plain names. Route type, scenic or fastest. Waypoints, which can be an empty list. Order: "keep" or "fastest" | Drive time and distance from each point to the next, and in total. The order used. The place each plain name resolved to. No route line |
+| `compute_route` | Works out a rough route for the coordinator's planning, such as a shape sketch (technical spec 4.2). One call can cover the whole trip | Points in order, each a place ID or a plain name, and each marked as a stop or as pass-through. Route type, scenic or fastest. Order: "keep" or "fastest" | Drive time and distance from each stop to the next, and in total. The order used. The place each plain name resolved to. No route line |
 
-**Points are where the party stops,** usually towns that might become stays. **Waypoints** are places the road must pass through without stopping, to steer the route.
+**A point is a stop or a pass-through point.** Stops are where the party stops, usually towns that might become stays. Pass-through points are waypoints: places the road must pass through without stopping, to steer the route. They go in the same list, where the coordinator wants them. Example: Grand Junction (stop), Dewey Bridge (pass-through), Moab (stop). A pass-through point doesn't split the times. Grand Junction to Moab comes back as one drive time, through Dewey Bridge.
 
-**Order "fastest" lets Google rearrange the middle points** into the fastest driving order. The first and last points stay where they are. "Keep" leaves them as given. Google can't rearrange points and steer through waypoints in one call, so "fastest" with waypoints is rejected with an error that says so. To get both, call once with "fastest", then again with "keep" and the waypoints.
+**The coordinator places waypoints here, but code places them on a leg** (technical spec 3.3). A leg's stops change after its waypoints are set, so a waypoint placed by hand could end up next to the wrong stop. A `compute_route` call is one-off, so its order can't go stale.
+
+**Order "fastest" lets Google rearrange the middle stops** into the fastest driving order. The first and last stay where they are. "Keep" leaves them as given. Google can't rearrange stops and steer through waypoints in one call, so "fastest" with any pass-through point is rejected with an error that says so. To get both, call once with "fastest", then again with "keep" and the pass-through points added.
 
 **Plain names are allowed** so a sketch doesn't need a lookup for every town. A name can resolve somewhere unexpected without any error. In testing, "Dewey Bridge, UT" resolved to Salt Lake City. So the tool returns the place each name resolved to, and the coordinator can spot a bad match. Waypoints on the itinerary's legs are always place IDs (technical spec 3.3).
 
