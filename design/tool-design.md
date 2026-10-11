@@ -41,7 +41,7 @@ The coordinator's tools for the trip brief and itinerary, plus the workers' tool
 | Tool | Does | Returns |
 |---|---|---|
 | `read_trip_brief` | Reads the trip brief | Every item in functional spec 5.2 |
-| `read_itinerary` | Reads the whole itinerary | Start and end places, start date, stays with their nights, and days with their dates, stops, and legs. For each stop and stay: its selected place, if any, and every candidate ever offered, in the order offered, each with its set number. Each place is shown as its name and short line (technical spec 7.2). Current feasibility results |
+| `read_itinerary` | Reads the whole itinerary | Start and end places, start date, stays with their nights, and days with their dates, stops, and legs. For each stop and stay: its selected place, if any, and every candidate ever offered, in the order offered, each with its set number. Each place is shown as its name and short line (technical spec 7.2). Each stay's weather and clothing text, marked out of date when the stay's place or dates no longer match the ones it was written for. Current feasibility results |
 
 **Writing.** Every write returns the feasibility results (technical spec, section 8). It also makes the follow-on changes itself, such as re-routing legs or adding days (technical spec 3.5):
 
@@ -57,9 +57,9 @@ The coordinator's tools for the trip brief and itinerary, plus the workers' tool
 | `update_stop` | Changes a stop, or moves it, including to another day | Stop ID, and any of: kind, time block, tier and rule, approval to keep it despite its opening hours and the reason, and a move. A move takes a day ID and the stop it goes after or "first". A moved stop keeps its candidates and selection. The legs of the day it left and the day it joined are both re-routed. An approval without a reason is rejected |
 | `remove_stop` | Removes a stop and its candidates | Stop ID |
 | `update_leg` | Changes a day's leg. Properties not given are left alone, and an empty value clears one. Rejects a day with no leg, such as a rest day | Day ID, and any of: route type (scenic or fastest), waypoints, approved drive hours, approved route type, and the reason for an approval. An approved value without a reason is rejected |
-| `select_place` | Selects a candidate for a stop or a stay's lodging | Stop or stay ID, and a place ID that is one of its candidates. For a place the user named, a place ID and the user's reason. The tool adds it as a candidate in a new set of one, then selects it (technical spec 3.2) |
-| `clear_selection` | Clears the selected place from a stop or a stay's lodging | Stop or stay ID |
-| `set_stay_weather` | Saves a stay's weather and clothing text from the weather worker | Stay ID, the text, and whether it is a forecast or seasonal averages |
+| `select_place` | Selects a place for a stop or a stay's lodging | Stop or stay ID, and a place ID. If the place is already one of its candidates, the tool selects it. If not, the user specified it, and the call also takes the user's reason and, for an attraction, a visit time. The tool adds it as a candidate in a new set of one, marked "specified by the user," then selects it (technical spec 3.2). A place that isn't a candidate, given without a reason, is rejected. So is an attraction without a visit time |
+| `clear_selection` | Clears the selected place from a stop or a stay's lodging. Its candidates stay, so its status goes back to proposed (technical spec 3.2). The legs it affects are re-routed (technical spec 3.5) | Stop or stay ID |
+| `set_stay_weather` | Saves a stay's weather and clothing text from the weather worker | Stay ID, the text, and whether it is a forecast or seasonal averages. The tool records the stay's current place and dates with it, so later changes can mark it out of date (technical spec 3.5) |
 
 **There are no tools to add or remove days.** Days follow from stays' nights, and the last day is created with the itinerary (technical spec 3.1).
 
