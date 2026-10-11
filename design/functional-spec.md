@@ -98,8 +98,7 @@ The trip brief holds the items below. The agent establishes each one, whether or
 | Item | Required | Notes |
 |---|---|---|
 | Region, route, or theme | Yes | |
-| Start and end points | Yes | One-way or loop. Agent suggests if the user has no preference |
-| Dates | Yes | Exact dates, a window ("sometime in May"), or duration only. Maximum 14 days. No limit on how far ahead |
+| Trip length | Yes | Number of days. Maximum 14 days |
 | Party | Yes | Number of adults and who they are ("my wife and me", "us plus another couple"). Defaults from user memory; can differ per trip |
 | Interests and must-sees | Yes | Includes why they matter to the user. Asked even when the user gives a precise route |
 | Max driving hours per day | Yes | Expressed in hours, not miles. A default for the trip, not a hard limit. A day can go over it when the user agrees |
@@ -107,6 +106,8 @@ The trip brief holds the items below. The agent establishes each one, whether or
 | Rest days | No | Days with no driving |
 | Budget posture | Yes | Default tier plus any rules (section 7.1) |
 | Meal preferences | Yes | Hotel breakfast vs local food scene, cuisines, food interests |
+
+Discovery also settles the start and end points (one-way or loop, and the agent suggests them if the user has no preference) and an exact start date, with no limit on how far ahead. These go in the itinerary, not the trip brief. The trip brief holds what the user wants. The itinerary holds the plan. No fact is kept in both. The user must give a start date before the agent builds the skeleton. Planning without dates is out of the MVP.
 
 ### 5.3 Planning activities
 
@@ -116,7 +117,7 @@ Planning a trip involves the activities below. They are not steps in a fixed ord
 |---|---|
 | Discovery | The agent establishes the items in 5.2. It asks a few questions at a time, and doesn't hold back a first proposal until every item is answered |
 | Shape | When the route is open, two or three short sketches of the trip to choose from. Each has a name, the rough path, and a few sentences on why someone would pick it. Not offered when the user gives a fixed route |
-| Skeleton | Start, end, stays, nights per stay, legs with drive times, and recommended dates if only a window was given |
+| Skeleton | Start, end, stays, nights per stay, and legs with drive times |
 | Feasibility | The checks in section 6, with conflicts resolved with the user |
 | Fill | Lodging, attractions, and dining for each stay and day, through option cards |
 | Weather and clothing | Section 8 |
@@ -139,10 +140,9 @@ After any change, the agent re-checks feasibility for the affected days.
 
 - **Daily driving:** each driving day's road time fits within the user's max hours, unless the user has agreed to a longer day. **Assumption:** the agent adds a buffer for fuel, meals, and short stops rather than treating max hours as pure road time.
 - **Must-sees vs days:** all must-sees fit within the trip, given drive time and time needed at each.
-- **Seasonality:** attractions closed off-season, and operating days and hours that conflict with the scheduled time block. Seasonal road closures are out of scope.
+- **Opening hours:** operating days and hours that conflict with the scheduled time block. Code checks weekly hours only. Attractions closed off-season are left to the agent's judgment in the MVP. Seasonal road closures are out of scope.
 - **Seasonal risks:** for example, hurricane season, extreme heat, or snow.
-- **Date windows:** when the user gives a window, the agent recommends specific dates within it, considering the checks above.
-- **Trip length:** the trip is 14 days or fewer. When the user asks for more, the agent explains the limit and proposes a 14-day version (fewer stays, or a shorter route).
+- **Trip length:** the itinerary has the number of days the user asked for. A different number is a warning. The trip is 14 days or fewer. When the user asks for more, the agent explains the limit and proposes a 14-day version (fewer stays, or a shorter route).
 
 ### 6.2 When a plan is infeasible
 
@@ -232,7 +232,7 @@ Displayed alongside the chat. Read-only: only the agent changes it, in response 
 
 ### 9.1 Trip summary
 
-Trip name, dates or duration, start and end, party, total driving time, number of stays, default budget posture and rules.
+Trip name, dates, start and end, party, total driving time, number of stays, default budget posture and rules.
 
 ### 9.2 Map
 
@@ -314,7 +314,7 @@ The agent uses user memory to prefill section 5.2 and confirms rather than re-as
 
 **S3. Infeasible plan.** User wants Seattle to Miami in five days at four hours of driving per day. The agent states the shortfall and offers trade-offs.
 
-**S4. Seasonal conflict.** User wants a trip "sometime in January" that includes an attraction open only in summer. The agent flags that the attraction is typically closed then and proposes later dates or a substitute.
+**S4. Seasonal conflict.** User plans a trip starting January 15 that includes an attraction open only in summer. The agent flags that the attraction is typically closed then and proposes later dates or a substitute. In the MVP this comes from the agent's judgment, not a code check (technical spec section 8).
 
 **S5. Differentiated tiers.** User sets value as the default and mid-range for any stay of two or more nights. Hotel cards for one-night stays show value options; cards for longer stays show mid-range, with the applied rule visible.
 

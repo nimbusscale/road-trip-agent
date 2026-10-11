@@ -44,13 +44,13 @@ This document covers the Google Maps Platform APIs the app uses: Routes, Places,
 | Name, type, location | `displayName`, `primaryType`, `formattedAddress`, `location` |
 | Rating and review count | `rating`, `userRatingCount`. Shown for restaurants and hotels. For attractions, only where a rating means something (spec 7.5) |
 | Tier signal (spec 7.1) | `priceLevel` and `priceRange` for restaurants. Hotels don't have them, so the agent judges hotel tiers from the summaries |
-| Hours, for notes and feasibility checks | `regularOpeningHours.weekdayDescriptions` |
+| Hours, for notes and feasibility checks | `regularOpeningHours`: `periods` for the checks, `weekdayDescriptions` for notes. `periods` gives each opening and closing as a day and a time, so hours past midnight are clear. Both come in the same field, at the Enterprise price |
 | Source link | `googleMapsUri`. The reviews link is inside `reviewSummary` |
 | Text for the "why" and notes | `editorialSummary`, `generativeSummary`, `reviewSummary` |
 
 - **`reviewSummary` is the only field that mentions downsides,** such as "Some reviews mention the food can be dry."
 - **Any field can be missing.** In Lockhart, only 3 of 7 restaurants had an `editorialSummary`. Small motels often have no summaries at all.
-- **Hours are a normal week only.** There are no seasonal hours. Hearst Castle shows 8 AM to 6 PM every day.
+- **Hours are a normal week only.** There are no seasonal hours. Hearst Castle shows 8 AM to 6 PM every day. Seasonal closures aren't checked in code in the MVP (technical spec section 8).
 
 ### 2.3 Tool rules
 

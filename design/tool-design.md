@@ -49,7 +49,7 @@ The coordinator's tools for the trip brief and itinerary, plus the workers' tool
 |---|---|---|
 | `update_trip_brief` | Changes one or more items in the trip brief. Items not given are left alone. An item that holds a list, such as must-sees, is replaced as a whole | The items and their new values |
 | `update_itinerary` | Changes the itinerary's own properties. Properties not given are left alone | Any of: start place ID, end place ID, start date. For a loop, the start and end are the same place |
-| `add_stay` | Adds a stay, and one day for each of its nights | Place ID (usually a town), the stay it goes after or "first", and number of nights. Optional: lodging tier and the rule that produced it |
+| `add_stay` | Adds a stay, and one day for each of its nights | Place ID (usually a town), the stay it goes after or "first", and number of nights. Optional: lodging tier and the rule that produced it. Rejected until the itinerary has a start date, start place, and end place (technical spec 4.2) |
 | `update_stay` | Changes a stay | Stay ID, and any of: a new place ID, the stay it now goes after or "first", number of nights, lodging tier and rule. Changing the nights adds or removes days at the end of the stay's days |
 | `remove_stay` | Removes a stay, its days, and their stops | Stay ID |
 | `set_rest_day` | Marks a day as a rest day, or not | Day ID, and rest day or not |
@@ -120,7 +120,7 @@ Every search saves its results as places in the trip's data and returns their ID
 
 **`find_place` adds where to search to the text,** as in "McDonald's, Salinas, CA." That keeps a lookup from returning matches from anywhere. It asks Google for hours and ratings as well as the basics, so a place the user names, such as "dinner at the Whaling Station," can go through the opening-hours check. Each match's address shows the agent whether it found the right place. For a place found by web search, only Google's location is used, not its hours or rating ([web search design](data-sources-web-search.md), section 4).
 
-**`search_near` finds the point and the dates itself,** from the stop or stay. The point is the stay's lodging if one is selected, or the stay's town if not. For a stop, it's the stay in the stop's search area. A stop along the leg is rejected, and the error says to use `search_along_leg`. How far counts as near is a setting. To search somewhere farther, the worker names it in the query, such as "restaurants in Tuolumne Meadows." Hours come back for the stop's or stay's dates only, such as "Sat Oct 10: 11 AM–9 PM. Sun Oct 11: closed." If the itinerary has no dates yet, they come back for the whole week.
+**`search_near` finds the point and the dates itself,** from the stop or stay. The point is the stay's lodging if one is selected, or the stay's town if not. For a stop, it's the stay in the stop's search area. A stop along the leg is rejected, and the error says to use `search_along_leg`. How far counts as near is a setting. To search somewhere farther, the worker names it in the query, such as "restaurants in Tuolumne Meadows." Hours come back for the stop's or stay's dates only, such as "Sat Oct 10: 11 AM–9 PM. Sun Oct 11: closed."
 
 **There is no price level input.** Results show each restaurant's price level, and the worker judges the tier from it, as it does for hotels from their summaries. A price filter would likely drop places with no price level listed (not tested).
 
@@ -152,7 +152,7 @@ Weather worker only.
 |---|---|---|---|
 | `stay_weather` | Weather for a stay's dates | Stay ID, and a place ID: the stay's town, or an attraction far from it, such as Tuolumne Meadows on a Yosemite stay | A daily forecast if every one of the stay's dates is within 7 days: highs, lows, conditions, and chances of rain and thunderstorms ([Google design](data-sources-google.md), section 3). Seasonal averages otherwise: average highs and lows, chances of rain and snow, and shares of hot days and freezing nights ([Open-Meteo design](data-sources-open-meteo.md), 2.3). Labeled with which one it is |
 
-**Code picks the source, not the worker.** The dates come from the stay, so the worker can't ask for a forecast too far out. The weather worker runs only once the itinerary has a start date.
+**Code picks the source, not the worker.** The dates come from the stay, so the worker can't ask for a forecast too far out.
 
 **The weather worker saves its own text** with `set_stay_weather` (2.1), and returns one line per stay to the coordinator.
 
