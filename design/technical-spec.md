@@ -167,7 +167,7 @@ Itinerary
         drive time  computed with no stops
 ```
 
-The Monterey stay exists once, but two days use it: Day 1 sleeps there, and Day 2 starts from it. Neither leg stores Monterey. Stop 7 is a hotel used as a stop. Meals have no type: Nepenthe is a meal in the afternoon block, and the cake at the Madonna Inn is a meal in the night block. Day 2's waypoint keeps the route on the coast during the fill, when the leg scout searches along it and no stops are selected yet. Day 3 differs from the trip's scenic default, so it holds an approved route type with the user's reason.
+The Monterey stay exists once, but two days use it: Day 1 sleeps there, and Day 2 starts from it. Neither leg stores Monterey. Stop 7 is a hotel used as a stop. Meals have no type: Nepenthe is a meal in the afternoon block, and the cake at the Madonna Inn is a meal in the night block. Day 2's waypoint keeps the route on the coast during the fill, when the leg scout searches along it and no stops are selected yet. It stays once stops are selected. Code places it among them, between Bixby Creek Bridge and Nepenthe, where it changes nothing (3.3). Day 3 differs from the trip's scenic default, so it holds an approved route type with the user's reason.
 
 **Example: a three-night stay with a rest day.** Moab, between Grand Junction and Torrey.
 
@@ -292,7 +292,7 @@ A **leg** is the drive on one day. It is a value object held by its day, not an 
 |---|---|---|
 | From | Worked out: where the party slept the night before, or the start place | No |
 | To | Worked out: where the party sleeps that night, or the end place | No |
-| Drive time, distance, and route line | Computed by code with Google Routes, through the day's selected stops in the day's order (3.1) | Yes |
+| Drive time, distance, and route line | Computed by code with Google Routes, through the day's selected stops in the day's order, with the leg's waypoints placed among them (3.1) | Yes |
 | Route type (scenic or fastest) and waypoints | Set by the coordinator | Yes |
 | Approved exceptions | Set by the coordinator when the user agrees (section 8) | Yes |
 
@@ -300,7 +300,7 @@ A **leg** is the drive on one day. It is a value object held by its day, not an 
 
 **Where the party sleeps is the stay's lodging once one is selected, and the stay's place until then.** That place is usually a town, and a town is a place like any other. Before a hotel is picked, the leg routes to the town. When one is picked, the leg is re-routed to it. For most towns this barely changes the drive time. In a big city it can: a hotel in Santa Monica and one in Pasadena are far apart.
 
-**A waypoint is a point the route must pass through, without stopping.** The coordinator adds waypoints to steer a scenic route. Example: the fastest route from Monterey to San Luis Obispo runs inland on US-101. To keep it on Highway 1 through Big Sur, the coordinator adds a waypoint at Big Sur village. When a day already has stops on Highway 1, they pull the route onto the coast themselves, and no waypoint is needed.
+**A waypoint is a point the route must pass through, without stopping.** The coordinator adds waypoints to steer a scenic route. Example: the fastest route from Monterey to San Luis Obispo runs inland on US-101. To keep it on Highway 1 through Big Sur, the coordinator adds a waypoint at Big Sur village. A waypoint stays on the leg after stops are selected. Once the selected stops pull the route onto the road, it changes nothing. The coordinator can remove it then, but doesn't have to.
 
 | | Stop | Waypoint |
 |---|---|---|
@@ -313,6 +313,8 @@ A **leg** is the drive on one day. It is a value object held by its day, not an 
 Users don't pick waypoints. They pick scenic or fastest, and the coordinator picks the waypoints.
 
 **A waypoint is a place ID, never a plain name.** A name can resolve somewhere unexpected without any error. In testing, "Dewey Bridge, UT" resolved to Salt Lake City and turned a 2-hour drive into an 8-hour one. The coordinator looks a waypoint up with `find_place` first.
+
+**Code places each waypoint among the day's selected stops.** The coordinator doesn't say where a waypoint goes in the day's order. Code lists the leg's from, its selected stops in order, and its to. It puts the waypoint in the gap between two neighbors where it adds the least straight-line distance. That distance comes from the coordinates already stored on each place, so this needs no call to Google. A leg with more than one waypoint has them placed one at a time, in the order the coordinator gave. Example: on San Francisco Day 2, with only First Awakenings in Monterey selected, Big Sur village goes between First Awakenings and San Luis Obispo. Between the Monterey hotel and First Awakenings it would add about 50 miles, going south and back. Straight-line distance can guess wrong where the road bends far from it, such as around a bay. It works because a waypoint sits on the road the coordinator wants.
 
 **Route type is a label.** It changes nothing in the call to Google, and the route-type check compares only the label (section 8). The coordinator makes a leg scenic with waypoints, or with stops that already pull the route onto the scenic road. Google's avoid-highways option was tested as a scenic setting and rejected. It stayed on US-101 instead of Big Sur, added hours to long Western legs, and picked old back roads such as the TransAmerica Trail.
 
