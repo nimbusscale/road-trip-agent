@@ -48,6 +48,7 @@ Planning only. The application never books, reserves, or purchases anything.
 - Exports (PDF, calendar, map links)
 - Showing prices or nightly rates. Recommendations show a budget tier only
 - Seasonal road and pass closures
+- Taking back a place the user rejected, within the same trip
 
 ---
 
