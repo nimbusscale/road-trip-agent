@@ -599,5 +599,4 @@ The coordinator turns the user's natural-language rules into a tier for each lod
 1. **Worker brief and result formats.** Section 5.3 lists the contents, not the exact fields. Settle them during development.
 2. **A reviewer.** A later worker that reads the finished itinerary with fresh eyes and checks it against the trip brief. Not in the MVP.
 3. **An interview agent.** See section 2.
-4. **A full walk-through of the day's schedule and the hours check.** Walk both examples in 3.1, San Francisco and Moab, from laying out the days to a finished itinerary. The second walk-through replaced time blocks with a worked-out schedule (3.1). Its other findings are being settled.
-5. **A full object model.** Section 3 describes entities and value objects in prose, and properties keep getting added piecemeal, such as the stop's approval and the stay's weather text. Write a proper model: each object's properties, the methods or rules on it, and how it's stored. A class diagram would give new properties a clear home.
+4. **A full object model.** Section 3 describes entities and value objects in prose, and properties keep getting added piecemeal, such as the stop's approval and the stay's weather text. Write a proper model: each object's properties, the methods or rules on it, and how it's stored. A class diagram would give new properties a clear home.
