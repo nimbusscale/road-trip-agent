@@ -77,17 +77,18 @@ This document covers the Google Maps Platform APIs the app uses: Routes, Places,
 
 ## 3. Weather forecast
 
-Used for stays whose dates fall within the next 7 days (spec 8). Later dates use seasonal averages from [Open-Meteo](data-sources-open-meteo.md).
+Used for stays whose dates all fall within 7 days (technical spec section 8, which says how the days are counted). Later dates use seasonal averages from [Open-Meteo](data-sources-open-meteo.md).
 
 **Request:**
 
 ```
 GET https://weather.googleapis.com/v1/forecast/days:lookup
     ?location.latitude=38.5733&location.longitude=-109.5498
-    &days=7&pageSize=7&unitsSystem=IMPERIAL
+    &days=8&pageSize=8&unitsSystem=IMPERIAL
 ```
 
-- **Set `pageSize` as well as `days`.** The default page is 5 days. Without `pageSize=7`, a 7-day request returns 5 days and a page token.
+- **Ask for 8 days: today and the next 7.** The first day returned is today (not yet confirmed in testing). A stay's dates can run to day 7, counting today as day 0 (technical spec section 8).
+- **Set `pageSize` as well as `days`.** The default page is 5 days. Without `pageSize=8`, an 8-day request returns 5 days and a page token.
 - **`unitsSystem=IMPERIAL`** gives Fahrenheit, inches, and miles per hour (spec 9.7).
 - **Asking for more than 10 days fails** with HTTP 400 and only "Request contains an invalid argument." The tool checks the dates before calling.
 - **Dates are local to the location.** The response includes the place's time zone (`timeZone.id`).
