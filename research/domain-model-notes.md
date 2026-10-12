@@ -2,9 +2,11 @@
 
 Prep for technical spec open question 4, gathered on 2026-10-12. The open question calls it "a full object model." We've since settled on "domain model" as the name. This file holds the plan, the open items, and the starting material for writing it.
 
+**Status, 2026-10-12:** `design/domain-model.md` has its conventions (section 1), the class diagram, and the Trip written and reviewed, including Session and RejectedPlace. The other objects are still drafts in the diagram. Decisions from the Trip review are under "Settled in the Trip review" below. The domain model's section 1 replaces the naming and type guidance in "What each object gets."
+
 ## What we're making
 
-**A domain model, drawn as a class diagram.** It covers the objects in the trip planner, such as trip, stay, day, and stop: their properties and the kind of value each holds, how they relate, the operations on them, and their rules. It stays implementation agnostic. It has no TypeScript types, no parameter or return types on operations, no plain getters and setters, and no database tables. Those come from the code during development.
+**A domain model, drawn as a class diagram.** It covers the objects in the trip planner, such as trip, stay, day, and stop: their properties and the kind of value each holds, how they relate, the operations on them, and their rules. It stays implementation agnostic. It has no TypeScript types, no plain getters and setters, and no database tables. Operations do give their arguments and returns, as guidance for development (decided in the Trip review). Those come from the code during development.
 
 **It's kept by hand and updated during development.** It stays the design's source of truth. When development finds something it needs, the domain model gets it. A diagram of the code itself, if we ever want one, can be generated from the TypeScript. That's separate and optional.
 
@@ -37,53 +39,59 @@ Prep for technical spec open question 4, gathered on 2026-10-12. The open questi
 ## Decided while preparing
 
 - **A day keeps its ID when its number or date changes.** A day is an entity, with its own `day_` ID (technical spec 7.1). Removing a night deletes that stay's last day. Every later day keeps its ID and moves up one. Check results are matched by "the same check about the same thing," and approvals sit on days, so both depend on this. The docs imply it but never say it. The domain model should. (Run 3)
-- **Settings are one read-only object.** It's loaded when the app starts and doesn't change while the app runs. To change a setting, the stored values are changed and the app restarts. It's app-wide, not per user or per trip. Where the values are stored doesn't matter to the domain model. It holds the settings the docs name today, in different places:
-  - The late allowance: 15 minutes (technical spec section 8)
-  - The stop-order minimum saving: 15 minutes (technical spec section 8)
-  - The drive buffer: 10% (technical spec section 8)
-  - The along-leg end distance: "such as 2 miles" (tool design 2.3)
-  - How far counts as near, for `search_near` (tool design 2.3). It has no starting value yet. Settle one when this object comes up. (Run 1)
+- **Settings are configuration, not part of the domain model** (changed in the Trip review). All five are listed in technical spec section 10, loaded when the app starts and read-only while it runs. The near distance for `search_near` starts at 15 miles. (Run 1)
 
 ## Open items to settle in the domain model
 
 From the sixth walk-through and earlier review sessions:
 
 - **A day's location.** Functional spec 9.5 shows each day with a location, but nothing defines it. It's likely worked out, not stored: a driving day shows "Monterey → San Luis Obispo," and a day that stays put shows the stay's town. (Run 6, F12)
-- **Sessions and "last updated."** Functional spec 3 shows each trip's last-updated time on the home screen. Functional spec 10.1 gives each session a date and a short title. The technical spec's data model has neither. (Run 6, F12)
 - **Whether stays own their days.** A day touches two stays: it starts from where the party slept and ends where it sleeps. Today a day points to the stay where it sleeps, and the last day points to none. Deferred to the domain model in the second review; it didn't fix that run's finding either way.
 
 From the sweep of runs 1 to 5, checked against the docs as of 2026-10-12:
 
 - **Every stored property, in one list.** `read_itinerary` in tool design 2.1 says a read returns "every stored property of each item" and that the object model lists them. That list doesn't exist yet. The domain model is where it goes. (Run 4, F7)
-- **The check results list and what a check result holds.** Technical spec section 8 says the trip saves the current list. The Trip row in technical spec 3.1 doesn't mention it. No doc lists a check result's fields together: its check, its subject, its level, its text, new or already known, approved, and the "may be too early" mark. (Run 4)
-- **What a must-see is stored as.** A must-see can be a place, an area, a road, or an activity (technical spec 4.2). The docs don't say whether the trip brief stores which kind each one is, or only the user's words. Nor do they say whether a one-place must-see points to its place. (Run 3)
+- **What a check result holds.** The Trip review settled the list: `Trip.checkResults`, replaced as a whole by `replaceCheckResults()`, and every check result is read-only. Still open: which fields the saved list needs. The compare uses only the check, the subject, and whether it was approved. "New" or "already known" isn't stored on the result. It comes from the compare and goes in the write's reply. No doc lists a check result's fields together. (Run 4)
 - **Total driving time.** The trip summary shows it (functional spec 9.1). The technical spec never lists it as a worked-out value, or says whether it includes the drive buffer. (Run 2)
 - **A user-named place's visit time, if picked again.** `select_user_place` gives the user's visit time to the stop. It doesn't say whether the candidate it adds keeps that time. If the user picks something else, then goes back to it with `select_candidate`, the tool copies the candidate's estimate, which may not exist. Example: the user names Hangar One at 2 hours. (Run 3)
 - **The year range on seasonal averages.** The label reads "based on 2016–2025," counted back from today (Open-Meteo design 2.3). If the years are worked out at read time rather than stored with the text, the label changes a year later though the text doesn't. (Run 3)
 - **Small confirm: "as of when offered."** A candidate's detour time is labeled "as of when it was offered." Run 5 read this as fixed wording with nothing stored, and that seems right. The model should say so. (Runs 4 and 5)
 
+## Settled in the Trip review
+
+Each of these is now in the design docs. The pointer says where.
+
+- **Sessions and last updated** (run 6, F12). A session has `createdDateTime`, a `title` set from the user's first message, cut to about 60 characters, and a transcript. `Trip.createSession(firstUserMessage)` creates one, and `Session.resume()` resumes it. `Trip.lastUpdatedDateTime` is set at the end of every write. Domain model 3.1.
+- **Must-sees are text** (run 3). No code reads the trip brief's text items, so must-sees, interests, rest days, budget rules, and meal preferences are each one string in the user's words: `mustSeesText` and so on. A must-see records no kind and links to no place. A one-place must-see is linked through the stop the coordinator selects for it. Budget posture is split into `defaultTier` and `budgetRulesText`. Domain model diagram, and tool design 2.1 (`update_trip_brief`).
+- **"Region, route, or theme" is now "focus."** The home screen no longer shows a region, since the trip's name starts with the focus. Functional spec 3, 5.2, and 10.1, and technical spec 3.1.
+- **Today's date isn't a property.** Code looks it up in the start place's time zone. A start date is refused until the itinerary has a start place, or the same write sets one. Technical spec section 8, and tool design 2.1 (`update_itinerary`).
+- **Rejections.** Rejecting a place already rejected skips it and keeps its first reason. A rejection undoes picks, meaning candidates and selections. It leaves the trip's structure alone: a stay's town, the start and end places, and waypoints. Tool design 2.1 (`reject_places`).
+- **IDs.** The trip, trip brief, itinerary, and session have the prefixes `trip_`, `brief_`, `itin_`, and `session_`. A user's ID comes from the sign-in service. Technical spec 7.1.
+- **`add_stay_candidates` is now `add_lodging_candidates`.** Tool design 2.1.
+- **Worker briefs and option cards are left out of the domain model,** since neither is stored. Domain model intro.
+
 ## Starting material: properties and rules from the sixth walk-through
 
 Copied from the sixth walk-through's properties list, grouped by object. Items it marked as missing or unclear that were settled on 2026-10-12 now show the decision. The rest are as the walk found them, and still need checking against the docs when each object is written.
 
-### Trip
+### Trip (written: domain model 3.1)
 
 - Owner (one user)
 - Trip brief, itinerary, places: one each, or a list of places
 - Rejected places, each a place and the user's reason
 - Saved check results list, each marked approved or not. Only the coordinator's writes save it
-- Name and region, worked out from the brief's region, route, or theme and the start month
-- Last updated, shown on the home screen **(open: not in the technical spec)**
-- Sessions, each with a date, short title, and transcript **(open: not in the technical spec)**
+- Name, worked out from the brief's focus and the start month
+- Last updated, shown on the home screen **(settled: domain model 3.1)**
+- Sessions, each with a date, short title, and transcript **(settled: domain model 3.1)**
 - Rule: refuses every write to the trip from its start date on
 - Rule: "today" for the start-date, lock, and forecast rules is the date in the start place's time zone
 - Rule: all of a trip's times are in the start place's time zone. Crossing a time zone is a known limit
 
 ### Trip brief
 
-- Region, route, or theme
+- Focus (was "region, route, or theme")
 - Trip length in days, at most 14
-- Interests and must-sees, with why. Must-sees are a list replaced as a whole. A must-see can be one place, an area, a road, or an activity
+- Interests and must-sees, with why. Each is one string in the user's words (settled in the Trip review). A must-see can be one place, an area, a road, or an activity
 - Max driving hours per day
 - Route preference: scenic or fastest
 - Rest days, in the user's words. The agent decides which days
