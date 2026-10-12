@@ -207,7 +207,7 @@ Actions on the card set:
 - **More options** in the same tier
 - **Higher tier** / **Lower tier**, on lodging and meal cards only. Attractions have no tier. "Higher tier" is hidden at posh, and "Lower tier" at value
 
-Selecting an option updates the itinerary, and the agent acknowledges the change in chat. The user can also select by chat ("take the second one"). Once an option is selected, the card closes. Later changes go through chat: the user can ask what else was offered, pick another option by name, ask for more options, or turn the pick down. A new card appears only when new options are offered, or when a turned-down pick leaves others in its set.
+Selecting an option updates the itinerary, and the agent acknowledges the change in chat. The user can also select by chat ("take the second one"). Once an option is selected, the card closes. Later changes go through chat: the user can ask what else was offered, pick another option by name, ask for more options, or turn the pick down. A new card appears only when new options are offered, or when the user turns down the pick and other options are left. It shows the newest options. When the user passes on the pick only because of the date, such as "it's closed that day," the place isn't turned down, so no card appears. The agent lists the other options in chat instead.
 
 ### 7.6 Item status and rationale
 
