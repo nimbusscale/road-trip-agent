@@ -42,7 +42,7 @@ The tool combines all the days from all 10 years and returns one small summary p
 
 | Field | How it is worked out |
 |---|---|
-| Label | "Typical for <dates>, based on <first year>–<last year>". The itinerary shows this so averages are never mistaken for a forecast (spec 8) |
+| Label | "Typical for this time of year, based on <first year>–<last year>". The itinerary shows this so averages are never mistaken for a forecast (spec 8). It names no dates: the stay's dates show beside it, and moving the trip a day or two keeps the same averages (technical spec 3.5) |
 | Average high and low, °F | Mean of the daily highs and lows |
 | Chance of rain on a given day | Share of days with at least 0.04 in (1 mm) of precipitation |
 | Chance of snow on a given day | Share of days with at least 0.4 in (1 cm) of snowfall |
