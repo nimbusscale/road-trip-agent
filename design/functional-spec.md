@@ -49,6 +49,7 @@ Planning only. The application never books, reserves, or purchases anything.
 - Showing prices or nightly rates. Recommendations show a budget tier only
 - Seasonal road and pass closures
 - Taking back a place the user rejected, within the same trip
+- Changing a trip once it has started. From its start date on, the user can still open it and ask the agent about it, but nothing in it changes. A trip still unfinished by then stays as it is
 
 ---
 
@@ -107,7 +108,7 @@ The trip brief holds the items below. The agent establishes each one, whether or
 | Budget posture | Yes | Default tier plus any rules (section 7.1) |
 | Meal preferences | Yes | Hotel breakfast vs local food scene, cuisines, food interests |
 
-Discovery also settles the start and end points (one-way or loop, and the agent suggests them if the user has no preference) and an exact start date, with no limit on how far ahead. These go in the itinerary, not the trip brief. The trip brief holds what the user wants. The itinerary holds the plan. No fact is kept in both. The user must give a start date before the agent builds the skeleton. Planning without dates is out of the MVP.
+Discovery also settles the start and end points (one-way or loop, and the agent suggests them if the user has no preference) and an exact start date. It must be after today, with no limit on how far ahead. These go in the itinerary, not the trip brief. The trip brief holds what the user wants. The itinerary holds the plan. No fact is kept in both. The user must give a start date before the agent builds the skeleton. Planning without dates is out of the MVP.
 
 ### 5.3 Planning activities
 
