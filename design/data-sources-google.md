@@ -31,7 +31,7 @@ This document covers the Google Maps Platform APIs the app uses: Routes, Places,
 | Route with scenic waypoints | Routes | Same, with waypoints the agent picks, each as a place ID | Don't use `routeModifiers.avoidHighways` as a scenic setting (2.4) |
 | Best order for a loop | Routes | `computeRoutes` with `optimizeWaypointOrder: true` | Returns the new order in `optimizedIntermediateWaypointIndex`, with per-leg times. Fails if any intermediate is a pass-through waypoint (`via: true`): "Waypoint optimization does not support via waypoint" |
 | Route line for the map | Routes | `computeRoutes` with `routes.polyline.encodedPolyline` in the field list | Goes to the UI, never to the model (2.3) |
-| Look up a named place | Places | Text Search with the name plus where to search, such as "Smitty's Market, Lockhart, TX" | Ask for hours and ratings too, so a place the user names can go through the opening-hours check |
+| Look up a named place | Places | Text Search with the name plus where to search, such as "Smitty's Market, Lockhart, TX" | Ask for the same fields as the searches, hours, ratings, and summaries included, so a place the user names can go through the opening-hours check. A place is stored once per trip, from its first lookup, so every lookup asks for everything the place keeps |
 | Lookup for a place found by web search | Places | Text Search with the name and town, or with the street address if that finds no match | Use its location, and its hours and rating when it has them ([web search](data-sources-web-search.md), section 4) |
 | Places by type near a stay | Places | Text Search, such as "barbecue in Lockhart, TX" | Up to 20 places per call (`pageSize`), ranked by relevance, not distance |
 | Places along a leg | Places | Text Search with `searchAlongRouteParameters.polyline` and `routingParameters.origin` | Add `routingSummaries` to the field list to get each place's drive time from the start of the leg |
@@ -41,7 +41,7 @@ This document covers the Google Maps Platform APIs the app uses: Routes, Places,
 
 | Card item (spec 7.5) | Field |
 |---|---|
-| Name, type, location | `displayName`, `primaryType`, `formattedAddress`, `location` |
+| Name, type, location | `displayName`, `primaryTypeDisplayName`, `formattedAddress`, `location`. The type is Google's readable wording, such as "Hotel" or "Mexican Restaurant" |
 | Rating and review count | `rating`, `userRatingCount`. Shown for restaurants and hotels. For attractions, only where a rating means something (spec 7.5) |
 | Tier signal (spec 7.1) | `priceLevel` and `priceRange` for restaurants. Hotels don't have them, so the agent judges hotel tiers from the summaries |
 | Hours, for notes and feasibility checks | `regularOpeningHours`: `periods` for the checks, `weekdayDescriptions` for notes. `periods` gives each opening and closing as a day and a time, so hours past midnight are clear. Both come in the same field, at the Enterprise price |
