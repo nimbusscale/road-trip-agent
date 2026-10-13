@@ -530,7 +530,7 @@ The coordinator's itinerary write tools run these checks after every change.
 
 | Check | Level |
 |---|---|
-| Trip length over 14 days | Refused |
+| Trip length over the maximum | Refused |
 | Start date not after today | Refused |
 | Trip has started | Refused |
 | Trip length vs the brief | Warning |
@@ -547,7 +547,7 @@ The coordinator's itinerary write tools run these checks after every change.
 
 A check that compares against a trip brief item is skipped while that item is empty. Example: during discovery, setting the start and end places routes the last day's leg before the user has given max driving hours, so the daily driving check doesn't run yet. The same goes for trip length vs the brief before the brief has a trip length.
 
-- **Trip length:** 14 days or fewer. A hard limit, with no exceptions. A write that would make the trip longer is refused, and the error gives the limit, so the coordinator can tell the user.
+- **Trip length:** at most the maximum trip length, a setting that starts at 14 days (section 10). A hard limit, with no exceptions. A write that would make the trip longer is refused, and the error gives the limit, so the coordinator can tell the user.
 - **Trip length vs the brief:** the itinerary's number of days matches the trip length in the brief. A warning if not. Example: adding a night in Big Sur makes a 3-day trip 4 days. If the user agrees to the new length, the coordinator updates the brief once the change is settled, not while it's still being discussed. No approval is needed.
 - **Daily driving:** road time, including detours to the day's stops, plus a buffer for fuel and short breaks, fits the user's max hours. The buffer is a share of road time, set in section 10. Max hours is a preference, so a day can hold a drive hours approval (below).
 - **Opening hours:** each meal and attraction stop is checked against the weekly hours on its selected place, from its worked-out arrival to the end of its visit time (3.1). There are four results:
@@ -605,15 +605,17 @@ The coordinator turns the user's natural-language rules into a tier for each lod
 
 ## 10. Settings
 
-Settings are values code uses that aren't part of any trip. They're the same for every user and every trip. The app loads them when it starts, and they don't change while it runs. To change one, change the stored value and restart the app. Where they're stored is settled during development. Each starting value is a first guess, to tune during testing.
+Settings are values code uses that aren't part of any trip. They're the same for every user and every trip. The app loads them when it starts, and they don't change while it runs. To change one, change the stored value and restart the app. Where they're stored is settled during development. Each starting value is a first guess, to tune during testing, except the maximum trip length, which comes from functional spec 2.
 
-| Setting | Starting value | Used by |
+| Setting | Starting value | What it is |
 |---|---|---|
-| Late allowance | 15 minutes | The late-for-a-set-time check (section 8) |
-| Stop-order minimum saving | 15 minutes | The stop-order check (section 8) |
-| Drive buffer | 10% of road time | The daily driving check (section 8) |
-| Along-leg end distance | 2 miles | `search_along_leg`, which drops places this close to either end of a leg ([tool design](tool-design.md), 2.3) |
-| Near distance | 15 miles | `search_near`: how far from a stay, or from the start or end place, counts as near ([tool design](tool-design.md), 2.3) |
+| Late allowance | 15 minutes | How long after a stop's set time the party can arrive before it counts as late |
+| Stop-order minimum saving | 15 minutes | The least time a faster order of a day's stops has to save before it's worth suggesting |
+| Drive buffer | 10% of road time | Extra time added to each drive for fuel and short breaks, as a share of its road time |
+| Along-leg end distance | 2 miles | Places this close to either end of a leg don't count as along it. Searches along a leg leave them out, since results bunch up at the ends |
+| Near distance | 15 miles | How far from a point counts as near it, such as a stay's town or lodging, or the start or end place |
+| Maximum trip length | 14 days | The most days a trip can have, counting the last day. A longer trip is refused |
+| Maximum daily driving | 12 hours | The most driving in one day that the user can set as their max. A higher max is refused |
 
 ---
 
