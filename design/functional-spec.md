@@ -70,6 +70,8 @@ Planning only. The application never books, reserves, or purchases anything.
 | Stop | A place the party visits during a day, such as a meal, an attraction, or a quick look along the way |
 | Leg | The drive on one day, with duration, distance, and the day's stops along the way. It runs from where the party slept to where it sleeps that night. On a day that stays put, it starts and ends at the same stay |
 | Day | One day of the trip, with a schedule: a start time, and a time for each stop and drive. A day can run past midnight, such as for stargazing |
+| Night | A night the party spends at a stay. Every day but the last ends with one. A stay's nights are the days that end there. So a three-night stay in Moab covers three days, and the party leaves on the morning of a fourth |
+| Last day | The final day of the trip. The party drives to the end point and doesn't spend a night anywhere on the trip. Every trip has one. A day trip is only the last day |
 | Candidate | A hotel, restaurant, or attraction offered for a stay's lodging or a stop, with its rationale and source |
 | Option card | The UI element presenting a set of candidates for one choice (a stay's lodging or a stop), with selection actions |
 | Budget tier | Value, mid-range, or posh. A relative price level the agent infers. Shown instead of prices |
