@@ -2,7 +2,7 @@
 
 Prep for technical spec open question 4, gathered on 2026-10-12. The open question calls it "a full object model." We've since settled on "domain model" as the name. This file holds the plan, the open items, and the starting material for writing it.
 
-**Status, 2026-10-13:** `design/domain-model.md` has its conventions (section 1), the class diagram, and rounds 1 and 2 written and reviewed: the Trip (with Session and the places registry), Trip brief, Check result, Itinerary, Stay, Day, and Stop. Round 2's review moved rules that need other objects into services, a places registry, and a calendar (domain model sections 1 and 4). Round 3 (Leg, Candidate, Place) is next. Decisions are under "Settled in the services review," "Settled in round 1," and "Settled in the Trip review" below. The domain model's section 1 replaces the naming and type guidance in "What each object gets."
+**Status, 2026-10-13:** `design/domain-model.md` has every object written and reviewed, in three rounds: the Trip (with Session and the places registry), Trip brief, Check result, Itinerary, Stay, Day, Stop, Leg, Candidate, and Place. Section 4 has the calendar and the services, including the `LegsService` from round 3. What's left: shrink technical spec section 3 to point to the domain model, update the cross-references, and close technical spec open question 4. Decisions are under "Settled in round 3," "Settled in the services review," "Settled in round 1," and "Settled in the Trip review" below. The domain model's section 1 replaces the naming and type guidance in "What each object gets."
 
 ## What we're making
 
@@ -49,22 +49,38 @@ From the sixth walk-through and earlier review sessions:
 
 From the sweep of runs 1 to 5, checked against the docs as of 2026-10-12:
 
-- **Every stored property, in one list.** `read_itinerary` in tool design 2.1 says a read returns "every stored property of each item" and that the object model lists them. That list doesn't exist yet. The domain model is where it goes. (Run 4, F7)
+- **Every stored property, in one list.** `read_itinerary` in tool design 2.1 says a read returns "every stored property of each item" and that the object model lists them. That list doesn't exist yet. The domain model is where it goes. (Run 4, F7) **(Settled: the domain model's properties tables list them. Tool design 2.1 still points to "technical spec, open question 4" and needs its cross-reference updated when section 3 shrinks.)**
 - **A user-named place's visit time, if picked again.** `select_user_place` gives the user's visit time to the stop. It doesn't say whether the candidate it adds keeps that time. If the user picks something else, then goes back to it with `select_candidate`, the tool copies the candidate's estimate, which may not exist. Example: the user names Hangar One at 2 hours. (Run 3) **(Settled: the candidate keeps the user's visit time, domain model 3.7.)**
 - **The year range on seasonal averages.** The label reads "based on 2016–2025," counted back from today (Open-Meteo design 2.3). If the years are worked out at read time rather than stored with the text, the label changes a year later though the text doesn't. (Run 3) **(Settled: `WeatherText.writtenOnDate`, domain model 3.5.)**
-- **Small confirm: "as of when offered."** A candidate's detour time is labeled "as of when it was offered." Run 5 read this as fixed wording with nothing stored, and that seems right. The model should say so. (Runs 4 and 5)
+- **Small confirm: "as of when offered."** A candidate's detour time is labeled "as of when it was offered." Run 5 read this as fixed wording with nothing stored, and that seems right. The model should say so. (Runs 4 and 5) **(Settled: fixed wording, nothing stored, domain model 3.9.)**
 
 From round 1, for later rounds:
 
 - **Day, StayDay, and LastDay.** Round 2 settles what each holds. The last day can't be a rest day, and is the only day that can have stops near the end place. **(Settled: `StayDay` adds `isRestDay`, `LastDay` adds nothing, domain model 3.6.)**
 - **A drive hours approval over the maximum daily driving.** Should the setting cap an approval too, or only the trip brief's max? (Round 2, with Approval.) **(Settled: the setting caps it, in `DaysService.approveDriveHours()`, domain model 4.5.)**
-- **"At the end of every write."** Domain model section 1 lists re-routing legs, saving check results, and setting the last-updated time there. The user sees "a write" as a tool idea, a layer above the domain model. The services rewrite didn't settle it. Look at where each belongs when the Leg is written (round 3). It's the same unit as the transaction in the persistence item below, so settle them together.
-- **Must not lose: the persistence design.** Discussed 2026-10-13 after the services rewrite. Nothing here is decided. Three things need it:
+- **"At the end of every write."** Domain model section 1 lists re-routing legs, saving check results, and setting the last-updated time there. The user sees "a write" as a tool idea, a layer above the domain model. The services rewrite didn't settle it. Look at where each belongs when the Leg is written (round 3). It's the same unit as the transaction in the persistence item below, so settle them together. **(Settled: domain model section 1, "A write." See "Settled in round 3.")**
+- **Must not lose: the persistence design.** Discussed 2026-10-13 after the services rewrite. Round 3 settled the first item, a write as a transaction (domain model section 1). The other two are still open, and should become a technical spec open question when open question 4 closes. Three things need it:
   - **A write as a transaction.** The leaning: each tool call is one write. Code loads the trip, runs the service calls on that copy, and saves only if nothing was refused. A refusal throws the copy away, so nothing is left half changed. Example: `StopsService.moveStop()` takes a stop off Day 2, then Day 3 refuses because `after` isn't on Day 3. The copy is thrown away, so Day 2 never lost the stop. This replaced an earlier draft idea where each service asked objects ahead of time whether they'd accept a change. The user agreed to drop that. A transaction also covers tool calls that make several changes, such as `update_trip_brief` setting five items when one is refused. And it's the natural home for the end-of-write follow-ons.
   - **Parallel worker writes.** A transaction alone doesn't stop two writes from losing each other's work. If each write loads the whole trip and saves it whole, two stay researchers writing at once can each save a copy without the other's candidates. Example: the Moab and Torrey researchers run in parallel, and Torrey's save overwrites Moab's new lodging set. Two options came up. **One write at a time per trip:** a write waits until the one before it finishes. It's simple, since all tools run inside our app (tool design section 1). The cost is that workers wait on each other, including during Google calls such as detour times. **Save only if nothing changed since loading:** the trip keeps a version number, a save fails if someone else saved first, and code reruns the tool call on fresh data. Workers don't wait. The cost is repeated Google calls on a conflict. I leaned toward one write at a time for the MVP, since conflicts would be rare. The user wondered whether a transaction could fail, roll back, and try again. The answer: a conflict between workers is rerun by code on fresh data, with no agent involved. A refusal by a rule isn't retried. Its error goes back to the coordinator, which decides what to change.
   - **The started-trip lock at save.** The lock is checked when the trip is saved (domain model 3.1). That save has to refuse plan changes but still allow new sessions and places saved from searches on a started trip.
-- **Is `PlacesService` only about rejections?** Today its one operation is `rejectPlaces()`. The user expected a places service to hold the places registry, and noted this one is really about rejections. Once the rest of the design is done, check whether it gains anything else. If not, rename it, such as to `RejectionsService`.
-- **The Leg reads its holder.** `Leg./from`, `/to`, and `/routeType` need the day before, the stay that holds the day, the day's approvals, and the trip brief. A leg can't see those, so they likely become calendar functions in round 3, the same way the day's worked-out properties did.
+- **Is `PlacesService` only about rejections?** Today its one operation is `rejectPlaces()`. The user expected a places service to hold the places registry, and noted this one is really about rejections. Once the rest of the design is done, check whether it gains anything else. If not, rename it, such as to `RejectionsService`. **(Settled: renamed `RejectionsService` in round 3.)**
+- **The Leg reads its holder.** `Leg./from`, `/to`, and `/routeType` need the day before, the stay that holds the day, the day's approvals, and the trip brief. A leg can't see those, so they likely become calendar functions in round 3, the same way the day's worked-out properties did. **(Settled: see "Settled in round 3.")**
+
+## Settled in round 3
+
+Agreed 2026-10-13 (domain model 3.8 to 3.10, 4.7, and section 1). Doc changes outside the domain model are in 0309a4a.
+
+- **Leg.** `/from` and `/to` are the calendar's `fromPlaceOf()` and `toPlaceOf()`. `/routeType` is dropped, since nothing reads it: it changes nothing in the call to Google, no check reads it, and the view reads the route type approval. The leg is only Google's answer: all read only, replaced whole on a re-route, no operations. Drive time is worked out from the segment times.
+- **Waypoints are on the day,** with `Day.setWaypoints()`, refused while the day has no leg. A day has waypoints only while it has a leg, so they still go with it.
+- **A leg remembers what it was routed for:** `routedFromPlace`, `routedToPlace`, `routedStopPlaces`, `routedWaypoints`. `LegsService.updateLegs(itinerary)` compares them with the day now and re-routes only on a difference. The user chose this over comparing a loaded copy with a changed copy, so a write needs only one copy. It returns a `LegChange` per day changed (day, old leg, new leg), not stored, for the tool's "2 h 10 m → 1 h 30 m."
+- **`LegsService`** (4.7): `updateLegs()` and `detourTimesOf()`. Given the calendar and a route finder (the Google Routes code, outside the model). A leg exists when the day isn't a rest day, both its ends are known, and it moves or has a selected stop. So the last day has no leg until the start and end places are set.
+- **A write** (section 1): load, change, finish (legs, then check results for coordinator writes, then last updated), save. Any refusal, including a failed or impossible Google route, means the trip isn't saved. A places-only write skips the finish.
+- **`isStayingPut()` is false on the first and last days.** Fixed a bug: a day trip's only day compared two empty stays as the same.
+- **`PlacesService` is now `RejectionsService`.**
+- **Candidate.** Its tier and rule are copied from its stop or stay when its set is added. Workers no longer pass them. `visitTimeEstimateInMinutes` is now `visitTimeInMinutes`, since it also holds the user's time. Rules about which candidates fit which holder (visit time, detour time) are on the stop and the stay. "As of when offered" is fixed wording.
+- **Place.** `googlePlaceId` is required. The type is Google's readable type, set when the place is created. Tools no longer take a type. The name is Google's, or the first name an agent gives when Google has none, with `fillName()`. Renaming a place isn't in the MVP; the tool reply says when a name wasn't used, which is a useful test of the coordinator. A place found again keeps its first record, and every lookup, `find_place` included, asks for the same fields so that record is complete. The short line ends with the town. `PriceLevel` is a fixed list. An always-open place has one opening period with no close.
+- **To check in development:** whether Google really gives no name for an address. If it returns the street as the name, "Mike's house" never fills in.
+- **RejectedPlace** needed no change.
 
 ## Settled in the services review
 
@@ -181,7 +197,7 @@ Copied from the sixth walk-through's properties list, grouped by object. Items i
 - Rule: a rest day's stops each need a set time
 - Rule: an empty stop with a set time holds its spot. The stop after it can't arrive before that set time
 
-### Leg (held by its day)
+### Leg (written: domain model 3.8)
 
 - From and to, worked out
 - Drive time, distance, route line, each stored
@@ -208,7 +224,7 @@ Copied from the sixth walk-through's properties list, grouped by object. Items i
 - Rule: "along the leg" only on a day that moves. "Near the start place" only on the first day. "Near the end place" only on the last day
 - Rule: a move keeps candidates, selection, and visit time. It needs a set time or "none"
 
-### Candidate (held by a stop or stay)
+### Candidate (written: domain model 3.9)
 
 - Place
 - Rationale: names no dates or nights
@@ -222,7 +238,7 @@ Copied from the sixth walk-through's properties list, grouped by object. Items i
 - Rule: the card shows the newest set still present. It comes back only with new options or after a rejection
 - Rule: workers offer only places at the briefed tier
 
-### Place
+### Place (written: domain model 3.10)
 
 - Google place ID, coordinates, address
 - Name: Google's, or one given by an agent when Google has none
