@@ -2,7 +2,7 @@
 
 Prep for technical spec open question 4, gathered on 2026-10-12. The open question calls it "a full object model." We've since settled on "domain model" as the name. This file holds the plan, the open items, and the starting material for writing it.
 
-**Status, 2026-10-13:** `design/domain-model.md` has its conventions (section 1), the class diagram, and the Trip written and reviewed, including Session and RejectedPlace. Round 1 (Trip brief, Check result, Itinerary) is written and partly reviewed: the diagram is reviewed, the text isn't yet. The other objects are still drafts in the diagram. Decisions are under "Settled in the Trip review" and "Settled in round 1" below. The domain model's section 1 replaces the naming and type guidance in "What each object gets."
+**Status, 2026-10-13:** `design/domain-model.md` has its conventions (section 1), the class diagram, and the Trip written and reviewed, including Session and RejectedPlace. Round 1 (Trip brief, Check result, Itinerary) is written and reviewed. Round 2 (Day, Stay, Stop) is next. The other objects are still drafts in the diagram. Decisions are under "Settled in the Trip review" and "Settled in round 1" below. The domain model's section 1 replaces the naming and type guidance in "What each object gets."
 
 ## What we're making
 
@@ -62,15 +62,15 @@ From round 1, for later rounds:
 
 ## Settled in round 1
 
-Proposed in the draft, still waiting on the user's review of the text: the check result fields, `subjectId`, the `hasEmptyStopBefore` rename, and total drive time leaving out the buffer.
-
 - **Rules live on the objects, not in the tools** (domain model section 1). The tools are one way in. A web form must hit the same rules. A rule on one property runs when it's set. Operations are only for changes past one property. When a rule covers several objects, the operation sits on the object that holds them all.
 - **Markers.** `{readOnly}` means can't be set directly: it never changes, or changes only through a named operation. Reading a read-only list gives a frozen copy. `{keepsValue}` means it starts empty and can't be emptied once set. `=` shows a default.
 - **Trip brief.** No operations; `TripBrief.update()` was tried and dropped. Every item but `usualStartTime` keeps its value. `usualStartTime` defaults to 8:00 a.m. Trip length is from 1 to the maximum trip length. Max driving hours is more than 0 and at most the maximum daily driving. Both limits are settings in technical spec section 10 (c071c85), which now says what each setting is, with no links out.
 - **Itinerary.** `startPlace`, `endPlace`, and `startDate` keep their value. A start date is refused with no start place, or when it isn't after today. `Itinerary.update()` was tried and dropped. Nothing checks that places are in the US; that risk is accepted. `totalDriveTimeInMinutes` is worked out, without the buffer.
 - **Stays hold their days** (run 6 and the second review's open item). Each stay holds the days that end with a night there. The itinerary holds `lastDay` on its own, a `LastDay` class under a `Day` base, next to `StayDay`. `Itinerary.days` is worked out. `Day.sleepsAtStay` is gone. A next-morning breakfast near the previous stay is a link through the stop's search area, so ownership doesn't affect it. `setStayNightCount()` stays on the itinerary, which owns the trip length limit.
+- **Settings by name only.** The domain model says "a setting (technical spec section 10)" and never repeats its value, so changing a setting changes one doc.
+- **Tool inputs and operation arguments can differ.** Example: the tool `add_stay` takes "first" where `addStay()` takes an empty `after`. Domain model section 1.
 - **Night and last day** are defined in functional spec section 4 (3b7dbad). The functional spec owns domain terms.
-- **Check result.** Saved fields: `check`, `subjectId` (an ID, since a write can remove the subject before the compare), `text` (to describe one that went away), `isApproved`, and `hasEmptyStopBefore` (was "may be too early"). `level` is worked out from the check. The `FeasibilityChecker` has `workOut()` and `compare()`.
+- **Check result.** Saved fields: `check`, `subjectId` (an ID, since a write can remove the subject before the compare), `text` (to describe one that went away), `isApproved`, and `hasEmptyStopBefore` (was "may be too early"). `level` is worked out from the check. The `FeasibilityChecker` has `workOut()` and `compare()`. `Trip.replaceCheckResults()` refuses two results with the same check and subject. `CheckKind` stays an enum, not 11 subclasses with 10 of them empty. Instead, a check result is refused when it's created with `hasEmptyStopBefore` true on any check but the two opening-hours warnings. A late or driving warning while a stop is empty is real, since an empty stop can only push times later.
 
 ## Settled in the Trip review
 

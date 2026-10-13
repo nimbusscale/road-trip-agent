@@ -50,7 +50,7 @@ A value after `=` is the property's default, the value it has when its object is
 
 **Who creates and changes it.** The coordinator, a worker, code, or the app itself, outside any agent. Each object says which.
 
-**What this model holds.** The rules about the objects themselves. It isn't all of the app's logic. Code built on top of it adds more, and the agents' tools sit above that. One tool can use several operations here, or set properties directly.
+**What this model holds.** The rules about the objects themselves. It isn't all of the app's logic. Code built on top of it adds more, and the agents' tools sit above that. One tool can use several operations here, or set properties directly. A tool's inputs don't have to match an operation's arguments. Example: the tool `add_stay` takes "first" where `addStay()` takes an empty `after`.
 
 **Rules live on the objects, not in the tools.** The agents' tools are only one way to change the data. A later version might let the user edit the trip brief in a web form. So every rule beyond a property's type is enforced by the object that holds the data, when the property is set or an operation runs. Example: the trip brief refuses a trip length over the maximum itself, so a web form can't get around the limit. A tool can add its own checks on what an agent passes in, but it never holds a rule about the data.
 
@@ -489,6 +489,7 @@ A session is created and begins at the same moment, so it has no separate "start
   - **Refused:** the whole call, when a place isn't in this trip or a reason is missing.
 - **`addPlaces(places : List<Place>) : List<Place>`** (code, whenever a search or lookup returns places). Takes one or more places and adds each to `places`. A place the trip already has, matched by `googlePlaceId`, isn't added again: the stored record is reused (see Place). Returns the stored places in the order given, so the caller gets the existing record's `id` for a place the trip already had.
 - **`replaceCheckResults(checkResults : List<CheckResult>)`** (the `FeasibilityChecker`, at the end of every write that runs the checks). Takes the full list of current check results, which can be empty. Replaces the whole of `checkResults` in one step. Nothing can add to the list or remove one result from it. The trip only stores the list. Working out the results and comparing them with the saved list is the `FeasibilityChecker`'s job (see Check result).
+  - **Refused:** the whole call, when two check results have the same `check` and `subjectId`. Example: a stop can have an `openingHoursClosed` result and a `lateForSetTime` result, but not two of either.
 
 **Rules:**
 
@@ -531,8 +532,8 @@ The trip brief holds what the user wants from the trip: the items in functional 
 **Rules:**
 
 - **An item can be changed, but never emptied** (functional spec 10.5: trip brief items can be changed but not forgotten). Every item but `usualStartTime` is `{keepsValue}`, and `usualStartTime` is never empty. The coordinator needs every item it has to plan.
-- **`tripLengthInDays` is from 1 to the maximum trip length.** That's a setting, which starts at 14 days (technical spec section 10). The itinerary has the same limit. A longer trip is refused. The coordinator explains the limit and offers a trip of the maximum length (functional spec 6.1).
-- **`maxDrivingInHours` is more than 0, and at most the maximum daily driving.** That's a setting, which starts at 12 hours (technical spec section 10).
+- **`tripLengthInDays` is from 1 to the maximum trip length.** That's a setting (technical spec section 10). The itinerary has the same limit. A longer trip is refused. The coordinator explains the limit and offers a trip of the maximum length (functional spec 6.1).
+- **`maxDrivingInHours` is more than 0, and at most the maximum daily driving.** That's a setting (technical spec section 10).
 - **A check that compares against an empty item is skipped** (technical spec section 8). Example: during discovery, setting the start and end places routes the last day's leg before the user has given max driving hours, so the daily driving check doesn't run yet.
 - **Changing the brief never changes the itinerary** (see Trip). Example: if the user shortens the trip from five days to four, nothing in the itinerary moves. The trip length check warns, and the coordinator removes a night with the user.
 
@@ -550,7 +551,7 @@ A check result is one finding from the feasibility checks in technical spec sect
 | `subjectId` | Stored | `string`, read only | The ID of what it's about: the trip, a stay, a day, or a stop. It's an ID, not a link, because a write can remove the stop or stay before the compare runs (below) |
 | `text` | Stored | `string`, read only | What the check found, such as "Day 4 needs about 5 h 20 m of driving. You agreed to 5." A current check result always has current text. The saved text is used only to describe a check result that went away |
 | `isApproved` | Stored | `boolean`, read only | True when an approval that covers it applies (see Approval). Always false for a check no approval covers |
-| `hasEmptyStopBefore` | Stored | `boolean`, read only | For the opening-hours checks only: true when an earlier stop on the same day is still empty, so the time checked may be too early (technical spec section 8). False for every other check |
+| `hasEmptyStopBefore` | Stored | `boolean`, read only | For `openingHoursNotLongEnough` and `openingHoursClosed` only: true when an earlier stop on the same day is still empty, so the time checked may be too early (technical spec section 8). False for every other check. See the rules |
 | `level` | Worked out | `CheckLevel` | Warning or note. It comes from `check`, in the table below |
 
 **The checks.** Each `CheckKind` has one level and one kind of subject:
@@ -581,7 +582,8 @@ A check result is one finding from the feasibility checks in technical spec sect
 
 **Rules:**
 
-- **At most one check result per check and subject.** Example: a stop can have an `openingHoursClosed` result and a `lateForSetTime` result, but not two of either.
+- **At most one check result per check and subject.** `Trip.replaceCheckResults()` refuses a list that breaks this.
+- **Only the two opening-hours warnings can have an empty stop before.** A check result with `hasEmptyStopBefore` true and any other `check` is refused when it's created. An empty stop takes no time, so the stops after it may really come later. A place that looks closed at 1:10 may be open by 2:00, so an opening-hours warning may go away. A late or driving warning would only get worse, so it's real. `openingHoursNotKnown` doesn't depend on the time at all (technical spec section 8).
 - **A warning whose approval stops applying is new.** Example: Moab Day 4 is approved for 5 hours of driving. A change makes it 5 hours 20 minutes. The approval no longer applies, so the daily driving warning is new, and the coordinator asks the user again.
 - **A check result that goes away and comes back is new.** The write where it went away saved the list without it. If a day that was fixed goes over its driving hours again, the user should hear about it.
 - **Only the coordinator's writes save the list.** A worker can't act on a check result. One saved during a worker's write would be marked already known without ever reaching the coordinator.
@@ -609,7 +611,7 @@ The itinerary is the plan: where the trip starts and ends, when it starts, its s
 
 **Stays hold their days.** Each stay holds the days that end with a night there, so a stay's nights are the days it holds (functional spec 4, Night). The last day ends at the end place with no night, so the itinerary holds it on its own (functional spec 4, Last day). The stays are the shape of the trip, and are what the user and coordinator change. `days` puts all the days together as the calendar.
 
-A day touches two stays: it starts where the party slept and ends where it sleeps. It's held by the stay where it sleeps. Where it starts is worked out from the day before in `days` (see Day). Example: San Francisco Day 2 is held by the San Luis Obispo stay, and starts from the Monterey stay. A stop on Day 2 can still be near the Monterey stay, such as breakfast before the drive. That's a link from the stop to the stay, not ownership (see Stop).
+A day touches two stays: it starts where the party slept and ends where it sleeps. It's held by the stay where it sleeps. Where it starts is worked out from the day before in `days`, or from the start place on the first day (see Day). Example: San Francisco Day 2 is held by the San Luis Obispo stay, and starts from the Monterey stay. A stop on Day 2 can still be near the Monterey stay, such as breakfast before the drive. That's a link from the stop to the stay, not ownership (see Stop).
 
 **Total drive time leaves out the buffer.** It adds up the drive times Google gave, the same figure each leg shows (functional spec 9.4). The buffer for fuel and short breaks is part of the daily driving check and the day's schedule, where it spaces out the times (technical spec section 8).
 
@@ -638,7 +640,7 @@ A day touches two stays: it starts where the party slept and ends where it sleep
 **Rules:**
 
 - **Every stay holds at least one day,** so it has at least one night.
-- **A trip is from 1 day to the maximum trip length.** That's a setting, which starts at 14 days (technical spec section 10). Any write that would make it longer is refused, and the error gives the limit (technical spec section 8).
+- **A trip is from 1 day to the maximum trip length.** That's a setting (technical spec section 10). Any write that would make it longer is refused, and the error gives the limit (technical spec section 8).
 - **The last day is created with the itinerary and never removed.** It has no stay: the party drives to the end place and doesn't sleep anywhere on the trip. A day trip is just the last day. Example: on the San Francisco trip, the Monterey stay holds Day 1, the San Luis Obispo stay holds Day 2, and Day 3 is the last day.
 - **A day keeps its ID when its number or date changes.** Removing a night removes that stay's last day. Every later day keeps its ID and moves up one. Check results match by their subject's ID, and approvals sit on days, so both depend on this.
 - **The start date is after today when it's set.** Once today reaches it, the trip has started and can't change (see Trip).
