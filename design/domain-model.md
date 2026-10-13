@@ -9,7 +9,7 @@ For the planning behavior, see the [functional spec](functional-spec.md). For th
 - **Memory.** Memory design is technical spec open question 5. Memory joins this model once it's designed.
 - **Worker briefs and option cards.** Neither is stored. A worker brief is written fresh for each worker call (technical spec 5.3). An option card is how the UI shows the newest candidate set of one stop or stay (functional spec 7.5). The rules they depend on, such as which candidate set a card shows, are on the objects here.
 
-**Draft status.** The Trip, Trip brief, Check result, and Itinerary are written so far. The diagram shows the other objects as technical spec section 3 has them, and each gets its own section as it's reviewed. Their operations are a first placement, settled when each object is reviewed. `ScheduleEntry`, and the split of `Day` into `StayDay` and `LastDay`, are defined when the Day is reviewed.
+**Draft status.** The Trip, Trip brief, Check result, and Itinerary are written and reviewed. The Stay, Day, and Stop are a first draft, not yet agreed. Round 2's review found that many rules need data from outside their own object, such as a stop checking the trip's rejected places or a day's position in the itinerary. A move to services that hold those rules is being worked out on its own branch, and may change rounds 1 and 2. The diagram shows the Leg, Candidate, and Place as technical spec section 3 has them, and each gets its own section as it's reviewed.
 
 ---
 
@@ -34,13 +34,14 @@ For the planning behavior, see the [functional spec](functional-spec.md). For th
 | `decimal` | A number that can have a fraction | A place's `rating`, 4.6 |
 | `boolean` | Yes or no | A day's `isRestDay` |
 | `date` | A calendar date, with no time | The itinerary's `startDate`, May 13, 2027 |
-| `time` | A time of day, with no date | A stop's `setTime`, 7:00 p.m. |
+| `time` | A time of day, with no date | A day's `ownStartTime`, 5:30 a.m. |
+| `scheduleTime` | A time in a day's schedule. It's a time of day, plus whether it falls after midnight, on the next calendar date | A stop's `setTime`, 1:00 a.m., next day |
 | `dateTime` | A date and a time together | A trip's `lastUpdatedDateTime` |
 | An enumeration, such as `Tier` | One value from a fixed list. The second diagram in section 2 lists them | `value`, `midRange`, or `posh` |
 | A class name, such as `Place` | A link to one object of that class | A worked-out leg's `from` |
 | `List<X>` | A list of X. The notes say whether it's in order | `List<date>` for a stay's `dates` |
 
-A `?` after the type means the property can be empty, such as `setTime : time?`. The notes say what empty means. Example: a stop's `setTime` is empty when the stop follows the one before it.
+A `?` after the type means the property can be empty, such as `setTime : scheduleTime?`. The notes say what empty means. Example: a stop's `setTime` is empty when the stop follows the one before it.
 
 A value after `=` is the property's default, the value it has when its object is created, such as `usualStartTime : time = 8:00 a.m.`
 
@@ -63,7 +64,7 @@ A value after `=` is the property's default, the value it has when its object is
 
 In the properties tables, the type says "read only" or "keeps its value" instead.
 
-**Operations** are listed only for a change that goes beyond setting one property: one that creates or removes objects, changes a list, or has to change other stored data with it. An operation sits on the object whose property it changes, and is named for what it changes, such as `Trip.addPlaces()`. When a rule covers more than that one object, the operation sits on the object that holds them all, so it can check the rule. Example: `Itinerary.setStayNightCount()` changes one stay's days, but the trip length limit covers every stay. An object never creates itself. Code outside it does, or the object that holds it, such as `Trip.createSession()`. For each one, the object's section says what it changes, what follows on from it, and what it refuses.
+**Operations** are listed only for a change that goes beyond setting one property: one that creates or removes objects, changes a list, or has to change other stored data with it. An operation sits on the object whose property it changes, and is named for what it changes, such as `Trip.addPlaces()`. An object can read the objects that hold it to check its own rules, such as a stop reading the trip's rejected places. An operation moves up to a holder in two cases. One is a change that would break a rule on the holder's own property. Example: `Itinerary.setStayNightCount()` changes one stay's days, but the trip length limit is on the itinerary's day count. The other is a change to more than one of the objects it holds. Example: `Itinerary.moveStop()` can take a stop off one day and put it on another. An object never creates itself. Code outside it does, or the object that holds it, such as `Trip.createSession()`. An object's own rules also run when it's created, and creating one that breaks them is refused. Example: a meal stop needs a tier. For each operation, the object's section says what it changes, what follows on from it, and what it refuses.
 
 **Arguments and returns.** Each operation gives its arguments and what it returns, such as `addPlaces(places : List<Place>) : List<Place>`. An argument that can be empty has a `?` after its type. An operation with nothing after its parentheses returns nothing. These are guidance for development. Development can change them, but each change is flagged and written back here.
 
@@ -148,63 +149,73 @@ classDiagram
         /endDate : date?
         /dayCount : integer
         /totalDriveTimeInMinutes : integer
-        addStay(place : Place, after : Stay?, nightCount : integer) Stay
+        addStay(stay : Stay, after : Stay?)
         moveStay(stay : Stay, after : Stay?)
         setStayNightCount(stay : Stay, nightCount : integer) List~StayDay~
         removeStay(stay : Stay)
+        moveStop(stop : Stop, toDay : Day, after : Stop?)
     }
 
     class Stay {
         id : string #123;readOnly#125;
-        tier : Tier
-        tierRule : string
-        tierSetForNightCount : integer
         place : Place
-        lodging : Place?
+        lodging : Place? #123;readOnly#125;
+        lodgingCandidates : List~Candidate~ #123;readOnly#125;
+        tier : Tier #123;readOnly#125;
+        tierRule : string #123;readOnly#125;
+        tierSetForNightCount : integer #123;readOnly#125;
         days : List~StayDay~ #123;readOnly#125;
-        lodgingCandidates : List~Candidate~
-        weatherText : WeatherText?
+        weatherText : WeatherText? #123;readOnly#125;
         /order : integer
         /nightCount : integer
         /dates : List~date~
-        /activities : List~Stop~
         /sleepsAt : Place
-        addLodgingCandidates()
-        selectCandidate()
-        selectUserPlace()
-        setWeatherText()
+        /activities : List~Stop~
+        setTier(tier : Tier, tierRule : string)
+        addLodgingCandidates(candidates : List~Candidate~)
+        selectCandidate(place : Place)
+        setWeatherText(guidance : string) WeatherText
     }
 
     class WeatherText {
-        guidance : string
-        label : WeatherLabel
-        writtenForDates : List~date~
-        writtenForPlace : Place
-        writtenForActivities : List~ActivityRecord~
+        guidance : string #123;readOnly#125;
+        label : WeatherLabel #123;readOnly#125;
+        writtenOnDate : date #123;readOnly#125;
+        writtenForPlace : Place #123;readOnly#125;
+        writtenForDates : List~date~ #123;readOnly#125;
+        writtenForActivities : List~ActivityRecord~ #123;readOnly#125;
         /isOutOfDate : boolean
     }
 
     class ActivityRecord {
-        stop : Stop
-        selectedPlace : Place?
+        stopId : string #123;readOnly#125;
+        selectedPlace : Place? #123;readOnly#125;
     }
 
     class Day {
         id : string #123;readOnly#125;
-        startTime : time?
-        stops : List~Stop~
-        leg : Leg?
-        approvals : List~Approval~
+        ownStartTime : time?
+        stops : List~Stop~ #123;readOnly#125;
+        leg : Leg? #123;readOnly#125;
+        approvals : List~Approval~ #123;readOnly#125;
         /order : integer
-        /date : date
+        /date : date?
+        /startTime : time
+        /startStay : Stay?
+        /endStay : Stay?
+        /isStayingPut : boolean
+        /location : string?
         /scheduleEntries : List~ScheduleEntry~
-        addStops()
-        moveStop()
-        removeStops()
+        addStops(stops : List~Stop~, after : Stop?)
+        removeStops(stops : List~Stop~)
+        approveDriveHours(drivingInHours : decimal, reason : string)
+        approveRouteType(routeType : RouteType, reason : string)
+        removeApproval(kind : ApprovalKind)
     }
 
     class StayDay {
-        isRestDay : boolean
+        isRestDay : boolean = false #123;readOnly#125;
+        setRestDay(isRestDay : boolean)
     }
 
     class LastDay {
@@ -230,19 +241,21 @@ classDiagram
         kind : StopKind #123;readOnly#125;
         purpose : string #123;readOnly#125;
         searchArea : SearchArea #123;readOnly#125;
-        setTime : time?
+        searchAreaStay : Stay? #123;readOnly#125;
+        setTime : scheduleTime?
         visitTimeInMinutes : integer?
-        tier : Tier?
-        tierRule : string?
-        selectedPlace : Place?
-        searchAreaStay : Stay?
-        candidates : List~Candidate~
-        approvals : List~Approval~
+        tier : Tier? #123;readOnly#125;
+        tierRule : string? #123;readOnly#125;
+        selectedPlace : Place? #123;readOnly#125;
+        candidates : List~Candidate~ #123;readOnly#125;
+        approvals : List~Approval~ #123;readOnly#125;
         /order : integer
         /status : StopStatus
-        addCandidates()
-        selectCandidate()
-        selectUserPlace()
+        addCandidates(candidates : List~Candidate~)
+        selectCandidate(place : Place)
+        setTier(tier : Tier, tierRule : string)
+        approveOpeningHours(reason : string)
+        removeApproval(kind : ApprovalKind)
     }
 
     class Candidate {
@@ -331,7 +344,6 @@ classDiagram
 
     WeatherText --> "1" Place : writtenForPlace
     WeatherText *-- "*" ActivityRecord : writtenForActivities
-    ActivityRecord --> "1" Stop : stop
     ActivityRecord --> "0..1" Place : selectedPlace
 
     Day *-- "*" Stop : stops
@@ -410,6 +422,12 @@ classDiagram
         thursday
         friday
         saturday
+    }
+    class ApprovalKind {
+        <<enumeration>>
+        driveHours
+        routeType
+        openingHours
     }
     class CheckLevel {
         <<enumeration>>
@@ -594,7 +612,7 @@ The itinerary is the plan: where the trip starts and ends, when it starts, its s
 
 **Held as:** an entity held by the trip. Its `id` has the prefix `itin_` (technical spec 7.1). Agents never see it: a trip has one itinerary, so the tools find it from the trip.
 
-**Created and changed by:** the app creates it with the trip, and code creates its last day at the same time. The coordinator sets the start place, end place, and start date, with the tool `update_itinerary`. It adds, moves, and removes stays, and sets their nights, with the tools `add_stay`, `update_stay`, and `remove_stay`. Code adds and removes a stay's days as its nights change. Nothing else adds or removes a day.
+**Created and changed by:** the app creates it with the trip, and code creates its last day at the same time. The coordinator sets the start place, end place, and start date, with the tool `update_itinerary`. It adds, moves, and removes stays, and sets their nights, with the tools `add_stay`, `update_stay`, and `remove_stay`. It moves stops with the tool `move_stop`. Code adds and removes a stay's days as its nights change. Nothing else adds or removes a day.
 
 | Property | Stored or worked out | Type | Notes |
 |---|---|---|---|
@@ -624,15 +642,18 @@ A day touches two stays: it starts where the party slept and ends where it sleep
 
 **Operations:**
 
-- **`addStay(place : Place, after : Stay?, nightCount : integer) : Stay`** (the tool `add_stay`). Creates a stay in `place`, holding `nightCount` new days, and puts it after the stay `after`, or first when `after` is empty. Returns the new stay. The tool then sets the stay's tier with `Stay.setTier()` in the same write, which records the nights it was set for (see Stay). A stay always has a tier once the write ends.
+- **`addStay(stay : Stay, after : Stay?)`** (the tool `add_stay`). Code creates the stay first, with its place, its nights, and its tier and rule, and the stay creates its days (see Stay). This puts it after the stay `after`, or first when `after` is empty.
   - **Follows on:** every later day moves back, and keeps its ID. Every leg whose start or end changed is re-routed at the end of the write.
-  - **Refused:** until the itinerary has a `startPlace`, an `endPlace`, and a `startDate` (technical spec 4.2). Also refused when `nightCount` is less than 1, or when the trip would be longer than the maximum trip length.
+  - **Refused:** until the itinerary has a `startPlace`, an `endPlace`, and a `startDate` (technical spec 4.2). Also refused when the trip would be longer than the maximum trip length.
 - **`moveStay(stay : Stay, after : Stay?)`** (the tool `update_stay`). Moves the stay to after the stay `after`, or first when `after` is empty. Its days move with it, since the stay holds them, with their stops, rest-day marks, start times, and approvals.
   - **Follows on:** every leg whose start or end changed is re-routed at the end of the write. A day keeps its stops, but where it starts or ends can change. The tool lists those stops for the coordinator (technical spec 3.5).
   - **Refused:** when `after` is the stay itself.
 - **`setStayNightCount(stay : Stay, nightCount : integer) : List<StayDay>`** (the tool `update_stay`). Adds or removes days at the end of the stay's days until it has `nightCount` of them. It sits on the itinerary, not the stay, because the trip length limit covers every stay (section 1). A new day isn't a rest day, and has no start time, stops, or approvals. A removed day goes with its leg and approvals. Returns the days added, or an empty list when nights were removed.
   - **Follows on:** every later day moves, and keeps its ID. Every leg whose start or end changed is re-routed at the end of the write. The stay's tier still records the nights it was set for, so the checks add a note when they differ (see Stay).
   - **Refused:** when `nightCount` is less than 1. Removing a stay's last night means removing the stay. Also refused when the trip would be longer than the maximum trip length, and when a day it would remove holds stops. The refusal lists those stops.
+- **`moveStop(stop : Stop, toDay : Day, after : Stop?)`** (the tool `move_stop`). Moves the stop to after the stop `after` on `toDay`, or first on it when `after` is empty. `toDay` can be the stop's own day. The stop keeps its candidates, selection, visit time, and approvals. An opening hours approval stays, since the place is the same. It applies or not at the new time.
+  - **Follows on:** the legs of the day it left and the day it joined are re-routed at the end of the write, when their selected places changed. A stop near a stay, or near the start or end place, can land on a day that doesn't start or end there. The move goes through, and the checks give the `searchAreaDoesNotFitDay` warning (see Stop). A moved attraction can change a stay's activities.
+  - **Refused:** when `after` isn't on `toDay`, or is the stop itself. When a stop along the leg would land on a day that stays put, since it has no leg to be along. The error says to remove the stop and add a new one. When a stop with no set time would land on a rest day.
 - **`removeStay(stay : Stay)`** (the tool `remove_stay`). Removes the stay, which takes its days, lodging candidates, and weather text with it. The places stay in the trip's `places`.
   - **Follows on:** the next day now starts from the stay before, or from the start place, and its leg is re-routed at the end of the write.
   - **Refused:** while any stop is on the stay's days, or while any stop anywhere has the stay as its search area. The refusal lists those stops by name and ID. Code never removes a stop the coordinator didn't name. The coordinator asks the user what to do with each one, then moves or removes it (technical spec 3.5).
@@ -644,3 +665,270 @@ A day touches two stays: it starts where the party slept and ends where it sleep
 - **The last day is created with the itinerary and never removed.** It has no stay: the party drives to the end place and doesn't sleep anywhere on the trip. A day trip is just the last day. Example: on the San Francisco trip, the Monterey stay holds Day 1, the San Luis Obispo stay holds Day 2, and Day 3 is the last day.
 - **A day keeps its ID when its number or date changes.** Removing a night removes that stay's last day. Every later day keeps its ID and moves up one. Check results match by their subject's ID, and approvals sit on days, so both depend on this.
 - **The start date is after today when it's set.** Once today reaches it, the trip has started and can't change (see Trip).
+
+### 3.5 Stay
+
+A stay is an overnight location, for one or more nights (functional spec 4). It holds the days that end with a night there.
+
+**Held as:** an entity held by the itinerary, in `stays`. Its `id` has the prefix `stay_` (technical spec 7.1).
+
+**Created and changed by:** code creates it when the coordinator adds a stay with the tool `add_stay`, with its place, its nights, and its tier and rule. Then `Itinerary.addStay()` puts it in the itinerary. The coordinator changes its place and tier with the tool `update_stay`, and selects its lodging. A stay researcher adds lodging candidates. The weather worker sets its weather text. The itinerary moves and removes stays, and changes their nights (see Itinerary).
+
+| Property | Stored or worked out | Type | Notes |
+|---|---|---|---|
+| `id` | Stored | `string`, read only | Agents see it. Users never do |
+| `place` | Stored | `Place` | Where it is, usually a town, such as Moab. Set directly. See below |
+| `lodging` | Stored | `Place?`, read only | Where the party sleeps, such as a hotel, a campground, or a friend's house. Empty until selected. Always one of `lodgingCandidates`. Changes only through `selectCandidate()`, or when a rejection clears it (`Trip.rejectPlaces()`) |
+| `lodgingCandidates` | Stored | `List<Candidate>`, in the order offered, read only | Every lodging candidate offered and not rejected. Changes only through `addLodgingCandidates()`, or when a rejection removes one |
+| `tier` | Stored | `Tier`, read only | The lodging's budget tier (technical spec section 9). Changes only through `setTier()` and `selectCandidate()` |
+| `tierRule` | Stored | `string`, read only | The user's rule that produced the tier, such as "mid-range for stays of 2+ nights" |
+| `tierSetForNightCount` | Stored | `integer`, read only | The stay's nights when its tier was last set. See below |
+| `days` | Stored | `List<StayDay>`, in order, read only | One for each night. Created with the stay. Changes only through `Itinerary.setStayNightCount()` |
+| `weatherText` | Stored | `WeatherText?`, read only | Weather and clothing guidance. Empty until the weather worker writes it. Changes only through `setWeatherText()` |
+| `order` | Worked out | `integer` | Its position in the itinerary's `stays` |
+| `nightCount` | Worked out | `integer` | How many days it holds |
+| `dates` | Worked out | `List<date>` | The dates of its nights, plus the morning the party leaves. Example: a three-night Moab stay from October 10 has October 10 to 13 |
+| `sleepsAt` | Worked out | `Place` | `lodging` once one is selected, and `place` until then. Legs start and end here (see Leg) |
+| `activities` | Worked out | `List<Stop>` | The attraction stops its weather text is written for. See below |
+
+**Creating a stay.** Code creates it with its place, its nights, and its tier and rule, and the stay creates its days. So a stay always has at least one day and a tier. Creating one is refused when the night count is less than 1 or the rule is empty.
+
+**Place.** Set directly. Moving a stay to a different town leaves its lodging and the stops on its days alone, because whether they still fit is a judgment call. The coordinator talks it through with the user. Then it removes the stops that no longer fit, and rejects the hotel if it no longer fits (technical spec 3.5). The legs on either side are re-routed at the end of the write, and the weather text goes out of date. Example: moving from Monterey to Carmel keeps every stop and the hotel.
+
+**Tier and nights.** A rule like "mid-range for stays of 2+ nights" depends on the nights. So setting the tier records the current nights in `tierSetForNightCount`. When `nightCount` no longer matches, the checks give the `stayTierSetForDifferentNights` note (see Check result). Setting the tier again, even to the same one, records the current nights and clears the note.
+
+**Activities.** The attraction stops the stay's clothing advice should cover (technical spec 6.3). Meals don't count, since clothing doesn't depend on which café the party picks. A stay's activities are:
+
+- Attraction stops whose search area is this stay, on any day.
+- Attraction stops along the leg on this stay's days.
+- For the first stay, attraction stops near the start place.
+- For the last stay, attraction stops along the last day's leg or near the end place, since the last day has no stay.
+
+Example: Panorama Point at 1 a.m. is near the Torrey stay, so Torrey's weather text covers freezing-night stargazing.
+
+**WeatherText.** Held by its stay, with no `id`. A new one replaces the old one whole, so its properties never change.
+
+| Property | Stored or worked out | Type | Notes |
+|---|---|---|---|
+| `guidance` | Stored | `string`, read only | The weather worker's text: conditions, and short clothing advice tied to the activities. It names no clock times. Seasonal-averages text also names no dates or weekdays (technical spec 6.3) |
+| `label` | Stored | `WeatherLabel`, read only | Forecast or seasonal averages. `setWeatherText()` sets it from the stay's dates. The worker doesn't |
+| `writtenOnDate` | Stored | `date`, read only | Today's date when it was written. The seasonal-averages label's years come from it. See below |
+| `writtenForPlace` | Stored | `Place`, read only | The stay's `place` when it was written |
+| `writtenForDates` | Stored | `List<date>`, in order, read only | The stay's `dates` when it was written |
+| `writtenForActivities` | Stored | `List<ActivityRecord>`, in no order, read only | The stay's `activities` when it was written |
+| `isOutOfDate` | Worked out | `boolean` | True when what it was written for no longer matches the stay. See below |
+
+**ActivityRecord.** Held by a weather text, with no `id`. It holds `stopId : string` and `selectedPlace : Place?`, both read only. The selected place is empty for a stop with no place yet. It records no date or time: the stay's dates cover dates, and times move with every visit-time change. It's a stop ID, not a link, because the stop can be removed later. A removed stop is one way the activities change.
+
+**When weather text is out of date.** Its stay's place differs from `writtenForPlace`, or its activities differ from `writtenForActivities`, or its dates have moved:
+
+- **Activities differ** when an attraction stop is added, removed, or moves in or out of the stay's activities, or when one's place is selected, changed, or cleared. That includes its first selection. They're compared as pairs of stop ID and selected place, in any order.
+- **For a forecast,** any change to the dates.
+- **For seasonal averages,** only a date outside the window the averages were built from: the written dates plus 7 days on each side (Open-Meteo design 2.2). So moving the trip by a day or two doesn't make it out of date.
+
+The text is kept, and the UI labels it out of date. The checks give the `weatherOutOfDate` note. A forecast isn't refreshed as it ages, and nothing marks it old (technical spec 3.5).
+
+**The seasonal-averages years come from `writtenOnDate`.** The label reads "Typical for this time of year, based on 2016–2025": the 10 complete years before the date it was written (Open-Meteo design 2.3). Working the years out from today instead would change the label a year later, though the text doesn't change.
+
+**Operations:**
+
+- **`setTier(tier : Tier, tierRule : string)`** (the tool `update_stay`). Sets `tier` and `tierRule`, and records the current `nightCount` in `tierSetForNightCount`.
+  - **Refused:** when the rule is empty.
+- **`addLodgingCandidates(candidates : List<Candidate>)`** (the tool `add_lodging_candidates`, used by a stay researcher, and the tool `select_user_place`). Adds one set of candidates to `lodgingCandidates`, and gives each the set number: one more than the highest set the stay still has, or 0 when it has none (see Candidate). A selection the stay already has stays selected.
+  - **Refused:** the whole call, when it has fewer than 1 or more than 3 candidates, when a place is already one of this stay's candidates, or when a place is one of the trip's rejected places. So a set is never partly written.
+- **`selectCandidate(place : Place)`** (the tools `select_candidate` and `select_user_place`). Sets `lodging` to the candidate's place. When the candidate has a tier that differs from the stay's, it sets the tier to the candidate's, with the rule "the user picked a mid-range option" (or whichever tier), the same way `setTier()` does. A place the user named has no tier, so the stay's tier stays.
+  - **Follows on:** every leg that starts or ends at the stay is re-routed at the end of the write. For a three-night stay, that's the day in, the days that stay put, and the day out.
+  - **Refused:** when the place isn't one of the stay's candidates.
+- **`setWeatherText(guidance : string) : WeatherText`** (the tool `set_stay_weather`, used by the weather worker). Creates weather text and replaces any the stay had. It labels it a forecast when every one of the stay's dates is within 7 days, counting today as day 0, and seasonal averages otherwise (technical spec section 8). It records today's date, and the stay's current place, dates, and activities. Returns the new text.
+  - **Refused:** when the guidance is empty.
+
+**There is no "select a place the user named."** The tool `select_user_place` makes a candidate for the place, marked "specified by the user," and adds it as a set of one with `addLodgingCandidates()`. Then it selects it with `selectCandidate()`. Both operations' rules apply.
+
+**Rules:**
+
+- **The lodging is always one of the stay's candidates.** Only a rejection clears it (see Trip).
+- **A stay always has a tier,** set when it's created.
+- **A stay with no weather text is out of date once any stay has some.** That covers a stay added after the weather round. The `weatherOutOfDate` check gives the note.
+
+### 3.6 Day
+
+A day is one day of the trip, with a schedule (functional spec 4). There are two kinds. A **stay day** ends with a night at a stay, and the stay holds it. The **last day** ends at the end place, and the itinerary holds it.
+
+**Held as:** an entity. Its `id` has the prefix `day_` (technical spec 7.1). A stay day is held by its stay's `days`. The last day is held by the itinerary's `lastDay`. `Day` is the base, with `StayDay` and `LastDay` below it. In code, this is likely a tagged union.
+
+**Created and changed by:** code creates a stay's days with the stay, and the itinerary adds and removes them as the stay's nights change. The itinerary creates the last day. The coordinator sets a day's start time, rest day, approvals, and stops, with the tools `update_day`, `add_stops`, `move_stop`, and `remove_stops`. Code adds, re-routes, and removes its leg (see Leg).
+
+| Property | Stored or worked out | Type | Notes |
+|---|---|---|---|
+| `id` | Stored | `string`, read only | Agents see it. Users never do. It never changes, even when the day's number or date does (see Itinerary) |
+| `ownStartTime` | Stored | `time?` | A start time the user agreed to for this day, such as 5:30 a.m. for a sunrise hike. Empty means the trip brief's `usualStartTime`. Set directly |
+| `stops` | Stored | `List<Stop>`, in order, read only | The day's stops, in the order the coordinator set. Code never reorders them. Changes only through `addStops()`, `removeStops()`, and `Itinerary.moveStop()` |
+| `leg` | Stored | `Leg?`, held by the day, read only | The day's drive, if it has one (see Leg) |
+| `approvals` | Stored | `List<Approval>`, in no order, read only | Drive hours and route type approvals, at most one of each. Changes only through `approveDriveHours()`, `approveRouteType()`, and `removeApproval()` |
+| `order` | Worked out | `integer` | Its position in the itinerary's `days` |
+| `date` | Worked out | `date?` | The itinerary's `startDate` plus `order` days. Empty while there's no start date |
+| `startTime` | Worked out | `time` | `ownStartTime`, or the trip brief's `usualStartTime` when it's empty |
+| `startStay` | Worked out | `Stay?` | Where the party slept the night before: the stay that holds the day before. Empty on the first day, which starts at the start place |
+| `endStay` | Worked out | `Stay?` | Where the party sleeps: the stay that holds this day. Empty on the last day, which ends at the end place |
+| `isStayingPut` | Worked out | `boolean` | True when `startStay` and `endStay` are the same stay. See below |
+| `location` | Worked out | `string?` | Where the day is, for the daily itinerary (functional spec 9.5). See below |
+| `scheduleEntries` | Worked out | `List<ScheduleEntry>`, in time order | The day's schedule. See below |
+
+**StayDay** adds one property:
+
+| Property | Stored or worked out | Type | Notes |
+|---|---|---|---|
+| `isRestDay` | Stored | `boolean`, read only, false by default | A day with no driving (functional spec 5.2). The coordinator decides which days, from the trip brief's `restDaysText`. Changes only through `setRestDay()` |
+
+**LastDay** adds nothing. It's its own kind so that it can't be a rest day, and so that only the itinerary can hold it.
+
+**A day touches two stays.** It starts where the party slept, its `startStay`, and ends where it sleeps, its `endStay`. On the first day, the start place stands in for `startStay`. On the last day, the end place stands in for `endStay`. Example: San Francisco Day 2 starts at the Monterey stay and ends at the San Luis Obispo stay. The leg's from and to, the stops' search areas, and rest days all depend on these.
+
+**Which days stay put.** A stay's first day always arrives from somewhere else, and so does the last day. Every later day of a stay starts and ends at that stay, so it stays put. Adding, moving, or removing stays, or changing their nights, never changes which of a stay's days is its first. So `isStayingPut` never changes for a day, and a rest day or a stop along the leg never stops fitting its day.
+
+**Location.** The towns the day runs between, by the stays' places, not their lodging. A day that moves shows both, such as "Monterey → San Luis Obispo". A day that stays put shows one, such as "Moab". The first day starts at the start place, and the last day ends at the end place, such as "San Luis Obispo → Mike's house". It's empty while a place it needs is empty.
+
+**ScheduleEntry.** One item in a day's schedule: a drive, a stop, or free time. It's worked out when the day is read, and never stored, so it isn't in the diagram. Each one holds:
+
+- `kind : ScheduleEntryKind`: `drive`, `stop`, or `freeTime`.
+- `stop : Stop?`: the stop, for a stop entry. Empty for the others.
+- `startTime : scheduleTime?` and `endTime : scheduleTime?`: empty when the time isn't known yet. The UI shows "time set once a place is picked."
+
+**How the schedule is worked out.** It's a plan, not a promise: drive times are averages, and visit times are estimates. Every time comes from stored data, so nothing new is stored.
+
+- **The day starts at its `startTime`.** On a day with a leg, the party leaves where it slept at that time.
+- **Stops run in the day's order.** A stop's arrival is when the stop before it ends plus the drive to it, or its set time if that's later. The party waits before driving, not after, so the wait shows as free time before the drive. The schedule doesn't say where the party spends it. A stop ends after its visit time.
+- **Each drive is the leg's stored segment drive time plus the buffer** for fuel and short breaks, a setting (technical spec section 10). Example: on Moab Day 4, Capitol Gorge ends at 4:40 p.m., then free time until 12:35 a.m., then the drive to Panorama Point for stargazing at 1:00 a.m.
+- **A stop with no selected place takes no time.** It has no drive and no visit time, so the drive to the next selected stop starts from the selected stop before it. An empty stop with a set time shows at its set time and holds its spot: the stop after it can't arrive before that time. Example: on San Francisco Day 2, dinner is set for 6:30 and still empty, so dessert shows at 6:30, not 4:35. An empty stop with no set time has no times. So the stops after an empty stop can show times that are too early (see Check result).
+- **After the last stop comes the drive to where the party sleeps,** or to the end place. Its times are unknown when an empty stop comes after the last selected stop.
+- **A rest day has no drives.** Each of its stops has a set time, and the day ends when its last stop ends.
+- **A day can run past midnight.** It runs until the party reaches where it sleeps, or the end place. A stop after midnight stays on the day it follows, and its times are on the next calendar day. Example: stargazing at 1 a.m. after Moab Day 4 is the last stop on Day 4, not the first on Day 5. Nothing compares a day's end with the next day's start.
+
+**Operations:**
+
+- **`addStops(stops : List<Stop>, after : Stop?)`** (the tool `add_stops`). Code creates the stops first (see Stop). This adds them to `stops` in list order, after the stop `after`, or first when `after` is empty. They're empty stops, so no leg is re-routed. An added attraction stop can change a stay's activities.
+  - **Refused:** the whole call, when `after` isn't on this day, or when a stop doesn't fit this day:
+    - Near a stay that isn't this day's `startStay` or `endStay`.
+    - Along the leg, on a day that stays put.
+    - Near the start place, except on the first day. Near the end place, except on the last day.
+    - With no set time, on a rest day.
+- **`removeStops(stops : List<Stop>)`** (the tool `remove_stops`). Removes the stops, with their candidates and approvals. The places stay in the trip's `places`. The tool can take stops from several days, and calls this once for each day.
+  - **Follows on:** when a selected stop goes, the leg is re-routed at the end of the write. A day that stays put loses its leg with its last selected stop (see Leg).
+  - **Refused:** the whole call, when a stop isn't on this day.
+- **`approveDriveHours(drivingInHours : decimal, reason : string)`** (the tool `update_day`). Adds a drive hours approval, replacing any the day has.
+  - **Refused:** when the reason is empty, or the hours aren't more than 0 and at most the maximum daily driving, a setting (technical spec section 10).
+- **`approveRouteType(routeType : RouteType, reason : string)`** (the tool `update_day`). Adds a route type approval, replacing any the day has.
+  - **Refused:** when the reason is empty.
+- **`removeApproval(kind : ApprovalKind)`** (the tool `update_day`). Removes the day's approval of that kind. It does nothing when the day has none. No reason is needed.
+  - **Refused:** for an opening hours approval, which only stops hold.
+- **`StayDay.setRestDay(isRestDay : boolean)`** (the tool `update_day`). Marks or unmarks the day as a rest day. Marking it removes the day's leg, with its waypoints. The day's approvals stay. Unmarking it gives the day a leg again when it's re-routed at the end of the write, through its selected stops and without the old waypoints (see Leg).
+  - **Refused:** marking a day that doesn't stay put, since a day that moves has to drive. Marking a day while a stop on it has no set time, since nothing would place that stop in the day. The error lists those stops.
+
+**Rules:**
+
+- **A rest day's stops each have a set time.** `addStops()`, `Itinerary.moveStop()`, `setRestDay()`, and a stop's `setTime` each refuse a change that would break this.
+- **Only a stay day that stays put can be a rest day.** The last day and every stay's first day have to drive.
+- **A day's stops stay in the order the coordinator set.** Code never reorders them, even when the stop-order check finds a faster order (see Leg).
+
+### 3.7 Stop
+
+A stop is a place the party visits during a day: a meal or an attraction (functional spec 4).
+
+**Held as:** an entity held by its day's `stops`. Its `id` has the prefix `stop_` (technical spec 7.1).
+
+**Created and changed by:** code creates it when the coordinator lays out a day with the tool `add_stops`, with its kind, purpose, search area, set time, and, for a meal, its tier and rule. Then `Day.addStops()` puts it on the day. The coordinator changes its set time, visit time, tier, and approvals with the tool `update_stop`, selects its place, and moves and removes it. Workers add its candidates.
+
+| Property | Stored or worked out | Type | Notes |
+|---|---|---|---|
+| `id` | Stored | `string`, read only | Agents see it. Users never do |
+| `kind` | Stored | `StopKind`, read only | Meal or attraction |
+| `purpose` | Stored | `string`, read only | What the stop is for, never when, such as "dessert" or "stargazing." It can say how long, such as "a long hike in Arches, about 5 hours." See below |
+| `searchArea` | Stored | `SearchArea`, read only | Where its candidates are searched: near a stay, along the leg, or near the start or end place. It decides which worker fills the stop (technical spec section 6) |
+| `searchAreaStay` | Stored | `Stay?`, read only | The stay, for a stop near a stay. Empty for every other search area |
+| `setTime` | Stored | `scheduleTime?` | "Not before," such as dinner at 7 or a sunrise hike at 6. Empty means it follows the stop before it. Most stops have none. Set directly. See Rules |
+| `visitTimeInMinutes` | Stored | `integer?` | How long the party spends there. Has a value exactly when a place is selected. `selectCandidate()` sets it. It can also be set directly, when the user asks, such as "plan five hours for that hike." More than 0 |
+| `tier` | Stored | `Tier?`, read only | For a meal, its budget tier (technical spec section 9). Empty for an attraction. Changes only through `setTier()` and `selectCandidate()` |
+| `tierRule` | Stored | `string?`, read only | For a meal, the user's rule that produced the tier. Empty for an attraction |
+| `selectedPlace` | Stored | `Place?`, read only | Empty until selected. Always one of `candidates`. Changes only through `selectCandidate()`, or when a rejection clears it (`Trip.rejectPlaces()`) |
+| `candidates` | Stored | `List<Candidate>`, in the order offered, read only | Every candidate offered and not rejected. Changes only through `addCandidates()`, or when a rejection removes one |
+| `approvals` | Stored | `List<Approval>`, in no order, read only | An opening hours approval, at most one. Changes only through `approveOpeningHours()` and `removeApproval()` |
+| `order` | Worked out | `integer` | Its position in its day's `stops` |
+| `status` | Worked out | `StopStatus` | Empty, proposed, or selected. See below |
+
+**Creating a stop.** Code creates it with its kind, purpose, search area, set time, and, for a meal, its tier and rule. A meal gets a tier even when the user will name its place, in case they later ask for more options. Creating one is refused when:
+
+- The purpose is empty.
+- `searchAreaStay` is empty for a stop near a stay, or set for any other search area.
+- A meal has no tier or rule, or an attraction has one.
+
+The rules about which day it fits run when `Day.addStops()` adds it (see Day).
+
+**Kind, purpose, and search area never change.** The stop's candidates were found for them. A stop with a different kind, purpose, or search area is a different stop, so the coordinator removes it and adds a new one.
+
+**A purpose says what, never when.** A stop can move to another time or day, and its purpose never changes. A meal has no type, such as breakfast or dinner. Its time says when, and its purpose says what, such as "burgers and shakes." An activity tied to a time of day, such as a sunrise hike or stargazing, says what. Nothing in code checks this. The coordinator writes purposes this way (technical spec 5.2).
+
+**A time describes a stop. It doesn't judge it.** No rule says when a place belongs in the day. A speakeasy that opens at 7 p.m. only works at night. Whether a place is open then is the opening-hours check's job.
+
+**Status** comes from two properties, so it isn't stored:
+
+| `selectedPlace` | `candidates` | `status` |
+|---|---|---|
+| Empty | Empty | `empty` |
+| Empty | Some | `proposed` |
+| Set | Some | `selected` |
+
+**Operations:**
+
+- **`addCandidates(candidates : List<Candidate>)`** (the tool `add_stop_candidates`, used by a stay researcher or leg scout, and the tool `select_user_place`). Adds one set of candidates to `candidates`, and gives each the set number, the same way as a stay's lodging candidates (see Stay). For a stop along the leg, the tool works out each candidate's detour time before this runs, since it takes a call to Google (see Candidate). A selection the stop already has stays selected.
+  - **Refused:** the whole call, when it has fewer than 1 or more than 3 candidates, when a place is already one of this stop's candidates, or when a place is one of the trip's rejected places.
+- **`selectCandidate(place : Place)`** (the tools `select_candidate` and `select_user_place`). Sets `selectedPlace` to the candidate's place. Selecting the place that's already selected changes nothing. Otherwise:
+  - **Visit time:** for an attraction, the candidate's visit time. For a meal, the meal visit time, a setting (technical spec section 10).
+  - **Tier:** when a meal's candidate has a tier that differs from the stop's, it sets the tier to the candidate's, with the rule "the user picked a mid-range option" (or whichever tier).
+  - **Approvals:** it removes any opening hours approval, since it was for the old place.
+  - **Follows on:** the day's leg is re-routed at the end of the write. A day that stays put, and isn't a rest day, gains a leg with its first selected stop (see Leg). A selected attraction can change a stay's activities.
+  - **Refused:** when the place isn't one of the stop's candidates.
+- **`setTier(tier : Tier, tierRule : string)`** (the tool `update_stop`). Sets `tier` and `tierRule`.
+  - **Refused:** for an attraction, or when the rule is empty.
+- **`approveOpeningHours(reason : string)`** (the tool `update_stop`). Adds an opening hours approval, replacing any the stop has. It records how many minutes of the visit now fall within the selected place's opening hours, from the schedule.
+  - **Refused:** when the reason is empty, or the stop has no selected place.
+- **`removeApproval(kind : ApprovalKind)`** (the tool `update_stop`). Removes the stop's approval of that kind. It does nothing when the stop has none.
+  - **Refused:** for a drive hours or route type approval, which only days hold.
+
+**There is no "select a place the user named."** The tool `select_user_place` makes a candidate for the place, marked "specified by the user." For an attraction, the candidate holds the visit time the user gave. It adds it as a set of one with `addCandidates()`, then selects it with `selectCandidate()`. The candidate keeps the user's visit time, so selecting it again later gives the same time. Example: the user names Hangar One at 2 hours, picks something else, then goes back to it. It gets 2 hours again.
+
+**Moving a stop** to another place in its day, or to another day, is `Itinerary.moveStop()`, since it can change two days (see Itinerary).
+
+**Rules:**
+
+- **The selected place is always one of the stop's candidates.** Only a rejection clears it (see Trip).
+- **A stop has a visit time exactly when it has a selected place.** Setting a visit time on a stop with no place is refused. Clearing the place clears it.
+- **A stop on a rest day has a set time.** Setting `setTime` to empty is refused on a rest day.
+- **A stop's search area fits its day when it's added.** A stop along the leg keeps fitting, since it can only move to a day that moves. A stop near a stay, or near the start or end place, can stop fitting when stays are added or moved, or when it's moved. That goes through, with the `searchAreaDoesNotFitDay` warning, so the coordinator can sort stops out in steps (technical spec 3.5).
+
+**Approval.** An exception the user agreed to, recorded with their reason (functional spec 6.2). It's held by a day or a stop, in `approvals`, with no `id`. Its properties never change. Setting a new one of the same kind replaces it.
+
+| Property | Stored or worked out | Type | Notes |
+|---|---|---|---|
+| `reason` | Stored | `string`, read only | The user's reason, such as "we want Goblin Valley and Capitol Reef on the way." Never empty |
+| `isApplying` | Worked out | `boolean` | Whether it still covers the plan as it is now. See below |
+
+Each kind is its own class below `Approval`, because each holds a different value:
+
+| Kind | Held by | Value | Applies while | Covers |
+|---|---|---|---|---|
+| `DriveHoursApproval` | Day | `approvedDrivingInHours : decimal`: the hours the user agreed to | The day's driving, with the buffer, is at most the approved hours | `dailyDriving` |
+| `RouteTypeApproval` | Day | `approvedRouteType : RouteType`: the route type the user agreed to, such as fastest | Always | No warning. See below |
+| `OpeningHoursApproval` | Stop | `approvedOpenTimeInMinutes : integer`: how many minutes of the visit fell within opening hours | At least that many minutes of the visit are within opening hours | `openingHoursNotLongEnough` and `openingHoursClosed` |
+
+`ApprovalKind` names a kind without an approval, for `removeApproval()`.
+
+**Each records an amount, not yes or no.** Then nothing has to be reset. Example: Moab Day 4 is approved for 5 hours. If a later change makes it 5 hours 20 minutes, the approval stops applying, and the warning comes back as new. If a change makes the day shorter, nothing is said. An opening hours approval works the same way, in minutes. Approving a closed place records 0 minutes, so it applies as long as that place stays selected. A time of day wouldn't work: any change earlier in the day moves every later time.
+
+**A route type approval covers no warning.** It records the user's choice, so the coordinator doesn't raise it again, in this session or a later one, and adds no scenic waypoints that day. The leg's route type comes from it (see Leg).
+
+**Approval rules:**
+
+- **A day or stop holds at most one approval of each kind.** A new one replaces the old.
+- **Every approval has a reason.** Removing one doesn't need one.
+- **A day holds drive hours and route type approvals. A stop holds opening hours approvals.** The day holds them, not its leg, so they survive when the leg goes away, such as on a rest day.
+- **An opening hours approval goes when the stop's place changes or is cleared.** It was for that place. So the coordinator never has to clear one.

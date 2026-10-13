@@ -2,7 +2,7 @@
 
 Prep for technical spec open question 4, gathered on 2026-10-12. The open question calls it "a full object model." We've since settled on "domain model" as the name. This file holds the plan, the open items, and the starting material for writing it.
 
-**Status, 2026-10-13:** `design/domain-model.md` has its conventions (section 1), the class diagram, and the Trip written and reviewed, including Session and RejectedPlace. Round 1 (Trip brief, Check result, Itinerary) is written and reviewed. Round 2 (Day, Stay, Stop) is next. The other objects are still drafts in the diagram. Decisions are under "Settled in the Trip review" and "Settled in round 1" below. The domain model's section 1 replaces the naming and type guidance in "What each object gets."
+**Status, 2026-10-13:** `design/domain-model.md` has its conventions (section 1), the class diagram, and the Trip written and reviewed, including Session and RejectedPlace. Round 1 (Trip brief, Check result, Itinerary) is written and reviewed. Round 2 (Stay, Day, Stop) is a first draft, unresolved: rules that need data from outside their object led to a planned move to services, on its own branch. The other objects are still drafts in the diagram. Decisions are under "Settled in the Trip review" and "Settled in round 1" below. The domain model's section 1 replaces the naming and type guidance in "What each object gets."
 
 ## What we're making
 
