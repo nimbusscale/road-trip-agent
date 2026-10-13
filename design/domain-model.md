@@ -47,7 +47,7 @@ A value after `=` is the property's default, the value it has when its object is
 
 **How an object is held.** An object with an `id` is an **entity**. The `id` is one we create (technical spec 7.1). An object with no `id` is **held by** the one object whose property holds it, such as a leg held by its day's `leg`. It exists only inside that object and goes away with it. An entity can be held too: a day holds its `stops`, and they go away with it. IDs from outside sources, such as Google's place ID, are ordinary properties.
 
-**Order.** A list in order stores the order. An item's number is its position in that list. The calendar's `orderOf()` works it out when it's read (section 4.1). Numbers start at 0. The UI counts from 1 for people, so the day stored as 0 shows as Day 1. The examples use the people-facing labels.
+**Order.** A list in order stores the order. An item's number is its position in that list. The calendar's `orderOf()` works it out when it's read (section 4.1). Numbers start at 0. The UI counts from 1 for people, so the day stored as 0 shows as Day 1. The examples use the people-facing labels. Most come from the two example trips in section 5.
 
 **Who creates and changes it.** The coordinator, a worker, code, or the app itself, outside any agent. Each object says which.
 
@@ -512,7 +512,7 @@ A session is created and begins at the same moment, so it has no separate "start
 | `places` | Stored | `List<Place>`, in no order, read only | Every place a tool has returned for this trip, including search results never offered. Each is stored once. Only `addPlaces()` adds to it, and nothing removes from it |
 | `rejectedPlaces` | Stored | `List<RejectedPlace>`, in the order rejected, via service | Only `RejectionsService.rejectPlaces()` adds to it, and nothing removes from it: taking a rejection back is out of scope (functional spec 2). It's via service so that a rejection is never recorded without the place also leaving every stop's and stay's candidates (section 4.3) |
 
-**RejectedPlace.** Held by the places registry, with no `id` of its own. It holds `place : Place` and `reason : string`, both read only. The reason is the user's, such as "too kitschy for us." Creating one with an empty reason is refused. The place itself stays in `places`, so the tool `find_place` can still return it, marked rejected with the reason (technical spec 3.2).
+**RejectedPlace.** Held by the places registry, with no `id` of its own. It holds `place : Place` and `reason : string`, both read only. The reason is the user's, such as "too kitschy for us." Creating one with an empty reason is refused. The place itself stays in `places`, so the tool `find_place` can still return it, marked rejected with the reason (tool design 2.3).
 
 The registry's operations:
 
@@ -540,7 +540,7 @@ The registry keeps a change method for `rejectedPlaces` that only services reach
 - **A started trip can't be changed.** Once `hasStarted` is true, every write that changes the plan is refused, and the error says the trip has started (technical spec section 8). That covers the trip brief, the itinerary, candidates, weather text, and rejected places. Objects and services don't check this. The tools check it before a write, and persistence checks it again when the trip is saved (section 1). Persistence still saves a started trip's new sessions, and places saved from searches, since neither changes the plan. Reads still work, and sessions can still be created and resumed.
 - **Today's date is the date in the start place's time zone,** since that's where the trip begins. It isn't a property of the trip. Code looks it up when a rule needs it, with the calendar's `today()` (section 4.1). The start-date check, the started-trip lock, and the forecast rules all use it (technical spec 5.2).
 - **All of a trip's times are in the start place's time zone.** A trip that crosses into another time zone shows times off by the difference after the border. That's a known limit of this version.
-- **The trip brief holds what the user wants. The itinerary holds the plan.** No fact is stored in both. Changing the brief never changes the itinerary. The checks compare them, and the coordinator changes the plan with the user (technical spec 3.1).
+- **The trip brief holds what the user wants. The itinerary holds the plan.** No fact is stored in both. Changing the brief never changes the itinerary. The checks compare them, and the coordinator changes the plan with the user (technical spec section 8).
 - **Places are kept per trip.** Each trip has its own places registry. A place found for one trip, such as a friend's address, is never visible from another trip (functional spec 10.4).
 
 ### 3.2 Trip brief
@@ -693,7 +693,7 @@ A stay is an overnight location, for one or more nights (functional spec 4). It 
 
 **Creating a stay.** `StaysService.addStay()` creates it with its place, its nights, and its tier and rule, and the stay creates its days. So a stay always has at least one day and a tier. Creating one is refused when the night count is less than 1 or the rule is empty.
 
-**Place.** Set directly. Moving a stay to a different town leaves its lodging and the stops on its days alone, because whether they still fit is a judgment call. The coordinator talks it through with the user. Then it removes the stops that no longer fit, and rejects the hotel if it no longer fits (technical spec 3.5). The legs on either side are re-routed at the end of the write, and the weather text goes out of date (`isWeatherOutOfDate()`, section 4.1). Example: moving from Monterey to Carmel keeps every stop and the hotel.
+**Place.** Set directly. Moving a stay to a different town leaves its lodging and the stops on its days alone, because whether they still fit is a judgment call. The coordinator talks it through with the user. Then it removes the stops that no longer fit, and rejects the hotel if it no longer fits (technical spec 5.2). The legs on either side are re-routed at the end of the write, and the weather text goes out of date (`isWeatherOutOfDate()`, section 4.1). Example: moving from Monterey to Carmel keeps every stop and the hotel.
 
 **Tier and nights.** A rule like "mid-range for stays of 2+ nights" depends on the nights. So setting the tier records the current nights in `tierSetForNightCount`. When `nightCount` no longer matches, the checks give the `stayTierSetForDifferentNights` note (see Check result). Setting the tier again, even to the same one, records the current nights and clears the note.
 
@@ -740,7 +740,7 @@ A day is one day of the trip, with a schedule (functional spec 4). There are two
 
 **Held as:** an entity. Its `id` has the prefix `day_` (technical spec 7.1). A stay day is held by its stay's `days`. The last day is held by the itinerary's `lastDay`. `Day` is the base, with `StayDay` and `LastDay` below it. In code, this is likely a tagged union.
 
-**Created and changed by:** `StaysService` creates a stay's days with the stay, and adds and removes them as the stay's nights change. The itinerary creates the last day. The coordinator sets a day's start time directly, and its rest day and approvals through `DaysService`, with the tool `update_day` (section 4.5). It adds, moves, and removes stops through `StopsService`, with the tools `add_stops`, `move_stop`, and `remove_stops` (section 4.6). It sets the day's waypoints with `setWaypoints()`, with the tool `update_leg`. `LegsService` adds, re-routes, and removes the day's leg at the end of every write (section 4.7).
+**Created and changed by:** `StaysService` creates a stay's days with the stay, and adds and removes them as the stay's nights change. The itinerary creates the last day. The coordinator sets a day's start time directly, and its rest day and approvals through `DaysService`, with the tool `update_day` (section 4.5). It adds, moves, and removes stops through `StopsService`, with the tools `add_stops`, `move_stop`, and `remove_stops` (section 4.6). It sets the day's waypoints with `setWaypoints()`, with the tool `set_waypoints`. `LegsService` adds, re-routes, and removes the day's leg at the end of every write (section 4.7).
 
 | Property | Stored or worked out | Type | Notes |
 |---|---|---|---|
@@ -778,7 +778,7 @@ A day is one day of the trip, with a schedule (functional spec 4). There are two
 
 **Operations:**
 
-- **`setWaypoints(waypoints : List<Place>)`** (the tool `update_leg`). Replaces the day's waypoints with the list given, in that order. An empty list clears them.
+- **`setWaypoints(waypoints : List<Place>)`** (the tool `set_waypoints`). Replaces the day's waypoints with the list given, in that order. An empty list clears them.
   - **Follows on:** the leg is re-routed at the end of the write.
   - **Refused:** while the day has no leg, such as a rest day, or a day that stays put with no selected stop yet.
 
@@ -1110,7 +1110,7 @@ Example: Panorama Point at 1 a.m. is near the Torrey stay, so Torrey's weather t
 - **For seasonal averages,** only a date outside the window the averages were built from: the written dates plus 7 days on each side (Open-Meteo design 2.2). So moving the trip by a day or two doesn't make it out of date.
 - **A stay with no weather text is out of date once any stay has some.** That covers a stay added after the weather round.
 
-The text is kept, and the UI labels it out of date. The checks give the `weatherOutOfDate` note. A forecast isn't refreshed as it ages, and nothing marks it old (technical spec 3.5).
+The text is kept, and the UI labels it out of date. The checks give the `weatherOutOfDate` note. A forecast isn't refreshed as it ages, and nothing marks it old. The coordinator reruns the weather worker when the user asks for a new one (technical spec 5.2).
 
 ### 4.2 TripBriefService
 
@@ -1128,7 +1128,7 @@ The two trip brief items whose limits are settings. Every other item is set dire
 **Given:** the places registry, to record rejections.
 
 - **`rejectPlaces(itinerary : Itinerary, rejections : List<RejectedPlace>)`** (the tool `reject_places`, used by the coordinator). Takes one or more rejections, each a place and the user's reason. It records them in the places registry's `rejectedPlaces`. Then it removes each place from every stop's candidates and every stay's lodging candidates. Where the place was selected, removing the candidate clears the selection, by the stop's or stay's own rule. A rejection undoes picks, meaning candidates and the selections made from them. It doesn't change the trip's structure.
-  - **Follows on:** a stop whose selection is cleared also loses its visit time and its opening hours approval, by the stop's own rules. A stay whose lodging is cleared has the party sleep in its town again (`sleepsAt`). Every leg whose selected places, start, or end changed is re-routed at the end of the write (technical spec 3.5). A stay whose activities changed has its weather text go out of date (`isWeatherOutOfDate()`, section 4.1).
+  - **Follows on:** a stop whose selection is cleared also loses its visit time and its opening hours approval, by the stop's own rules. A stay whose lodging is cleared has the party sleep in its town again (`sleepsAt`). Every leg whose selected places, start, or end changed is re-routed at the end of the write (section 4.7). A stay whose activities changed has its weather text go out of date (`isWeatherOutOfDate()`, section 4.1).
   - **Leaves alone:** the trip's structure, meaning a stay's town, the start and end places, and waypoints. None of them is picked from candidates. Changing them needs a conversation with the user, such as which days move when a stay's town goes, so the coordinator does that afterward. The rejection still keeps the place out of later searches and candidates.
   - **Already rejected:** the registry skips it, and keeps its first reason (see Trip).
   - **Refused:** the whole call, by the registry's rule when a place isn't in its `places`. A rejection with an empty reason is refused when it's created (see Trip).
@@ -1138,17 +1138,17 @@ The two trip brief items whose limits are settings. Every other item is set dire
 **Given:** the places registry, to refuse rejected places. The settings, for the maximum trip length. The calendar, for a stay's dates, today, and its activities.
 
 - **`addStay(itinerary : Itinerary, place : Place, nightCount : integer, tier : Tier, tierRule : string, after : Stay?) : Stay`** (the tool `add_stay`). Creates the stay, with its place, its nights, and its tier and rule, and the stay creates its days (see Stay). Puts it after the stay `after`, or first when `after` is empty. Returns the new stay.
-  - **Follows on:** every later day moves back, and keeps its ID. Every leg whose start or end changed is re-routed at the end of the write. The tool lists the stops on every day whose start or end changed (technical spec 3.5).
+  - **Follows on:** every later day moves back, and keeps its ID. Every leg whose start or end changed is re-routed at the end of the write. The tool lists the stops on every day whose start or end changed (tool design 2.1). The day keeps its stops, because which day each one belongs on is a judgment call. The coordinator talks them through with the user (technical spec 5.2). Example: adding a Big Sur stay after Monterey puts a new, empty day after Monterey's. The day that drove Monterey to San Luis Obispo now drives Big Sur to San Luis Obispo. It still holds the Monterey breakfast, Point Lobos, and Bixby, which are now behind the party.
   - **Refused:** until the itinerary has a `startPlace`, an `endPlace`, and a `startDate` (technical spec 4.2). When the trip would be longer than the maximum trip length, a setting (technical spec section 10). The error gives the limit. By the stay's own rules: when `nightCount` is less than 1, or the rule is empty. By the itinerary's own rule: when `after` isn't one of its stays.
 - **`moveStay(itinerary : Itinerary, stay : Stay, after : Stay?)`** (the tool `update_stay`). Moves the stay to after the stay `after`, or first when `after` is empty. Its days move with it, since the stay holds them, with their stops, rest-day marks, start times, and approvals. It needs no business rule. It's here because `stays` is via service (section 1).
-  - **Follows on:** every leg whose start or end changed is re-routed at the end of the write. A day keeps its stops, but where it starts or ends can change. The tool lists those stops for the coordinator (technical spec 3.5). A stop near a stay can end up on a day that doesn't start or end there. The move goes through, and the checks give the `searchAreaDoesNotFitDay` warning.
+  - **Follows on:** every leg whose start or end changed is re-routed at the end of the write. A day keeps its stops, but where it starts or ends can change. The tool lists those stops for the coordinator (tool design 2.1). A stop near a stay can end up on a day that doesn't start or end there. The move goes through, and the checks give the `searchAreaDoesNotFitDay` warning.
   - **Refused:** by the itinerary's own rule, when `after` is the stay itself or isn't one of its stays.
 - **`setNightCount(itinerary : Itinerary, stay : Stay, nightCount : integer) : List<StayDay>`** (the tool `update_stay`). Adds or removes days at the end of the stay's days until it has `nightCount` of them. A new day isn't a rest day, and has no start time, stops, or approvals. A removed day goes with its leg and approvals. Returns the days added, or an empty list when nights were removed.
-  - **Follows on:** every later day moves, and keeps its ID. Every leg whose start or end changed is re-routed at the end of the write. The stay's tier still records the nights it was set for, so the checks add a note when they differ (see Stay).
+  - **Follows on:** every later day moves, and keeps its ID. Every leg whose start or end changed is re-routed at the end of the write. Example: removing Moab's last night leaves the Torrey day starting at the Moab hotel, so its leg isn't re-routed. The stay's tier still records the nights it was set for, so the checks add a note when they differ (see Stay).
   - **Refused:** when the trip would be longer than the maximum trip length. When a day it would remove holds stops. The refusal lists those stops. By the stay's own rule: when `nightCount` is less than 1. Removing a stay's last night means removing the stay.
 - **`removeStay(itinerary : Itinerary, stay : Stay)`** (the tool `remove_stay`). Removes the stay, which takes its days, lodging candidates, and weather text with it. The places stay in the registry.
   - **Follows on:** the next day now starts from the stay before, or from the start place, and its leg is re-routed at the end of the write.
-  - **Refused:** while any stop is on the stay's days, or while any stop on any day has the stay as its `searchAreaStay`. The service finds them by going through the itinerary's days. The refusal lists those stops by name and ID. Code never removes a stop the coordinator didn't name. The coordinator asks the user what to do with each one, then moves or removes it (technical spec 3.5).
+  - **Refused:** while any stop is on the stay's days, or while any stop on any day has the stay as its `searchAreaStay`. The service finds them by going through the itinerary's days. The refusal lists those stops by name and ID. Code never removes a stop the coordinator didn't name. The coordinator asks the user what to do with each one, then moves or removes it (technical spec 5.2).
 - **`addLodgingCandidates(stay : Stay, candidates : List<Candidate>)`** (the tool `add_lodging_candidates`, used by a stay researcher, and the tool `select_user_place`). Adds one set of candidates to the stay's `lodgingCandidates`. The stay gives each its set number, and its own tier and rule (see Stay).
   - **Refused:** the whole call, when a place is rejected (the registry's `isRejected()`). By the stay's own rules: when the set has fewer than 1 or more than 3 candidates, a place is already one of the stay's candidates, or a candidate has a visit time or detour time. So a set is never partly written.
 - **`setWeatherText(itinerary : Itinerary, stay : Stay, guidance : string) : WeatherText`** (the tool `set_stay_weather`, used by the weather worker). Creates weather text and replaces any the stay had. It labels it a forecast when every one of the stay's dates, from `datesOf()`, is within 7 days of `today()`, counting today as day 0, and seasonal averages otherwise (technical spec section 8). It records today's date, the stay's current `place`, its dates, and its activities from `activitiesOf()`, each as an `ActivityRecord`. Returns the new text.
@@ -1227,6 +1227,7 @@ It decides which days have a leg, and routes them. It's the one place that calls
 
 - **Each waypoint goes in the gap where it adds the least straight-line distance,** between two neighbors in that list. The distance comes from the coordinates stored on each place, so this needs no call to Google. With more than one waypoint, they're placed one at a time, in the coordinator's order. Example: on San Francisco Day 2, with only First Awakenings in Monterey selected, Big Sur village goes between First Awakenings and San Luis Obispo. Between the Monterey hotel and First Awakenings, it would add about 50 miles, going south and back.
 - **Straight-line distance can guess wrong** where the road bends far from it, such as around a bay. It works because a waypoint sits on the road the coordinator wants.
+- **A late-night stop near the lodging is routed on the way in.** The leg runs through the stops in the day's order, then to where the party sleeps. Example: Moab Day 4 is routed Capitol Gorge → Panorama Point → Torrey hotel, though the party really checks in first and drives out again at night. The times barely differ, because Panorama Point is close to Torrey.
 - **With two or more selected stops, the stop-order check runs too.** It takes one or two more calls, without the waypoints, and gives `stopsInBestOrder` and `timeSavedInMinutes` (technical spec section 8).
 
 The new leg stores each segment's drive time, the distance, and the route line from the answer, and what it was routed for (see Leg).
@@ -1259,3 +1260,162 @@ The `FeasibilityChecker` runs the feasibility checks in technical spec section 8
 - **A warning whose approval stops applying is new.** Example: Moab Day 4 is approved for 5 hours of driving. A change makes it 5 hours 20 minutes. The approval no longer applies, so the daily driving warning is new, and the coordinator asks the user again.
 - **A check result that goes away and comes back is new.** The write where it went away saved the list without it. If a day that was fixed goes over its driving hours again, the user should hear about it.
 - **Only the coordinator's writes save the list.** A worker can't act on a check result. One saved during a worker's write would be marked already known without ever reaching the coordinator.
+
+---
+
+## 5. Example trips
+
+Two example trips that the design docs use throughout. Each is drawn in this model's shape: each stay holds its days, and the itinerary holds the last day on its own. Labels such as Leg, Stop, meal, attraction, and rest day are terms from this model. Anything in parentheses is a comment, not data. Days and stops use the people-facing numbers (section 1).
+
+### 5.1 Three days on the road
+
+San Francisco to a friend's house in Los Angeles, along the coast.
+
+```
+Trip brief (only the items this example uses)
+  Trip length       3 days
+  Route preference  scenic
+  Usual start time  8:00 a.m.
+
+Itinerary
+  Start place: San Francisco
+  End place:   Mike's house, Silver Lake, Los Angeles   (an address the user named)
+  Start date:  May 13, 2027
+
+  Stays, in order, each holding its days
+    Monterey stay          1 night (worked out: it holds Day 1)
+                           lodging → (a Monterey hotel)
+      Day 1, Thu May 13 (worked out)
+        Starts        8:00 a.m.        (worked out: the trip brief's usual start time)
+        Leg
+          from        San Francisco    (worked out: the start place)
+          to          Monterey hotel   (worked out: where the party sleeps tonight)
+          drive time  routed through the selected stops below
+        Stops, in order (times worked out, rounded)
+                      (all five named by the user, so no worker fills them)
+          Stop 1, meal        → Millbrae Pancake House        8:25 a.m.
+          Stop 2, attraction  → Hangar One, Moffett Field     9:50 a.m.
+          Stop 3, meal        → Philz Coffee, San Jose        12:05 p.m.
+          Stop 4, attraction  → Santa Cruz Beach Boardwalk    1:55 p.m.
+          Stop 5, meal        → The Whaling Station           7:00 p.m.  (set time)
+
+    San Luis Obispo stay   1 night (worked out: it holds Day 2)
+                           lodging → (an SLO hotel)
+      Day 2, Fri May 14 (worked out)
+        Starts        8:00 a.m.        (worked out: the trip brief's usual start time)
+        Waypoints     Big Sur village  (keeps it on Highway 1 during the fill)
+        Leg
+          from        Monterey hotel   (worked out: where the party slept last night)
+          to          SLO hotel        (worked out: where the party sleeps tonight)
+          drive time  routed through the selected stops below, and the waypoint
+        Stops, in order (times worked out, rounded)
+          Stop 1, meal        → First Awakenings, Monterey    8:10 a.m.
+                                (search area: near the Monterey stay, before the drive)
+          Stop 2, attraction  → Point Lobos State Natural Reserve      9:25 a.m.
+          Stop 3, attraction  → Bixby Creek Bridge viewpoint  11:10 a.m.
+          Stop 4, meal        → Nepenthe, Big Sur             12:05 p.m.
+          Stop 5, attraction  → Piedras Blancas elephant seal rookery  2:35 p.m.
+          Stop 6, meal        → Firestone Grill, San Luis Obispo       6:30 p.m.  (set time)
+          Stop 7, meal        → Copper Café, Madonna Inn (pink champagne cake)  7:35 p.m.
+
+  Last day
+    Day 3, Sat May 15 (worked out)     (no stay)
+      Starts        8:00 a.m.        (worked out: the trip brief's usual start time)
+      Leg
+        from        SLO hotel        (worked out: where the party slept last night)
+        to          Mike's house     (worked out: the end place)
+        drive time  routed with no stops
+        arrives     about 12:00 p.m.
+      Approvals
+        route type  fastest (the user wants to get to LA quickly)
+```
+
+The Monterey stay exists once, but two days use it: Day 1 sleeps there, and Day 2 starts from it. A leg's from and to are the calendar's `fromPlaceOf()` and `toPlaceOf()` (section 4.1). The leg also records them when it's routed, only to tell when it needs routing again (section 3.8). Stop 7 is a café inside a hotel, so it uses the café's own listing, not the hotel's (technical spec 6.4). Meals have no type: Nepenthe is a meal at noon, and the cake at the Madonna Inn's café is a meal after dinner. Stop 7's purpose, "dessert," is what tells its worker to look for cake. Only the dinners have set times. The other stops follow one another, and the gap before each dinner shows as free time. Day 2's waypoint keeps the route on the coast during the fill, when the leg scout searches along it and few stops are selected yet. It stays once stops are selected. Code places it among them, between Bixby Creek Bridge and Nepenthe, where it changes nothing (section 4.7). Day 3 differs from the trip's scenic default, so it holds a route type approval with the user's reason.
+
+### 5.2 A three-night stay with a rest day
+
+Moab, between Grand Junction and Torrey.
+
+```
+Trip brief (only the items this example uses)
+  Trip length       5 days
+  Usual start time  8:00 a.m.
+  Max driving       4 hours a day
+  Route preference  scenic
+  Budget            value by default, mid-range for stays of 2+ nights
+
+Itinerary
+  Start place: Grand Junction, CO
+  End place:   Salt Lake City
+  Start date:  October 10, 2027
+
+  Stays, in order, each holding its days
+    Moab stay    3 nights (worked out: it holds Days 1–3)
+                 lodging → (a Moab hotel)
+                 tier: mid-range, from rule: stays of 2+ nights
+      Day 1, Sun Oct 10 (worked out)
+        Starts        8:00 a.m.        (worked out: the trip brief's usual start time)
+        Waypoints     Dewey Bridge     (keeps it on Highway 128 along the river)
+        Leg
+          from        Grand Junction   (worked out: the start place)
+          to          Moab hotel       (worked out: where the party sleeps tonight)
+        Stops, in order (times worked out, rounded)
+          Stop 1, attraction  → Fisher Towers viewpoint       9:50 a.m.
+                                (assume: Google has no hours for it, so its hours aren't known)
+          Stop 2, meal        → Moab Brewery                  6:00 p.m.  (set time)
+
+      Day 2, Mon Oct 11 (worked out)
+        Starts        5:30 a.m.        (the day's own: the user agreed to it for the sunrise hike)
+        Leg                            (from and to are the same stay)
+          from        Moab hotel       (worked out: where the party slept last night)
+          to          Moab hotel       (worked out: where the party sleeps tonight)
+          drive time  routed through the selected stops below
+        Stops, in order (times worked out, rounded)
+          Stop 1, attraction  → Delicate Arch trail, Arches   6:00 a.m.  (set time)
+                                (assume: open 24 hours, so it's open long enough)
+          Stop 2, attraction  → Windows Section, Arches       8:50 a.m.
+          Stop 3, meal        → Love Muffin Cafe (back in town)   10:20 a.m.
+          Stop 4, meal        → Milt's Stop & Eat             12:00 p.m.  (set time)
+                                (assume: closes at 12:30 p.m., so it's open but not long enough)
+          Stop 5, attraction  → Corona Arch trail             1:15 p.m.
+          Stop 6, meal        → Desert Bistro                 7:00 p.m.  (set time)
+
+      Day 3, Tue Oct 12 (worked out), rest day
+        No leg
+        Stops, in order
+          Stop 1, meal        → The Spoke on Center (near the hotel)   6:30 p.m.  (set time)
+
+    Torrey stay  1 night (worked out: it holds Day 4)
+                 lodging → (a Torrey hotel)
+                 tier: value, from rule: the trip default
+      Day 4, Wed Oct 13 (worked out)
+        Starts        8:00 a.m.        (worked out: the trip brief's usual start time)
+        Leg
+          from        Moab hotel       (worked out: where the party slept last night)
+          to          Torrey hotel     (worked out: where the party sleeps tonight)
+          drive time  routed through the selected stops below
+                      (about 4 hours of road time, plus the buffer, over the 4-hour default)
+        Approvals
+          drive hours  5       (the user wants Goblin Valley and Capitol Reef on the way)
+        Stops, in order (times worked out, rounded)
+          Stop 1, attraction  → Goblin Valley State Park      9:55 a.m.
+          Stop 2, meal        → Gifford Homestead, Capitol Reef (pie)   1:20 p.m.
+                                (assume: closed Wednesdays, so it's closed)
+          Stop 3, attraction  → Capitol Gorge, at the end of the Scenic Drive   2:40 p.m.
+          Stop 4, attraction  → Panorama Point, Capitol Reef (stargazing)
+                                                              1:00 a.m., next day  (set time)
+                                (search area: near the Torrey stay)
+
+  Last day
+    Day 5, Thu Oct 14 (worked out)     (no stay)
+      Starts        10:00 a.m.       (the day's own: a late start after stargazing)
+      Leg
+        from        Torrey hotel     (worked out: where the party slept last night)
+        to          Salt Lake City   (worked out: the end place)
+        drive time  routed with no stops
+        arrives     about 1:45 p.m.
+```
+
+Day 2's leg starts and ends at the Moab hotel without any new rule: "where the party slept last night" and "where it sleeps tonight" are both the Moab hotel. Because Day 2 has a leg, its driving is checked. If the coordinator put Monument Valley on it, about two and a half hours each way, the driving check would warn about it. Day 3 is a rest day, so it has no leg, and its dinner is close to the hotel. Days 2 and 3 start and end at the Moab stay, so every stop on them is near it. Panorama Point is at 1 a.m. after Day 4, so it is Day 4's last stop. It is near the Torrey stay, where the party sleeps that night.
+
+The hours marked "assume" are for walking through the example, not real hours. Between them, Fisher Towers, Delicate Arch, Milt's, and Gifford Homestead cover the four results of the opening-hours check (technical spec section 8). Milt's and Gifford Homestead are planted problems. The example shows them before they are settled, so neither has an approval. In a finished itinerary they would be moved, swapped, or approved. The Moab stay is mid-range and the Torrey stay is value, from the trip's budget rule (technical spec section 9). Day 4 runs over the trip's 4-hour default, so it holds a drive hours approval with the user's reason. The stargazing stop's set time is a `scheduleTime` on the next day (section 1). Day 2 starts at 5:30 a.m. for the sunrise hike, and Day 5 starts at 10 a.m. after the late night. The user agreed to both, so each day holds its own start time. The other days use the trip brief's 8 a.m.
