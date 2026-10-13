@@ -9,8 +9,6 @@ For the planning behavior, see the [functional spec](functional-spec.md). For th
 - **Memory.** Memory design is technical spec open question 5. Memory joins this model once it's designed.
 - **Worker briefs and option cards.** Neither is stored. A worker brief is written fresh for each worker call (technical spec 5.3). An option card is how the UI shows the newest candidate set of one stop or stay (functional spec 7.5). The rules they depend on, such as which candidate set a card shows, are on the objects here.
 
-**Draft status.** Every object is written and reviewed. Technical spec section 3 still describes them too, until it's shrunk to point here.
-
 ---
 
 ## 1. How to read this
@@ -97,7 +95,7 @@ A property has at most one of `{readOnly}` and `{viaService}`. `{keepsValue}` ca
 
 **Saving places from a search skips the finish.** A write that only adds places to the places registry changes no leg and doesn't change the plan. So it runs no checks, and doesn't set last updated.
 
-**Two writes at once** aren't settled here. If each write loads and saves the whole trip, two stay researchers writing at the same time could each save a copy without the other's candidates. That's left to the persistence design, which isn't written yet.
+**Two writes at once** aren't settled here. If each write loads and saves the whole trip, two stay researchers writing at the same time could each save a copy without the other's candidates. That's left to the persistence design, which isn't written yet (technical spec open question 6).
 
 The sections below say a follow-on happens "at the end of the write" when it runs in the finish step.
 
