@@ -2,7 +2,7 @@
 
 Prep for technical spec open question 4, gathered on 2026-10-12. The open question calls it "a full object model." We've since settled on "domain model" as the name. This file holds the plan, the open items, and the starting material for writing it.
 
-**Status, 2026-10-12:** `design/domain-model.md` has its conventions (section 1), the class diagram, and the Trip written and reviewed, including Session and RejectedPlace. The other objects are still drafts in the diagram. Decisions from the Trip review are under "Settled in the Trip review" below. The domain model's section 1 replaces the naming and type guidance in "What each object gets."
+**Status, 2026-10-13:** `design/domain-model.md` has its conventions (section 1), the class diagram, and the Trip written and reviewed, including Session and RejectedPlace. Round 1 (Trip brief, Check result, Itinerary) is written and partly reviewed: the diagram is reviewed, the text isn't yet. The other objects are still drafts in the diagram. Decisions are under "Settled in the Trip review" and "Settled in round 1" below. The domain model's section 1 replaces the naming and type guidance in "What each object gets."
 
 ## What we're making
 
@@ -46,16 +46,31 @@ Prep for technical spec open question 4, gathered on 2026-10-12. The open questi
 From the sixth walk-through and earlier review sessions:
 
 - **A day's location.** Functional spec 9.5 shows each day with a location, but nothing defines it. It's likely worked out, not stored: a driving day shows "Monterey → San Luis Obispo," and a day that stays put shows the stay's town. (Run 6, F12)
-- **Whether stays own their days.** A day touches two stays: it starts from where the party slept and ends where it sleeps. Today a day points to the stay where it sleeps, and the last day points to none. Deferred to the domain model in the second review; it didn't fix that run's finding either way.
 
 From the sweep of runs 1 to 5, checked against the docs as of 2026-10-12:
 
 - **Every stored property, in one list.** `read_itinerary` in tool design 2.1 says a read returns "every stored property of each item" and that the object model lists them. That list doesn't exist yet. The domain model is where it goes. (Run 4, F7)
-- **What a check result holds.** The Trip review settled the list: `Trip.checkResults`, replaced as a whole by `replaceCheckResults()`, and every check result is read-only. Still open: which fields the saved list needs. The compare uses only the check, the subject, and whether it was approved. "New" or "already known" isn't stored on the result. It comes from the compare and goes in the write's reply. No doc lists a check result's fields together. (Run 4)
-- **Total driving time.** The trip summary shows it (functional spec 9.1). The technical spec never lists it as a worked-out value, or says whether it includes the drive buffer. (Run 2)
 - **A user-named place's visit time, if picked again.** `select_user_place` gives the user's visit time to the stop. It doesn't say whether the candidate it adds keeps that time. If the user picks something else, then goes back to it with `select_candidate`, the tool copies the candidate's estimate, which may not exist. Example: the user names Hangar One at 2 hours. (Run 3)
 - **The year range on seasonal averages.** The label reads "based on 2016–2025," counted back from today (Open-Meteo design 2.3). If the years are worked out at read time rather than stored with the text, the label changes a year later though the text doesn't. (Run 3)
 - **Small confirm: "as of when offered."** A candidate's detour time is labeled "as of when it was offered." Run 5 read this as fixed wording with nothing stored, and that seems right. The model should say so. (Runs 4 and 5)
+
+From round 1, for later rounds:
+
+- **Day, StayDay, and LastDay.** Round 2 settles what each holds. The last day can't be a rest day, and is the only day that can have stops near the end place.
+- **A drive hours approval over the maximum daily driving.** Should the setting cap an approval too, or only the trip brief's max? (Round 2, with Approval.)
+- **"At the end of every write."** Domain model section 1 lists re-routing legs, saving check results, and setting the last-updated time there. The user sees "a write" as a tool idea, a layer above the domain model. Look at where each belongs when the Leg is written (round 3).
+
+## Settled in round 1
+
+Proposed in the draft, still waiting on the user's review of the text: the check result fields, `subjectId`, the `hasEmptyStopBefore` rename, and total drive time leaving out the buffer.
+
+- **Rules live on the objects, not in the tools** (domain model section 1). The tools are one way in. A web form must hit the same rules. A rule on one property runs when it's set. Operations are only for changes past one property. When a rule covers several objects, the operation sits on the object that holds them all.
+- **Markers.** `{readOnly}` means can't be set directly: it never changes, or changes only through a named operation. Reading a read-only list gives a frozen copy. `{keepsValue}` means it starts empty and can't be emptied once set. `=` shows a default.
+- **Trip brief.** No operations; `TripBrief.update()` was tried and dropped. Every item but `usualStartTime` keeps its value. `usualStartTime` defaults to 8:00 a.m. Trip length is from 1 to the maximum trip length. Max driving hours is more than 0 and at most the maximum daily driving. Both limits are settings in technical spec section 10 (c071c85), which now says what each setting is, with no links out.
+- **Itinerary.** `startPlace`, `endPlace`, and `startDate` keep their value. A start date is refused with no start place, or when it isn't after today. `Itinerary.update()` was tried and dropped. Nothing checks that places are in the US; that risk is accepted. `totalDriveTimeInMinutes` is worked out, without the buffer.
+- **Stays hold their days** (run 6 and the second review's open item). Each stay holds the days that end with a night there. The itinerary holds `lastDay` on its own, a `LastDay` class under a `Day` base, next to `StayDay`. `Itinerary.days` is worked out. `Day.sleepsAtStay` is gone. A next-morning breakfast near the previous stay is a link through the stop's search area, so ownership doesn't affect it. `setStayNightCount()` stays on the itinerary, which owns the trip length limit.
+- **Night and last day** are defined in functional spec section 4 (3b7dbad). The functional spec owns domain terms.
+- **Check result.** Saved fields: `check`, `subjectId` (an ID, since a write can remove the subject before the compare), `text` (to describe one that went away), `isApproved`, and `hasEmptyStopBefore` (was "may be too early"). `level` is worked out from the check. The `FeasibilityChecker` has `workOut()` and `compare()`.
 
 ## Settled in the Trip review
 
