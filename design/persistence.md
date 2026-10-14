@@ -64,7 +64,7 @@ A write runs the four steps in domain model section 1 inside one database transa
 
 ## 4. Two writes to one trip
 
-**The problem.** Several sessions and workers can write to one trip at once (tool design section 4). If two writes each load the plan and save it whole, the second save loses the first one's work. Example: the Moab and Torrey stay researchers run in parallel. Each loads the plan and adds its lodging set. Torrey's save overwrites the plan holding Moab's new set.
+**The problem.** Several workers can write to one trip at once (tool design section 4). So can two sessions of one trip, though having two open at once isn't supported (functional spec 10.1). If two writes each load the plan and save it whole, the second save loses the first one's work. Example: the Moab and Torrey stay researchers run in parallel. Each loads the plan and adds its lodging set. Torrey's save overwrites the plan holding Moab's new set.
 
 **Writes to one trip take turns.** Each write loads the trip's row "for update," which takes a row lock in Postgres. A second write to the same trip waits at its load until the first commits or rolls back. Then it loads the trip with the first write's changes. Writes to other trips don't wait.
 
@@ -115,7 +115,7 @@ When the container restarts in the middle of a turn:
 - **The transcript loses at most its last line or two** (section 6).
 - **The turn stops,** along with any workers it called. A worker's candidates saved before the restart stay, but the coordinator never hears about them. Example: the Moab Day 4 leg scout saves the Goblin Valley candidates, and the container restarts before the leg scout reports back. The candidates are in the plan, and the transcript doesn't mention them.
 
-The user can resume the session. **A resumed coordinator reads the itinerary again before changing anything** ([technical spec](technical-spec.md), 5.2). The same rule covers a session resumed after another session changed the trip.
+The user can resume the session. **A resumed coordinator reads the itinerary again before changing anything** ([technical spec](technical-spec.md), 5.2). The app tells it the session was resumed (section 8.5). The same rule covers a session resumed after another session changed the trip.
 
 ---
 
@@ -304,7 +304,7 @@ A **session** is one conversation with the agent about a trip (functional spec 1
 | `title` | `string`, read only | A few words for the trip's session list, from the user's first message, cut to about 60 characters at a word break. Example: "Can we add a night in Big Sur and drop one in…" |
 | `agentSessionId` | `string`, read only | The Agent SDK's ID for this conversation, a UUID the app chooses (section 6). The transcript's shape isn't part of this design |
 
-Nothing about a session changes once it's created. It's never closed: the user just leaves, and can resume it later. Starting and resuming both work on a started trip, since neither touches the plan.
+Nothing about a session changes once it's created. It's never closed: the user just leaves, and can resume it later. Two sessions of one trip open at once aren't supported, and nothing enforces it (functional spec 10.1). Starting and resuming both work on a started trip, since neither touches the plan.
 
 **SessionWriter** starts sessions.
 
@@ -313,7 +313,7 @@ Nothing about a session changes once it's created. It's never closed: the user j
 **SessionReader** reads sessions.
 
 - **`listForTrip(tripId)`** returns the trip's sessions, in the order created, for the trip's session list.
-- **`get(sessionId)`** returns one session. To resume it, the app hands its `agentSessionId` and the `TranscriptAdapter` to the SDK, which restores the transcript (section 6). The coordinator then continues with that conversation's context.
+- **`get(sessionId)`** returns one session. To resume it, the app hands its `agentSessionId` and the `TranscriptAdapter` to the SDK, which restores the transcript (section 6). The coordinator then continues with that conversation's context. The app adds a line to the user's first message after the resume, saying the session was resumed, so the coordinator reads the itinerary again (technical spec 5.2).
 
 ### 8.6 Places
 

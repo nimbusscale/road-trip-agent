@@ -273,6 +273,7 @@ Miles, Fahrenheit, and US date formats.
 - From a trip, the user sees its sessions (date and short title) and can:
   - **Resume** a previous session. The transcript is restored and the agent continues with that conversation's context.
   - **Start a new session.** The agent starts from the current itinerary, the trip brief, trip memory, and user memory, without the earlier transcripts.
+- **Not supported:** two sessions of one trip open at the same time, such as in two browser tabs or on two devices. Nothing stops it, but a session that stays open doesn't learn about changes made in the other one. Only the trip's owner can see it (10.4), so this is one user with two sessions open, never two users.
 
 ### 10.2 Trip memory
 
