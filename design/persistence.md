@@ -310,6 +310,8 @@ A place is part of the trip, so it's in the domain model (domain model 3.10). Th
 
 - **`get(placeId)`** returns one place, without loading the trip. The tool `read_place` uses it.
 
+**Places are never removed.** That includes search results that were never offered as candidates, which will be most of a trip's places. Cleaning them up is out of scope for the MVP.
+
 ### 8.7 The repositories
 
 A **repository** is a class that reads and saves one kind of record (section 2). Each is created for one connection: the database itself for a read, or an open transaction for a write. They hold no rules, other than the started-trip lock at save.

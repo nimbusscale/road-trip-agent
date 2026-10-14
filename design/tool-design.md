@@ -223,4 +223,4 @@ The leg scout gets `WebSearch` only for Atlas Obscura, and a hook enforces it (s
 ## 5. Open questions
 
 1. **Tool count for the coordinator.** It has about two dozen tools. If that proves too many for it to choose well, merge the add, update, and remove tools for each kind of item.
-2. **Places nobody uses.** Searches save every result, and most are never offered as candidates. That is harmless for the MVP. Clean them up later if storage grows.
+2. ~~**Places nobody uses.** Searches save every result, and most are never offered as candidates. That is harmless for the MVP. Clean them up later if storage grows.~~ **Closed 2026-10-14:** cleaning up places is out of scope for the MVP ([persistence design](persistence.md), section 8.6).
