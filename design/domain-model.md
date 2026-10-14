@@ -138,7 +138,7 @@ classDiagram
         tripLengthInDays : integer? #123;keepsValue#125; #123;viaService#125;
         interestsText : string? #123;keepsValue#125;
         mustSeesText : string? #123;keepsValue#125;
-        maxDrivingInHours : decimal? #123;keepsValue#125; #123;viaService#125;
+        comfortableDrivingInHours : decimal? #123;keepsValue#125; #123;viaService#125;
         routePreference : RouteType? #123;keepsValue#125;
         restDaysText : string? #123;keepsValue#125;
         usualStartTime : time = 8:00 a.m.
@@ -417,7 +417,7 @@ The trip brief holds what the user wants from the trip: the items in functional 
 
 **Held as:** an entity held by the trip. Its `id` has the prefix `brief_` (technical spec 7.1). Agents never see it: a trip has one brief, so the tools find it from the trip.
 
-**Created and changed by:** the app creates it with the trip, empty except for `usualStartTime`. Each item is set directly, except `tripLengthInDays` and `maxDrivingInHours`. Their limits are settings, so they change through `TripBriefService` (section 4.2). Today only the coordinator sets them, through the tool `update_trip_brief`. Workers never read it. Each gets the parts it needs in its worker brief (technical spec 5.3).
+**Created and changed by:** the app creates it with the trip, empty except for `usualStartTime`. Each item is set directly, except `tripLengthInDays` and `comfortableDrivingInHours`. Their limits are settings, so they change through `TripBriefService` (section 4.2). Today only the coordinator sets them, through the tool `update_trip_brief`. Workers never read it. Each gets the parts it needs in its worker brief (technical spec 5.3).
 
 | Property | Stored or worked out | Type | Notes |
 |---|---|---|---|
@@ -426,7 +426,7 @@ The trip brief holds what the user wants from the trip: the items in functional 
 | `tripLengthInDays` | Stored | `integer?`, keeps its value, via service | How many days the user wants. At least 1. Changes only through `TripBriefService.setTripLength()`, which also refuses more than the maximum trip length (section 4.2). The trip length check compares the itinerary's `dayCount` with it |
 | `interestsText` | Stored | `string?`, keeps its value | In the user's words, with why they matter |
 | `mustSeesText` | Stored | `string?`, keeps its value | In the user's words, with why they matter. A must-see can be one place, an area, a road, or an activity. It records no kind and links to no place. A must-see that is one place is linked through the stop the coordinator selects for it |
-| `maxDrivingInHours` | Stored | `decimal?`, keeps its value, via service | The most driving the user wants in one day. More than 0. Changes only through `TripBriefService.setMaxDriving()`, which also refuses more than the maximum daily driving (section 4.2). The daily driving check compares each day with it. It's a default, not a hard limit: a day can go over it with a drive hours approval |
+| `comfortableDrivingInHours` | Stored | `decimal?`, keeps its value, via service | How much driving the user is comfortable with in one day. More than 0. Changes only through `TripBriefService.setComfortableDriving()`, which also refuses more than the maximum daily driving (section 4.2). The daily driving check compares each day with it. It's a default, not a hard limit: a day can go over it with a drive hours approval |
 | `routePreference` | Stored | `RouteType?`, keeps its value | Scenic or fastest. The coordinator steers each day's drive toward it with waypoints, except on a day that holds a route type approval. Code doesn't read it (see Leg) |
 | `restDaysText` | Stored | `string?`, keeps its value | In the user's words, such as "one day off in Moab." The coordinator decides which days, and marks them on the days |
 | `usualStartTime` | Stored | `time`, 8:00 a.m. by default | When the party usually gets going. A day without a start time of its own starts at this time |
@@ -436,7 +436,7 @@ The trip brief holds what the user wants from the trip: the items in functional 
 
 **Required items can still be empty.** Functional spec 5.2 marks most items as required. That means the coordinator establishes each one during discovery. It doesn't mean the brief refuses to be empty while discovery is still going.
 
-**Code reads only a few items.** It reads `focus` for the trip's name, and `tripLengthInDays`, `maxDrivingInHours`, and `usualStartTime` for the checks and the schedule. Only the agents read the rest. That's why each text item is one string, not a list.
+**Code reads only a few items.** It reads `focus` for the trip's name, and `tripLengthInDays`, `comfortableDrivingInHours`, and `usualStartTime` for the checks and the schedule. Only the agents read the rest. That's why each text item is one string, not a list.
 
 **Operations:** none. Each item is set directly, or through `TripBriefService`, and its own rules run when it's set. When the tool `update_trip_brief` sets several items in one write and one is refused, the whole write is refused, and nothing changes. The error names the item and the rule.
 
@@ -444,13 +444,13 @@ The trip brief holds what the user wants from the trip: the items in functional 
 
 - **An item can be changed, but never emptied** (functional spec 10.5: trip brief items can be changed but not forgotten). Every item but `usualStartTime` is `{keepsValue}`, and `usualStartTime` is never empty. The coordinator needs every item it has to plan.
 - **`tripLengthInDays` is at least 1.** The maximum trip length is a setting, so `TripBriefService` holds that limit (section 4.2).
-- **`maxDrivingInHours` is more than 0.** The maximum daily driving is a setting, so `TripBriefService` holds that limit (section 4.2).
-- **A check that compares against an empty item is skipped** (technical spec section 8). Example: during discovery, setting the start and end places routes the last day's leg before the user has given max driving hours, so the daily driving check doesn't run yet.
+- **`comfortableDrivingInHours` is more than 0.** The maximum daily driving is a setting, so `TripBriefService` holds that limit (section 4.2).
+- **A check that compares against an empty item is skipped** (technical spec section 8). Example: during discovery, setting the start and end places routes the last day's leg before the user has given comfortable driving hours, so the daily driving check doesn't run yet.
 - **Changing the brief never changes the itinerary** (see Trip). Example: if the user shortens the trip from five days to four, nothing in the itinerary moves. The trip length check warns, and the coordinator removes a night with the user.
 
 ### 3.3 Check result
 
-A check result is one finding from the feasibility checks in technical spec section 8, such as a day that drives longer than the user's max. Each one is a warning or a note. A check that refuses a write, such as a trip over the maximum length, gives an error, not a check result.
+A check result is one finding from the feasibility checks in technical spec section 8, such as a day that drives longer than the user is comfortable with. Each one is a warning or a note. A check that refuses a write, such as a trip over the maximum length, gives an error, not a check result.
 
 **Held as:** held by the itinerary's `checkResults`, with no `id`. That list holds the check results that applied after the last coordinator write. It's kept only so later writes and reads can tell which check results are new.
 
@@ -1005,8 +1005,8 @@ The two trip brief items whose limits are settings. Every other item is set dire
 
 - **`setTripLength(brief : TripBrief, tripLengthInDays : integer)`** (the tool `update_trip_brief`). Sets `tripLengthInDays`.
   - **Refused:** when it's more than the maximum trip length, a setting (technical spec section 10). The coordinator explains the limit and offers a trip of the maximum length (functional spec 6.1). By the brief's own rules: when it's less than 1, or empty.
-- **`setMaxDriving(brief : TripBrief, maxDrivingInHours : decimal)`** (the tool `update_trip_brief`). Sets `maxDrivingInHours`.
-  - **Refused:** when it's more than the maximum daily driving, a setting (technical spec section 10). By the brief's own rules: when it isn't more than 0, or is empty.
+- **`setComfortableDriving(brief : TripBrief, comfortableDrivingInHours : decimal)`** (the tool `update_trip_brief`). Sets `comfortableDrivingInHours`.
+  - **Refused:** when it's more than the maximum daily driving, a setting (technical spec section 10). The error gives the limit, so the coordinator can send it again at the limit (technical spec 5.2). By the brief's own rules: when it isn't more than 0, or is empty.
 
 ### 4.3 RejectionsService
 
@@ -1234,11 +1234,11 @@ Moab, between Grand Junction and Torrey.
 
 ```
 Trip brief (only the items this example uses)
-  Trip length       5 days
-  Usual start time  8:00 a.m.
-  Max driving       4 hours a day
-  Route preference  scenic
-  Budget            value by default, mid-range for stays of 2+ nights
+  Trip length          5 days
+  Usual start time     8:00 a.m.
+  Comfortable driving  4 hours a day
+  Route preference     scenic
+  Budget               value by default, mid-range for stays of 2+ nights
 
 Itinerary
   Start place: Grand Junction, CO

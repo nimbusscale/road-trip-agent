@@ -104,7 +104,7 @@ The trip brief holds the items below. The agent establishes each one, whether or
 | Focus | Yes | What the trip is about, such as a region, a route, or a theme. Examples: "Pacific Coast Highway," "Texas barbecue," "somewhere warm with good hiking" |
 | Trip length | Yes | Number of days. Maximum 14 days |
 | Interests and must-sees | Yes | Includes why they matter to the user. Asked even when the user gives a precise route |
-| Max driving hours per day | Yes | Expressed in hours, not miles. A default for the trip, not a hard limit. A day can go over it when the user agrees |
+| Comfortable driving hours per day | Yes | Expressed in hours, not miles. A default for the trip, not a hard limit. A day can go over it when the user agrees. The app has a daily driving maximum that no day can go over, even with the user's agreement. The agent also has a recommended figure. When the user gives more than that, the agent confirms it and pushes back, since more means most of the day in the car, with little time to see anything |
 | Route preference | Yes | Scenic or fastest. A default for the trip. A leg can differ when the user agrees |
 | Rest days | No | Days with no driving, in the user's words, such as "one day off in Moab." The agent decides which days |
 | Usual start time | No | When the party usually gets going each day. Defaults to 8 a.m. A day can start at another time when the user agrees, such as for a sunrise hike |
@@ -142,7 +142,7 @@ After any change, the agent re-checks feasibility for the affected days.
 
 ### 6.1 Checks
 
-- **Daily driving:** each driving day's road time fits within the user's max hours, unless the user has agreed to a longer day. **Assumption:** the agent adds a buffer for fuel, meals, and short stops rather than treating max hours as pure road time.
+- **Daily driving:** each driving day's road time fits within the user's comfortable driving hours, unless the user has agreed to a longer day. **Assumption:** the agent adds a buffer for fuel, meals, and short stops rather than treating those hours as pure road time.
 - **Must-sees vs days:** all must-sees fit within the trip, given drive time and time needed at each.
 - **Opening hours:** operating days and hours that conflict with the scheduled time of a visit. Code checks weekly hours only. Attractions closed off-season are left to the agent's judgment in the MVP. Seasonal road closures are out of scope.
 - **Seasonal risks:** for example, hurricane season, extreme heat, or snow.
@@ -293,7 +293,7 @@ Trip memory holds what the user says that doesn't fit the trip brief or the itin
 
 Durable preferences that apply to every trip. Examples:
 
-- Typical max driving hours and route preference
+- Typical comfortable driving hours and route preference
 - Default budget posture and rules
 - Meal habits ("prefer the local food scene over hotel breakfast")
 - Recurring interests
