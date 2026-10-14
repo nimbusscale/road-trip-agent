@@ -22,7 +22,7 @@ A trip is stored in four kinds of record:
 
 | Record | Holds | One for each |
 |---|---|---|
-| Trip | The trip's `id` and owner, and the **plan**: one JSON document holding the trip brief, the itinerary with everything it holds, the rejected places, the check results, and last updated | Trip |
+| Trip | The trip's `id` and owner, and the **plan**: one JSON document holding the trip brief, the itinerary with everything it holds, including its rejected places and check results, and last updated | Trip |
 | Place | One place: its `id`, its trip, and its properties (domain model 3.10) | Place, per trip |
 | Session | One session: its `id`, its trip, when it was created, its title, and the Agent SDK's ID for it (section 6) | Session |
 | Transcript line | One line of a session's transcript, as the Agent SDK wrote it | Line |
@@ -56,7 +56,7 @@ A write runs the four steps in domain model section 1 inside one database transa
 
 **Each write loads the trip fresh.** The rules always run against the newest saved trip, even when the coordinator's context is out of date, such as when another session changed the trip.
 
-**Saving places from a search** doesn't load or save the plan. Each place is added as a row. When the trip already has a row for that Google place, the row is kept as it is, and the new facts are dropped (domain model 3.1, `addPlaces()`). The stored places come back in the order given. This takes no row lock, since adding rows can't lose another write's work. When two searches find the same place at once, the database keeps one row, and both get its `id`.
+**Saving places from a search** doesn't load or save the plan. Each place is added as a row. When the trip already has a row for that Google place, the row is kept as it is, and the new facts are dropped (domain model 3.10, and section 8.6). The stored places come back in the order given. This takes no row lock, since adding rows can't lose another write's work. When two searches find the same place at once, the database keeps one row, and both get its `id`.
 
 **A read** loads the trip without the row lock, and saves nothing. It never waits for a write. It sees the trip as of the last write that committed.
 
@@ -79,11 +79,11 @@ A write runs the four steps in domain model section 1 inside one database transa
 
 ## 5. The started-trip lock at save
 
-A started trip can't be changed (domain model 3.1). The tools refuse a write to a started trip before changing anything (tool design section 4). Persistence checks again at save. That catches a trip that starts during a write, at midnight, and any later way in, such as a web form.
+A started trip can't be changed (domain model 3.1). `TripWriter` refuses a write to a started trip right after loading it, before anything changes (section 8.2). The save checks again. That catches a trip that starts during a write, at midnight, and any later way in, such as a web form.
 
 **Persistence refuses to save the plan of a started trip.** The whole write is rolled back, and the error says the trip has started. Place rows and session rows always save, since neither changes the plan.
 
-**It checks the trip as it was loaded,** under the row lock. A write could have changed the start date, so the changed copy can't tell whether the trip had started.
+**It checks the trip as it was loaded,** under the row lock. A write could have changed the start date, so the changed trip can't tell whether the trip had started (section 8.4).
 
 **Example.** The Moab trip starts October 10, 2027. On October 11, the user opens a new session and asks for a dinner spot for tonight. The session is saved. The coordinator's `find_place` saves Desert Bistro as a place. Any change to the plan, such as adding it as a stop, is refused.
 
@@ -93,13 +93,13 @@ A started trip can't be changed (domain model 3.1). The tools refuse a write to 
 
 ## 6. Sessions and transcripts
 
-**A session row** holds the session's `id`, its trip, `createdDateTime`, `title`, and `agentSessionId`: the Agent SDK's ID for the conversation (section 8.4). The app chooses that ID, a UUID, when it creates the session, and passes it to the SDK. So it's known before the first message. Creating a session adds a row. It takes no row lock and doesn't touch the plan, so it works on a started trip.
+**A session row** holds the session's `id`, its trip, `createdDateTime`, `title`, and `agentSessionId`: the Agent SDK's ID for the conversation (section 8.5). The app chooses that ID, a UUID, when it creates the session, and passes it to the SDK. So it's known before the first message. Creating a session adds a row. It takes no row lock and doesn't touch the plan, so it works on a started trip.
 
 **The Agent SDK keeps the transcript.** On its own, the SDK writes each session's transcript to a file on local disk, one line per message, with each worker's transcript beside it. That disk goes when the container restarts, so the local file is only scratch space. The SDK's `sessionStore` option takes an adapter we write. The SDK sends it each transcript line, and on resume it asks the adapter for them back.
 
 - **The adapter stores each line as a row,** under the session's `agentSessionId`, in the order the SDK sent them. A worker's transcript is stored under the same ID, marked with the worker's own key from the SDK.
 - **Lines are sent as soon as they're written.** The SDK's "eager" setting does this. Its default sends them at the end of each turn, so a restart in the middle of a turn would lose the whole turn.
-- **Resuming** asks the adapter for the session's lines, and the SDK continues the conversation from them (section 8.4).
+- **Resuming** asks the adapter for the session's lines, and the SDK continues the conversation from them (section 8.5).
 - **Transcript lines are never changed or removed** in the MVP. Nothing deletes a trip or a session.
 - **The SDK marks `sessionStore` as alpha,** meaning it may change. If it breaks, the fallback is to copy the local file to Postgres ourselves at the end of each turn, and write it back to disk before a resume.
 
@@ -123,7 +123,7 @@ The user can resume the session. **A resumed coordinator reads the itinerary aga
 
 This section names the classes that read and save a trip and its sessions, and what each one does. Like the domain model's operations, they're guidance for development: development can change them, but each change is flagged and written back here. They don't depend on the database library.
 
-**Four classes are the only way in.** Tools, the app, and any later web form use `TripWriter` and `TripReader` for trips, and `SessionWriter` and `SessionReader` for sessions. The other classes are inside persistence, and nothing outside it can reach them. So no tool opens a transaction, takes the row lock, or saves a trip on its own.
+**Six classes are the only way in.** Tools, the app, and any later web form use a writer and a reader for each kind of record: `TripWriter` and `TripReader`, `PlaceWriter` and `PlaceReader`, and `SessionWriter` and `SessionReader`. The other classes are inside persistence, and nothing outside it can reach them. So no tool opens a transaction, takes the row lock, or saves a trip on its own.
 
 ### 8.1 Class diagram
 
@@ -133,13 +133,20 @@ classDiagram
 
     class TripWriter {
         write(tripId : string, by : WriteBy, change : Change) Result
-        savePlaces(tripId : string, places : List~Place~) List~Place~
         startTrip(owner : User) Trip
     }
 
     class TripReader {
         read(tripId : string) Trip
         listForOwner(owner : User) List~Trip~
+    }
+
+    class PlaceWriter {
+        save(tripId : string, places : List~Place~) List~Place~
+    }
+
+    class PlaceReader {
+        get(placeId : string) Place
     }
 
     class SessionWriter {
@@ -166,24 +173,26 @@ classDiagram
     }
 
     class TripRepository {
-        loadForWrite(tripId : string) LockedTrip
+        loadForWrite(tripId : string) EditableTrip
         load(tripId : string) Trip
         listForOwner(owner : User) List~Trip~
         add(trip : Trip)
-        save(lockedTrip : LockedTrip)
+        save(editableTrip : EditableTrip)
     }
 
-    class LockedTrip {
+    class EditableTrip {
         trip : Trip #123;readOnly#125;
         loadedStartDate : date? #123;readOnly#125;
         loadedStartPlace : Place? #123;readOnly#125;
         unnamedPlaceIds : List~string~ #123;readOnly#125;
         hasStarted() boolean
+        placeOf(placeId : string) Place
     }
 
     class PlaceRepository {
         addPlaces(tripId : string, places : List~Place~) List~Place~
         loadForTrip(tripId : string) List~Place~
+        get(placeId : string) Place
         fillNames(places : List~Place~)
     }
 
@@ -199,33 +208,36 @@ classDiagram
 
     TripWriter ..> WriteBy
     TripWriter ..> TripRepository
-    TripWriter ..> PlaceRepository
     TripReader ..> TripRepository
+    TripRepository ..> PlaceRepository
+    PlaceWriter ..> PlaceRepository
+    PlaceReader ..> PlaceRepository
     SessionWriter ..> SessionRepository
     SessionReader ..> SessionRepository
-    TripRepository ..> LockedTrip : creates
+    TripRepository ..> EditableTrip : creates
 ```
 
-The arrows mean "uses." `TripRepository` also uses `PlaceRepository`, to load a trip's places. That arrow is left out so that no lines cross. `Trip`, `Place`, and `User` are the domain model's classes. `Session` isn't part of the domain model: it's in section 8.4.
+The arrows mean "uses." `Trip`, `Place`, and `User` are the domain model's classes. `Session` isn't part of the domain model: it's in section 8.5.
 
 ### 8.2 TripWriter
 
 `TripWriter` runs everything that saves. It opens each transaction, and creates the repositories it uses inside it, so every query in a write is part of the same transaction. It's created once, when the app starts.
 
-- **`write(tripId, by, change)`** runs a write (section 3). `change` is a function the caller passes in. It takes the loaded trip and the trip's calendar and services, changes the trip, and returns whatever the caller needs back, such as the new stop's ID. `write()` returns that once the write is saved. In order, it:
+- **`write(tripId, by, change)`** runs a write (section 3). `change` is a function the caller passes in. It takes the loaded trip, the trip's calendar and services, and `placeOf()` from the `EditableTrip` (section 8.4). It changes the trip, and returns whatever the caller needs back, such as the new stop's ID. `write()` returns that once the write is saved. In order, it:
   1. Opens a transaction, and loads the trip with `TripRepository.loadForWrite()`.
-  2. Refuses the write if the trip has started, before changing anything. This is the tools' check (section 5), done here once for every tool.
+  2. Refuses the write if the trip has started, before changing anything (section 5). Tools don't check this themselves.
   3. Creates the trip's calendar and services, and runs `change` with them.
   4. Runs the finish: `LegsService.updateLegs()`, then the `FeasibilityChecker` when `by` is `coordinator`, then sets last updated (domain model section 1).
   5. Saves with `TripRepository.save()`, and commits.
 
   If anything refuses or fails along the way, it rolls back and passes the error on.
-- **`savePlaces(tripId, places)`** saves places from a search or lookup, with `PlaceRepository.addPlaces()`. It returns the stored places in the order given. It takes no row lock, doesn't load the plan, and runs no finish (section 3). It works on a started trip.
 - **`startTrip(owner)`** creates a new trip (domain model 3.1, "A new trip"), adds its row, and returns it.
 
 **Starting a new trip takes two steps.** The user clicks "New trip" on the home screen, describes the trip in a form, and submits it. The app calls `startTrip()`, then `SessionWriter.start()` with what the user wrote as the first message. Each step saves on its own. If the app fails between them, the trip is left with no session, and the home screen shows it as "New trip." That's accepted.
 
-**A write never adds places.** Every tool that writes takes place IDs, and every place comes from a search or lookup, which saves it with `savePlaces()` first. So the Google lookup for a place never runs while the row lock is held. Example: the coordinator finds Mike's house with `find_place`, which saves the place. Then `update_itinerary` sets it as the end place, in a write that only fills in its name.
+**A write never adds places.** Every tool that writes takes place IDs, and every place comes from a search or lookup, which saves it with `PlaceWriter.save()` first. So the Google lookup for a place never runs while the row lock is held. Example: the coordinator finds Mike's house with `find_place`, which saves the place. Then `update_itinerary` sets it as the end place, in a write that only fills in its name.
+
+**A write turns place IDs into places with `placeOf()`,** which `TripWriter` passes into the change (section 8.4).
 
 **WriteBy** says who a write is for: `coordinator` or `worker`. Only a coordinator write runs the checks (domain model section 1). A later web form would add its own value.
 
@@ -233,12 +245,37 @@ The arrows mean "uses." `TripRepository` also uses `PlaceRepository`, to load a 
 
 `TripReader` reads trips. It takes no row lock, and never waits for a write (section 3).
 
-- **`read(tripId)`** loads one trip, with its places. The tools use it for reads, such as `read_itinerary`, and the search tools use it to leave out rejected places.
+- **`read(tripId)`** loads one trip. The tools use it for reads, such as `read_itinerary`, and the search tools use it to leave out rejected places, with `itinerary.isRejected()`.
 - **`listForOwner(owner)`** loads every trip the user owns, for the home screen.
 
-**A trip from a read is never saved.** Code can change it in memory, but `TripRepository.save()` only takes a `LockedTrip`, and only `loadForWrite()` makes one. So a change made to a read by mistake goes nowhere.
+**A trip from a read is never saved.** Code can change it in memory, but `TripRepository.save()` only takes an `EditableTrip`, and only `loadForWrite()` makes one (section 8.4). So a change made to a read by mistake goes nowhere.
 
-### 8.4 Sessions
+### 8.4 EditableTrip
+
+An `EditableTrip` is a trip loaded for a write. `TripRepository.loadForWrite()` makes it, and `TripRepository.save()` takes it. In everyday terms, it's the locked trip: loading it locks the trip's row in Postgres (section 4). The lock lasts until `TripWriter` commits or rolls back. The object itself holds no lock, and times nothing out.
+
+**Why it exists.** It has three jobs:
+
+- **It's the only kind of trip `save()` takes.** A `Trip` from `load()` can be changed in memory, but it can never be saved. So a change made to a read by mistake goes nowhere.
+- **It keeps three things from the trip as loaded,** which the save needs (below).
+- **It holds the trip's places for the write,** and hands them out through `placeOf()` (below).
+
+Only `TripWriter` and `TripRepository` use it. Tools never see it.
+
+**It holds one trip, and doesn't keep a copy.** The write changes that one trip object. `EditableTrip` keeps only three values from the load, because the write may change them and the save still needs them as they were:
+
+- **`loadedStartDate` and `loadedStartPlace`,** for the started-trip check at save (section 5). `hasStarted()` works it out like `Trip.hasStarted`, but from the loaded start date, in the loaded start place's time zone. It looks up today's date when it's called. Example: the Moab trip starts October 10. A write loads the trip at 11:59 p.m. on October 9, and reaches the save just after midnight. `hasStarted()` is now true, so the save refuses. It uses the loaded start date because the write might have changed the start date, and then the changed trip could give the wrong answer.
+- **`unnamedPlaceIds`:** the places that had no name when loaded. A write can fill a name in, but never change one (domain model 3.10). So these are the only places whose rows the save might update. Example: Mike's house had no name when loaded. The write sets it as the end place, with the name "Mike's house." At save, it's in `unnamedPlaceIds` and now has a name, so it goes to `PlaceRepository.fillNames()`.
+
+Nothing else compares the trip before and after a write. Follow-on changes work another way, such as each leg remembering what it was routed for (domain model 4.7).
+
+**`placeOf()` is passed into the change, not called on the object.** `EditableTrip` holds every place loaded with the trip. `placeOf(placeId)` returns one of them, or refuses with "no such place" when the ID isn't one of this trip's. `TripWriter` passes `placeOf()` into the write's change function. Code in the change that's handed a place ID uses it to get the place, before passing the place to a service or setting a link.
+
+- **Example.** The Moab stay researcher calls `add_lodging_candidates` with 3 place IDs. The tool's change calls `placeOf()` for each one, builds the candidates from the places it gets back, and calls `StaysService.addLodgingCandidates()`.
+- **Each place is loaded once per write,** so every link to it is the same object. Say Mike's house is both the end place and a stop's candidate. Filling in its name once shows in both, and saves once.
+- **It only reads.** It changes nothing, and never calls Google or the database. Every place was saved by its search before the write began (section 8.2).
+
+### 8.5 Sessions
 
 A **session** is one conversation with the agent about a trip (functional spec 10.1). It isn't part of the trip, so it isn't in the domain model. The trip doesn't hold its sessions. Each session holds its trip's ID instead.
 
@@ -261,28 +298,35 @@ Nothing about a session changes once it's created. It's never closed: the user j
 - **`listForTrip(tripId)`** returns the trip's sessions, in the order created, for the trip's session list.
 - **`get(sessionId)`** returns one session. To resume it, the app hands its `agentSessionId` and the `TranscriptAdapter` to the SDK, which restores the transcript (section 6). The coordinator then continues with that conversation's context.
 
-### 8.5 The repositories
+### 8.6 Places
+
+A place is part of the trip, so it's in the domain model (domain model 3.10). The trip doesn't hold it, though. Each place is its own row, and the plan links to the places it uses. A search saves places without loading the plan, and on a started trip too (section 3).
+
+**PlaceWriter** saves places.
+
+- **`save(tripId, places)`** saves places from a search or lookup, with `PlaceRepository.addPlaces()`. It returns the stored places in the order given. It takes no row lock, doesn't load the plan, and runs no finish (section 3).
+
+**PlaceReader** reads places.
+
+- **`get(placeId)`** returns one place, without loading the trip. The tool `read_place` uses it.
+
+### 8.7 The repositories
 
 A **repository** is a class that reads and saves one kind of record (section 2). Each is created for one connection: the database itself for a read, or an open transaction for a write. They hold no rules, other than the started-trip lock at save.
 
-**TripRepository** reads and saves trip rows, and turns them into `Trip` objects. It uses `PlaceRepository`, on the same connection, to load a trip's places.
+**TripRepository** reads and saves trip rows, and turns them into `Trip` objects. It uses `PlaceRepository`, on the same connection, to load the trip's places, and turns each place ID in the plan back into a link.
 
-- **`loadForWrite(tripId)`** loads the trip's row "for update," which takes the row lock (section 4). Then it loads the trip's places, and returns a `LockedTrip`. If the lock isn't free within a time limit, the write is refused, and the error says the trip is busy.
+- **`loadForWrite(tripId)`** loads the trip's row "for update," which takes the row lock (section 4). Then it loads the trip's places, and returns an `EditableTrip`. If the lock isn't free within a time limit, the write is refused, and the error says the trip is busy.
 - **`load(tripId)`** does the same without the row lock, and returns the `Trip`.
 - **`listForOwner(owner)`** loads every trip the user owns.
 - **`add(trip)`** adds a new trip's row.
-- **`save(lockedTrip)`** checks the started-trip lock with `lockedTrip.hasStarted()`, and refuses when it's true (section 5). Otherwise it saves the plan document. Then it passes each place in `unnamedPlaceIds` that now has a name to `PlaceRepository.fillNames()`.
-
-**LockedTrip** is a trip loaded for a write. It holds the trip, and what `save()` needs from the trip as it was loaded, since the write may change it:
-
-- **`loadedStartDate`** and **`loadedStartPlace`:** the itinerary's start date and start place as loaded.
-- **`hasStarted()`:** worked out like `Trip.hasStarted`, but from the loaded start date, in the loaded start place's time zone. It looks up today's date when it's called. So a trip that starts at midnight during a write counts as started at save.
-- **`unnamedPlaceIds`:** the places that had no name when loaded. A write can only fill a name in, never change one (domain model 3.10). So these are the only places `save()` might need to update.
+- **`save(editableTrip)`** checks the started-trip lock with `editableTrip.hasStarted()`, and refuses when it's true (section 5). Otherwise it saves the plan document. Then it passes each place in `unnamedPlaceIds` that now has a name to `PlaceRepository.fillNames()`.
 
 **PlaceRepository** reads and saves place rows.
 
 - **`addPlaces(tripId, places)`** adds each place as a row, unless the trip already has one with that Google place ID (section 3). It returns the stored places in the order given, so the caller gets the existing `id` for a place the trip already had.
 - **`loadForTrip(tripId)`** loads every place the trip has.
+- **`get(placeId)`** loads one place.
 - **`fillNames(places)`** sets each place's name on its row, only where the row has none.
 
 **SessionRepository** reads and saves session rows (section 6).

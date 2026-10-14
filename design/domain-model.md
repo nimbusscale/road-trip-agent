@@ -55,9 +55,9 @@ A value after `=` is the property's default, the value it has when its object is
 
 - **Objects** hold the data, and its integrity rules. An integrity rule looks only at the object's own properties and the items in its own lists. It doesn't look inside those items' own lists. Examples: a visit time is more than 0, a meal stop needs a tier when it's created, and a stop's selected place is one of its candidates. A stop can check its candidates' places for a repeat, since it's managing its candidates. A stay checking whether its days still hold stops looks one list deeper, so that's a business rule. An object never reads the object that holds it.
 - **Services** hold the business rules. A business rule is any rule that needs a setting, the trip brief, or another object, including one inside the items of a list. Examples: a trip is at most the maximum trip length, a candidate isn't a rejected place, and a stop's search area fits its day. See section 4.
-- **The tools and persistence** hold one rule: a started trip can't be changed. A tool refuses a write to a started trip before it changes anything. Persistence refuses it again when the trip is saved. Objects and services don't check it (see Trip).
+- **Persistence** holds one rule: a started trip can't be changed. `TripWriter` refuses a write to a started trip right after loading it, before anything changes. The save refuses it again ([persistence design](persistence.md), section 5). Objects, services, and tools don't check it (see Trip).
 
-A tool can add its own checks on what an agent passes in, but it never holds a rule about the data, except the started-trip lock.
+A tool can add its own checks on what an agent passes in, but it never holds a rule about the data.
 
 **Hard and soft rules.** A hard rule refuses the change. A soft rule lets the change through, and the `FeasibilityChecker` gives a warning (section 4.8). Soft rules are kept to a minimum. Today there's one: a stop's search area has to fit its day. It's hard when the stop is added. It's soft after a move or a change to the stays, so the coordinator can sort stops out in steps. The other checks, such as daily driving and opening hours, aren't rules about the data. They describe problems with the plan.
 
@@ -65,19 +65,19 @@ A tool can add its own checks on what an agent passes in, but it never holds a r
 
 **Three markers** go after a property's type. In the diagram's source, each is written with `#123;` and `#125;` for the braces, because Mermaid can't take braces there.
 
-- **`{readOnly}`:** the property is never set directly. Either it never changes once its object exists, such as a stop's `kind`, or it changes only through the object's own operation, which its notes name. Example: the trip's `checkResults` changes only through `Trip.replaceCheckResults()`.
+- **`{readOnly}`:** the property is never set directly. Either it never changes once its object exists, such as a stop's `kind`, or it changes only through the object's own operation, which its notes name. Example: the itinerary's `checkResults` changes only through `Itinerary.replaceCheckResults()`.
 - **`{viaService}`:** the property changes only through a service operation, which its notes name. Example: a stop's `setTime` changes only through `StopsService.setStopTime()`, since a rest day's stops each need a set time. A property is `{viaService}` when any change to it needs a business rule. Then every change to it goes through a service, even one that needs no business rule, so there's one way to change it. Example: adding a stay needs the maximum trip length, so moving one goes through `StaysService` too. In TypeScript, the object's change method for the property is kept out of the domain package's public API, so only services can reach it. That change method still runs the object's own rules. It isn't listed as an operation.
 - **`{keepsValue}`:** the property starts empty, and can't be emptied once it has a value. Setting it to empty is refused. Example: the itinerary's `startPlace`.
 
 A property has at most one of `{readOnly}` and `{viaService}`. `{keepsValue}` can go with either, such as the trip brief's `tripLengthInDays`. Reading a read-only or via-service list gives a copy that can't be changed, frozen where the language allows. So changing the copy can never change the stored list. In the properties tables, the type says "read only," "via service," or "keeps its value" instead.
 
-**Operations** are listed only for a change that goes beyond setting one property: one that creates or removes objects, changes a list, or has to change other stored data with it. An operation on an object runs only that object's integrity rules, and is named for what it changes, such as `PlacesRegistry.addPlaces()`. A change that needs a business rule is a service operation instead (section 4). An object never creates itself. Code outside it does, such as a service, or the object that holds it, such as a stay creating its days. An object's own rules also run when it's created, and creating one that breaks them is refused. Example: a meal stop needs a tier. For each operation, the object's or service's section says what it changes, what follows on from it, and what it refuses.
+**Operations** are listed only for a change that goes beyond setting one property: one that creates or removes objects, changes a list, or has to change other stored data with it. An operation on an object runs only that object's integrity rules, and is named for what it changes, such as `Itinerary.replaceCheckResults()`. A change that needs a business rule is a service operation instead (section 4). An object never creates itself. Code outside it does, such as a service, or the object that holds it, such as a stay creating its days. An object's own rules also run when it's created, and creating one that breaks them is refused. Example: a meal stop needs a tier. For each operation, the object's or service's section says what it changes, what follows on from it, and what it refuses.
 
-**Arguments and returns.** Each operation gives its arguments and what it returns, such as `addPlaces(places : List<Place>) : List<Place>`. An argument that can be empty has a `?` after its type. An operation with nothing after its parentheses returns nothing. These are guidance for development. Development can change them, but each change is flagged and written back here.
+**Arguments and returns.** Each operation gives its arguments and what it returns, such as `isRejected(place : Place) : boolean`. An argument that can be empty has a `?` after its type. An operation with nothing after its parentheses returns nothing. These are guidance for development. Development can change them, but each change is flagged and written back here.
 
 **Services** hold the business rules, and no data. There's one for each kind of object with business rules: `TripBriefService`, `RejectionsService`, `StaysService`, `DaysService`, `StopsService`, and `LegsService`. The `FeasibilityChecker` is one too. Each is created for one trip, and its operations take the itinerary and the objects to change. Services never call each other. Each section says what its service is given. A refused call changes nothing, because the write it's part of is thrown away (below). They hold no stored data, so they aren't in the diagram. See section 4.
 
-**The places registry** holds the trip's places and rejected places. It holds stored data, so it's in the diagram. The trip holds it, and code passes it into the services that need it. Example: `StopsService` asks it whether a place is rejected before adding a candidate. Its operations run only its own integrity rules. See Trip (section 3.1) and section 4.
+**Places aren't held by the trip.** Each place is stored on its own, per trip. A search saves it before any write uses it, and the plan links to the places it uses ([persistence design](persistence.md), section 8). The places the user rejected are part of the plan, so the itinerary holds them (section 3.4).
 
 **The calendar** is a set of lookup functions over the itinerary, such as a day's date, the day before it, or the stay it starts from. It holds no data, so it isn't in the diagram. It's there because an object can't see the object that holds it, or the one beside it. Example: San Francisco Day 2 starts at the Monterey stay only because the day before it sleeps there, and only the itinerary sees which day comes before. So "where Day 2 starts" is the calendar's `startStayOf()`, not a property of the day. Code passes the calendar into the services that need it. See section 4.1.
 
@@ -87,13 +87,13 @@ A property has at most one of `{readOnly}` and `{viaService}`. `{keepsValue}` ca
 2. **Change** it, with the services and the objects' operations.
 3. **Finish** the write, in this order:
    - **Legs.** `LegsService.updateLegs()` compares each day with what its leg was routed for, and adds, re-routes, or removes its leg (section 4.7). This comes first, because the checks need the new drive times.
-   - **Check results.** After a coordinator write, the `FeasibilityChecker` works out the current check results, compares them with the trip's saved list, and replaces the list (section 4.8). A worker's write doesn't run the checks (technical spec section 8).
+   - **Check results.** After a coordinator write, the `FeasibilityChecker` works out the current check results, compares them with the itinerary's saved list, and replaces the list (section 4.8). A worker's write doesn't run the checks (technical spec section 8).
    - **Last updated.** The trip's `lastUpdatedDateTime` is set to now.
 4. **Save** the trip. Persistence checks the started-trip lock here (see Trip).
 
 **A refusal throws the write away.** When anything refuses along the way, including a call to Google while the legs are updated, the loaded trip is thrown away and never saved. Storage still holds the trip as it was, and the error goes back to the caller. So nothing is left half changed. Example: `StopsService.moveStop()` takes a stop off Day 2, then Day 3 refuses it. The changed trip is thrown away, so the stored Day 2 never lost the stop. The same goes for a tool call that makes several changes, such as the tool `update_trip_brief` setting five items when one is refused.
 
-**Saving places from a search skips the finish.** A write that only adds places to the places registry changes no leg and doesn't change the plan. So it runs no checks, and doesn't set last updated.
+**Saving places from a search isn't a write.** It adds places without loading or saving the plan. So it runs no finish: no legs, no checks, and no last updated ([persistence design](persistence.md), section 3).
 
 **Two writes to one trip take turns.** The second waits until the first is saved or thrown away. So two stay researchers writing at the same time never save a copy without the other's candidates. See the [persistence design](persistence.md), section 4.
 
@@ -121,18 +121,8 @@ classDiagram
         owner : User #123;readOnly#125;
         tripBrief : TripBrief #123;readOnly#125;
         itinerary : Itinerary #123;readOnly#125;
-        placesRegistry : PlacesRegistry #123;readOnly#125;
-        checkResults : List~CheckResult~ #123;readOnly#125;
         /name : string?
         /hasStarted : boolean
-        replaceCheckResults(checkResults : List~CheckResult~)
-    }
-
-    class PlacesRegistry {
-        places : List~Place~ #123;readOnly#125;
-        rejectedPlaces : List~RejectedPlace~ #123;viaService#125;
-        addPlaces(places : List~Place~) List~Place~
-        isRejected(place : Place) boolean
     }
 
     class RejectedPlace {
@@ -162,10 +152,14 @@ classDiagram
         endPlace : Place? #123;keepsValue#125;
         stays : List~Stay~ #123;viaService#125;
         lastDay : LastDay #123;readOnly#125;
+        rejectedPlaces : List~RejectedPlace~ #123;viaService#125;
+        checkResults : List~CheckResult~ #123;readOnly#125;
         /days : List~Day~
         /endDate : date?
         /dayCount : integer
         /totalDriveTimeInMinutes : integer
+        isRejected(place : Place) boolean
+        replaceCheckResults(checkResults : List~CheckResult~)
     }
 
     class Stay {
@@ -312,16 +306,14 @@ classDiagram
     Trip --> "1" User : owner
     Trip *-- "1" TripBrief : tripBrief
     Trip *-- "1" Itinerary : itinerary
-    Trip *-- "1" PlacesRegistry : placesRegistry
-    Trip *-- "*" CheckResult : checkResults
-    PlacesRegistry *-- "*" Place : places
-    PlacesRegistry *-- "*" RejectedPlace : rejectedPlaces
     RejectedPlace --> "1" Place : place
 
     Itinerary --> "0..1" Place : startPlace
     Itinerary --> "0..1" Place : endPlace
     Itinerary *-- "*" Stay : stays
     Itinerary *-- "1" LastDay : lastDay
+    Itinerary *-- "*" RejectedPlace : rejectedPlaces
+    Itinerary *-- "*" CheckResult : checkResults
 
     Stay --> "1" Place : place
     Stay --> "0..1" Place : lodging
@@ -460,7 +452,7 @@ The trip is one planned road trip. Everything else in this model belongs to a tr
 
 **Held as:** an entity. Its `id` is one we create. It has the prefix `trip_` (technical spec 7.1). Agents never see it: each session's tools are made with the trip already set, so no tool takes a trip ID (tool design section 4).
 
-**Created and changed by:** the app creates it when the user starts a new conversation from the home screen (functional spec 10.1). Code replaces its check results and sets when it was last updated. Everything else changes through the objects it holds, or through the services (section 4).
+**Created and changed by:** the app creates it when the user starts a new conversation from the home screen (functional spec 10.1). Code sets when it was last updated. Everything else changes through the objects it holds, or through the services (section 4).
 
 | Property | Stored or worked out | Type | Notes |
 |---|---|---|---|
@@ -468,8 +460,6 @@ The trip is one planned road trip. Everything else in this model belongs to a tr
 | `owner` | Stored | `User`, read only | Set when the trip is created. A user holds nothing else in this model yet: sign-in details are settled during development, and memory is left out |
 | `tripBrief` | Stored | `TripBrief`, an entity held by the trip, read only | Created with the trip, empty except for its usual start time |
 | `itinerary` | Stored | `Itinerary`, an entity held by the trip, read only | Created holding only its last day |
-| `placesRegistry` | Stored | `PlacesRegistry`, held by the trip, read only | The trip's places and rejected places. Created with the trip, empty. Code passes it into the services that need it. See below |
-| `checkResults` | Stored | `List<CheckResult>`, in no order, read only | The check results that applied after the last coordinator write. Only replaced as a whole, never added to. See `replaceCheckResults()` |
 | `lastUpdatedDateTime` | Stored | `dateTime` | Set at the end of every write. See below |
 | `name` | Worked out | `string?` | The trip brief's `focus` and the start month, such as "Pacific Coast Highway, May 2027." See below |
 | `hasStarted` | Worked out | `boolean` | True when today's date is on or after the itinerary's `startDate`. False while the itinerary has no `startDate`. Today's date is looked up when needed, in the start place's time zone (see Rules) |
@@ -478,44 +468,18 @@ The trip is one planned road trip. Everything else in this model belongs to a tr
 
 **`lastUpdatedDateTime`.** Code sets it at the end of every write (section 1): to the trip brief, the itinerary, candidates, weather text, or rejected places. That includes worker writes. A refused write changes nothing, so it doesn't count. Neither does a read, or saving places from a search, since the plan doesn't change. The home screen shows it (functional spec 3).
 
-**Sessions aren't part of the trip.** A session is a conversation about the trip, not part of the plan, so it isn't in this model. The trip doesn't hold its sessions, and nothing here creates one. The [persistence design](persistence.md), section 8.4, covers them.
+**Sessions aren't part of the trip.** A session is a conversation about the trip, not part of the plan, so it isn't in this model. The trip doesn't hold its sessions, and nothing here creates one. The [persistence design](persistence.md), section 8.5, covers them.
 
-**PlacesRegistry.** Every place found for the trip, and the places the user rejected. It's held by the trip in `placesRegistry`, with no `id`, and created with the trip. The trip holds it so that it's saved with the trip. Code passes it into the services that need it, such as `StopsService`, which refuses a rejected place as a candidate (section 4). Its operations run only its own rules.
-
-| Property | Stored or worked out | Type | Notes |
-|---|---|---|---|
-| `places` | Stored | `List<Place>`, in no order, read only | Every place a tool has returned for this trip, including search results never offered. Each is stored once. Only `addPlaces()` adds to it, and nothing removes from it |
-| `rejectedPlaces` | Stored | `List<RejectedPlace>`, in the order rejected, via service | Only `RejectionsService.rejectPlaces()` adds to it, and nothing removes from it: taking a rejection back is out of scope (functional spec 2). It's via service so that a rejection is never recorded without the place also leaving every stop's and stay's candidates (section 4.3) |
-
-**RejectedPlace.** Held by the places registry, with no `id` of its own. It holds `place : Place` and `reason : string`, both read only. The reason is the user's, such as "too kitschy for us." Creating one with an empty reason is refused. The place itself stays in `places`, so the tool `find_place` can still return it, marked rejected with the reason (tool design 2.3).
-
-The registry's operations:
-
-- **`addPlaces(places : List<Place>) : List<Place>`** (code, whenever a search or lookup returns places). Takes one or more places and adds each to `places`. A place the registry already has, matched by `googlePlaceId`, isn't added again: the stored record is reused as it is, and the new lookup's facts are dropped (see Place). Returns the stored places in the order given, so the caller gets the existing record's `id` for a place the trip already had.
-- **`isRejected(place : Place) : boolean`.** True when the place is in `rejectedPlaces`. The services use it to refuse a rejected place as a candidate. The search tools use it to leave rejected places out of their results.
-
-The registry keeps a change method for `rejectedPlaces` that only services reach (section 1). It runs the registry's own rules:
-
-- **A place already rejected is skipped** without a word, like adding to a set. It keeps its first reason, and the new one is dropped.
-- **A rejection whose place isn't in `places` is refused,** and so is the whole call.
-
-**A new trip** is created by code outside the trip, when the user starts a new conversation from the home screen. It starts with a trip brief that holds only its usual start time, an itinerary holding only its last day, an empty places registry, and empty `checkResults`.
-
-**Operations:**
-
-- **`replaceCheckResults(checkResults : List<CheckResult>)`** (the `FeasibilityChecker`, at the end of every write that runs the checks). Takes the full list of current check results, which can be empty. Replaces the whole of `checkResults` in one step. Nothing can add to the list or remove one result from it. The trip only stores the list. Working out the results and comparing them with the saved list is the `FeasibilityChecker`'s job (section 4.8).
-  - **Refused:** the whole call, when two check results have the same `check` and `subjectId`. Example: a stop can have an `openingHoursClosed` result and a `lateForSetTime` result, but not two of either.
-
-**Rejecting places** is `RejectionsService.rejectPlaces()` (section 4.3), the tool `reject_places`. It changes stops and stays all over the itinerary, as well as the registry.
+**A new trip** is created by code outside the trip, when the user starts a new conversation from the home screen. It starts with a trip brief that holds only its usual start time, and an itinerary holding only its last day, with no rejected places or check results.
 
 **Rules:**
 
 - **A trip belongs to one user.** Only that user, and the agents in that user's sessions, can reach it (functional spec 10.4).
-- **A started trip can't be changed.** Once `hasStarted` is true, every write that changes the plan is refused, and the error says the trip has started (technical spec section 8). That covers the trip brief, the itinerary, candidates, weather text, and rejected places. Objects and services don't check this. The tools check it before a write, and persistence checks it again when the trip is saved (section 1). Persistence still saves places from searches on a started trip, since they don't change the plan. Reads still work. Sessions aren't part of the trip, so they can still be started and resumed.
+- **A started trip can't be changed.** Once `hasStarted` is true, every write that changes the plan is refused, and the error says the trip has started (technical spec section 8). That covers the trip brief, the itinerary, candidates, weather text, and rejected places. Objects, services, and tools don't check this. Persistence does, before the write changes anything and again when the trip is saved (section 1). Persistence still saves places from searches on a started trip, since they don't change the plan. Reads still work. Sessions aren't part of the trip, so they can still be started and resumed.
 - **Today's date is the date in the start place's time zone,** since that's where the trip begins. It isn't a property of the trip. Code looks it up when a rule needs it, with the calendar's `today()` (section 4.1). The time zone is worked out from the start place's coordinates. The start-date check, the started-trip lock, and the forecast rules all use it (technical spec 5.2).
 - **All of a trip's times are in the start place's time zone.** A trip that crosses into another time zone shows times off by the difference after the border. That's a known limit of this version.
 - **The trip brief holds what the user wants. The itinerary holds the plan.** No fact is stored in both. Changing the brief never changes the itinerary. The checks compare them, and the coordinator changes the plan with the user (technical spec section 8).
-- **Places are kept per trip.** Each trip has its own places registry. A place found for one trip, such as a friend's address, is never visible from another trip (functional spec 10.4).
+- **Places are kept per trip.** Each trip has its own places (see Place). A place found for one trip, such as a friend's address, is never visible from another trip (functional spec 10.4).
 
 ### 3.2 Trip brief
 
@@ -558,14 +522,14 @@ The trip brief holds what the user wants from the trip: the items in functional 
 
 A check result is one finding from the feasibility checks in technical spec section 8, such as a day that drives longer than the user's max. Each one is a warning or a note. A check that refuses a write, such as a trip over the maximum length, gives an error, not a check result.
 
-**Held as:** held by the trip's `checkResults`, with no `id`. That list holds the check results that applied after the last coordinator write. It's kept only so later writes and reads can tell which check results are new.
+**Held as:** held by the itinerary's `checkResults`, with no `id`. That list holds the check results that applied after the last coordinator write. It's kept only so later writes and reads can tell which check results are new.
 
-**Created and changed by:** the `FeasibilityChecker`, in code (section 4.8). A saved check result never changes. The whole list is replaced instead (`Trip.replaceCheckResults()`).
+**Created and changed by:** the `FeasibilityChecker`, in code (section 4.8). A saved check result never changes. The whole list is replaced instead (`Itinerary.replaceCheckResults()`).
 
 | Property | Stored or worked out | Type | Notes |
 |---|---|---|---|
 | `check` | Stored | `CheckKind`, read only | Which check found it. Each kind is one row of the table in technical spec section 8 |
-| `subjectId` | Stored | `string`, read only | The ID of what it's about: the trip, a stay, a day, or a stop. It's an ID, not a link, because a write can remove the stop or stay before the compare runs (below) |
+| `subjectId` | Stored | `string`, read only | The ID of what it's about: the itinerary, a stay, a day, or a stop. It's an ID, not a link, because a write can remove the stop or stay before the compare runs (below) |
 | `text` | Stored | `string`, read only | What the check found, such as "Day 4 needs about 5 h 20 m of driving. You agreed to 5." A current check result always has current text. The saved text is used only to describe a check result that went away |
 | `isApproved` | Stored | `boolean`, read only | True when an approval that covers it applies (see Approval, and `FeasibilityChecker.isApplying()` in section 4.8). Always false for a check no approval covers |
 | `hasEmptyStopBefore` | Stored | `boolean`, read only | For `openingHoursNotLongEnough` and `openingHoursClosed` only: true when an earlier stop on the same day is still empty, so the time checked may be too early (technical spec section 8). False for every other check. See the rules |
@@ -575,7 +539,7 @@ A check result is one finding from the feasibility checks in technical spec sect
 
 | `check` | Technical spec section 8 row | Level | About | Approval that covers it |
 |---|---|---|---|---|
-| `tripLengthVsBrief` | Trip length vs the brief | Warning | The trip | None |
+| `tripLengthVsBrief` | Trip length vs the brief | Warning | The itinerary | None |
 | `dailyDriving` | Daily driving | Warning | A day | Drive hours |
 | `openingHoursNotLongEnough` | Opening hours: open, but not long enough | Warning | A stop | Opening hours |
 | `openingHoursClosed` | Opening hours: closed for the whole visit | Warning | A stop | Opening hours |
@@ -591,16 +555,16 @@ A check result is one finding from the feasibility checks in technical spec sect
 
 **Rules:**
 
-- **At most one check result per check and subject.** `Trip.replaceCheckResults()` refuses a list that breaks this.
+- **At most one check result per check and subject.** `Itinerary.replaceCheckResults()` refuses a list that breaks this.
 - **Only the two opening-hours warnings can have an empty stop before.** A check result with `hasEmptyStopBefore` true and any other `check` is refused when it's created. An empty stop takes no time, so the stops after it may really come later. A place that looks closed at 1:10 may be open by 2:00, so an opening-hours warning may go away. A late or driving warning would only get worse, so it's real. `openingHoursNotKnown` doesn't depend on the time at all (technical spec section 8).
 
 ### 3.4 Itinerary
 
-The itinerary is the plan: where the trip starts and ends, when it starts, its stays, and its days.
+The itinerary is the plan: where the trip starts and ends, when it starts, its stays, and its days. It also holds the places the user rejected, and the check results from the last coordinator write.
 
 **Held as:** an entity held by the trip. Its `id` has the prefix `itin_` (technical spec 7.1). Agents never see it: a trip has one itinerary, so the tools find it from the trip.
 
-**Created and changed by:** the app creates it with the trip, and code creates its last day at the same time. The coordinator sets the start place, end place, and start date directly, with the tool `update_itinerary`. It adds, moves, and removes stays, and sets their nights, through `StaysService`, with the tools `add_stay`, `update_stay`, and `remove_stay` (section 4.4). `StaysService` adds and removes a stay's days as its nights change. Nothing else adds or removes a day.
+**Created and changed by:** the app creates it with the trip, and code creates its last day at the same time. The coordinator sets the start place, end place, and start date directly, with the tool `update_itinerary`. It adds, moves, and removes stays, and sets their nights, through `StaysService`, with the tools `add_stay`, `update_stay`, and `remove_stay` (section 4.4). `StaysService` adds and removes a stay's days as its nights change. Nothing else adds or removes a day. `RejectionsService` adds rejected places (section 4.3). The `FeasibilityChecker` replaces the check results (section 4.8).
 
 | Property | Stored or worked out | Type | Notes |
 |---|---|---|---|
@@ -610,6 +574,8 @@ The itinerary is the plan: where the trip starts and ends, when it starts, its s
 | `startDate` | Stored | `date?`, keeps its value | The first day's date. Empty until the coordinator sets it during discovery. See below |
 | `stays` | Stored | `List<Stay>`, in order, via service | The shape of the trip. Each stay is an entity held by the itinerary, and holds its own days. Changes only through `StaysService.addStay()`, `moveStay()`, and `removeStay()` (section 4.4) |
 | `lastDay` | Stored | `LastDay`, an entity held by the itinerary, read only | Created with the itinerary. Never replaced or removed |
+| `rejectedPlaces` | Stored | `List<RejectedPlace>`, in the order rejected, via service | Only `RejectionsService.rejectPlaces()` adds to it, and nothing removes from it: taking a rejection back is out of scope (functional spec 2). It's via service so that a rejection is never recorded without the place also leaving every stop's and stay's candidates (section 4.3). See below |
+| `checkResults` | Stored | `List<CheckResult>`, in no order, read only | The check results that applied after the last coordinator write. Only replaced as a whole, never added to. See `replaceCheckResults()` |
 | `days` | Worked out | `List<Day>`, in order | Each stay's days, in the stays' order, then `lastDay`. The calendar works out a day's date and number from its place in this list (section 4.1) |
 | `endDate` | Worked out | `date?` | The last day's date: `startDate` plus `dayCount` minus one day. Empty while there's no `startDate` |
 | `dayCount` | Worked out | `integer` | How many days the trip has, counting the last day. This is the trip's length. At least 1. `StaysService` holds the maximum (section 4.4) |
@@ -628,7 +594,21 @@ A day touches two stays: it starts where the party slept and ends where it sleep
 - **While `startPlace` is empty,** since today's date comes from the start place's time zone. When the tool `update_itinerary` gets a start place and a start date in one call, it sets the place first.
 - **When the date isn't after today.**
 
-**Operations:** none of its own. Its `stays` change only through `StaysService`, because adding a stay or changing its nights needs the maximum trip length, a setting. The itinerary keeps a change method for `stays` that only services reach (section 1). It runs the itinerary's own rules: a stay is in the list once, and `after` is one of its stays and isn't the stay being placed. The operations that were drafted here moved to services:
+**Rejected places.** A place the user turned down for the whole trip. It's never offered again (functional spec 10.2).
+
+**RejectedPlace.** Held by the itinerary, with no `id` of its own. It holds `place : Place` and `reason : string`, both read only. The reason is the user's, such as "too kitschy for us." Creating one with an empty reason is refused. The place itself is still stored, so the tool `find_place` can still return it, marked rejected with the reason (tool design 2.3).
+
+The itinerary keeps a change method for `rejectedPlaces` that only services reach (section 1). It runs the itinerary's own rule: **a place already rejected is skipped** without a word, like adding to a set. It keeps its first reason, and the new one is dropped.
+
+**Rejecting places** is `RejectionsService.rejectPlaces()` (section 4.3), the tool `reject_places`. It changes stops and stays all over the itinerary, as well as `rejectedPlaces`.
+
+**Operations:**
+
+- **`isRejected(place : Place) : boolean`.** True when the place is in `rejectedPlaces`, matched by its `id`. `StaysService` and `StopsService` use it to refuse a rejected place as a candidate. The search tools use it to leave rejected places out of their results, and `find_place` to mark them.
+- **`replaceCheckResults(checkResults : List<CheckResult>)`** (the `FeasibilityChecker`, at the end of every write that runs the checks). Takes the full list of current check results, which can be empty. Replaces the whole of `checkResults` in one step. Nothing can add to the list or remove one result from it. The itinerary only stores the list. Working out the results and comparing them with the saved list is the `FeasibilityChecker`'s job (section 4.8).
+  - **Refused:** the whole call, when two check results have the same `check` and `subjectId`. Example: a stop can have an `openingHoursClosed` result and a `lateForSetTime` result, but not two of either.
+
+**Stays change through a service.** Its `stays` change only through `StaysService`, because adding a stay or changing its nights needs the maximum trip length, a setting. The itinerary keeps a change method for `stays` that only services reach (section 1). It runs the itinerary's own rules: a stay is in the list once, and `after` is one of its stays and isn't the stay being placed. The operations that were drafted here moved to services:
 
 - **Adding, moving, and removing a stay** are `StaysService.addStay()`, `moveStay()`, and `removeStay()` (section 4.4).
 - **Setting a stay's nights** is `StaysService.setNightCount()` (section 4.4). It changes one stay's days, and the trip length limit is a setting.
@@ -948,14 +928,14 @@ A candidate is one place offered for a stop or for a stay's lodging, with the re
 
 A place is any real location: a town, hotel, restaurant, bar, attraction, friend's house, or campground. It holds the facts about it.
 
-**Held as:** an entity held by the trip's places registry, in `places` (see Trip). Its `id` has the prefix `place_` (technical spec 7.1). Agents see it. Users never do.
+**Held as:** an entity that nothing holds. Each place belongs to one trip, and is stored on its own, apart from the plan ([persistence design](persistence.md), section 2). Other objects link to it. Its `id` has the prefix `place_` (technical spec 7.1). Agents see it. Users never do.
 
-**Created and changed by:** code creates it from what a Google lookup returns, in any search tool or the tool `find_place`. Then the places registry's `addPlaces()` stores it, or reuses the record it already has (see Trip). Its facts never change. When Google has no name for it, the first name an agent gives fills it in, with `fillName()`. A place is never removed, even when it's rejected.
+**Created and changed by:** code creates it from what a Google lookup returns, in any search tool or the tool `find_place`. Then `PlaceWriter.save()` stores it, or reuses the record the trip already has ([persistence design](persistence.md), section 8.6). Its facts never change. When Google has no name for it, the first name an agent gives fills it in, with `fillName()`. A place is never removed, even when it's rejected.
 
 | Property | Stored or worked out | Type | Notes |
 |---|---|---|---|
 | `id` | Stored | `string`, read only | Agents see it. Users never do |
-| `googlePlaceId` | Stored | `string`, read only | Google's ID for the place. Every place comes from a Google lookup, so every place has one. The registry matches places by it, and by nothing else. It's also kept so the details could be looked up again (Google design section 6) |
+| `googlePlaceId` | Stored | `string`, read only | Google's ID for the place. Every place comes from a Google lookup, so every place has one. A trip's places are matched by it, and by nothing else. It's also kept so the details could be looked up again (Google design section 6) |
 | `name` | Stored | `string?`, read only | Google's name for the place. When Google has none, which in practice means an address, the first name an agent gives, such as "Mike's house." Changes only through `fillName()`. See below |
 | `type` | Stored | `string?`, read only | Google's type for the place, in Google's readable wording, such as "Hotel" or "Mexican Restaurant." The option card and the short line show it. Empty when Google has none, such as for an address |
 | `address` | Stored | `string`, read only | Google's address for the place |
@@ -972,7 +952,7 @@ A place is any real location: a town, hotel, restaurant, bar, attraction, friend
 
 **Name and type.** Both come from Google when the place is created. Cards show Google's name whenever Google has one. A name given by an agent is used only for a place Google has no name for, such as an address. A place is created from Google's answer before any agent picks it or names it, so that name comes later, with `fillName()`. The tools that offer or set a place always take a name, so the agent never has to decide whether to pass it (tool design 2.1). The first one given is kept. So a user's nickname, such as "the pink hotel," never replaces "Madonna Inn." An address has no type, such as Mike's house as the end place. That does no harm: the short line leaves it out.
 
-**The facts are a snapshot.** They're stored as the lookup returned them, and aren't looked up again when the trip is reopened (Google design section 6). When a later lookup returns a place the registry already has, the stored record is kept as it is, and the new facts are dropped. A place first found with `find_place` may have no summaries, since that tool doesn't ask for them, and keeps none. Weekly hours are a normal week only, with no seasonal hours (Google design 2.2).
+**The facts are a snapshot.** They're stored as the lookup returned them, and aren't looked up again when the trip is reopened (Google design section 6). When a later lookup returns a place the trip already has, the stored record is kept as it is, and the new facts are dropped. A place first found with `find_place` may have no summaries, since that tool doesn't ask for them, and keeps none. Weekly hours are a normal week only, with no seasonal hours (Google design 2.2).
 
 **The kind of place doesn't limit how it's used.** A hotel can be a stay's lodging, or a stop for its bar. On a loop trip, the start and end are the same place.
 
@@ -996,7 +976,8 @@ A closing can fall on the next day, so hours past midnight read correctly. Examp
 
 **Rules:**
 
-- **One record per trip for each Google place.** The places registry holds this (see Trip).
+- **One record per trip for each Google place.** Persistence holds this: the database refuses a second one ([persistence design](persistence.md), section 2).
+- **A plan links only to its own trip's places.** A write turns each place ID it's given into a place with persistence's `placeOf()`, which refuses an ID that isn't one of the trip's ([persistence design](persistence.md), section 8.4).
 - **A period's closing day and time come together.** Both are set, or both are empty. Only a place's one and only period can have no closing.
 
 ---
@@ -1006,10 +987,10 @@ A closing can fall on the next day, so hours past midnight read correctly. Examp
 A service holds business rules: any rule that needs a setting, the trip brief, or another object (section 1). It holds no data, so it isn't in the diagram.
 
 - **One service for each kind of object:** `TripBriefService`, `RejectionsService`, `StaysService`, `DaysService`, `StopsService`, and `LegsService`. The `FeasibilityChecker` is a service too.
-- **Each is created for one trip.** Code gives it what it needs from that trip's places registry, its trip brief, the settings, and the calendar. Each section below starts with what its service is given. Its operations take the itinerary and the objects to change.
+- **Each is created for one trip.** Code gives it what it needs from that trip's brief, the settings, and the calendar. Each section below starts with what its service is given. Its operations take the itinerary and the objects to change.
 - **Services never call each other.** A lookup that two services need, such as a day's date, is in the calendar, which each of them is given.
 - **A refused call changes nothing.** The service and the objects each run their own rules as the call goes. When one refuses partway, the write the call is part of is thrown away whole (section 1, "A write").
-- **A service doesn't check the started-trip lock.** The tools and persistence do (section 1).
+- **A service doesn't check the started-trip lock.** Persistence does (section 1).
 
 Each operation is written the same way as in section 3: its arguments and return, the tool or code that uses it, what it changes, what follows on, and what it refuses. A refusal that comes from an object's own rule names the object.
 
@@ -1099,17 +1080,17 @@ The two trip brief items whose limits are settings. Every other item is set dire
 
 ### 4.3 RejectionsService
 
-**Given:** the places registry, to record rejections.
+**Given:** nothing beyond the itinerary, which holds the rejected places.
 
-- **`rejectPlaces(itinerary : Itinerary, rejections : List<RejectedPlace>)`** (the tool `reject_places`, used by the coordinator). Takes one or more rejections, each a place and the user's reason. It records them in the places registry's `rejectedPlaces`. Then it removes each place from every stop's candidates and every stay's lodging candidates. Where the place was selected, removing the candidate clears the selection, by the stop's or stay's own rule. A rejection undoes picks, meaning candidates and the selections made from them. It doesn't change the trip's structure.
+- **`rejectPlaces(itinerary : Itinerary, rejections : List<RejectedPlace>)`** (the tool `reject_places`, used by the coordinator). Takes one or more rejections, each a place and the user's reason. It records them in the itinerary's `rejectedPlaces`. Then it removes each place from every stop's candidates and every stay's lodging candidates. Where the place was selected, removing the candidate clears the selection, by the stop's or stay's own rule. A rejection undoes picks, meaning candidates and the selections made from them. It doesn't change the trip's structure.
   - **Follows on:** a stop whose selection is cleared also loses its visit time and its opening hours approval, by the stop's own rules. A stay whose lodging is cleared has the party sleep in its town again (`sleepsAt`). Every leg whose selected places, start, or end changed is re-routed at the end of the write (section 4.7). A stay whose activities changed has its weather text go out of date (`isWeatherOutOfDate()`, section 4.1).
   - **Leaves alone:** the trip's structure, meaning a stay's town, the start and end places, and waypoints. None of them is picked from candidates. Changing them needs a conversation with the user, such as which days move when a stay's town goes, so the coordinator does that afterward. The rejection still keeps the place out of later searches and candidates.
-  - **Already rejected:** the registry skips it, and keeps its first reason (see Trip).
-  - **Refused:** the whole call, by the registry's rule when a place isn't in its `places`. A rejection with an empty reason is refused when it's created (see Trip).
+  - **Already rejected:** the itinerary skips it, and keeps its first reason (see Itinerary).
+  - **Refused:** a rejection with an empty reason, when it's created (see Itinerary). A place ID that isn't one of the trip's is refused before this runs, when the tool looks it up with `placeOf()`.
 
 ### 4.4 StaysService
 
-**Given:** the places registry, to refuse rejected places. The settings, for the maximum trip length. The calendar, for a stay's dates, today, and its activities.
+**Given:** the settings, for the maximum trip length. The calendar, for a stay's dates, today, and its activities.
 
 - **`addStay(itinerary : Itinerary, place : Place, nightCount : integer, tier : Tier, tierRule : string, after : Stay?) : Stay`** (the tool `add_stay`). Creates the stay, with its place, its nights, and its tier and rule, and the stay creates its days (see Stay). Puts it after the stay `after`, or first when `after` is empty. Returns the new stay.
   - **Follows on:** every later day moves back, and keeps its ID. Every leg whose start or end changed is re-routed at the end of the write. The tool lists the stops on every day whose start or end changed (tool design 2.1). The day keeps its stops, because which day each one belongs on is a judgment call. The coordinator talks them through with the user (technical spec 5.2). Example: adding a Big Sur stay after Monterey puts a new, empty day after Monterey's. The day that drove Monterey to San Luis Obispo now drives Big Sur to San Luis Obispo. It still holds the Monterey breakfast, Point Lobos, and Bixby, which are now behind the party.
@@ -1120,11 +1101,11 @@ The two trip brief items whose limits are settings. Every other item is set dire
 - **`setNightCount(itinerary : Itinerary, stay : Stay, nightCount : integer) : List<StayDay>`** (the tool `update_stay`). Adds or removes days at the end of the stay's days until it has `nightCount` of them. A new day isn't a rest day, and has no start time, stops, or approvals. A removed day goes with its leg and approvals. Returns the days added, or an empty list when nights were removed.
   - **Follows on:** every later day moves, and keeps its ID. Every leg whose start or end changed is re-routed at the end of the write. Example: removing Moab's last night leaves the Torrey day starting at the Moab hotel, so its leg isn't re-routed. The stay's tier still records the nights it was set for, so the checks add a note when they differ (see Stay).
   - **Refused:** when the trip would be longer than the maximum trip length. When a day it would remove holds stops. The refusal lists those stops. By the stay's own rule: when `nightCount` is less than 1. Removing a stay's last night means removing the stay.
-- **`removeStay(itinerary : Itinerary, stay : Stay)`** (the tool `remove_stay`). Removes the stay, which takes its days, lodging candidates, and weather text with it. The places stay in the registry.
+- **`removeStay(itinerary : Itinerary, stay : Stay)`** (the tool `remove_stay`). Removes the stay, which takes its days, lodging candidates, and weather text with it. The places stay stored.
   - **Follows on:** the next day now starts from the stay before, or from the start place, and its leg is re-routed at the end of the write.
   - **Refused:** while any stop is on the stay's days, or while any stop on any day has the stay as its `searchAreaStay`. The service finds them by going through the itinerary's days. The refusal lists those stops by name and ID. Code never removes a stop the coordinator didn't name. The coordinator asks the user what to do with each one, then moves or removes it (technical spec 5.2).
 - **`addLodgingCandidates(stay : Stay, candidates : List<Candidate>)`** (the tool `add_lodging_candidates`, used by a stay researcher, and the tool `select_user_place`). Adds one set of candidates to the stay's `lodgingCandidates`. The stay gives each its set number, and its own tier and rule (see Stay).
-  - **Refused:** the whole call, when a place is rejected (the registry's `isRejected()`). By the stay's own rules: when the set has fewer than 1 or more than 3 candidates, a place is already one of the stay's candidates, or a candidate has a visit time or detour time. So a set is never partly written.
+  - **Refused:** the whole call, when a place is rejected (the itinerary's `isRejected()`). By the stay's own rules: when the set has fewer than 1 or more than 3 candidates, a place is already one of the stay's candidates, or a candidate has a visit time or detour time. So a set is never partly written.
 - **`setWeatherText(itinerary : Itinerary, stay : Stay, guidance : string) : WeatherText`** (the tool `set_stay_weather`, used by the weather worker). Creates weather text and replaces any the stay had. It labels it a forecast when every one of the stay's dates, from `datesOf()`, is within 7 days of `today()`, counting today as day 0, and seasonal averages otherwise (technical spec section 8). It records today's date, the stay's current `place`, its dates, and its activities from `activitiesOf()`, each as an `ActivityRecord`. Returns the new text.
   - **Refused:** by the weather text's own rule, when the guidance is empty.
 
@@ -1144,7 +1125,7 @@ The two trip brief items whose limits are settings. Every other item is set dire
 
 ### 4.6 StopsService
 
-**Given:** the places registry, to refuse rejected places. The settings, for the meal visit time. The calendar, for where a day runs, a stop's day, and opening hours.
+**Given:** the settings, for the meal visit time. The calendar, for where a day runs, a stop's day, and opening hours.
 
 - **`addStops(itinerary : Itinerary, day : Day, stops : List<Stop>, after : Stop?)`** (the tool `add_stops`). Code creates the stops first, with their own rules (see Stop). This adds them to the day's `stops` in list order, after the stop `after`, or first when `after` is empty. They're empty stops, so no leg is re-routed. An added attraction stop can change a stay's activities.
   - **Refused:** the whole call, when a stop doesn't fit the day. Here the search area rule is hard:
@@ -1156,13 +1137,13 @@ The two trip brief items whose limits are settings. Every other item is set dire
 - **`moveStop(itinerary : Itinerary, stop : Stop, toDay : Day, after : Stop?, setTime : scheduleTime?)`** (the tool `move_stop`). Moves the stop to after the stop `after` on `toDay`, or first on it when `after` is empty, and sets its `setTime`. `toDay` can be the stop's own day. The set time is part of the move for two reasons. The tool always restates it, so an old time never carries over. And the rest-day rule needs the new day and the new time together. The stop keeps its candidates, selection, visit time, and approvals. An opening hours approval stays, since the place is the same. It applies or not at the new time.
   - **Follows on:** the legs of the day it left and the day it joined are re-routed at the end of the write, when their selected places changed. A stop near a stay, or near the start or end place, can land on a day that doesn't start or end there. Here the search area rule is soft: the move goes through, and the checks give the `searchAreaDoesNotFitDay` warning. A moved attraction can change a stay's activities.
   - **Refused:** when a stop along the leg would land on a day that stays put, since it has no leg to be along. The error says to remove the stop and add a new one. When `setTime` is empty and `toDay` is a rest day. By the day's own rule: when `after` isn't on `toDay`, or is the stop itself.
-- **`removeStops(itinerary : Itinerary, stops : List<Stop>)`** (the tool `remove_stops`). Removes the stops, with their candidates and approvals. They can be on several days. It finds each one's day with `dayOf()`. The places stay in the registry.
+- **`removeStops(itinerary : Itinerary, stops : List<Stop>)`** (the tool `remove_stops`). Removes the stops, with their candidates and approvals. They can be on several days. It finds each one's day with `dayOf()`. The places stay stored.
   - **Follows on:** when a selected stop goes, the leg is re-routed at the end of the write. A day that stays put loses its leg with its last selected stop (section 4.7).
   - **Refused:** the whole call, when a stop isn't in the itinerary.
 - **`setStopTime(itinerary : Itinerary, stop : Stop, setTime : scheduleTime?)`** (the tool `update_stop`). Sets the stop's `setTime`. Empty means it follows the stop before it.
   - **Refused:** when `setTime` is empty and the stop's day is a rest day. The service finds the day with `dayOf()`.
 - **`addCandidates(stop : Stop, candidates : List<Candidate>)`** (the tool `add_stop_candidates`, used by a stay researcher or leg scout, and the tool `select_user_place`). Adds one set of candidates to the stop's `candidates`. The stop gives each its set number, and its own tier and rule (see Stop). For a stop along the leg, code works out each candidate's detour time with `LegsService.detourTimesOf()` before this runs, since it takes a call to Google (section 4.7).
-  - **Refused:** the whole call, when a place is rejected (the registry's `isRejected()`). By the stop's own rules: when the set has fewer than 1 or more than 3 candidates, a place is already one of the stop's candidates, or a candidate doesn't fit the stop's kind and search area.
+  - **Refused:** the whole call, when a place is rejected (the itinerary's `isRejected()`). By the stop's own rules: when the set has fewer than 1 or more than 3 candidates, a place is already one of the stop's candidates, or a candidate doesn't fit the stop's kind and search area.
 - **`selectCandidate(stop : Stop, place : Place)`** (the tools `select_candidate` and `select_user_place`). Sets the stop's `selectedPlace` to the candidate's place. Selecting the place that's already selected changes nothing. Otherwise:
   - **Visit time:** for an attraction, the candidate's visit time. For a meal, the meal visit time, a setting (technical spec section 10).
   - **Tier:** when a meal's candidate has a tier that differs from the stop's, it sets the tier to the candidate's with `Stop.setTier()`, with the rule "the user picked a mid-range option" (or whichever tier).
@@ -1227,7 +1208,7 @@ The `FeasibilityChecker` runs the feasibility checks in technical spec section 8
 | `RouteTypeApproval` | Always |
 | `OpeningHoursApproval` | `openTimeInMinutesOf()` for the stop is at least `approvedOpenTimeInMinutes` |
 
-**When it runs.** At the end of every coordinator write, after the legs are updated (section 1), code runs `workOut()`, compares the result with the trip's `checkResults`, and then saves the current list with `Trip.replaceCheckResults()`. A worker's write runs none of this. A read runs `workOut()` and `compare()`, but saves nothing. Which check results a tool's reply includes is a rule of the tools, not of this model (tool design 2.1, and technical spec section 8).
+**When it runs.** At the end of every coordinator write, after the legs are updated (section 1), code runs `workOut()`, compares the result with the itinerary's `checkResults`, and then saves the current list with `Itinerary.replaceCheckResults()`. A worker's write runs none of this. A read runs `workOut()` and `compare()`, but saves nothing. Which check results a tool's reply includes is a rule of the tools, not of this model (tool design 2.1, and technical spec section 8).
 
 **Rules:**
 

@@ -114,7 +114,7 @@ Coordinator only. Workers never see memory (technical spec 6.4).
 
 ### 2.3 Places
 
-Every search saves its results as places in the trip's data and returns their IDs. The trip's rejected places are left out of `search_near` and `search_along_leg` results (domain model 3.1). `find_place` returns them, marked rejected with the user's reason, so the coordinator can tell the user why, and a worker knows to skip them. A place found twice is stored once (domain model 3.1). Each result's text from outside sources is labeled as data, not instructions.
+Every search saves its results as places in the trip's data and returns their IDs. The trip's rejected places are left out of `search_near` and `search_along_leg` results (domain model 3.4). `find_place` returns them, marked rejected with the user's reason, so the coordinator can tell the user why, and a worker knows to skip them. A place found twice is stored once (domain model 3.1). Each result's text from outside sources is labeled as data, not instructions.
 
 | Tool | Does | Takes | Returns |
 |---|---|---|---|
