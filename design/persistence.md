@@ -81,7 +81,7 @@ A write runs the four steps in domain model section 1 inside one database transa
 
 A started trip can't be changed (domain model 3.1). `TripWriter` refuses a write to a started trip right after loading it, before anything changes (section 8.2). The save checks again. That catches a trip that starts during a write, at midnight, and any later way in, such as a web form.
 
-**Persistence refuses to save the plan of a started trip.** The whole write is rolled back, and the error says the trip has started. Place rows and session rows always save, since neither changes the plan.
+**Persistence refuses to save the plan of a started trip.** The whole write is rolled back, and the error says the trip has started, with today's date as it was worked out. Place rows and session rows always save, since neither changes the plan.
 
 **It checks the trip as it was loaded,** under the row lock. A write could have changed the start date, so the changed trip can't tell whether the trip had started (section 8.4).
 

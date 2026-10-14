@@ -75,7 +75,7 @@ A property has at most one of `{readOnly}` and `{viaService}`. `{keepsValue}` ca
 
 **Arguments and returns.** Each operation gives its arguments and what it returns, such as `isRejected(place : Place) : boolean`. An argument that can be empty has a `?` after its type. An operation with nothing after its parentheses returns nothing. These are guidance for development. Development can change them, but each change is flagged and written back here.
 
-**Services** hold the business rules, and no data. There's one for each kind of object with business rules: `TripBriefService`, `RejectionsService`, `StaysService`, `DaysService`, `StopsService`, and `LegsService`. The `FeasibilityChecker` is one too. Each is created for one trip, and its operations take the itinerary and the objects to change. Services never call each other. Each section says what its service is given. A refused call changes nothing, because the write it's part of is thrown away (below). They hold no stored data, so they aren't in the diagram. See section 4.
+**Services** hold the business rules, and no data. There's one for each kind of object with business rules: `TripBriefService`, `ItineraryService`, `RejectionsService`, `StaysService`, `DaysService`, `StopsService`, and `LegsService`. The `FeasibilityChecker` is one too. Each is created for one trip, and its operations take the itinerary and the objects to change. Services never call each other. Each section says what its service is given. A refused call changes nothing, because the write it's part of is thrown away (below). They hold no stored data, so they aren't in the diagram. See section 4.
 
 **Places aren't held by the trip.** Each place is stored on its own, per trip. A search saves it before any write uses it, and the plan links to the places it uses ([persistence design](persistence.md), section 8). The places the user rejected are part of the plan, so the itinerary holds them (section 3.4).
 
@@ -149,7 +149,7 @@ classDiagram
 
     class Itinerary {
         id : string #123;readOnly#125;
-        startDate : date? #123;keepsValue#125;
+        startDate : date? #123;keepsValue#125; #123;viaService#125;
         startPlace : Place? #123;keepsValue#125;
         endPlace : Place? #123;keepsValue#125;
         stays : List~Stay~ #123;viaService#125;
@@ -405,7 +405,7 @@ The trip is one planned road trip. Everything else in this model belongs to a tr
 **Rules:**
 
 - **A trip belongs to one user.** Only that user, and the agents in that user's sessions, can reach it (functional spec 10.4).
-- **A started trip can't be changed.** Once `hasStarted` is true, every write that changes the plan is refused, and the error says the trip has started (technical spec section 8). That covers the trip brief, the itinerary, candidates, weather text, and rejected places. Objects, services, and tools don't check this. Persistence does, before the write changes anything and again when the trip is saved (section 1). Persistence still saves places from searches on a started trip, since they don't change the plan. Reads still work. Sessions aren't part of the trip, so they can still be started and resumed.
+- **A started trip can't be changed.** Once `hasStarted` is true, every write that changes the plan is refused, and the error says the trip has started, with the date it used (technical spec section 8). That covers the trip brief, the itinerary, candidates, weather text, and rejected places. Objects, services, and tools don't check this. Persistence does, before the write changes anything and again when the trip is saved (section 1). Persistence still saves places from searches on a started trip, since they don't change the plan. Reads still work. Sessions aren't part of the trip, so they can still be started and resumed.
 - **Today's date is the date in the start place's time zone,** since that's where the trip begins. It isn't a property of the trip. Code looks it up when a rule needs it, with the calendar's `today()` (section 4.1). The time zone is worked out from the start place's coordinates. The start-date check, the started-trip lock, and the forecast rules all use it (technical spec 5.2).
 - **All of a trip's times are in the start place's time zone.** A trip that crosses into another time zone shows times off by the difference after the border. That's a known limit of this version.
 - **The trip brief holds what the user wants. The itinerary holds the plan.** No fact is stored in both. Changing the brief never changes the itinerary. The checks compare them, and the coordinator changes the plan with the user (technical spec section 8).
@@ -494,14 +494,14 @@ The itinerary is the plan: where the trip starts and ends, when it starts, its s
 
 **Held as:** an entity held by the trip. Its `id` has the prefix `itin_` (technical spec 7.1). Agents never see it: a trip has one itinerary, so the tools find it from the trip.
 
-**Created and changed by:** the app creates it with the trip, and code creates its last day at the same time. The coordinator sets the start place, end place, and start date directly, with the tool `update_itinerary`. It adds, moves, and removes stays, and sets their nights, through `StaysService`, with the tools `add_stay`, `update_stay`, and `remove_stay` (section 4.4). `StaysService` adds and removes a stay's days as its nights change. Nothing else adds or removes a day. `RejectionsService` adds rejected places (section 4.3). The `FeasibilityChecker` replaces the check results (section 4.8).
+**Created and changed by:** the app creates it with the trip, and code creates its last day at the same time. The coordinator sets the start place and end place directly, and the start date through `ItineraryService` (section 4.9), all with the tool `update_itinerary`. It adds, moves, and removes stays, and sets their nights, through `StaysService`, with the tools `add_stay`, `update_stay`, and `remove_stay` (section 4.4). `StaysService` adds and removes a stay's days as its nights change. Nothing else adds or removes a day. `RejectionsService` adds rejected places (section 4.3). The `FeasibilityChecker` replaces the check results (section 4.8).
 
 | Property | Stored or worked out | Type | Notes |
 |---|---|---|---|
 | `id` | Stored | `string`, read only | Never shown to agents or users |
 | `startPlace` | Stored | `Place?`, keeps its value | Where the trip starts. Empty until the coordinator sets it during discovery. See below |
 | `endPlace` | Stored | `Place?`, keeps its value | Where the trip ends. The same place as `startPlace` on a loop trip. Empty until the coordinator sets it during discovery. See below |
-| `startDate` | Stored | `date?`, keeps its value | The first day's date. Empty until the coordinator sets it during discovery. See below |
+| `startDate` | Stored | `date?`, keeps its value, via service | The first day's date. Empty until the coordinator sets it during discovery. Changes only through `ItineraryService.setStartDate()` (section 4.9). See below |
 | `stays` | Stored | `List<Stay>`, in order, via service | The shape of the trip. Each stay is an entity held by the itinerary, and holds its own days. Changes only through `StaysService.addStay()`, `moveStay()`, and `removeStay()` (section 4.4) |
 | `lastDay` | Stored | `LastDay`, an entity held by the itinerary, read only | Created with the itinerary. Never replaced or removed |
 | `rejectedPlaces` | Stored | `List<RejectedPlace>`, in the order rejected, via service | Only `RejectionsService.rejectPlaces()` adds to it, and nothing removes from it: taking a rejection back is out of scope (functional spec 2). It's via service so that a rejection is never recorded without the place also leaving every stop's and stay's candidates (section 4.3). See below |
@@ -519,10 +519,10 @@ A day touches two stays: it starts where the party slept and ends where it sleep
 
 **Start and end places.** Each is set directly, and can't be emptied once set. When Google has no name for the place, such as "Mike's house," the place takes the name the coordinator gives it (see Place). A new start or end place re-routes the first or last day's leg at the end of the write. Stops near the start or end place keep their candidates and selection. Nothing checks that a place is in the contiguous US (functional spec 1). That check is hard to do well at this level, so the risk is accepted. The coordinator keeps the trip in the US.
 
-**Start date.** Set directly, and can't be emptied once set. A new start date moves every day's date, since dates are worked out. Nothing is re-routed. The checks at the end of the write see the new dates, such as a stop that now falls on a day its place is closed. Setting it is refused:
+**Start date.** Set through `ItineraryService.setStartDate()` (section 4.9), since the rule that it's after today needs today's date, and only services get the calendar. It can't be emptied once set. A new start date moves every day's date, since dates are worked out. Nothing is re-routed. The checks at the end of the write see the new dates, such as a stop that now falls on a day its place is closed. Setting it is refused:
 
-- **While `startPlace` is empty,** since today's date comes from the start place's time zone. When the tool `update_itinerary` gets a start place and a start date in one call, it sets the place first.
-- **When the date isn't after today.**
+- **While `startPlace` is empty,** by the itinerary's own rule, since today's date comes from the start place's time zone. When the tool `update_itinerary` gets a start place and a start date in one call, it sets the place first.
+- **When the date isn't after today,** by `ItineraryService`.
 
 **Rejected places.** A place the user turned down for the whole trip. It's never offered again (functional spec 10.2).
 
@@ -549,7 +549,7 @@ The itinerary keeps a change method for `rejectedPlaces` that only services reac
 - **A trip has at least 1 day,** since it always has its last day. The maximum trip length is a setting, so `StaysService` refuses a change that would go over it (section 4.4).
 - **The last day is created with the itinerary and never removed.** It has no stay: the party drives to the end place and doesn't sleep anywhere on the trip. A day trip is just the last day. Example: on the San Francisco trip, the Monterey stay holds Day 1, the San Luis Obispo stay holds Day 2, and Day 3 is the last day.
 - **A day keeps its ID when its number or date changes.** Removing a night removes that stay's last day. Every later day keeps its ID and moves up one. Check results match by their subject's ID, and approvals sit on days, so both depend on this.
-- **The start date is after today when it's set.** Once today reaches it, the trip has started and can't change (see Trip).
+- **The start date is after today when it's set.** `ItineraryService` checks it (section 4.9). Once today reaches it, the trip has started and can't change (see Trip).
 
 ### 3.5 Stay
 
@@ -916,7 +916,7 @@ A closing can fall on the next day, so hours past midnight read correctly. Examp
 
 A service holds business rules: any rule that needs a setting, the trip brief, or another object (section 1). It holds no data, so it isn't in the diagram.
 
-- **One service for each kind of object:** `TripBriefService`, `RejectionsService`, `StaysService`, `DaysService`, `StopsService`, and `LegsService`. The `FeasibilityChecker` is a service too.
+- **One service for each kind of object:** `TripBriefService`, `ItineraryService`, `RejectionsService`, `StaysService`, `DaysService`, `StopsService`, and `LegsService`. The `FeasibilityChecker` is a service too.
 - **Each is created for one trip.** Code gives it what it needs from that trip's brief, the settings, and the calendar. Each section below starts with what its service is given. Its operations take the itinerary and the objects to change.
 - **Services never call each other.** A lookup that two services need, such as a day's date, is in the calendar, which each of them is given.
 - **A refused call changes nothing.** The service and the objects each run their own rules as the call goes. When one refuses partway, the write the call is part of is thrown away whole (section 1, "A write").
@@ -1146,6 +1146,15 @@ The `FeasibilityChecker` runs the feasibility checks in technical spec section 8
 - **A warning whose approval stops applying is new.** Example: Moab Day 4 is approved for 5 hours of driving. A change makes it 5 hours 20 minutes. The approval no longer applies, so the daily driving warning is new, and the coordinator asks the user again.
 - **A check result that goes away and comes back is new.** The write where it went away saved the list without it. If a day that was fixed goes over its driving hours again, the user should hear about it.
 - **Only the coordinator's writes save the list.** A worker can't act on a check result. One saved during a worker's write would be marked already known without ever reaching the coordinator.
+
+### 4.9 ItineraryService
+
+**Given:** the calendar, for today's date.
+
+It holds the one rule about the itinerary's own properties that needs the calendar. The start place and end place are set directly. The itinerary's `stays` and `rejectedPlaces` change through `StaysService` and `RejectionsService` (sections 4.4 and 4.3).
+
+- **`setStartDate(itinerary : Itinerary, startDate : date)`** (the tool `update_itinerary`). Sets the itinerary's `startDate`. Every day's date moves with it, since dates are worked out (section 4.1).
+  - **Refused:** when the date isn't after `today()`. The error gives today's date, so the coordinator can tell the user. By the itinerary's own rules: while `startPlace` is empty, since `today()` needs the start place's time zone, or when the date is empty.
 
 ---
 
