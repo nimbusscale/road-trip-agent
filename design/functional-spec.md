@@ -49,7 +49,7 @@ Planning only. The application never books, reserves, or purchases anything.
 - Showing prices or nightly rates. Recommendations show a budget tier only
 - Seasonal road and pass closures
 - Taking back a place the user rejected, within the same trip
-- Changing a trip once it has started. From its start date on, the user can still open it and ask the agent about it, but nothing in it changes. A trip still unfinished by then stays as it is
+- Changing a trip, or talking to the agent about it, once it has started. From its start date on, the chat is closed: no session can be started or resumed. The user can still open the trip and view its itinerary, read only. A trip still unfinished by then stays as it is
 
 ---
 
@@ -276,6 +276,7 @@ Miles, Fahrenheit, and US date formats.
 - From a trip, the user sees its sessions (date and short title) and can:
   - **Resume** a previous session. The transcript is restored and the agent continues with that conversation's context.
   - **Start a new session.** The agent starts from the current itinerary, the trip brief, trip memory, and user memory, without the earlier transcripts.
+- **Once the trip has started,** no session can be started or resumed (section 2).
 - **Not supported:** two sessions of one trip open at the same time, such as in two browser tabs or on two devices. Nothing stops it, but a session that stays open doesn't learn about changes made in the other one. Only the trip's owner can see it (10.4), so this is one user with two sessions open, never two users.
 
 ### 10.2 Trip memory

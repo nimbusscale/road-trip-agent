@@ -32,7 +32,7 @@ A trip is stored in four kinds of record:
 - **An object with no `id`,** such as a leg, a candidate, or an approval, is stored inside the object that holds it.
 - **A link is stored as an ID,** such as a stop's selected place, or a stop's search-area stay. The load turns each ID back into a link.
 
-**Places and sessions are stored apart from the plan.** They're the two things that still save on a started trip (section 5). A trip can also have hundreds of places, and saving places from a search shouldn't wait for the plan (section 4).
+**Places and sessions are stored apart from the plan.** Neither is part of the plan, and neither goes through a write. A trip can also have hundreds of places, and saving places from a search shouldn't wait for the plan (section 4).
 
 **Places are kept per trip.** The database refuses a second place with the same trip and Google place ID, which holds "one record per trip for each Google place" (domain model 3.10). Two reasons a place isn't shared across trips or users:
 
@@ -85,7 +85,7 @@ A started trip can't be changed (domain model 3.1). `TripWriter` refuses a write
 
 **It checks the trip as it was loaded,** under the row lock. A write could have changed the start date, so the changed trip can't tell whether the trip had started (section 8.4).
 
-**Example.** The Moab trip starts October 10, 2027. On October 11, the user opens a new session and asks for a dinner spot for tonight. The session is saved. The coordinator's `find_place` saves Desert Bistro as a place. Any change to the plan, such as adding it as a stop, is refused.
+**Example.** The Moab trip starts October 10, 2027. At 11:59 p.m. on October 9, the user asks to swap the Day 2 dinner. The write loads the trip before midnight and reaches the save just after, so the save refuses it. From then on the chat is closed, so no new session or write can come in (functional spec 2).
 
 **Today's date** is in the start place's time zone (domain model 3.1). Code works out the time zone from the start place's coordinates, with a lookup in code. It needs no call to Google, and nothing new is stored.
 
@@ -304,7 +304,7 @@ A **session** is one conversation with the agent about a trip (functional spec 1
 | `title` | `string`, read only | A few words for the trip's session list, from the user's first message, cut to about 60 characters at a word break. Example: "Can we add a night in Big Sur and drop one in…" |
 | `agentSessionId` | `string`, read only | The Agent SDK's ID for this conversation, a UUID the app chooses (section 6). The transcript's shape isn't part of this design |
 
-Nothing about a session changes once it's created. It's never closed: the user just leaves, and can resume it later. Two sessions of one trip open at once aren't supported, and nothing enforces it (functional spec 10.1). Starting and resuming both work on a started trip, since neither touches the plan.
+Nothing about a session changes once it's created. It's never closed: the user just leaves, and can resume it later. Two sessions of one trip open at once aren't supported, and nothing enforces it (functional spec 10.1). On a started trip, the app starts and resumes no sessions, since the chat is closed (functional spec 2).
 
 **SessionWriter** starts sessions.
 
@@ -317,7 +317,7 @@ Nothing about a session changes once it's created. It's never closed: the user j
 
 ### 8.6 Places
 
-A place is part of the trip, so it's in the domain model (domain model 3.10). The trip doesn't hold it, though. Each place is its own row, and the plan links to the places it uses. A search saves places without loading the plan, and on a started trip too (section 3).
+A place is part of the trip, so it's in the domain model (domain model 3.10). The trip doesn't hold it, though. Each place is its own row, and the plan links to the places it uses. A search saves places without loading the plan (section 3).
 
 **PlaceWriter** saves places.
 
