@@ -212,6 +212,8 @@ Actions on the card set:
 
 Selecting an option updates the itinerary, and the agent acknowledges the change in chat. The user can also select by chat ("take the second one"). Once an option is selected, the card closes. Later changes go through chat: the user can ask what else was offered, pick another option by name, ask for more options, or turn the pick down. A new card appears only when new options are offered, or when the user turns down the pick and other options are left. It shows the newest options. When the user passes on the pick only because of the date, such as "it's closed that day," the place isn't turned down, so no card appears. The agent lists the other options in chat instead.
 
+Whether a card is open belongs to the screen, and isn't saved with the trip. When the user opens a trip, starts a session, or reloads the page, a card shows for every stop, and every stay's lodging, with nothing selected yet. It shows the newest options. A card that opened for new options on an item that's already selected doesn't come back after a reload. The user can still ask in chat what else was offered.
+
 ### 7.6 Item status and rationale
 
 - Every stop, and every stay's lodging, is **empty** (no options yet), **proposed** (options shown, nothing chosen), or **selected** (section 4, Status).

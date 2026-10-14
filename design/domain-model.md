@@ -7,7 +7,7 @@ For the planning behavior, see the [functional spec](functional-spec.md). For th
 **Left out on purpose:**
 
 - **Memory.** Memory design is technical spec open question 5. Memory joins this model once it's designed.
-- **Worker briefs and option cards.** Neither is stored. A worker brief is written fresh for each worker call (technical spec 5.3). An option card is how the UI shows the newest candidate set of one stop or stay (functional spec 7.5). The rules they depend on, such as which candidate set a card shows, are on the objects here.
+- **Worker briefs and option cards.** Neither is stored. A worker brief is written fresh for each worker call (technical spec 5.3). An option card is how the UI shows the newest candidate set of one stop or stay (functional spec 7.5). Whether a card is open is screen state, not saved. The rules they depend on, such as which candidate set a card shows, are on the objects here.
 
 ---
 
