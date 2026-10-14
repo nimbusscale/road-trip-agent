@@ -49,6 +49,7 @@ Planning only. The application never books, reserves, or purchases anything.
 - Showing prices or nightly rates. Recommendations show a budget tier only
 - Seasonal road and pass closures
 - Taking back a place the user rejected, within the same trip
+- Carrying a dislike of one specific place to later trips. The agent keeps the reason instead, when it applies beyond that place (section 10.3)
 - Changing a trip, or talking to the agent about it, once it has started. From its start date on, the chat is closed: no session can be started or resumed. The user can still open the trip and view its itinerary, read only. A trip still unfinished by then stays as it is
 
 ---
@@ -301,6 +302,8 @@ Durable preferences that apply to every trip. Examples:
 
 The agent uses user memory to prefill section 5.2 and confirms rather than re-asks.
 
+User memory doesn't hold a dislike of one specific place, since it means nothing on a trip somewhere else. When the user says they didn't like a place, the agent asks why. It keeps the reason if it applies elsewhere, such as "prefers local spots over restaurants in tourist areas." A chain or a kind of place is fine, such as "never suggest McDonald's for dinner unless I ask."
+
 ### 10.4 Isolation and precedence
 
 - Trips, itineraries, sessions, user memory, and trip memory are strictly isolated per user. When user A is signed in, neither the agent nor the UI has access to user B's trips, itineraries, sessions, or memories.
@@ -335,6 +338,12 @@ The agent uses user memory to prefill section 5.2 and confirms rather than re-as
 **S9. Cross-trip memory.** On a second trip, the agent opens by confirming the user's usual driving hours and meal preferences rather than asking from scratch.
 
 **S10. Per-trip override.** User memory says the user usually drives up to 6 hours a day. On a new trip, the user says "only 4 hours a day this time." The agent plans for 4 hours, asks whether this changes their usual limit, and leaves user memory unchanged when the user says it is a one-off. On the user's next trip, the agent again proposes 6 hours.
+
+**S11. Forget.** The user asks what the agent remembers about them, then asks it to forget that they like breweries. In the next session, the agent doesn't mention breweries or suggest them because of that preference.
+
+**S12. Trip memory stays with its trip.** On a Texas trip, the user says "stay off I-35 this time." On the user's next trip, the agent doesn't know it.
+
+**S13. A changed preference.** User memory says the user prefers hotel breakfast. On a new trip, the user says "from now on, local cafés for breakfast." The agent replaces the old preference, so user memory doesn't hold both.
 
 ---
 

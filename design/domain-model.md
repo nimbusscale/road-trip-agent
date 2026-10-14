@@ -6,7 +6,7 @@ For the planning behavior, see the [functional spec](functional-spec.md). For th
 
 **Left out on purpose:**
 
-- **Memory.** Memory design is technical spec open question 5. Memory joins this model once it's designed.
+- **Memory.** It isn't part of a road trip, like sessions. It's described in the technical spec (section 3.1), and how it's stored is in the [persistence design](persistence.md) (section 8.8).
 - **Worker briefs and option cards.** Neither is stored. A worker brief is written fresh for each worker call (technical spec 5.3). An option card is how the UI shows the newest candidate set of one stop or stay (functional spec 7.5). Whether a card is open is screen state, not saved. The rules they depend on, such as which candidate set a card shows, are on the objects here.
 
 ---
@@ -387,7 +387,7 @@ The trip is one planned road trip. Everything else in this model belongs to a tr
 | Property | Stored or worked out | Type | Notes |
 |---|---|---|---|
 | `id` | Stored | `string`, read only | Never shown to agents or users |
-| `owner` | Stored | `User`, read only | Set when the trip is created. A user holds nothing else in this model yet: sign-in details are settled during development, and memory is left out |
+| `owner` | Stored | `User`, read only | Set when the trip is created. A user holds nothing else in this model: sign-in details are settled during development, and memory isn't part of this model (see the top of this document) |
 | `tripBrief` | Stored | `TripBrief`, an entity held by the trip, read only | Created with the trip, empty except for its usual start time |
 | `itinerary` | Stored | `Itinerary`, an entity held by the trip, read only | Created holding only its last day |
 | `lastUpdatedDateTime` | Stored | `dateTime` | Set when the trip is created, and at the end of every write. See below |

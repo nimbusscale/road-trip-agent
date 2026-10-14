@@ -1,14 +1,14 @@
 # Road Trip Planner: Persistence (MVP)
 
-This document covers how a trip and its sessions are stored and saved: what is stored together, what a write does with storage, how two writes to one trip are kept apart, how the started-trip lock is checked at save, how sessions and their transcripts are kept, and which classes do each of these. It stays at the level of design. The database library, table layout, indexes, and migrations are settled during development.
+This document covers how a trip, its sessions, and memory are stored and saved: what is stored together, what a write does with storage, how two writes to one trip are kept apart, how the started-trip lock is checked at save, how sessions and their transcripts are kept, how memory is kept, and which classes do each of these. It stays at the level of design. The database library, table layout, indexes, and migrations are settled during development.
 
-What a write is, and what it changes, is in the [domain model](domain-model.md), section 1, "A write." This document adds what a write does with storage. Memory storage is left out, since memory design is technical spec open question 5.
+What a write is, and what it changes, is in the [domain model](domain-model.md), section 1, "A write." This document adds what a write does with storage. What memory holds, and the rules for writing it, are in the [technical spec](technical-spec.md), section 3.1.
 
 ---
 
 ## 1. Storage
 
-**One Postgres database holds everything:** trips, their places, their sessions, and the session transcripts.
+**One Postgres database holds everything:** trips, their places, their sessions, the session transcripts, and memory.
 
 - **Not in the app's memory.** The app runs in a container that can restart at any time ([Google design](data-sources/google.md), section 5). Anything held only in memory goes with it. It also wouldn't work across more than one copy of the app.
 - **Not in object storage.** S3-style object storage, such as DigitalOcean Spaces, is available, but nothing uses it. It suits large files written once. Transcripts are the opposite: many small additions, read back in order (section 6). Object storage can't add to a file that already exists, so each addition would be its own small file. One store is also simpler to run and back up.
@@ -40,6 +40,8 @@ A trip is stored in four kinds of record:
 - **Its facts are a snapshot.** A place keeps Google's facts from its first lookup (domain model 3.10). Shared, a trip planned next year would get the hours and rating saved for another trip this year. Per trip, each trip starts fresh.
 
 Sharing Google's facts across trips while keeping the name per trip would work, but it adds code and saves only a few Google calls. It isn't in the MVP.
+
+**Memory items are stored apart from the plan,** one row each (section 8.8). User memory belongs to a user, not to any trip. Trip memory belongs to a trip, but it isn't part of the plan. So changing memory isn't a write, and takes no row lock (section 4). A memory change and a write to the plan can't lose each other's work, since they save different rows.
 
 ---
 
@@ -87,6 +89,8 @@ A started trip can't be changed (domain model 3.1). `TripWriter` refuses a write
 
 **Example.** The Moab trip starts October 10, 2027. At 11:59 p.m. on October 9, the user asks to swap the Day 2 dinner. The write loads the trip before midnight and reaches the save just after, so the save refuses it. From then on the chat is closed, so no new session or write can come in (functional spec 2).
 
+**Trip memory is refused on a started trip too,** like the plan. User memory isn't, since it isn't about that trip. `MemoryWriter` checks right before it saves a trip item (section 8.8).
+
 **Today's date** is in the start place's time zone (domain model 3.1). Code works out the time zone from the start place's coordinates, with a lookup in code. It needs no call to Google, and nothing new is stored.
 
 ---
@@ -115,7 +119,7 @@ When the container restarts in the middle of a turn:
 - **The transcript loses at most its last line or two** (section 6).
 - **The turn stops,** along with any workers it called. A worker's candidates saved before the restart stay, but the coordinator never hears about them. Example: the Moab Day 4 leg scout saves the Goblin Valley candidates, and the container restarts before the leg scout reports back. The candidates are in the plan, and the transcript doesn't mention them.
 
-The user can resume the session. **A resumed coordinator reads the itinerary again before changing anything** ([technical spec](technical-spec.md), 5.2). The app tells it the session was resumed (section 8.5). The same rule covers a session resumed after another session changed the trip.
+The user can resume the session. **A resumed coordinator reads the itinerary and memory again before changing anything** ([technical spec](technical-spec.md), 5.2). The app tells it the session was resumed (section 8.5). The same rule covers a session resumed after another session changed the trip.
 
 ---
 
@@ -123,7 +127,7 @@ The user can resume the session. **A resumed coordinator reads the itinerary aga
 
 This section names the classes that read and save a trip and its sessions, and what each one does. Like the domain model's operations, they're guidance for development: development can change them, but each change is flagged and written back here. They don't depend on the database library.
 
-**Six classes are the only way in.** Tools, the app, and any later web form use a writer and a reader for each kind of record: `TripWriter` and `TripReader`, `PlaceWriter` and `PlaceReader`, and `SessionWriter` and `SessionReader`. The other classes are inside persistence, and nothing outside it can reach them. So no tool opens a transaction, takes the row lock, or saves a trip on its own.
+**Eight classes are the only way in.** Tools, the app, and any later web form use a writer and a reader for each kind of record: `TripWriter` and `TripReader`, `PlaceWriter` and `PlaceReader`, `SessionWriter` and `SessionReader`, and `MemoryWriter` and `MemoryReader`. The other classes are inside persistence, and nothing outside it can reach them. So no tool opens a transaction, takes the row lock, or saves a trip on its own.
 
 ### 8.1 Class diagram
 
@@ -156,6 +160,24 @@ classDiagram
     class SessionReader {
         listForTrip(tripId : string) List~Session~
         get(sessionId : string) Session
+    }
+
+    class MemoryWriter {
+        add(userId : string, tripId : string?, text : string) MemoryItem
+        update(userId : string, tripId : string, itemId : string, text : string) MemoryItem
+        forget(userId : string, tripId : string, itemId : string)
+    }
+
+    class MemoryReader {
+        read(userId : string, tripId : string) List~MemoryItem~
+    }
+
+    class MemoryItem {
+        id : string #123;readOnly#125;
+        userId : string #123;readOnly#125;
+        tripId : string? #123;readOnly#125;
+        text : string
+        createdDateTime : dateTime #123;readOnly#125;
     }
 
     class Session {
@@ -202,6 +224,14 @@ classDiagram
         get(sessionId : string) Session
     }
 
+    class MemoryRepository {
+        add(item : MemoryItem)
+        loadFor(userId : string, tripId : string) List~MemoryItem~
+        get(itemId : string) MemoryItem
+        save(item : MemoryItem)
+        remove(itemId : string)
+    }
+
     class TranscriptAdapter {
         <<SDK sessionStore>>
     }
@@ -215,9 +245,12 @@ classDiagram
     SessionWriter ..> SessionRepository
     SessionReader ..> SessionRepository
     TripRepository ..> EditableTrip : creates
+    MemoryWriter ..> MemoryRepository
+    MemoryWriter ..> TripRepository
+    MemoryReader ..> MemoryRepository
 ```
 
-The arrows mean "uses." `Trip`, `Place`, `User`, `LegChange`, and `CheckComparison` are the domain model's. `Session` isn't part of the domain model: it's in section 8.5. `WriteResult` is in section 8.2.
+The arrows mean "uses." `Trip`, `Place`, `User`, `LegChange`, and `CheckComparison` are the domain model's. `Session` isn't part of the domain model: it's in section 8.5. Neither is `MemoryItem`: it's in section 8.8. `WriteResult` is in section 8.2.
 
 The fixed list that the classes above use:
 
@@ -313,7 +346,7 @@ Nothing about a session changes once it's created. It's never closed: the user j
 **SessionReader** reads sessions.
 
 - **`listForTrip(tripId)`** returns the trip's sessions, in the order created, for the trip's session list.
-- **`get(sessionId)`** returns one session. To resume it, the app hands its `agentSessionId` and the `TranscriptAdapter` to the SDK, which restores the transcript (section 6). The coordinator then continues with that conversation's context. The app adds a line to the user's first message after the resume, saying the session was resumed, so the coordinator reads the itinerary again (technical spec 5.2).
+- **`get(sessionId)`** returns one session. To resume it, the app hands its `agentSessionId` and the `TranscriptAdapter` to the SDK, which restores the transcript (section 6). The coordinator then continues with that conversation's context. The app adds a line to the user's first message after the resume, saying the session was resumed, so the coordinator reads the itinerary and memory again (technical spec 5.2).
 
 ### 8.6 Places
 
@@ -354,7 +387,41 @@ A **repository** is a class that reads and saves one kind of record (section 2).
 - **`loadForTrip(tripId)`** loads the trip's sessions, in the order created.
 - **`get(sessionId)`** loads one session.
 
+**MemoryRepository** reads and saves memory item rows (section 8.8).
+
+- **`add(item)`** adds an item's row.
+- **`loadFor(userId, tripId)`** loads the user's memory and that trip's memory, in the order created.
+- **`get(itemId)`** loads one item.
+- **`save(item)`** saves an item's new text.
+- **`remove(itemId)`** removes an item's row.
+
 **TranscriptAdapter** is section 6's adapter for the Agent SDK's `sessionStore` option. The SDK sets its operations, so they aren't listed here. The app hands it to the SDK when it starts or resumes a session. It stores each transcript line as a row, and gives the lines back on resume.
+
+### 8.8 Memory
+
+A **memory item** is one plain-text note in user memory or in one trip's memory ([technical spec](technical-spec.md), section 3.1). Memory isn't part of a road trip, so it isn't in the domain model. Each item is its own row. The trip doesn't hold its memory, and nothing holds user memory. Each item holds its user's ID, and a trip item also holds its trip's ID.
+
+| Property | Type | Notes |
+|---|---|---|
+| `id` | `string`, read only | Prefix `mem_` (technical spec 7.1). The coordinator sees it, so it can update or forget the item. Users never see it |
+| `userId` | `string`, read only | The user it belongs to. For a trip item, that's the trip's owner |
+| `tripId` | `string?`, read only | The trip, for a trip memory item. Empty for a user memory item |
+| `text` | `string` | The note. At most the maximum memory item length (technical spec section 10) |
+| `createdDateTime` | `dateTime`, read only | Items are read back in the order created |
+
+**Every memory class takes the user ID,** and every query includes it. The tools pass the session's user and trip, so no agent chooses them (tool design section 4). An item whose user, or whose trip for a trip item, doesn't match is treated as one that doesn't exist.
+
+**MemoryWriter** changes memory. None of its operations takes a row lock or loads the plan for a write (section 2).
+
+- **`add(userId, tripId, text)`** adds an item, with a new `id` and the time now. `tripId` is the session's trip for a trip item, and empty for a user item. It refuses text over the maximum memory item length, and an add when that memory already holds the maximum memory items (technical spec section 10).
+- **`update(userId, tripId, itemId, text)`** replaces an item's text. It refuses text over the maximum memory item length.
+- **`forget(userId, tripId, itemId)`** removes the item's row. A forgotten item is gone, not hidden, so it can't affect anything again (functional spec 10.5).
+- **Each refuses an `itemId` that isn't the user's,** or that is another trip's item, with "no such memory item." That's the same error as an ID that doesn't exist, so it doesn't say whether another user's item exists.
+- **Each refuses a change to a trip item on a started trip** (section 5). It loads the trip with `TripRepository.load()`, without the row lock, and checks `Trip.hasStarted` right before it saves. User items can change on any day.
+
+**MemoryReader** reads memory.
+
+- **`read(userId, tripId)`** returns all of the user's memory and all of this trip's memory, in the order created. The tool `read_memory` uses it (tool design 2.2).
 
 ---
 
@@ -368,6 +435,6 @@ A **repository** is a class that reads and saves one kind of record (section 2).
 - How long a write waits for the row lock, and each Google call's timeout.
 - **A time limit for the whole write,** as well as each Google call. One write can make several calls, such as selecting Moab lodging, which re-routes four days. Measure real times before setting it.
 - **Retrying "trip busy."** A write refused because it waited too long for the row lock (section 8.7) is retried by the tool a few times, with a short pause, before the error goes back. No agent has to understand the lock.
-- **Access checks.** `TripReader.read()`, `PlaceReader.get()`, and `SessionReader.get()` take no owner. The app checks that the signed-in user owns the trip before it makes a session's tools. `read_place` checks that the place belongs to the session's trip.
+- **Access checks.** `TripReader.read()`, `PlaceReader.get()`, and `SessionReader.get()` take no owner. The memory classes do take the user (section 8.8). The app checks that the signed-in user owns the trip before it makes a session's tools. `read_place` checks that the place belongs to the session's trip.
 - The time zone lookup.
 - Where sign-in records are kept (domain model 3.1).

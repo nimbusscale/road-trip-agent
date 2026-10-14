@@ -114,14 +114,20 @@ The writing tools:
 
 ### 2.2 Memory
 
-Coordinator only. Workers never see memory (technical spec 6.4).
+Coordinator only. Workers never see memory (technical spec 6.4). What memory holds, and the rules for writing it, are in technical spec 3.1 and 5.2.
 
 | Tool | Does | Takes |
 |---|---|---|
-| `read_memory` | Reads user memory and this trip's memory | Nothing |
+| `read_memory` | Reads all of user memory and all of this trip's memory | Nothing |
 | `add_memory_item` | Adds an item | User or trip, and the text |
 | `update_memory_item` | Rewrites an item | Item ID and the new text |
 | `forget_memory_item` | Removes an item | Item ID |
+
+**`read_memory` returns everything, with no search.** Memory has a size cap, so it's small enough to read whole (technical spec 3.1). Each item comes with its ID, whether it's user or trip memory, and its text, in the order added. The coordinator reads it at the start of a session and after a resume, and again whenever it isn't sure it still has it.
+
+**Whose memory comes from the session.** No memory tool takes a user ID or trip ID (section 4). `add_memory_item` saves to the session user's memory, or to this trip's. `update_memory_item` and `forget_memory_item` work only on the session user's own items, and for a trip item, only on this trip's. Any other item ID gets "no such memory item," the same error as an ID that doesn't exist, so the error doesn't say whether another user's item exists.
+
+**Refusals.** An add over the maximum memory items is refused, and so is text over the maximum memory item length (technical spec section 10). The error gives the limit, so the coordinator can merge or forget items, or shorten the text. Adding, updating, or forgetting a trip item on a started trip is refused (section 4).
 
 ### 2.3 Places
 
@@ -227,7 +233,7 @@ The leg scout gets `WebSearch` only for Atlas Obscura, and a hook enforces it (s
 - **Bad IDs are rejected** (technical spec 7.1). A stop, stay, day, or place that doesn't exist in this trip returns an error. So does selecting a place that isn't one of that stop's or stay's candidates. The tool never guesses.
 - **IDs are short and random, with a prefix for the kind of item,** such as `stop_k7m2x9qa` (technical spec 7.1). A worker only sees the IDs in its worker brief, and can't guess any others. So it can only add candidates to its own stops and stay, without the tools needing to know which worker is calling. An ID of the wrong kind, such as a stay ID passed to `update_stop`, gets an error that says so.
 - **The leg scout's web search is limited by a hook, not only by its instructions.** A PreToolUse hook, code our app runs before every tool call, sees which kind of agent is calling. It denies a leg scout's `WebSearch` unless the search is limited to `atlasobscura.com`, with a reason the leg scout can read.
-- **A started trip can't be changed.** Once today is the trip's start date or later, every `trip` tool that writes refuses the call, and the error says the trip has started, with the date it used (technical spec section 8). The chat is closed from then on (functional spec 2), so this catches a turn still running at midnight.
+- **A started trip can't be changed.** Once today is the trip's start date or later, every `trip` tool that writes refuses the call. So does a memory tool that adds, updates, or forgets a trip item. User items can still change. The error says the trip has started, with the date it used (technical spec section 8). The chat is closed from then on (functional spec 2), so this catches a turn still running at midnight.
 - **Errors are readable.** A failed call, a spent API limit, or a broken rule comes back as a message. The agent that called the tool can read it, and the coordinator can explain it to the user.
 - **The coordinator sees short lines, not full records** (technical spec 7.2). Only `read_place` returns a full record to the coordinator.
 
