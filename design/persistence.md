@@ -132,7 +132,7 @@ classDiagram
     direction TB
 
     class TripWriter {
-        write(tripId : string, by : WriteBy, change : Change) Result
+        write(tripId : string, by : WriteBy, change : Change) WriteResult~T~
         startTrip(owner : User) Trip
     }
 
@@ -164,6 +164,12 @@ classDiagram
         createdDateTime : dateTime #123;readOnly#125;
         title : string #123;readOnly#125;
         agentSessionId : string #123;readOnly#125;
+    }
+
+    class WriteResult~T~ {
+        changeResult : T #123;readOnly#125;
+        legChanges : List~LegChange~ #123;readOnly#125;
+        checkComparison : CheckComparison? #123;readOnly#125;
     }
 
     class TripRepository {
@@ -201,6 +207,7 @@ classDiagram
     }
 
     TripWriter ..> TripRepository
+    TripWriter ..> WriteResult : creates
     TripReader ..> TripRepository
     TripRepository ..> PlaceRepository
     PlaceWriter ..> PlaceRepository
@@ -210,7 +217,7 @@ classDiagram
     TripRepository ..> EditableTrip : creates
 ```
 
-The arrows mean "uses." `Trip`, `Place`, and `User` are the domain model's classes. `Session` isn't part of the domain model: it's in section 8.5.
+The arrows mean "uses." `Trip`, `Place`, `User`, `LegChange`, and `CheckComparison` are the domain model's. `Session` isn't part of the domain model: it's in section 8.5. `WriteResult` is in section 8.2.
 
 The fixed list that the classes above use:
 
@@ -222,15 +229,26 @@ The fixed list that the classes above use:
 
 `TripWriter` runs everything that saves. It opens each transaction, and creates the repositories it uses inside it, so every query in a write is part of the same transaction. It's created once, when the app starts.
 
-- **`write(tripId, by, change)`** runs a write (section 3). `change` is a function the caller passes in. It takes the loaded trip, the trip's calendar and services, and `placeOf()` from the `EditableTrip` (section 8.4). It changes the trip, and returns whatever the caller needs back, such as the new stop's ID. `write()` returns that once the write is saved. In order, it:
+- **`write(tripId, by, change)`** runs a write (section 3). `change` is a function the caller passes in. It takes the loaded trip, the trip's calendar and services, and `placeOf()` from the `EditableTrip` (section 8.4). It changes the trip, and returns whatever the caller needs back, such as the new stop's ID. Once the write is saved, `write()` returns a `WriteResult` (below). In order, it:
   1. Opens a transaction, and loads the trip with `TripRepository.loadForWrite()`.
   2. Refuses the write if the trip has started, before changing anything (section 5). Tools don't check this themselves.
   3. Creates the trip's calendar and services, and runs `change` with them.
-  4. Runs the finish: `LegsService.updateLegs()`, then the `FeasibilityChecker` when `by` is `coordinator`, then sets last updated (domain model section 1).
+  4. Runs the finish: `LegsService.updateLegs()`, which returns the leg changes, then the `FeasibilityChecker` when `by` is `coordinator`, which gives the check comparison, then sets last updated (domain model section 1).
   5. Saves with `TripRepository.save()`, and commits.
+  6. Returns a `WriteResult`.
 
-  If anything refuses or fails along the way, it rolls back and passes the error on.
+  If anything refuses or fails along the way, it rolls back and passes the error on, and returns no `WriteResult`.
 - **`startTrip(owner)`** creates a new trip (domain model 3.1, "A new trip"), adds its row, and returns it.
+
+**A `WriteResult`** holds what a tool needs for its reply (domain model section 1, "What a write hands back"). It isn't stored.
+
+| Property | Holds |
+|---|---|
+| `changeResult` | What `change` returned, such as the new stop's ID, or the stops and stays a rejection changed. Its type, `T` in the diagram, is whatever the caller's `change` returns |
+| `legChanges` | The `LegChange` list from `updateLegs()`: one for each day whose leg was added, re-routed, or removed (domain model 4.7). Empty when no leg changed |
+| `checkComparison` | The `CheckComparison` from the `FeasibilityChecker`: the check results that are new, already known, and gone (domain model 4.8). Empty after a worker write, since that runs no checks |
+
+`write()` doesn't decide what goes in the reply. The tool picks the check results to report, from what the write touched (technical spec section 8, and tool design 2.1).
 
 **Starting a new trip takes two steps.** The user clicks "New trip" on the home screen, describes the trip in a form, and submits it. The app calls `startTrip()`, then `SessionWriter.start()` with what the user wrote as the first message. Each step saves on its own. If the app fails between them, the trip is left with no session, and the home screen shows it as "New trip." That's accepted.
 
