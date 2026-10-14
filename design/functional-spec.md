@@ -73,6 +73,7 @@ Planning only. The application never books, reserves, or purchases anything.
 | Night | A night the party spends at a stay. Every day but the last ends with one. A stay's nights are the days that end there. So a three-night stay in Moab covers three days, and the party leaves on the morning of a fourth |
 | Last day | The final day of the trip. The party drives to the end point and doesn't spend a night anywhere on the trip. Every trip has one. A day trip is only the last day |
 | Candidate | A hotel, restaurant, or attraction offered for a stay's lodging or a stop, with its rationale and source |
+| Status | Where a stop, or a stay's lodging, is in being decided: **empty** (no options yet), **proposed** (options shown, nothing chosen), or **selected**. An empty or proposed stop has **no selected place**. It has no place to drive to, so it takes no time in the day's schedule. The timing rules say "no selected place" so they cover both |
 | Option card | The UI element presenting a set of candidates for one choice (a stay's lodging or a stop), with selection actions |
 | Budget tier | Value, mid-range, or posh. A relative price level the agent infers. Shown instead of prices |
 | Session | One conversation with the agent about one trip |
@@ -213,7 +214,7 @@ Selecting an option updates the itinerary, and the agent acknowledges the change
 
 ### 7.6 Item status and rationale
 
-- Every stop, and every stay's lodging, is either **proposed** (options shown, nothing chosen) or **selected**.
+- Every stop, and every stay's lodging, is **empty** (no options yet), **proposed** (options shown, nothing chosen), or **selected** (section 4, Status).
 - The user can also name a place directly, such as a restaurant they already want or a friend's house to stay at. The agent looks it up and marks it selected, with no option cards. Its rationale is that the user chose it.
 - Selected items keep their rationale and source, viewable from the itinerary later. This serves both the user ("why did we pick this?") and the developer reviewing agent choices.
 

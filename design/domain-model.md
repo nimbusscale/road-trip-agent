@@ -301,7 +301,7 @@ classDiagram
         subjectId : string #123;readOnly#125;
         text : string #123;readOnly#125;
         isApproved : boolean #123;readOnly#125;
-        hasEmptyStopBefore : boolean #123;readOnly#125;
+        hasUnselectedStopBefore : boolean #123;readOnly#125;
         /level : CheckLevel
     }
 
@@ -462,7 +462,7 @@ A check result is one finding from the feasibility checks in technical spec sect
 | `subjectId` | Stored | `string`, read only | The ID of what it's about: the itinerary, a stay, a day, or a stop. It's an ID, not a link, because a write can remove the stop or stay before the compare runs (below) |
 | `text` | Stored | `string`, read only | What the check found, such as "Day 4 needs about 5 h 20 m of driving. You agreed to 5." A current check result always has current text. The saved text is used only to describe a check result that went away |
 | `isApproved` | Stored | `boolean`, read only | True when an approval that covers it applies (see Approval, and `FeasibilityChecker.isApplying()` in section 4.8). Always false for a check no approval covers |
-| `hasEmptyStopBefore` | Stored | `boolean`, read only | For `openingHoursNotLongEnough` and `openingHoursClosed` only: true when an earlier stop on the same day is still empty, so the time checked may be too early (technical spec section 8). False for every other check. See the rules |
+| `hasUnselectedStopBefore` | Stored | `boolean`, read only | For `openingHoursNotLongEnough` and `openingHoursClosed` only: true when an earlier stop on the same day has no selected place, so the time checked may be too early (technical spec section 8). False for every other check. See the rules |
 | `level` | Worked out | `CheckLevel` | Warning or note. It comes from `check`, in the table below |
 
 **The checks.** Each `CheckKind` has one level and one kind of subject:
@@ -486,7 +486,7 @@ A check result is one finding from the feasibility checks in technical spec sect
 **Rules:**
 
 - **At most one check result per check and subject.** `Itinerary.replaceCheckResults()` refuses a list that breaks this.
-- **Only the two opening-hours warnings can have an empty stop before.** A check result with `hasEmptyStopBefore` true and any other `check` is refused when it's created. An empty stop takes no time, so the stops after it may really come later. A place that looks closed at 1:10 may be open by 2:00, so an opening-hours warning may go away. A late or driving warning would only get worse, so it's real. `openingHoursNotKnown` doesn't depend on the time at all (technical spec section 8).
+- **Only the two opening-hours warnings can have an unselected stop before.** A check result with `hasUnselectedStopBefore` true and any other `check` is refused when it's created. A stop with no selected place takes no time, so the stops after it may really come later. A place that looks closed at 1:10 may be open by 2:00, so an opening-hours warning may go away. A late or driving warning would only get worse, so it's real. `openingHoursNotKnown` doesn't depend on the time at all (technical spec section 8).
 
 ### 3.4 Itinerary
 
@@ -974,8 +974,8 @@ Worked-out values that need only an object's own data, or data it holds, stay on
 - **The day starts at `startTimeOf()`.** On a day with a leg, the party leaves where it slept at that time.
 - **Stops run in the day's order.** A stop's arrival is when the stop before it ends plus the drive to it, or its set time if that's later. The party waits before driving, not after, so the wait shows as free time before the drive. The schedule doesn't say where the party spends it. A stop ends after its visit time.
 - **Each drive is the leg's stored segment drive time plus the buffer** for fuel and short breaks, a setting (technical spec section 10). Example: on Moab Day 4, Capitol Gorge ends at 4:40 p.m., then free time until 12:35 a.m., then the drive to Panorama Point for stargazing at 1:00 a.m.
-- **A stop with no selected place takes no time.** It has no drive and no visit time, so the drive to the next selected stop starts from the selected stop before it. An empty stop with a set time shows at its set time and holds its spot: the stop after it can't arrive before that time. Example: on San Francisco Day 2, dinner is set for 6:30 and still empty, so dessert shows at 6:30, not 4:35. An empty stop with no set time has no times. So the stops after an empty stop can show times that are too early (see Check result).
-- **After the last stop comes the drive to where the party sleeps,** or to the end place. Its times are unknown when an empty stop comes after the last selected stop.
+- **A stop with no selected place takes no time.** It has no drive and no visit time, so the drive to the next selected stop starts from the selected stop before it. One with a set time shows at its set time, or when the item before it ends if that's later. It holds its spot: the stop after it can't arrive before then. Example: on San Francisco Day 2, dinner is set for 6:30 and has no place yet, so dessert shows at 6:30, not 4:35. If the stop before dinner ran until 6:55, dinner would show at 6:55. The late check gives its warning (technical spec section 8). One with no set time has no times. So the stops after a stop with no selected place can show times that are too early (see Check result).
+- **After the last stop comes the drive to where the party sleeps,** or to the end place. Its times are unknown when a stop with no selected place comes after the last selected stop.
 - **A rest day has no drives.** Each of its stops has a set time, and the day ends when its last stop ends.
 - **A day can run past midnight.** It runs until the party reaches where it sleeps, or the end place. A stop after midnight stays on the day it follows, and its times are on the next calendar day. Example: stargazing at 1 a.m. after Moab Day 4 is the last stop on Day 4, not the first on Day 5. Nothing compares a day's end with the next day's start.
 
@@ -1096,7 +1096,7 @@ It decides which days have a leg, and routes them. It's the one place that calls
   - **Adds** a leg to a day that should have one and has none.
   - **Re-routes** a day's leg when its start (`fromPlaceOf()`), its end (`toPlaceOf()`), its selected places in order, or its waypoints differ from the leg's `routedFromPlace`, `routedToPlace`, `routedStopPlaces`, or `routedWaypoints`. The new leg replaces the old one, and remembers the new values.
   - **Removes** the leg from a day that shouldn't have one. The day's waypoints go with it, by the day's own rule.
-  - **Leaves alone** every other leg. Changing a stop's set time, visit time, tier, or approvals re-routes nothing, and neither does adding, moving, or removing an empty stop. The schedule is worked out from the stored segment drive times (section 4.1), so it needs no new route.
+  - **Leaves alone** every other leg. Changing a stop's set time, visit time, tier, or approvals re-routes nothing, and neither does adding, moving, or removing a stop with no selected place. The schedule is worked out from the stored segment drive times (section 4.1), so it needs no new route.
   - **Returns** one `LegChange` for each day whose leg it added, re-routed, or removed. Each holds the day, its old leg, and its new leg. The old leg is empty for an added leg, and the new leg for a removed one. The write hands them back to the tool (section 1). The tool's reply uses them to give each day's old and new drive time, such as "Day 2: 2 h 10 m → 1 h 30 m," and counts their days as touched (technical spec section 8). A `LegChange` isn't stored.
   - **Refused:** when Google finds no driving route, such as to a place no road reaches, or when a call to Google fails, such as when the Routes limit is spent. The whole write is thrown away, and the error says why (section 1).
 - **`detourTimesOf(itinerary : Itinerary, stop : Stop, places : List<Place>) : List<integer>`** (the tool `add_stop_candidates`, before `StopsService.addCandidates()`). Works out each place's detour time for a stop along the leg, with one call to Google Routes per place, against the day's leg as it is now. The place goes in at the stop's position among the day's selected stops. Example: a pie stop between Goblin Valley and Capitol Gorge is measured there. The waypoints are placed the same way as for the leg, so both routes take the same road. A place's detour time is that route's drive time minus the leg's, and never less than 0. Returns them in the order given. It changes nothing. Nothing from the worker's search is reused, so nothing has to be stored or cleared.
@@ -1105,11 +1105,11 @@ It decides which days have a leg, and routes them. It's the one place that calls
 **Which days have a leg.** A day has a leg when it isn't a rest day, both its ends are known, and either it moves or it has a selected stop:
 
 - **A day that moves** to a new stay, or to the end place, always has one. It has to drive. On the San Francisco trip, every day moves.
-- **A day that stays put** (`isStayingPut()`) has one only while it has a selected stop. Its leg starts and ends at the same stay, and passes through the selected stops. Empty stops have no place, so there's nothing to route through. Example: Moab Day 2 gets its leg when its first stop is selected.
+- **A day that stays put** (`isStayingPut()`) has one only while it has a selected stop. Its leg starts and ends at the same stay, and passes through the selected stops. Stops with no selected place have nothing to route through. Example: Moab Day 2 gets its leg when its first stop is selected.
 - **A rest day** has none. Any stops on it, such as dinner, are near the lodging and aren't routed.
 - **Both ends are known** once the itinerary has a start place and an end place. Until then, the only day is the last day, and it has no leg yet. Stays can't be added before then (section 4.4), so every later day's ends are known.
 
-**How a leg is routed.** It's one call to Google Routes, through these places in order: where the day starts, the day's selected stops in the day's order, and where it ends. Empty stops are skipped. The waypoints go in among them as pass-through points:
+**How a leg is routed.** It's one call to Google Routes, through these places in order: where the day starts, the day's selected stops in the day's order, and where it ends. Stops with no selected place are skipped. The waypoints go in among them as pass-through points:
 
 - **Each waypoint goes in the gap where it adds the least straight-line distance,** between two neighbors in that list. The distance comes from the coordinates stored on each place, so this needs no call to Google. With more than one waypoint, they're placed one at a time, in the coordinator's order. Example: on San Francisco Day 2, with only First Awakenings in Monterey selected, Big Sur village goes between First Awakenings and San Luis Obispo. Between the Monterey hotel and First Awakenings, it would add about 50 miles, going south and back.
 - **Straight-line distance can guess wrong** where the road bends far from it, such as around a bay. It works because a waypoint sits on the road the coordinator wants.
@@ -1128,7 +1128,7 @@ The `FeasibilityChecker` runs the feasibility checks in technical spec section 8
 
 - **`workOut(itinerary : Itinerary) : List<CheckResult>`.** Runs every check in technical spec section 8 over the whole itinerary, and returns the check results that apply now. It saves nothing. A check that compares against an empty trip brief item is skipped. `forecastNowAvailable` is skipped once the trip has started, since nothing can be rewritten then. A check result's `isApproved` is true when `isApplying()` is true for an approval that covers it.
 - **`compare(current : List<CheckResult>, saved : List<CheckResult>) : CheckComparison`.** Matches the current check results with the saved ones. Two check results match when they have the same `check` and the same `subjectId`, whatever their text says. It returns three lists, which aren't stored:
-  - **New:** a current check result with no match. Also one whose match was approved and that isn't approved now.
+  - **New:** a current check result with no match. Also one whose match was approved and that isn't approved now. Also one whose match had `hasUnselectedStopBefore` true and that has it false now.
   - **Already known:** every other current check result.
   - **Gone:** a saved check result with no current match. Its saved `text` describes it, since its subject may no longer exist.
 - **`isApplying(itinerary : Itinerary, day : Day, kind : ApprovalKind) : boolean`,** and the same with a stop in place of the day. Whether the holder's approval of that kind still covers the plan as it is now. False when it has none. The tool `read_itinerary` uses it to mark each approval as applying or not.
@@ -1144,6 +1144,7 @@ The `FeasibilityChecker` runs the feasibility checks in technical spec section 8
 **Rules:**
 
 - **A warning whose approval stops applying is new.** Example: Moab Day 4 is approved for 5 hours of driving. A change makes it 5 hours 20 minutes. The approval no longer applies, so the daily driving warning is new, and the coordinator asks the user again.
+- **An opening-hours warning whose "may be too early" mark clears is new.** The coordinator held it while the mark was on (technical spec 5.2). Example: selecting Love Muffin for the café stop clears the mark on Milt's warning, so that write returns it as new.
 - **A check result that goes away and comes back is new.** The write where it went away saved the list without it. If a day that was fixed goes over its driving hours again, the user should hear about it.
 - **Only the coordinator's writes save the list.** A worker can't act on a check result. One saved during a worker's write would be marked already known without ever reaching the coordinator.
 
