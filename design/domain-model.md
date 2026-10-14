@@ -95,7 +95,7 @@ A property has at most one of `{readOnly}` and `{viaService}`. `{keepsValue}` ca
 
 **Saving places from a search skips the finish.** A write that only adds places to the places registry changes no leg and doesn't change the plan. So it runs no checks, and doesn't set last updated.
 
-**Two writes at once** aren't settled here. If each write loads and saves the whole trip, two stay researchers writing at the same time could each save a copy without the other's candidates. That's left to the persistence design, which isn't written yet (technical spec open question 6).
+**Two writes to one trip take turns.** The second waits until the first is saved or thrown away. So two stay researchers writing at the same time never save a copy without the other's candidates. See the [persistence design](persistence.md), section 4.
 
 The sections below say a follow-on happens "at the end of the write" when it runs in the finish step.
 
@@ -134,7 +134,7 @@ classDiagram
         id : string #123;readOnly#125;
         createdDateTime : dateTime #123;readOnly#125;
         title : string #123;readOnly#125;
-        transcript : Transcript
+        agentSessionId : string #123;readOnly#125;
         resume()
     }
 
@@ -497,11 +497,11 @@ The trip is one planned road trip. Everything else in this model belongs to a tr
 | `id` | Stored | `string`, read only | Never shown to agents or users |
 | `createdDateTime` | Stored | `dateTime`, read only | The trip's session list shows its date |
 | `title` | Stored | `string`, read only | A few words for the trip's session list. Set when the session is created, from the user's first message, cut to about 60 characters at a word break. Example: "Can we add a night in Big Sur and drop one in…" |
-| `transcript` | Stored | `Transcript` | The conversation, restored when the user resumes the session. The Agent SDK may keep it, so its shape isn't part of this model |
+| `agentSessionId` | Stored | `string`, read only | The Agent SDK's ID for this conversation. The app chooses it when the session is created. The SDK keeps the transcript, and persistence stores it ([persistence design](persistence.md), section 6). The transcript's shape isn't part of this model |
 
 A session is created and begins at the same moment, so it has no separate "start." It's never closed. The user just leaves, and can resume it later.
 
-- **`resume()`.** The app runs it when the user picks a session from the trip's list. It restores the transcript, and the coordinator continues with that conversation's context. It works on a started trip too.
+- **`resume()`.** The app runs it when the user picks a session from the trip's list. It restores the transcript by `agentSessionId`, and the coordinator continues with that conversation's context. It works on a started trip too.
 
 **PlacesRegistry.** Every place found for the trip, and the places the user rejected. It's held by the trip in `placesRegistry`, with no `id`, and created with the trip. The trip holds it so that it's saved with the trip. Code passes it into the services that need it, such as `StopsService`, which refuses a rejected place as a candidate (section 4). Its operations run only its own rules.
 
@@ -526,7 +526,7 @@ The registry keeps a change method for `rejectedPlaces` that only services reach
 
 **Operations:**
 
-- **`createSession(firstUserMessage : string) : Session`.** The app runs it when the user sends the first message of a new trip, or of a new session on a trip. It creates a session, sets its `title` from `firstUserMessage`, adds it to `sessions`, and returns it. The coordinator gets no earlier transcripts. It begins by reading the itinerary, the trip brief, and memory (technical spec 5.2). It works on a started trip too.
+- **`createSession(firstUserMessage : string) : Session`.** The app runs it when the user sends the first message of a new trip, or of a new session on a trip. It creates a session, sets its `title` from `firstUserMessage`, gives it a new `agentSessionId`, adds it to `sessions`, and returns it. The coordinator gets no earlier transcripts. It begins by reading the itinerary, the trip brief, and memory (technical spec 5.2). It works on a started trip too.
 - **`replaceCheckResults(checkResults : List<CheckResult>)`** (the `FeasibilityChecker`, at the end of every write that runs the checks). Takes the full list of current check results, which can be empty. Replaces the whole of `checkResults` in one step. Nothing can add to the list or remove one result from it. The trip only stores the list. Working out the results and comparing them with the saved list is the `FeasibilityChecker`'s job (section 4.8).
   - **Refused:** the whole call, when two check results have the same `check` and `subjectId`. Example: a stop can have an `openingHoursClosed` result and a `lateForSetTime` result, but not two of either.
 
@@ -536,7 +536,7 @@ The registry keeps a change method for `rejectedPlaces` that only services reach
 
 - **A trip belongs to one user.** Only that user, and the agents in that user's sessions, can reach it (functional spec 10.4).
 - **A started trip can't be changed.** Once `hasStarted` is true, every write that changes the plan is refused, and the error says the trip has started (technical spec section 8). That covers the trip brief, the itinerary, candidates, weather text, and rejected places. Objects and services don't check this. The tools check it before a write, and persistence checks it again when the trip is saved (section 1). Persistence still saves a started trip's new sessions, and places saved from searches, since neither changes the plan. Reads still work, and sessions can still be created and resumed.
-- **Today's date is the date in the start place's time zone,** since that's where the trip begins. It isn't a property of the trip. Code looks it up when a rule needs it, with the calendar's `today()` (section 4.1). The start-date check, the started-trip lock, and the forecast rules all use it (technical spec 5.2).
+- **Today's date is the date in the start place's time zone,** since that's where the trip begins. It isn't a property of the trip. Code looks it up when a rule needs it, with the calendar's `today()` (section 4.1). The time zone is worked out from the start place's coordinates. The start-date check, the started-trip lock, and the forecast rules all use it (technical spec 5.2).
 - **All of a trip's times are in the start place's time zone.** A trip that crosses into another time zone shows times off by the difference after the border. That's a known limit of this version.
 - **The trip brief holds what the user wants. The itinerary holds the plan.** No fact is stored in both. Changing the brief never changes the itinerary. The checks compare them, and the coordinator changes the plan with the user (technical spec section 8).
 - **Places are kept per trip.** Each trip has its own places registry. A place found for one trip, such as a friend's address, is never visible from another trip (functional spec 10.4).
@@ -1053,7 +1053,7 @@ It's there because an object can't see the object that holds it, or the ones bes
 | `dayOf(itinerary, stop)` | `Day` | The day whose `stops` holds it. The services use it to find a stop's day |
 | `previousDay(itinerary, day)` | `Day?` | The day before it in the itinerary's `days`. Empty on the first day |
 | `nextDay(itinerary, day)` | `Day?` | The day after it. Empty on the last day |
-| `today(itinerary)` | `date?` | Today's date in the start place's time zone (see Trip). Empty while there's no start place |
+| `today(itinerary)` | `date?` | Today's date in the start place's time zone (see Trip). The time zone is worked out from the start place's coordinates. Empty while there's no start place |
 | `dateOf(itinerary, day)` | `date?` | The itinerary's `startDate` plus the day's order, in days. Empty while there's no start date |
 | `datesOf(itinerary, stay)` | `List<date>`, in order | The dates of its nights, plus the morning the party leaves. Example: a three-night Moab stay from October 10 has October 10 to 13. Empty while there's no start date |
 | `startStayOf(itinerary, day)` | `Stay?` | Where the party slept the night before: the stay that holds the day before. Empty on the first day, which starts at the start place |
