@@ -48,7 +48,7 @@ A place found by search is looked up on Google for its location, hours, and rati
 |---|---|
 | Label | "Unusual find (Atlas Obscura)" for Atlas Obscura places. None for general search |
 | Name, type | From the Google lookup. A place found only by its street address has no name on Google, so it takes the name from the search result, and has no type |
-| Location | From a Google Places lookup by name and town ([Google](google.md), 2.1). If Google has no match, look up the street address from the search result instead. If there is none, drop the find ([tool design](../tool-design.md), 2.1) |
+| Location | From a Google Places lookup by name and town ([Google](google.md), 2.1). If Google has no match, look up the street address from the search result instead. If there is none, drop the find ([tool design](../tools.md), 2.1) |
 | Rating and review count | From the Google lookup, when it has them. Otherwise "Not rated" (spec 7.5) |
 | Why | The search result's description, tied to the user's stated interests |
 | Visit time | From a details search if one turns up. Otherwise the agent's estimate, labeled as one |

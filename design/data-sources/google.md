@@ -126,7 +126,7 @@ The itinerary map (spec 9.2) uses the Maps JavaScript API.
 - **There is no daily call cap, for now.** Google's console doesn't offer a usable daily cap for these APIs, and a cap in our tools would need a stored count, since the app runs in a container that can restart at any time. The risk is accepted: a runaway agent could use up a lot of the credit quickly. A budget alert is set at $100. If it fires, revisit a cap. Until then, watch actual usage and adjust.
 - **The number of searches per trip drives the cost,** not the fields asked for. Asking for hours adds 0.3¢ a call. At about 30 searches per test trip, a trip costs about $1.20 past the free calls.
 - **Each selection re-routes its day.** Laying out a day of five places the user names costs about a dozen Routes calls, counting the stop-order check ([technical spec](../technical-spec.md), section 8). That's accepted for the MVP. Selecting several places in one call can come later if usage shows a need.
-- **Detour times are worked out twice.** A leg scout's search gives a rough detour time for each result. Then `add_stop_candidates` works out each candidate's again, with one Routes call apiece ([tool design](../tool-design.md), 2.1). A leg with four stops and three candidates each is 12 calls.
+- **Detour times are worked out twice.** A leg scout's search gives a rough detour time for each result. Then `add_stop_candidates` works out each candidate's again, with one Routes call apiece ([tool design](../tools.md), 2.1). A leg with four stops and three candidates each is 12 calls.
 - **Billing data lags.** Google's billing dashboard can take up to 48 hours to show usage.
 
 ---

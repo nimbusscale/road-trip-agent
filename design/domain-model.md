@@ -2,7 +2,7 @@
 
 This document lists the objects in the trip planner, such as trip, stay, day, and stop. For each one it gives its properties, how it relates to the others, the operations on it, and the rules that always hold. It stays at the level of design. It has no code types and no database tables. Those come from the code during development. It's kept by hand, and when development finds something it needs, it goes here.
 
-For the planning behavior, see the [functional spec](functional-spec.md). For the agents, workers, and feasibility checks, see the [technical spec](technical-spec.md). For each tool's inputs, see the [tool design](tool-design.md).
+For the planning behavior, see the [functional spec](functional-spec.md). For the agents, workers, and feasibility checks, see the [technical spec](technical-spec.md). For each tool's inputs, see the [tool design](tools.md).
 
 **Left out on purpose:**
 
@@ -91,7 +91,7 @@ A property has at most one of `{readOnly}` and `{viaService}`. `{keepsValue}` ca
    - **Last updated.** The trip's `lastUpdatedDateTime` is set to now.
 4. **Save** the trip. Persistence checks the started-trip lock here (see Trip).
 
-**What a write hands back.** Once the trip is saved, the write returns three things to the caller: what the change returned, such as the new stops' IDs, or the stops and stays a rejection changed; the leg changes from `updateLegs()` (section 4.7); and, after a coordinator write, the check comparison from the `FeasibilityChecker` (section 4.8). The finish makes the last two after the change is done, so the change can't return them itself. A tool builds its reply from all three ([tool design](tool-design.md), 2.1). Example: rejecting the selected Moab hotel returns the Moab stay as changed, the re-routed legs of Days 1, 2, and 4, which start or end at the hotel, and the check results that are new or went away.
+**What a write hands back.** Once the trip is saved, the write returns three things to the caller: what the change returned, such as the new stops' IDs, or the stops and stays a rejection changed; the leg changes from `updateLegs()` (section 4.7); and, after a coordinator write, the check comparison from the `FeasibilityChecker` (section 4.8). The finish makes the last two after the change is done, so the change can't return them itself. A tool builds its reply from all three ([tool design](tools.md), 2.1). Example: rejecting the selected Moab hotel returns the Moab stay as changed, the re-routed legs of Days 1, 2, and 4, which start or end at the hotel, and the check results that are new or went away.
 
 **A refusal throws the write away.** When anything refuses along the way, including a call to Google while the legs are updated, the loaded trip is thrown away and never saved. Storage still holds the trip as it was, and the error goes back to the caller. So nothing is left half changed. Example: `StopsService.moveStop()` takes a stop off Day 2, then Day 3 refuses it. The changed trip is thrown away, so the stored Day 2 never lost the stop. The same goes for a tool call that makes several changes, such as the tool `update_trip_brief` setting five items when one is refused.
 
