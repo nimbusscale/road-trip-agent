@@ -10,7 +10,7 @@ What a write is, and what it changes, is in the [domain model](domain-model.md),
 
 **One Postgres database holds everything:** trips, their places, their sessions, and the session transcripts.
 
-- **Not in the app's memory.** The app runs in a container that can restart at any time ([Google design](data-sources-google.md), section 5). Anything held only in memory goes with it. It also wouldn't work across more than one copy of the app.
+- **Not in the app's memory.** The app runs in a container that can restart at any time ([Google design](data-sources/google.md), section 5). Anything held only in memory goes with it. It also wouldn't work across more than one copy of the app.
 - **Not in object storage.** S3-style object storage, such as DigitalOcean Spaces, is available, but nothing uses it. It suits large files written once. Transcripts are the opposite: many small additions, read back in order (section 6). Object storage can't add to a file that already exists, so each addition would be its own small file. One store is also simpler to run and back up.
 - **Settings aren't in the database.** They're in a config file the app loads when it starts ([technical spec](technical-spec.md), section 10).
 
@@ -166,12 +166,6 @@ classDiagram
         agentSessionId : string #123;readOnly#125;
     }
 
-    class WriteBy {
-        <<enumeration>>
-        coordinator
-        worker
-    }
-
     class TripRepository {
         loadForWrite(tripId : string) EditableTrip
         load(tripId : string) Trip
@@ -206,7 +200,6 @@ classDiagram
         <<SDK sessionStore>>
     }
 
-    TripWriter ..> WriteBy
     TripWriter ..> TripRepository
     TripReader ..> TripRepository
     TripRepository ..> PlaceRepository
@@ -218,6 +211,12 @@ classDiagram
 ```
 
 The arrows mean "uses." `Trip`, `Place`, and `User` are the domain model's classes. `Session` isn't part of the domain model: it's in section 8.5.
+
+The fixed list that the classes above use:
+
+| Name | Values |
+|---|---|
+| `WriteBy` | `coordinator`<br>`worker` |
 
 ### 8.2 TripWriter
 

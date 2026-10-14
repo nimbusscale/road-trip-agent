@@ -2,7 +2,7 @@
 
 > **This is a research document, not a design document.** It was the design for the NPS Data API until 2026-10-10, when NPS was taken out of the MVP. Google Places and web search cover parks instead. It's kept as the starting point if parks come back after the MVP.
 
-This document covers the National Park Service Data API. It records what the app uses it for and how to call it. For which source covers each data need, see the [data sources index](../design/data-sources.md). For the test results behind it, see the [attractions evaluation](data-sources-attractions.md), section 2.
+This document covers the National Park Service Data API. It records what the app uses it for and how to call it. For which source covers each data need, see the [data sources index](../design/data-sources/README.md). For the test results behind it, see the [attractions evaluation](data-sources-attractions.md), section 2.
 
 **Coverage is National Park Service units only:** national parks, monuments, historic sites, recreation areas, and similar. State parks, national forests, and BLM land are not included. For those, the agent uses Google Places and web search.
 

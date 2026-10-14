@@ -1,6 +1,6 @@
 # Road Trip Planner: Tool Design (MVP)
 
-This document covers the agents' custom tools: which MCP server each tool is on, what it takes and returns, and which agents get it. Inputs and outputs are listed at the same level of detail as the [technical spec](technical-spec.md). Exact fields are settled during development. For where each tool's data comes from, see the [data sources index](data-sources.md).
+This document covers the agents' custom tools: which MCP server each tool is on, what it takes and returns, and which agents get it. Inputs and outputs are listed at the same level of detail as the [technical spec](technical-spec.md). Exact fields are settled during development. For where each tool's data comes from, see the [data sources index](data-sources/README.md).
 
 **Terms used here:**
 
@@ -26,7 +26,7 @@ This document covers the agents' custom tools: which MCP server each tool is on,
 | `routing` | Rough drive times for the coordinator's checks | Google Routes |
 | `weather` | Forecasts and seasonal averages | Google Weather, Open-Meteo |
 
-Web search is Claude's built-in `WebSearch` and `WebFetch` ([web search design](data-sources-web-search.md), section 1), not one of our MCP servers. The coordinator calls workers with the SDK's built-in `Agent` tool.
+Web search is Claude's built-in `WebSearch` and `WebFetch` ([web search design](data-sources/web-search.md), section 1), not one of our MCP servers. The coordinator calls workers with the SDK's built-in `Agent` tool.
 
 ---
 
@@ -85,7 +85,7 @@ The coordinator's tools for the trip brief and itinerary, plus the workers' tool
 | `add_lodging_candidates` | Adds one set of lodging candidates to a stay | Stay ID, and for each candidate: place ID, name, rationale, how it was found with the source link, and notes, such as "closed Mondays" or "reservations advised" |
 | `add_stop_candidates` | Adds one set of candidates to a stop. For a stop along the leg, works out each candidate's detour time itself, with one routing call per candidate against the stop's day's leg as it is then, including its waypoints. The candidate is placed at the stop's position among the leg's selected stops (domain model 4.7). Other stops get no detour time, and neither does a place the user names (`select_user_place`) | Stop ID, and for each candidate: place ID, name, rationale, how it was found with the source link, and notes. Attraction stops also take a visit time, the worker's estimate |
 
-**The place ID comes from a search or from `find_place`.** A place found by web search is looked up with `find_place`, by name and town. If Google doesn't list it but the source gives a street address, the worker looks up the address instead. If there's neither, the worker drops the find ([web search design](data-sources-web-search.md), section 4).
+**The place ID comes from a search or from `find_place`.** A place found by web search is looked up with `find_place`, by name and town. If Google doesn't list it but the source gives a street address, the worker looks up the address instead. If there's neither, the worker drops the find ([web search design](data-sources/web-search.md), section 4).
 
 **A name is always required,** even when Google has one, so the worker never has to decide whether to pass it. A place looked up by its address has no name on Google. Cards show Google's name whenever Google has one, so the given name is used only for a place Google has no name for. The first candidate that offers such a place sets its name, whether a worker added it or the user specified it (`select_user_place`). Later candidates for the same place don't change it. The type cards show is Google's, so no tool takes one. An address has none. Places are matched by Google place ID only (domain model 3.10).
 
@@ -121,9 +121,9 @@ Every search saves its results as places in the trip's data and returns their ID
 | `find_place` | Finds a named place: a town, a must-see, an address, a place the user names, or a place a worker found by web search | Text, and where to search: a town, region, or state. When unsure, the state | The best few matches, each with place ID, name, address, and type |
 | `read_place` | Reads a place's full record | Place ID | Everything stored: hours, coordinates, rating, summary, links |
 | `search_near` | Finds hotels, restaurants, or attractions near a stay, or near the start or end place | A stop or stay ID from the worker brief, and what to look for | Matches with the details the worker needs to choose: rating, review count, price level, hours on the stop's or stay's dates, summary, links |
-| `search_along_leg` | Finds places along a day's route | Day ID and what to look for | The same details as `search_near`, plus a rough detour time for each, and the drive time from the leg's start to it. Places within a set distance of either end are dropped, and the rest are sorted by position along the route ([Google design](data-sources-google.md), 2.3 and 2.4). Places near the ends belong to stops near those stays, or near the start or end place, which `search_near` covers. The distance is a setting, starting small ([technical spec](technical-spec.md), section 10). Point Lobos, about 5 miles from Monterey, must not be dropped. It does little for a big city, where naming the middle of the route in the query works better |
+| `search_along_leg` | Finds places along a day's route | Day ID and what to look for | The same details as `search_near`, plus a rough detour time for each, and the drive time from the leg's start to it. Places within a set distance of either end are dropped, and the rest are sorted by position along the route ([Google design](data-sources/google.md), 2.3 and 2.4). Places near the ends belong to stops near those stays, or near the start or end place, which `search_near` covers. The distance is a setting, starting small ([technical spec](technical-spec.md), section 10). Point Lobos, about 5 miles from Monterey, must not be dropped. It does little for a big city, where naming the middle of the route in the query works better |
 
-**`find_place` adds where to search to the text,** as in "McDonald's, Salinas, CA." That keeps a lookup from returning matches from anywhere. It asks Google for the same fields as the searches, including hours, ratings, and summaries. So a place the user names, such as "dinner at the Whaling Station," can go through the opening-hours check, and the first record stored for any place is complete (domain model 3.10). Each match's address shows the agent whether it found the right place. A place found by web search gets the same lookup, and its Google hours and rating are used like any other place's ([web search design](data-sources-web-search.md), section 4).
+**`find_place` adds where to search to the text,** as in "McDonald's, Salinas, CA." That keeps a lookup from returning matches from anywhere. It asks Google for the same fields as the searches, including hours, ratings, and summaries. So a place the user names, such as "dinner at the Whaling Station," can go through the opening-hours check, and the first record stored for any place is complete (domain model 3.10). Each match's address shows the agent whether it found the right place. A place found by web search gets the same lookup, and its Google hours and rating are used like any other place's ([web search design](data-sources/web-search.md), section 4).
 
 **`search_near` finds the point and the dates itself,** from the stop or stay. The point is the stay's lodging if one is selected, or the stay's town if not. For a stop, it's the stay in the stop's search area, or the start or end place. A stop along the leg is rejected, and the error says to use `search_along_leg`. How far counts as near is a setting ([technical spec](technical-spec.md), section 10). To search somewhere farther, the worker names it in the query, such as "restaurants in Tuolumne Meadows." Hours come back for the stop's or stay's dates only, using the date a stop actually falls on, which is the next day for a set time after midnight, such as "Sat Oct 10: 11 AM–9 PM. Sun Oct 11: closed."
 
@@ -155,7 +155,7 @@ Weather worker only.
 
 | Tool | Does | Takes | Returns |
 |---|---|---|---|
-| `stay_weather` | Weather for a stay's dates | Stay ID, and a place ID: the stay's town, or an attraction far from it, such as Tuolumne Meadows on a Yosemite stay | A daily forecast if every one of the stay's dates is within 7 days (technical spec section 8): highs, lows, conditions, and chances of rain and thunderstorms ([Google design](data-sources-google.md), section 3). Seasonal averages otherwise: average highs and lows, chances of rain and snow, and shares of hot days and freezing nights ([Open-Meteo design](data-sources-open-meteo.md), 2.3). Labeled with which one it is. Also the stay's activities: its attraction stops, each with its place, or its purpose if none is selected, and its date and time (technical spec 6.3) |
+| `stay_weather` | Weather for a stay's dates | Stay ID, and a place ID: the stay's town, or an attraction far from it, such as Tuolumne Meadows on a Yosemite stay | A daily forecast if every one of the stay's dates is within 7 days (technical spec section 8): highs, lows, conditions, and chances of rain and thunderstorms ([Google design](data-sources/google.md), section 3). Seasonal averages otherwise: average highs and lows, chances of rain and snow, and shares of hot days and freezing nights ([Open-Meteo design](data-sources/open-meteo.md), 2.3). Labeled with which one it is. Also the stay's activities: its attraction stops, each with its place, or its purpose if none is selected, and its date and time (technical spec 6.3) |
 
 **Code picks the source, not the worker.** The dates come from the stay, so the worker can't ask for a forecast too far out.
 
@@ -202,9 +202,9 @@ Weather worker only.
 
 That's 24 tools for the coordinator, counting `Agent`, 6 for the stay researcher, 5 for the leg scout, and 2 for the weather worker.
 
-**Why the leg scout has `search_near`.** For one case only: stops near the start or end place, such as breakfast in Grand Junction before the first drive. Those places aren't stays, so no stay researcher covers them. `search_along_leg` can't find them either, because it drops places near the leg's ends, where results bunch up ([Google design](data-sources-google.md), 2.4). A later tool review should keep this case in mind (technical spec 6.2).
+**Why the leg scout has `search_near`.** For one case only: stops near the start or end place, such as breakfast in Grand Junction before the first drive. Those places aren't stays, so no stay researcher covers them. `search_along_leg` can't find them either, because it drops places near the leg's ends, where results bunch up ([Google design](data-sources/google.md), 2.4). A later tool review should keep this case in mind (technical spec 6.2).
 
-The leg scout gets `WebSearch` only for Atlas Obscura, and a hook enforces it (section 4). Atlas Obscura blocks `WebFetch` ([web search design](data-sources-web-search.md), section 3), so the leg scout gets no `WebFetch`.
+The leg scout gets `WebSearch` only for Atlas Obscura, and a hook enforces it (section 4). Atlas Obscura blocks `WebFetch` ([web search design](data-sources/web-search.md), section 3), so the leg scout gets no `WebFetch`.
 
 ---
 

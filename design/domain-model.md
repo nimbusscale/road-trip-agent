@@ -35,7 +35,7 @@ For the planning behavior, see the [functional spec](functional-spec.md). For th
 | `time` | A time of day, with no date | A day's `ownStartTime`, 5:30 a.m. |
 | `scheduleTime` | A time in a day's schedule. It's a time of day, plus whether it falls after midnight, on the next calendar date | A stop's `setTime`, 1:00 a.m., next day |
 | `dateTime` | A date and a time together | A trip's `lastUpdatedDateTime` |
-| An enumeration, such as `Tier` | One value from a fixed list. The second diagram in section 2 lists them | `value`, `midRange`, or `posh` |
+| An enumeration, such as `Tier` | One value from a fixed list. The table at the end of section 2 lists them | `value`, `midRange`, or `posh` |
 | A class name, such as `Place` | A link to one object of that class | A stop's `selectedPlace` |
 | `List<X>` | A list of X. The notes say whether it's in order | `List<date>` for a weather text's `writtenForDates` |
 
@@ -355,92 +355,20 @@ classDiagram
 
 The fixed lists that properties above use:
 
-```mermaid
-classDiagram
-    class Tier {
-        <<enumeration>>
-        value
-        midRange
-        posh
-    }
-    class RouteType {
-        <<enumeration>>
-        scenic
-        fastest
-    }
-    class StopKind {
-        <<enumeration>>
-        meal
-        attraction
-    }
-    class SearchArea {
-        <<enumeration>>
-        nearStay
-        alongLeg
-        nearStartPlace
-        nearEndPlace
-    }
-    class StopStatus {
-        <<enumeration>>
-        empty
-        proposed
-        selected
-    }
-    class HowFound {
-        <<enumeration>>
-        google
-        webSearch
-        specifiedByUser
-    }
-    class WeatherLabel {
-        <<enumeration>>
-        forecast
-        seasonalAverages
-    }
-    class PriceLevel {
-        <<enumeration>>
-        free
-        inexpensive
-        moderate
-        expensive
-        veryExpensive
-    }
-    class Weekday {
-        <<enumeration>>
-        sunday
-        monday
-        tuesday
-        wednesday
-        thursday
-        friday
-        saturday
-    }
-    class ApprovalKind {
-        <<enumeration>>
-        driveHours
-        routeType
-        openingHours
-    }
-    class CheckLevel {
-        <<enumeration>>
-        warning
-        note
-    }
-    class CheckKind {
-        <<enumeration>>
-        tripLengthVsBrief
-        dailyDriving
-        openingHoursNotLongEnough
-        openingHoursClosed
-        openingHoursNotKnown
-        lateForSetTime
-        stopOrder
-        searchAreaDoesNotFitDay
-        weatherOutOfDate
-        forecastNowAvailable
-        stayTierSetForDifferentNights
-    }
-```
+| Name | Values |
+|---|---|
+| `Tier` | `value`<br>`midRange`<br>`posh` |
+| `RouteType` | `scenic`<br>`fastest` |
+| `StopKind` | `meal`<br>`attraction` |
+| `SearchArea` | `nearStay`<br>`alongLeg`<br>`nearStartPlace`<br>`nearEndPlace` |
+| `StopStatus` | `empty`<br>`proposed`<br>`selected` |
+| `HowFound` | `google`<br>`webSearch`<br>`specifiedByUser` |
+| `WeatherLabel` | `forecast`<br>`seasonalAverages` |
+| `PriceLevel` | `free`<br>`inexpensive`<br>`moderate`<br>`expensive`<br>`veryExpensive` |
+| `Weekday` | `sunday`<br>`monday`<br>`tuesday`<br>`wednesday`<br>`thursday`<br>`friday`<br>`saturday` |
+| `ApprovalKind` | `driveHours`<br>`routeType`<br>`openingHours` |
+| `CheckLevel` | `warning`<br>`note` |
+| `CheckKind` | `tripLengthVsBrief`<br>`dailyDriving`<br>`openingHoursNotLongEnough`<br>`openingHoursClosed`<br>`openingHoursNotKnown`<br>`lateForSetTime`<br>`stopOrder`<br>`searchAreaDoesNotFitDay`<br>`weatherOutOfDate`<br>`forecastNowAvailable`<br>`stayTierSetForDifferentNights` |
 
 ---
 

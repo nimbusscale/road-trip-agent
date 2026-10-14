@@ -1,6 +1,6 @@
 # Road Trip Planner: Data Sources, Google Maps Platform (Design)
 
-This document covers the Google Maps Platform APIs the app uses: Routes, Places, Weather, and the Maps JavaScript API. It records what each API is used for and how to call it. For which source covers each data need, see the [data sources index](data-sources.md).
+This document covers the Google Maps Platform APIs the app uses: Routes, Places, Weather, and the Maps JavaScript API. It records what each API is used for and how to call it. For which source covers each data need, see the [data sources index](README.md).
 
 ---
 
@@ -32,7 +32,7 @@ This document covers the Google Maps Platform APIs the app uses: Routes, Places,
 | Best order for a loop | Routes | `computeRoutes` with `optimizeWaypointOrder: true` | Returns the new order in `optimizedIntermediateWaypointIndex`, with per-leg times. Fails if any intermediate is a pass-through waypoint (`via: true`): "Waypoint optimization does not support via waypoint" |
 | Route line for the map | Routes | `computeRoutes` with `routes.polyline.encodedPolyline` in the field list | Goes to the UI, never to the model (2.3) |
 | Look up a named place | Places | Text Search with the name plus where to search, such as "Smitty's Market, Lockhart, TX" | Ask for the same fields as the searches, hours, ratings, and summaries included, so a place the user names can go through the opening-hours check. A place is stored once per trip, from its first lookup, so every lookup asks for everything the place keeps |
-| Lookup for a place found by web search | Places | Text Search with the name and town, or with the street address if that finds no match | Use its location, and its hours and rating when it has them ([web search](data-sources-web-search.md), section 4) |
+| Lookup for a place found by web search | Places | Text Search with the name and town, or with the street address if that finds no match | Use its location, and its hours and rating when it has them ([web search](web-search.md), section 4) |
 | Places by type near a stay | Places | Text Search, such as "barbecue in Lockhart, TX" | Up to 20 places per call (`pageSize`), ranked by relevance, not distance |
 | Places along a leg | Places | Text Search with `searchAlongRouteParameters.polyline` and `routingParameters.origin` | Add `routingSummaries` to the field list to get each place's drive time from the start of the leg |
 | Option card details | Places | The same Text Search, with more fields | See 2.2 |
@@ -77,7 +77,7 @@ This document covers the Google Maps Platform APIs the app uses: Routes, Places,
 
 ## 3. Weather forecast
 
-Used for stays whose dates all fall within 7 days (technical spec section 8, which says how the days are counted). Later dates use seasonal averages from [Open-Meteo](data-sources-open-meteo.md).
+Used for stays whose dates all fall within 7 days (technical spec section 8, which says how the days are counted). Later dates use seasonal averages from [Open-Meteo](open-meteo.md).
 
 **Request:**
 
@@ -125,7 +125,7 @@ The itinerary map (spec 9.2) uses the Maps JavaScript API.
 - **The account is on Google Cloud's free trial:** $300 of credit for 90 days. Google doesn't charge until the account is upgraded, so the trial is a hard stop.
 - **There is no daily call cap, for now.** Google's console doesn't offer a usable daily cap for these APIs, and a cap in our tools would need a stored count, since the app runs in a container that can restart at any time. The risk is accepted: a runaway agent could use up a lot of the credit quickly. A budget alert is set at $100. If it fires, revisit a cap. Until then, watch actual usage and adjust.
 - **The number of searches per trip drives the cost,** not the fields asked for. Asking for hours adds 0.3¢ a call. At about 30 searches per test trip, a trip costs about $1.20 past the free calls.
-- **Each selection re-routes its day.** Laying out a day of five places the user names costs about a dozen Routes calls, counting the stop-order check ([technical spec](technical-spec.md), section 8). That's accepted for the MVP. Selecting several places in one call can come later if usage shows a need.
+- **Each selection re-routes its day.** Laying out a day of five places the user names costs about a dozen Routes calls, counting the stop-order check ([technical spec](../technical-spec.md), section 8). That's accepted for the MVP. Selecting several places in one call can come later if usage shows a need.
 - **Billing data lags.** Google's billing dashboard can take up to 48 hours to show usage.
 
 ---

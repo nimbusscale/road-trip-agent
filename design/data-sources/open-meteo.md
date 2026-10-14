@@ -1,6 +1,6 @@
 # Road Trip Planner: Data Sources, Open-Meteo Historical Weather (Design)
 
-This document covers the Open-Meteo Historical Weather API. The app uses it for seasonal weather averages and hazard counts at each stay, for dates beyond the 7-day forecast (spec 8). It records how to call it and what the tool returns. For which source covers each data need, see the [data sources index](data-sources.md). For the test results behind it, see the [seasonal weather evaluation](../research/data-sources-weather.md).
+This document covers the Open-Meteo Historical Weather API. The app uses it for seasonal weather averages and hazard counts at each stay, for dates beyond the 7-day forecast (spec 8). It records how to call it and what the tool returns. For which source covers each data need, see the [data sources index](README.md). For the test results behind it, see the [seasonal weather evaluation](../../research/data-sources-weather.md).
 
 ---
 
