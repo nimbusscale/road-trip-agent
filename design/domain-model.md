@@ -55,7 +55,7 @@ A value after `=` is the property's default, the value it has when its object is
 
 - **Objects** hold the data, and its integrity rules. An integrity rule looks only at the object's own properties and the items in its own lists. It doesn't look inside those items' own lists. Examples: a visit time is more than 0, a meal stop needs a tier when it's created, and a stop's selected place is one of its candidates. A stop can check its candidates' places for a repeat, since it's managing its candidates. A stay checking whether its days still hold stops looks one list deeper, so that's a business rule. An object never reads the object that holds it.
 - **Services** hold the business rules. A business rule is any rule that needs a setting, the trip brief, or another object, including one inside the items of a list. Examples: a trip is at most the maximum trip length, a candidate isn't a rejected place, and a stop's search area fits its day. See section 4.
-- **Persistence** holds one rule: a started trip can't be changed. `TripWriter` refuses a write to a started trip right after loading it, before anything changes. The save refuses it again ([persistence design](persistence.md), section 5). Objects, services, and tools don't check it (see Trip).
+- **Persistence** holds one rule: a started trip can't be changed. `TripWriter` refuses a write to a started trip right after loading it, before anything changes. The save refuses it again ([persistence design](persistence.md), section 5). Objects, services, and tools don't check it (see Trip). Persistence also keeps storage rules, which are about how records are saved rather than about the trip: one place row per Google place in a trip, and a plan links only to its own trip's places (see Place).
 
 A tool can add its own checks on what an agent passes in, but it never holds a rule about the data.
 
@@ -390,13 +390,13 @@ The trip is one planned road trip. Everything else in this model belongs to a tr
 | `owner` | Stored | `User`, read only | Set when the trip is created. A user holds nothing else in this model yet: sign-in details are settled during development, and memory is left out |
 | `tripBrief` | Stored | `TripBrief`, an entity held by the trip, read only | Created with the trip, empty except for its usual start time |
 | `itinerary` | Stored | `Itinerary`, an entity held by the trip, read only | Created holding only its last day |
-| `lastUpdatedDateTime` | Stored | `dateTime` | Set at the end of every write. See below |
+| `lastUpdatedDateTime` | Stored | `dateTime` | Set when the trip is created, and at the end of every write. See below |
 | `name` | Worked out | `string?` | The trip brief's `focus` and the start month, such as "Pacific Coast Highway, May 2027." See below |
 | `hasStarted` | Worked out | `boolean` | True when today's date is on or after the itinerary's `startDate`. False while the itinerary has no `startDate`. Today's date is looked up when needed, in the start place's time zone (see Rules) |
 
 **`name`.** It's built from the trip brief's `focus` and the itinerary's start month, such as "Pacific Coast Highway, May 2027" (functional spec 10.1). While `focus` is empty, the name is empty, and the home screen shows "New trip." While the itinerary has no `startDate`, the name is `focus` alone. Renaming a trip isn't in the MVP.
 
-**`lastUpdatedDateTime`.** Code sets it at the end of every write (section 1): to the trip brief, the itinerary, candidates, weather text, or rejected places. That includes worker writes. A refused write changes nothing, so it doesn't count. Neither does a read, or saving places from a search, since the plan doesn't change. The home screen shows it (functional spec 3).
+**`lastUpdatedDateTime`.** Code sets it when the trip is created, so the home screen has a value for a new trip ([persistence design](persistence.md), section 8.2). After that, it's set at the end of every write (section 1): to the trip brief, the itinerary, candidates, weather text, or rejected places. That includes worker writes. A refused write changes nothing, so it doesn't count. Neither does a read, or saving places from a search, since the plan doesn't change. The home screen shows it (functional spec 3).
 
 **Sessions aren't part of the trip.** A session is a conversation about the trip, not part of the plan, so it isn't in this model. The trip doesn't hold its sessions, and nothing here creates one. The [persistence design](persistence.md), section 8.5, covers them.
 
@@ -747,7 +747,7 @@ Whether it fits its day is checked when `StopsService.addStops()` adds it (secti
 
 | Property | Stored or worked out | Type | Notes |
 |---|---|---|---|
-| `reason` | Stored | `string`, read only | The user's reason, such as "we want Goblin Valley and Capitol Reef on the way." Never empty |
+| `reason` | Stored | `string`, read only | The user's reason, such as "we want to see the hoodoos and Capitol Reef on the way." Never empty |
 
 Whether an approval still applies needs the day's driving or the stop's place in the schedule, which the approval can't see. So it's `FeasibilityChecker.isApplying()` (section 4.8).
 
@@ -826,11 +826,11 @@ A candidate is one place offered for a stop or for a stay's lodging, with the re
 | `howFound` | Stored | `HowFound`, read only | Google, web search, or specified by the user |
 | `sourceLink` | Stored | `string?`, read only | The listing or page it came from, such as its Google Maps page or an Atlas Obscura page. The option card links to it (functional spec 7.5). Empty only for a place the user named |
 | `notesText` | Stored | `string?`, read only | Notes about the place, such as "closed Mondays" or "reservations advised" (functional spec 7.5). Empty when there are none |
-| `tier` | Stored | `Tier?`, read only | For lodging and meals, the tier it was offered at: its stop's or stay's tier when its set was added. See below. Empty for an attraction, and for a place the user named, whose card shows "your choice" |
-| `tierRule` | Stored | `string?`, read only | The rule that produced the tier, such as "2+ nights," copied with it. Empty when `tier` is |
+| `tier` | Stored | `Tier?`, read only | Filled in once, by the stop or stay that adds it. For lodging and meals, the tier it was offered at: its stop's or stay's tier when its set was added. See below. Empty for an attraction, and for a place the user named, whose card shows "your choice" |
+| `tierRule` | Stored | `string?`, read only | Filled in once, by the stop or stay that adds it. The rule that produced the tier, such as "2+ nights," copied with it. Empty when `tier` is |
 | `visitTimeInMinutes` | Stored | `integer?`, read only | For an attraction: the worker's estimate, which the card labels as one, or the time the user gave for a place they named. Empty for meals and lodging. Selecting the candidate copies it to the stop (`StopsService.selectCandidate()`). More than 0 |
 | `detourTimeInMinutes` | Stored | `integer?`, read only | For a stop along the leg: the extra driving the place adds to the day's route. Empty for every other stop, for lodging, and for a place the user named. 0 or more. See below |
-| `setNumber` | Stored | `integer`, read only | Which set it came in. 0 or more. See below |
+| `setNumber` | Stored | `integer`, read only | Filled in once, by the stop or stay that adds it. Which set it came in. 0 or more. See below |
 
 **The facts about a place are on the place.** Only the reason for offering it is on the candidate. That matters when one place is offered twice for different reasons. Example: the Palace Hotel in San Francisco, offered as lodging because "posh, from rule: last night is special," and as a stop because "Maxfield Parrish's Pied Piper painting hangs in the bar."
 
@@ -882,7 +882,7 @@ A place is any real location: a town, hotel, restaurant, bar, attraction, friend
 
 **Name and type.** Both come from Google when the place is created. Cards show Google's name whenever Google has one. A name given by an agent is used only for a place Google has no name for, such as an address. A place is created from Google's answer before any agent picks it or names it, so that name comes later, with `fillName()`. The tools that offer or set a place always take a name, so the agent never has to decide whether to pass it (tool design 2.1). The first one given is kept. So a user's nickname, such as "the pink hotel," never replaces "Madonna Inn." An address has no type, such as Mike's house as the end place. That does no harm: the short line leaves it out.
 
-**The facts are a snapshot.** They're stored as the lookup returned them, and aren't looked up again when the trip is reopened (Google design section 6). When a later lookup returns a place the trip already has, the stored record is kept as it is, and the new facts are dropped. A place first found with `find_place` may have no summaries, since that tool doesn't ask for them, and keeps none. Weekly hours are a normal week only, with no seasonal hours (Google design 2.2).
+**The facts are a snapshot.** They're stored as the lookup returned them, and aren't looked up again when the trip is reopened (Google design section 6). When a later lookup returns a place the trip already has, the stored record is kept as it is, and the new facts are dropped. Weekly hours are a normal week only, with no seasonal hours (Google design 2.2).
 
 **The kind of place doesn't limit how it's used.** A hotel can be a stay's lodging, or a stop for its bar. On a loop trip, the start and end are the same place.
 
@@ -1034,8 +1034,8 @@ The two trip brief items whose limits are settings. Every other item is set dire
   - **Refused:** when the trip would be longer than the maximum trip length. When a day it would remove holds stops. The refusal lists those stops. By the stay's own rule: when `nightCount` is less than 1. Removing a stay's last night means removing the stay.
 - **`removeStay(itinerary : Itinerary, stay : Stay)`** (the tool `remove_stay`). Removes the stay, which takes its days, lodging candidates, and weather text with it. The places stay stored.
   - **Follows on:** the next day now starts from the stay before, or from the start place, and its leg is re-routed at the end of the write.
-  - **Refused:** while any stop is on the stay's days, or while any stop on any day has the stay as its `searchAreaStay`. The service finds them by going through the itinerary's days. The refusal lists those stops by name and ID. Code never removes a stop the coordinator didn't name. The coordinator asks the user what to do with each one, then moves or removes it (technical spec 5.2).
-- **`addLodgingCandidates(stay : Stay, candidates : List<Candidate>)`** (the tool `add_lodging_candidates`, used by a stay researcher, and the tool `select_user_place`). Adds one set of candidates to the stay's `lodgingCandidates`. The stay gives each its set number, and its own tier and rule (see Stay).
+  - **Refused:** while any stop is on the stay's days, or while any stop on any day has the stay as its `searchAreaStay`. The service finds them by going through the itinerary's days. The refusal lists each of those stops by its purpose, its selected place's name if it has one, and its ID. A stop has no name of its own. Code never removes a stop the coordinator didn't name. The coordinator asks the user what to do with each one, then moves or removes it (technical spec 5.2).
+- **`addLodgingCandidates(itinerary : Itinerary, stay : Stay, candidates : List<Candidate>)`** (the tool `add_lodging_candidates`, used by a stay researcher, and the tool `select_user_place`). Adds one set of candidates to the stay's `lodgingCandidates`. The stay gives each its set number, and its own tier and rule (see Stay).
   - **Refused:** the whole call, when a place is rejected (the itinerary's `isRejected()`). By the stay's own rules: when the set has fewer than 1 or more than 3 candidates, a place is already one of the stay's candidates, or a candidate has a visit time or detour time. So a set is never partly written.
 - **`setWeatherText(itinerary : Itinerary, stay : Stay, guidance : string) : WeatherText`** (the tool `set_stay_weather`, used by the weather worker). Creates weather text and replaces any the stay had. It labels it a forecast when every one of the stay's dates, from `datesOf()`, is within 7 days of `today()`, counting today as day 0, and seasonal averages otherwise (technical spec section 8). It records today's date, the stay's current `place`, its dates, and its activities from `activitiesOf()`, each as an `ActivityRecord`. Returns the new text.
   - **Refused:** by the weather text's own rule, when the guidance is empty.
@@ -1073,7 +1073,7 @@ The two trip brief items whose limits are settings. Every other item is set dire
   - **Refused:** the whole call, when a stop isn't in the itinerary.
 - **`setStopTime(itinerary : Itinerary, stop : Stop, setTime : scheduleTime?)`** (the tool `update_stop`). Sets the stop's `setTime`. Empty means it follows the stop before it.
   - **Refused:** when `setTime` is empty and the stop's day is a rest day. The service finds the day with `dayOf()`.
-- **`addCandidates(stop : Stop, candidates : List<Candidate>)`** (the tool `add_stop_candidates`, used by a stay researcher or leg scout, and the tool `select_user_place`). Adds one set of candidates to the stop's `candidates`. The stop gives each its set number, and its own tier and rule (see Stop). For a stop along the leg, code works out each candidate's detour time with `LegsService.detourTimesOf()` before this runs, since it takes a call to Google (section 4.7).
+- **`addCandidates(itinerary : Itinerary, stop : Stop, candidates : List<Candidate>)`** (the tool `add_stop_candidates`, used by a stay researcher or leg scout, and the tool `select_user_place`). Adds one set of candidates to the stop's `candidates`. The stop gives each its set number, and its own tier and rule (see Stop). For a stop along the leg, code works out each candidate's detour time with `LegsService.detourTimesOf()` before this runs, since it takes a call to Google (section 4.7).
   - **Refused:** the whole call, when a place is rejected (the itinerary's `isRejected()`). By the stop's own rules: when the set has fewer than 1 or more than 3 candidates, a place is already one of the stop's candidates, or a candidate doesn't fit the stop's kind and search area.
 - **`selectCandidate(stop : Stop, place : Place)`** (the tools `select_candidate` and `select_user_place`). Sets the stop's `selectedPlace` to the candidate's place. Selecting the place that's already selected changes nothing. Otherwise:
   - **Visit time:** for an attraction, the candidate's visit time. For a meal, the meal visit time, a setting (technical spec section 10).
@@ -1112,6 +1112,7 @@ It decides which days have a leg, and routes them. It's the one place that calls
 **How a leg is routed.** It's one call to Google Routes, through these places in order: where the day starts, the day's selected stops in the day's order, and where it ends. Stops with no selected place are skipped. The waypoints go in among them as pass-through points:
 
 - **Each waypoint goes in the gap where it adds the least straight-line distance,** between two neighbors in that list. The distance comes from the coordinates stored on each place, so this needs no call to Google. With more than one waypoint, they're placed one at a time, in the coordinator's order. Example: on San Francisco Day 2, with only First Awakenings in Monterey selected, Big Sur village goes between First Awakenings and San Luis Obispo. Between the Monterey hotel and First Awakenings, it would add about 50 miles, going south and back.
+- **A waypoint that's the same place as the leg's start or end is skipped.** It would add nothing to the route. Example: a Big Sur stay added on the same place as Day 2's Big Sur waypoint.
 - **Straight-line distance can guess wrong** where the road bends far from it, such as around a bay. It works because a waypoint sits on the road the coordinator wants.
 - **A late-night stop near the lodging is routed on the way in.** The leg runs through the stops in the day's order, then to where the party sleeps. Example: Moab Day 4 is routed Capitol Gorge → Panorama Point → Torrey hotel, though the party really checks in first and drives out again at night. The times barely differ, because Panorama Point is close to Torrey.
 - **With two or more selected stops, the stop-order check runs too.** It takes one or two more calls, without the waypoints, and gives `stopsInBestOrder` and `timeSavedInMinutes` (technical spec section 8).
@@ -1256,9 +1257,11 @@ Itinerary
           from        Grand Junction   (worked out: the start place)
           to          Moab hotel       (worked out: where the party sleeps tonight)
         Stops, in order (times worked out, rounded)
-          Stop 1, attraction  → Fisher Towers viewpoint       9:50 a.m.
+          Stop 1, meal        → (a Grand Junction café)       8:00 a.m.
+                                (search area: near the start place)
+          Stop 2, attraction  → Fisher Towers viewpoint       10:50 a.m.
                                 (assume: Google has no hours for it, so its hours aren't known)
-          Stop 2, meal        → Moab Brewery                  6:00 p.m.  (set time)
+          Stop 3, meal        → Moab Brewery                  6:00 p.m.  (set time)
 
       Day 2, Mon Oct 11 (worked out)
         Starts        5:30 a.m.        (the day's own: the user agreed to it for the sunrise hike)
@@ -1292,7 +1295,7 @@ Itinerary
           drive time  routed through the selected stops below
                       (about 4 hours of road time, plus the buffer, over the 4-hour default)
         Approvals
-          drive hours  5       (the user wants Goblin Valley and Capitol Reef on the way)
+          drive hours  5       (the user wants to see the hoodoos and Capitol Reef on the way)
         Stops, in order (times worked out, rounded)
           Stop 1, attraction  → Goblin Valley State Park      9:55 a.m.
           Stop 2, meal        → Gifford Homestead, Capitol Reef (pie)   1:20 p.m.
@@ -1312,6 +1315,6 @@ Itinerary
         arrives     about 1:45 p.m.
 ```
 
-Day 2's leg starts and ends at the Moab hotel without any new rule: "where the party slept last night" and "where it sleeps tonight" are both the Moab hotel. Because Day 2 has a leg, its driving is checked. If the coordinator put Monument Valley on it, about two and a half hours each way, the driving check would warn about it. Day 3 is a rest day, so it has no leg, and its dinner is close to the hotel. Days 2 and 3 start and end at the Moab stay, so every stop on them is near it. Panorama Point is at 1 a.m. after Day 4, so it is Day 4's last stop. It is near the Torrey stay, where the party sleeps that night.
+Day 2's leg starts and ends at the Moab hotel without any new rule: "where the party slept last night" and "where it sleeps tonight" are both the Moab hotel. Because Day 2 has a leg, its driving is checked. If the coordinator put Monument Valley on it, about two and a half hours each way, the driving check would warn about it. Day 3 is a rest day, so it has no leg, and its dinner is close to the hotel. Days 2 and 3 start and end at the Moab stay, so every stop on them is near it. The Grand Junction breakfast is near the start place, so Day 1's leg scout fills it (technical spec 6.2). Panorama Point is at 1 a.m. after Day 4, so it is Day 4's last stop. It is near the Torrey stay, where the party sleeps that night.
 
 The hours marked "assume" are for walking through the example, not real hours. Between them, Fisher Towers, Delicate Arch, Milt's, and Gifford Homestead cover the four results of the opening-hours check (technical spec section 8). Milt's and Gifford Homestead are planted problems. The example shows them before they are settled, so neither has an approval. In a finished itinerary they would be moved, swapped, or approved. The Moab stay is mid-range and the Torrey stay is value, from the trip's budget rule (technical spec section 9). Day 4 runs over the trip's 4-hour default, so it holds a drive hours approval with the user's reason. The stargazing stop's set time is a `scheduleTime` on the next day (section 1). Day 2 starts at 5:30 a.m. for the sunrise hike, and Day 5 starts at 10 a.m. after the late night. The user agreed to both, so each day holds its own start time. The other days use the trip brief's 8 a.m.

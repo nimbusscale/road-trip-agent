@@ -238,7 +238,7 @@ The fixed list that the classes above use:
   6. Returns a `WriteResult`.
 
   If anything refuses or fails along the way, it rolls back and passes the error on, and returns no `WriteResult`.
-- **`startTrip(owner)`** creates a new trip (domain model 3.1, "A new trip"), adds its row, and returns it.
+- **`startTrip(owner)`** creates a new trip (domain model 3.1, "A new trip"), sets its last updated to now, adds its row, and returns it.
 
 **A `WriteResult`** holds what a tool needs for its reply (domain model section 1, "What a write hands back"). It isn't stored.
 
@@ -364,6 +364,10 @@ A **repository** is a class that reads and saves one kind of record (section 2).
 - Table and column layout, indexes, and migrations.
 - How the home screen finds each trip's name, dates, and last updated, from the plan document or from extra columns.
 - The transcript adapter's code, and where the SDK's local scratch files go.
+- **Resuming with a worker call that has no result.** After a restart, the coordinator's transcript can end in an `Agent` call that never got its result. Test what the SDK does with it. If it won't resume, the adapter drops the unfinished line.
 - How long a write waits for the row lock, and each Google call's timeout.
+- **A time limit for the whole write,** as well as each Google call. One write can make several calls, such as selecting Moab lodging, which re-routes four days. Measure real times before setting it.
+- **Retrying "trip busy."** A write refused because it waited too long for the row lock (section 8.7) is retried by the tool a few times, with a short pause, before the error goes back. No agent has to understand the lock.
+- **Access checks.** `TripReader.read()`, `PlaceReader.get()`, and `SessionReader.get()` take no owner. The app checks that the signed-in user owns the trip before it makes a session's tools. `read_place` checks that the place belongs to the session's trip.
 - The time zone lookup.
 - Where sign-in records are kept (domain model 3.1).
