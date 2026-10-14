@@ -71,7 +71,7 @@ A tool can add its own checks on what an agent passes in, but it never holds a r
 
 A property has at most one of `{readOnly}` and `{viaService}`. `{keepsValue}` can go with either, such as the trip brief's `tripLengthInDays`. Reading a read-only or via-service list gives a copy that can't be changed, frozen where the language allows. So changing the copy can never change the stored list. In the properties tables, the type says "read only," "via service," or "keeps its value" instead.
 
-**Operations** are listed only for a change that goes beyond setting one property: one that creates or removes objects, changes a list, or has to change other stored data with it. An operation on an object runs only that object's integrity rules, and is named for what it changes, such as `PlacesRegistry.addPlaces()`. A change that needs a business rule is a service operation instead (section 4). An object never creates itself. Code outside it does, such as a service, or the object that holds it, such as `Trip.createSession()`. An object's own rules also run when it's created, and creating one that breaks them is refused. Example: a meal stop needs a tier. For each operation, the object's or service's section says what it changes, what follows on from it, and what it refuses.
+**Operations** are listed only for a change that goes beyond setting one property: one that creates or removes objects, changes a list, or has to change other stored data with it. An operation on an object runs only that object's integrity rules, and is named for what it changes, such as `PlacesRegistry.addPlaces()`. A change that needs a business rule is a service operation instead (section 4). An object never creates itself. Code outside it does, such as a service, or the object that holds it, such as a stay creating its days. An object's own rules also run when it's created, and creating one that breaks them is refused. Example: a meal stop needs a tier. For each operation, the object's or service's section says what it changes, what follows on from it, and what it refuses.
 
 **Arguments and returns.** Each operation gives its arguments and what it returns, such as `addPlaces(places : List<Place>) : List<Place>`. An argument that can be empty has a `?` after its type. An operation with nothing after its parentheses returns nothing. These are guidance for development. Development can change them, but each change is flagged and written back here.
 
@@ -123,19 +123,9 @@ classDiagram
         itinerary : Itinerary #123;readOnly#125;
         placesRegistry : PlacesRegistry #123;readOnly#125;
         checkResults : List~CheckResult~ #123;readOnly#125;
-        sessions : List~Session~ #123;readOnly#125;
         /name : string?
         /hasStarted : boolean
-        createSession(firstUserMessage : string) Session
         replaceCheckResults(checkResults : List~CheckResult~)
-    }
-
-    class Session {
-        id : string #123;readOnly#125;
-        createdDateTime : dateTime #123;readOnly#125;
-        title : string #123;readOnly#125;
-        agentSessionId : string #123;readOnly#125;
-        resume()
     }
 
     class PlacesRegistry {
@@ -320,7 +310,6 @@ classDiagram
     }
 
     Trip --> "1" User : owner
-    Trip *-- "*" Session : sessions
     Trip *-- "1" TripBrief : tripBrief
     Trip *-- "1" Itinerary : itinerary
     Trip *-- "1" PlacesRegistry : placesRegistry
@@ -471,7 +460,7 @@ The trip is one planned road trip. Everything else in this model belongs to a tr
 
 **Held as:** an entity. Its `id` is one we create. It has the prefix `trip_` (technical spec 7.1). Agents never see it: each session's tools are made with the trip already set, so no tool takes a trip ID (tool design section 4).
 
-**Created and changed by:** the app creates it when the user starts a new conversation from the home screen (functional spec 10.1), and creates its sessions. Code replaces its check results and sets when it was last updated. Everything else changes through the objects it holds, or through the services (section 4).
+**Created and changed by:** the app creates it when the user starts a new conversation from the home screen (functional spec 10.1). Code replaces its check results and sets when it was last updated. Everything else changes through the objects it holds, or through the services (section 4).
 
 | Property | Stored or worked out | Type | Notes |
 |---|---|---|---|
@@ -481,7 +470,6 @@ The trip is one planned road trip. Everything else in this model belongs to a tr
 | `itinerary` | Stored | `Itinerary`, an entity held by the trip, read only | Created holding only its last day |
 | `placesRegistry` | Stored | `PlacesRegistry`, held by the trip, read only | The trip's places and rejected places. Created with the trip, empty. Code passes it into the services that need it. See below |
 | `checkResults` | Stored | `List<CheckResult>`, in no order, read only | The check results that applied after the last coordinator write. Only replaced as a whole, never added to. See `replaceCheckResults()` |
-| `sessions` | Stored | `List<Session>`, in the order created, read only | Only `createSession()` adds to it, and nothing removes from it. See Session, below |
 | `lastUpdatedDateTime` | Stored | `dateTime` | Set at the end of every write. See below |
 | `name` | Worked out | `string?` | The trip brief's `focus` and the start month, such as "Pacific Coast Highway, May 2027." See below |
 | `hasStarted` | Worked out | `boolean` | True when today's date is on or after the itinerary's `startDate`. False while the itinerary has no `startDate`. Today's date is looked up when needed, in the start place's time zone (see Rules) |
@@ -490,18 +478,7 @@ The trip is one planned road trip. Everything else in this model belongs to a tr
 
 **`lastUpdatedDateTime`.** Code sets it at the end of every write (section 1): to the trip brief, the itinerary, candidates, weather text, or rejected places. That includes worker writes. A refused write changes nothing, so it doesn't count. Neither does a read, or saving places from a search, since the plan doesn't change. The home screen shows it (functional spec 3).
 
-**Session.** One conversation with the agent about this trip (functional spec 10.1). It's an entity held by the trip. Its `id` has the prefix `session_`, and agents never see it.
-
-| Property | Stored or worked out | Type | Notes |
-|---|---|---|---|
-| `id` | Stored | `string`, read only | Never shown to agents or users |
-| `createdDateTime` | Stored | `dateTime`, read only | The trip's session list shows its date |
-| `title` | Stored | `string`, read only | A few words for the trip's session list. Set when the session is created, from the user's first message, cut to about 60 characters at a word break. Example: "Can we add a night in Big Sur and drop one in…" |
-| `agentSessionId` | Stored | `string`, read only | The Agent SDK's ID for this conversation. The app chooses it when the session is created. The SDK keeps the transcript, and persistence stores it ([persistence design](persistence.md), section 6). The transcript's shape isn't part of this model |
-
-A session is created and begins at the same moment, so it has no separate "start." It's never closed. The user just leaves, and can resume it later.
-
-- **`resume()`.** The app runs it when the user picks a session from the trip's list. It restores the transcript by `agentSessionId`, and the coordinator continues with that conversation's context. It works on a started trip too.
+**Sessions aren't part of the trip.** A session is a conversation about the trip, not part of the plan, so it isn't in this model. The trip doesn't hold its sessions, and nothing here creates one. The [persistence design](persistence.md), section 8.4, covers them.
 
 **PlacesRegistry.** Every place found for the trip, and the places the user rejected. It's held by the trip in `placesRegistry`, with no `id`, and created with the trip. The trip holds it so that it's saved with the trip. Code passes it into the services that need it, such as `StopsService`, which refuses a rejected place as a candidate (section 4). Its operations run only its own rules.
 
@@ -522,11 +499,10 @@ The registry keeps a change method for `rejectedPlaces` that only services reach
 - **A place already rejected is skipped** without a word, like adding to a set. It keeps its first reason, and the new one is dropped.
 - **A rejection whose place isn't in `places` is refused,** and so is the whole call.
 
-**A new trip** is created by code outside the trip, when the user starts a new conversation from the home screen. It starts with a trip brief that holds only its usual start time, an itinerary holding only its last day, an empty places registry, and empty `checkResults`. Then `createSession()` creates its first session.
+**A new trip** is created by code outside the trip, when the user starts a new conversation from the home screen. It starts with a trip brief that holds only its usual start time, an itinerary holding only its last day, an empty places registry, and empty `checkResults`.
 
 **Operations:**
 
-- **`createSession(firstUserMessage : string) : Session`.** The app runs it when the user sends the first message of a new trip, or of a new session on a trip. It creates a session, sets its `title` from `firstUserMessage`, gives it a new `agentSessionId`, adds it to `sessions`, and returns it. The coordinator gets no earlier transcripts. It begins by reading the itinerary, the trip brief, and memory (technical spec 5.2). It works on a started trip too.
 - **`replaceCheckResults(checkResults : List<CheckResult>)`** (the `FeasibilityChecker`, at the end of every write that runs the checks). Takes the full list of current check results, which can be empty. Replaces the whole of `checkResults` in one step. Nothing can add to the list or remove one result from it. The trip only stores the list. Working out the results and comparing them with the saved list is the `FeasibilityChecker`'s job (section 4.8).
   - **Refused:** the whole call, when two check results have the same `check` and `subjectId`. Example: a stop can have an `openingHoursClosed` result and a `lateForSetTime` result, but not two of either.
 
@@ -535,7 +511,7 @@ The registry keeps a change method for `rejectedPlaces` that only services reach
 **Rules:**
 
 - **A trip belongs to one user.** Only that user, and the agents in that user's sessions, can reach it (functional spec 10.4).
-- **A started trip can't be changed.** Once `hasStarted` is true, every write that changes the plan is refused, and the error says the trip has started (technical spec section 8). That covers the trip brief, the itinerary, candidates, weather text, and rejected places. Objects and services don't check this. The tools check it before a write, and persistence checks it again when the trip is saved (section 1). Persistence still saves a started trip's new sessions, and places saved from searches, since neither changes the plan. Reads still work, and sessions can still be created and resumed.
+- **A started trip can't be changed.** Once `hasStarted` is true, every write that changes the plan is refused, and the error says the trip has started (technical spec section 8). That covers the trip brief, the itinerary, candidates, weather text, and rejected places. Objects and services don't check this. The tools check it before a write, and persistence checks it again when the trip is saved (section 1). Persistence still saves places from searches on a started trip, since they don't change the plan. Reads still work. Sessions aren't part of the trip, so they can still be started and resumed.
 - **Today's date is the date in the start place's time zone,** since that's where the trip begins. It isn't a property of the trip. Code looks it up when a rule needs it, with the calendar's `today()` (section 4.1). The time zone is worked out from the start place's coordinates. The start-date check, the started-trip lock, and the forecast rules all use it (technical spec 5.2).
 - **All of a trip's times are in the start place's time zone.** A trip that crosses into another time zone shows times off by the difference after the border. That's a known limit of this version.
 - **The trip brief holds what the user wants. The itinerary holds the plan.** No fact is stored in both. Changing the brief never changes the itinerary. The checks compare them, and the coordinator changes the plan with the user (technical spec section 8).
