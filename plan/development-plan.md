@@ -243,6 +243,12 @@ How the server signs in to the Claude Max plan is still open. This phase settles
 
 **What Joe tried before:** in an earlier proof of concept, the app's container had Claude Code in it, and `CLAUDE_CONFIG_DIR` pointed at a mounted volume. Joe ran `claude` in the container once and did `/login`, and the login was saved to that volume. Later runs of the SDK used it. The setup is described in `/home/jjk3/PycharmProjects/personal/agentic-study/container/README.md`, outside this repo. It's one option to try. Check it against Anthropic's current docs.
 
+**Before starting**:
+
+- Joe does the sign-in himself, since it opens a browser. That's `/login` in the container, as in his proof of concept, or `claude setup-token`, which makes a long-lived token.
+- Joe checks that paid use past the plan's limits is off. It's a setting in his Claude account.
+- Auto mode may block changes on the server, such as editing `.env` or running the script in the `app` container. If it does, ask Joe to approve the step or do it himself.
+
 **Do:**
 
 - Find out, from Anthropic's current docs, how a server signs in to a Max plan for the Agent SDK. Try the options that look right.
