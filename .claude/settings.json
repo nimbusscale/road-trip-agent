@@ -1,5 +1,9 @@
 {
   "permissions": {
+    "allow": [
+      "Bash(ssh root@projects.jjk3.com:*)",
+      "Bash(gh run view:*)"
+    ],
     "ask": [
       "Edit(/tsconfig*.json)",
       "Edit(/eslint.config.*)",

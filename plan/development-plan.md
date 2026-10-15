@@ -37,7 +37,7 @@ This document lists the development work, phase by phase, in the order it's done
 | 10 | The trip, and saving it | 2026-10-15, [PR #25](https://github.com/nimbusscale/road-trip-agent/pull/25) |
 | 11 | Store memory | 2026-10-15, [PR #20](https://github.com/nimbusscale/road-trip-agent/pull/20) |
 | 12 | Store sessions and transcripts | 2026-10-15, [PR #23](https://github.com/nimbusscale/road-trip-agent/pull/23) |
-| 12a | Put phases 10 to 12 together | |
+| 12a | Put phases 10 to 12 together | 2026-10-15, [PR #26](https://github.com/nimbusscale/road-trip-agent/pull/26) |
 | 13 | The first coordinator | |
 | 14 | Chat in the browser | |
 | **The itinerary** | | |
