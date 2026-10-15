@@ -1,6 +1,6 @@
 # Road Trip Planner: Technical Specification (MVP)
 
-This document covers how the app works under the hood. It covers the agents: which agents exist, what each one does, which tools each one gets, and what goes in each agent's instructions. It also covers memory (section 3.1). It is written at the level of design, not of any one SDK's configuration. For the planning behavior it implements, see the [functional spec](functional-spec.md). For the objects it stores, see the [domain model](domain-model.md). For each tool's server, inputs, and which agents get it, see the [tool design](tools.md). For the tools' data sources, see the [data sources index](data-sources/README.md). For how a trip, its sessions, and memory are stored and saved, see the [persistence design](persistence.md).
+This document covers how the app works under the hood. It covers the agents: which agents exist, what each one does, which tools each one gets, and what goes in each agent's instructions. It also covers memory (section 3.1). It is written at the level of design, not of any one SDK's configuration. For the planning behavior it implements, see the [functional spec](functional-spec.md). For the objects it stores, see the [domain model](domain-model.md). For each tool's server, inputs, and which agents get it, see the [tool design](tools.md). For the tools' data sources, see the [data sources index](data-sources/README.md). For how a trip, its sessions, and memory are stored and saved, see the [persistence design](persistence.md). For where the app runs, sign-in, and deploys, see the [systems design](systems.md).
 
 ---
 
@@ -27,7 +27,7 @@ A worker is called like a tool. It gets a worker brief, does its work, and retur
 - **Workers write candidates directly and return a short summary.** Full place details go on the place, and from there to the option cards. The coordinator sees only one line per candidate (section 7).
 - **Mechanical feasibility checks run in code.** The itinerary write tool checks every change and returns any broken rules (section 8). The agent handles the judgment: which trade-offs to offer.
 - **The coordinator resolves budget rules into a tier before briefing a worker.** A worker gets "mid-range, from rule: 2+ nights", never the rule text (section 9).
-- **One Postgres database stores everything:** trips, their places, their sessions, the session transcripts, and memory. Object storage, such as DigitalOcean Spaces, is available but not used. Transcripts are many small additions read back in order, which suits Postgres better ([persistence design](persistence.md), section 1).
+- **One Postgres database stores everything:** trips, their places, their sessions, the session transcripts, and memory. Object storage, DigitalOcean Spaces, is used only for backups ([systems design](systems.md), section 9). Transcripts are many small additions read back in order, which suits Postgres better ([persistence design](persistence.md), section 1).
 
 ---
 
@@ -229,7 +229,7 @@ Writes weather and clothing guidance per stay (functional spec 8).
 
 ### 7.1 IDs
 
-- **IDs are short random strings, with a prefix for the kind of item.** Example: `stop_k7m2x9qa`. The prefix is `trip_`, `brief_` (the trip brief), `itin_` (the itinerary), `session_`, `stay_`, `day_`, `stop_`, `place_`, or `mem_` (a memory item). A user's ID is the exception. It likely comes from the sign-in service, which is settled during development. After it come 8 random lowercase letters and digits, leaving out ones that are easy to confuse when copied, such as `0` and `o` or `1` and `l`. That gives about a trillion combinations.
+- **IDs are short random strings, with a prefix for the kind of item.** Example: `stop_k7m2x9qa`. The prefix is `trip_`, `brief_` (the trip brief), `itin_` (the itinerary), `session_`, `stay_`, `day_`, `stop_`, `place_`, or `mem_` (a memory item). A user's ID is the exception. It's Supabase's ID for the user, a UUID ([systems design](systems.md), section 3). After it come 8 random lowercase letters and digits, leaving out ones that are easy to confuse when copied, such as `0` and `o` or `1` and `l`. That gives about a trillion combinations.
   - **Random, not counted.** A worker can only reach the stops and stay in its worker brief, because those are the only IDs it sees. Any other ID it makes up doesn't exist, so the tool rejects it. Counted IDs such as `stop-12` and `stop-13` would let a slip land on a real stop.
   - **Short, not UUIDs.** An ID like this is about 5 tokens, against about 20 for a UUID. The itinerary holds hundreds of IDs, and the coordinator reads it often ([tool design](tools.md), 2.1).
   - **The prefix catches mix-ups.** If a stay ID is passed to a stop tool, the error can say so, instead of just "not found."

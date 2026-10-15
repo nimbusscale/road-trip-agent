@@ -18,7 +18,7 @@ Planning only. The application never books, reserves, or purchases anything.
 
 ### MVP
 
-- Account sign-up, sign-in, sign-out
+- Sign-in and sign-out. There's no sign-up: the admin adds each account (section 3)
 - Conversational trip planning with the agent
 - Feasibility checking (driving time, seasonality, must-sees vs days)
 - Recommendations for lodging, restaurants, and attractions, presented as selectable option cards
@@ -57,6 +57,7 @@ Planning only. The application never books, reserves, or purchases anything.
 ## 3. Users and accounts
 
 - One account per person. Each trip belongs to exactly one user and is visible only to that user.
+- The admin adds each account, with a password. Nobody can sign up on their own. A user signs in with their email and password.
 - **Home screen:** list of the user's trips (name, dates, last updated), a "New trip" action, and the ability to open any trip.
 
 ---

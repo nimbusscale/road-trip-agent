@@ -387,7 +387,7 @@ The trip is one planned road trip. Everything else in this model belongs to a tr
 | Property | Stored or worked out | Type | Notes |
 |---|---|---|---|
 | `id` | Stored | `string`, read only | Never shown to agents or users |
-| `owner` | Stored | `User`, read only | Set when the trip is created. A user holds nothing else in this model: sign-in details are settled during development, and memory isn't part of this model (see the top of this document) |
+| `owner` | Stored | `User`, read only | Set when the trip is created. A user holds nothing else in this model: sign-in is in the [systems design](systems.md), section 3, and memory isn't part of this model (see the top of this document) |
 | `tripBrief` | Stored | `TripBrief`, an entity held by the trip, read only | Created with the trip, empty except for its usual start time |
 | `itinerary` | Stored | `Itinerary`, an entity held by the trip, read only | Created holding only its last day |
 | `lastUpdatedDateTime` | Stored | `dateTime` | Set when the trip is created, and at the end of every write. See below |

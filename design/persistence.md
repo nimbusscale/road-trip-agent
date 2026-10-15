@@ -11,7 +11,7 @@ What a write is, and what it changes, is in the [domain model](domain-model.md),
 **One Postgres database holds everything:** trips, their places, their sessions, the session transcripts, and memory.
 
 - **Not in the app's memory.** The app runs in a container that can restart at any time ([Google design](data-sources/google.md), section 5). Anything held only in memory goes with it. It also wouldn't work across more than one copy of the app.
-- **Not in object storage.** S3-style object storage, such as DigitalOcean Spaces, is available, but nothing uses it. It suits large files written once. Transcripts are the opposite: many small additions, read back in order (section 6). Object storage can't add to a file that already exists, so each addition would be its own small file. One store is also simpler to run and back up.
+- **Not in object storage.** S3-style object storage, DigitalOcean Spaces, holds only the nightly backups ([systems design](systems.md), section 9). It suits large files written once. Transcripts are the opposite: many small additions, read back in order (section 6). Object storage can't add to a file that already exists, so each addition would be its own small file. One store is also simpler to run and back up.
 - **Settings aren't in the database.** They're in a config file the app loads when it starts ([technical spec](technical-spec.md), section 10).
 
 ---
@@ -437,4 +437,3 @@ A **memory item** is one plain-text note in user memory or in one trip's memory 
 - **Retrying "trip busy."** A write refused because it waited too long for the row lock (section 8.7) is retried by the tool a few times, with a short pause, before the error goes back. No agent has to understand the lock.
 - **Access checks.** `TripReader.read()`, `PlaceReader.get()`, and `SessionReader.get()` take no owner. The memory classes do take the user (section 8.8). The app checks that the signed-in user owns the trip before it makes a session's tools. `read_place` checks that the place belongs to the session's trip.
 - The time zone lookup.
-- Where sign-in records are kept (domain model 3.1).
