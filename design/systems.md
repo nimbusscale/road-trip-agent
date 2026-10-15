@@ -131,7 +131,7 @@ The commands, code standards, and tests are in [DEVELOPMENT.md](../DEVELOPMENT.m
 
 **A merge to `main` deploys it.** A GitHub Actions workflow, `.github/workflows/deploy.yml`:
 
-1. Runs `npm run check`. If it fails, nothing is built or deployed. The check also runs on every pull request.
+1. Runs `npm run check`. If it fails, nothing is built or deployed. The check also runs on every pull request. It isn't a required status check, so a PR can still be merged when it fails, for the times that's needed.
 2. Builds two images: `app`, with the back end, and `web`, with Caddy and the front end's built files.
 3. Pushes them to GitHub's container registry, tagged with the commit.
 4. Copies `compose.yaml` and the repo's `ops/` folder to the server, over SSH. The server keeps only its `.env` file between deploys.
