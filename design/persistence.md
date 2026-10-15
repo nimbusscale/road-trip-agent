@@ -105,13 +105,29 @@ A started trip can't be changed (domain model 3.1). `TripWriter` refuses a write
 
 **A session row** holds the session's `id`, its trip, `createdDateTime`, `title`, and `agentSessionId`: the Agent SDK's ID for the conversation (section 8.5). The app chooses that ID, a UUID, when it creates the session, and passes it to the SDK. So it's known before the first message. Creating a session adds a row. It takes no row lock and doesn't touch the plan, so it works on a started trip.
 
-**The Agent SDK keeps the transcript.** On its own, the SDK writes each session's transcript to a file on local disk, one line per message, with each worker's transcript beside it. That disk goes when the container restarts, so the local file is only scratch space. The SDK's `sessionStore` option takes an adapter we write. The SDK sends it each transcript line, and on resume it asks the adapter for them back.
+**The Agent SDK keeps the transcript.** On its own, the SDK writes each session's transcript to a file on local disk, one line per message, with each worker's transcript beside it. The SDK's `sessionStore` option takes an adapter we write, the `TranscriptAdapter`. The SDK sends it a copy of each line right after writing it to the local file, and on resume it asks the adapter for the lines back. So the local file is only scratch space (below). Phase 12 checked all of this against version 0.3.301 of the SDK.
 
-- **The adapter stores each line as a row,** under the session's `agentSessionId`, in the order the SDK sent them. A worker's transcript is stored under the same ID, marked with the worker's own key from the SDK.
+- **The adapter stores each line as a row,** under the session's `agentSessionId`, in the order the SDK sent them. A worker's transcript is stored under the same ID, marked with the worker's own key from the SDK, such as `subagents/agent-a7359654`.
+- **The SDK's project key is ignored.** The SDK sends a project key with each line: the app's working folder, turned into a name. It differs between a laptop and the server. `agentSessionId` is unique on its own, so the adapter stores lines by it and the worker key only.
+- **A line that's already stored is skipped.** The SDK sends a line again when a send fails. Most lines carry their own ID, and a line whose ID that transcript already has is skipped. A line with no ID is always stored. Not every line is a message: some are titles, cost totals, or markers the SDK keeps for itself.
 - **Lines are sent as soon as they're written.** The SDK's "eager" setting does this. Its default sends them at the end of each turn, so a restart in the middle of a turn would lose the whole turn.
-- **Resuming** asks the adapter for the session's lines, and the SDK continues the conversation from them (section 8.5).
+- **A failed send is tried 3 times in all.** Then the SDK drops those lines, sends the app a `mirror_error` message, and the turn goes on. So a database outage during a turn can lose lines too, not only a restart.
+- **Resuming** asks the adapter for the session's lines, and for each worker's. The SDK writes them to a temporary folder of its own, continues the conversation from them, and removes the folder when that run ends (section 8.5). A resume never reads the local file.
 - **Transcript lines are never changed or removed** in the MVP. Nothing deletes a trip or a session.
 - **The SDK marks `sessionStore` as alpha,** meaning it may change. If it breaks, the fallback is to copy the local file to Postgres ourselves at the end of each turn, and write it back to disk before a resume.
+
+**Claude Code's own files are scratch.** The app sets `CLAUDE_CONFIG_DIR`, the folder where the SDK's Claude Code process keeps its files, to `road-trip-agent-claude` in the system temp folder. On the server and on Linux, that's `/tmp/road-trip-agent-claude`. Nothing in the app reads or cleans it. Under the temp folder, it stays out of a developer's own `~/.claude`, so local runs don't mix the app's transcripts with the developer's own Claude Code sessions. Every conversation shares the folder:
+
+| In the folder | Holds | One for |
+|---|---|---|
+| `projects/<working folder>/<agentSessionId>.jsonl` | A session's transcript from its first run, with its workers' transcripts in a folder of the same name beside it | Each session |
+| `.claude.json`, with copies in `backups/` | Claude Code's own state, such as its machine ID and cached feature flags. No conversation | Every conversation |
+| `policy-limits.json` and `remote-settings.json`, each with a timestamp file | Settings Claude Code fetches for the account | Every conversation |
+
+A resumed run doesn't write here. Its files go in the temporary folder the SDK makes for it, `claude-resume-` and a random name in the system temp folder, which the SDK removes when the run ends.
+
+- **Two conversations at once don't get in each other's way.** Phase 12 ran two at the same time on one folder. Both finished, each transcript held only its own lines, and the shared files were left whole.
+- **The folder stays small.** A deploy replaces the container's disk. Claude Code also deletes its transcripts after 30 days by default.
 
 Transcripts don't go through a write, and take no row lock.
 
@@ -242,6 +258,12 @@ classDiagram
         <<SDK sessionStore>>
     }
 
+    class TranscriptRepository {
+        addLines(agentSessionId : string, workerKey : string, lines : List~Line~)
+        loadLines(agentSessionId : string, workerKey : string) List~Line~
+        listWorkerKeys(agentSessionId : string) List~string~
+    }
+
     TripWriter ..> TripRepository
     TripWriter ..> WriteResult : creates
     TripReader ..> TripRepository
@@ -254,9 +276,10 @@ classDiagram
     MemoryWriter ..> MemoryRepository
     MemoryWriter ..> TripRepository
     MemoryReader ..> MemoryRepository
+    TranscriptAdapter ..> TranscriptRepository
 ```
 
-The arrows mean "uses." `Trip`, `Place`, `User`, `LegChange`, and `CheckComparison` are the domain model's. `Session` isn't part of the domain model: it's in section 8.5. Neither is `MemoryItem`: it's in section 8.8. `WriteResult` is in section 8.2.
+The arrows mean "uses." `Trip`, `Place`, `User`, `LegChange`, and `CheckComparison` are the domain model's. `Session` isn't part of the domain model: it's in section 8.5. Neither is `MemoryItem`: it's in section 8.8. `WriteResult` is in section 8.2. A `Line` is one transcript line, as the SDK wrote it (section 6).
 
 The fixed list that the classes above use:
 
@@ -347,12 +370,12 @@ Nothing about a session changes once it's created. It's never closed: the user j
 
 **SessionWriter** starts sessions.
 
-- **`start(tripId, firstMessage)`** creates a session, with its title from `firstMessage`, a new `agentSessionId`, and the time now. It saves it with `SessionRepository.add()`, and returns it. The coordinator gets no earlier transcripts. It begins by reading the itinerary, the trip brief, and memory (technical spec 5.2).
+- **`start(tripId, firstMessage)`** creates a session, with its title from `firstMessage`, a new `agentSessionId`, and the time now. It saves it with `SessionRepository.add()`, and returns it. It refuses an empty `firstMessage`. The coordinator gets no earlier transcripts. It begins by reading the itinerary, the trip brief, and memory (technical spec 5.2).
 
 **SessionReader** reads sessions.
 
 - **`listForTrip(tripId)`** returns the trip's sessions, in the order created, for the trip's session list.
-- **`get(sessionId)`** returns one session. To resume it, the app hands its `agentSessionId` and the `TranscriptAdapter` to the SDK, which restores the transcript (section 6). The coordinator then continues with that conversation's context. The app adds a line to the user's first message after the resume, saying the session was resumed, so the coordinator reads the itinerary and memory again (technical spec 5.2).
+- **`get(sessionId)`** returns one session, or nothing when there's no session with that ID. To resume it, the app hands its `agentSessionId` and a `TranscriptAdapter` to the SDK, which restores the transcript (section 6). The coordinator then continues with that conversation's context. The app adds a line to the user's first message after the resume, saying the session was resumed, so the coordinator reads the itinerary and memory again (technical spec 5.2).
 
 ### 8.6 Places
 
@@ -401,7 +424,13 @@ A **repository** is a class that reads and saves one kind of record (section 2).
 - **`save(item)`** saves an item's new text.
 - **`remove(itemId)`** removes an item's row.
 
-**TranscriptAdapter** is section 6's adapter for the Agent SDK's `sessionStore` option. The SDK sets its operations, so they aren't listed here. The app hands it to the SDK when it starts or resumes a session. It stores each transcript line as a row, and gives the lines back on resume.
+**TranscriptRepository** reads and adds transcript line rows (section 6). A worker key is empty for the coordinator's own transcript.
+
+- **`addLines(agentSessionId, workerKey, lines)`** adds each line as a row, in the order given. It skips a line whose ID that transcript already has.
+- **`loadLines(agentSessionId, workerKey)`** loads one transcript's lines, in the order added.
+- **`listWorkerKeys(agentSessionId)`** lists the keys of the session's worker transcripts.
+
+**TranscriptAdapter** is section 6's adapter for the Agent SDK's `sessionStore` option. The SDK sets its operations, so they aren't listed here. The app hands one to the SDK, with the "eager" setting, each time it starts or resumes a session. It stores each transcript line as a row with `TranscriptRepository`, and gives the lines back on resume. It stores each batch only after the one before it is stored, so the lines keep the SDK's order.
 
 ### 8.8 Memory
 
