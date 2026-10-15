@@ -343,6 +343,10 @@ The started-trip lock at save can't be tested yet, since nothing can set a start
 
 **Design:** [Technical spec](../design/technical-spec.md), sections 1, 3.1, 5.1, and 5.2. [Tool design](../design/tools.md), sections 1, 2.1 (the trip brief tools), 2.2, and 4.
 
+**Open questions:**
+
+- Which model does each agent use, and where is it set? No design doc names one. Left to Claude Code, the model depends on where it runs: in phase 9, the same script got Opus run on Joe's machine and Sonnet in the `app` container. So the app should set the model itself. Raised in phase 9.
+
 **Do:**
 
 - Make each session's `trip` and `memory` MCP servers, with the trip and user already set (tool design, section 4). For now, `trip` holds only `read_trip_brief` and `update_trip_brief`. `memory` holds all four memory tools.

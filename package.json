@@ -27,6 +27,7 @@
     "vitest": "5.0.5"
   },
   "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "0.3.301",
     "@hono/node-server": "2.1.5",
     "@supabase/supabase-js": "2.117.2",
     "hono": "4.13.13",
@@ -45,8 +46,9 @@
     "dev:app": "tsx watch --env-file=.env src/main.ts",
     "dev:web": "vite",
     "migrate": "tsx --env-file=.env src/migrate.ts",
+    "ask-claude": "tsx --env-file=.env src/ask-claude.ts",
     "build": "npm run build:app && npm run build:web",
-    "build:app": "esbuild src/main.ts src/migrate.ts --bundle --platform=node --format=esm --packages=external --sourcemap --outdir=dist/app",
+    "build:app": "esbuild src/main.ts src/migrate.ts src/ask-claude.ts --bundle --platform=node --format=esm --packages=external --sourcemap --outdir=dist/app",
     "build:web": "vite build",
     "check": "npm run format:check && npm run typecheck && npm run lint && npm run test",
     "format": "prettier --write .",
