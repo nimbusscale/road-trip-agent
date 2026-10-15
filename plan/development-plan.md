@@ -28,8 +28,8 @@ This document lists the development work, phase by phase, in the order it's done
 | 3 | Combined with phase 4 | |
 | 4 | Choose the libraries, and run the app locally | 2026-10-15, [PR #6](https://github.com/nimbusscale/road-trip-agent/pull/6) |
 | 5 | Prepare the server | 2026-10-15, no PR |
-| 6 | Deploy on merge | |
-| 7 | Back up the database nightly | |
+| 6 | Deploy on merge | 2026-10-15, [PR #9](https://github.com/nimbusscale/road-trip-agent/pull/9) |
+| 7 | Back up the database nightly | 2026-10-15, [PR #8](https://github.com/nimbusscale/road-trip-agent/pull/8) |
 | 8 | Sign in | |
 | 9 | Run the Agent SDK on the server | |
 | **The thin slice** | | |
@@ -79,7 +79,7 @@ By the end of this part, an empty app runs on `roadtrip.jjk3.com`, deploys on ea
 
 - Joe creates two keys in the Google Cloud console. The server key is restricted to the Routes, Places (New), and Weather APIs. The browser key is restricted to the Maps JavaScript API, and to these addresses: `https://roadtrip.jjk3.com/*`, `http://localhost:5173/*` for `npm run dev`, and `https://localhost/*` for the whole stack run locally.
 - Joe confirms the $100 budget alert is set.
-- Put both keys in the local `.env` file, as `GOOGLE_MAPS_SERVER_KEY` and `VITE_GOOGLE_MAPS_BROWSER_KEY` ([Google design](../design/data-sources/google.md), section 1).
+- Put both keys in the local `.env` file, as `GOOGLE_MAPS_SERVER_KEY` and `VITE_GOOGLE_MAPS_BROWSER_KEY` ([Google design](../design/data-sources/google.md), section 1). **2026-10-15:** Joe also put both keys in the server's `.env` file.
 - Add `.env.example`, listing every variable the app reads, with no values. Later phases add to it.
 
 **Done when:**
@@ -199,7 +199,7 @@ The server already exists, with Ubuntu, and so do its DNS records: `projects.jjk
 
 - Add a script that dumps the database, copies the dump to the Spaces bucket, and removes dumps older than 3 days. The bucket is `jjk3-backups`, in the `nyc3` region, at `https://nyc3.digitaloceanspaces.com`.
 - Run it every night in a `backup` Compose service, with its own image, in the `production` profile. Nothing is installed on the server outside Docker, such as a crontab, so `docker compose down` stops it with everything else. Have the phase 6 deploy build, push, and start the image too.
-- Put the Spaces access key and `COMPOSE_PROFILES=production` in the server's `.env` file. The local `.env` has the key as `SPACES_ACCESS_KEY_ID` and `SPACES_SECRET_ACCESS_KEY`.
+- ~~Put the Spaces access key and `COMPOSE_PROFILES=production` in the server's `.env` file. The local `.env` has the key as `SPACES_ACCESS_KEY_ID` and `SPACES_SECRET_ACCESS_KEY`.~~ **Done 2026-10-15:** Joe added both.
 
 **What phase 5 set up:** the server has Docker and Compose, and no S3 upload tool. Run one in the backup image.
 
@@ -217,12 +217,12 @@ The server already exists, with Ubuntu, and so do its DNS records: `projects.jjk
 
 **Open questions:**
 
-- How does the app get the Supabase project's public signing keys, and how often does it refresh them?
-- How does the `web` image get the Supabase project's address and browser key? Vite builds them into the front end's files, and the image is built in GitHub Actions, which has no `.env` (systems design section 7). Phase 25 asks the same about Google's browser key, so answer both here. One option is GitHub repo variables, passed to the image build as build arguments. Raised in phase 6.
+- ~~How does the app get the Supabase project's public signing keys, and how often does it refresh them?~~ **Closed 2026-10-15,** agreed in chat: the project signs tokens with an asymmetric key, `ECC (P-256)`, so the app needs no secret. It downloads the public keys from `<project URL>/auth/v1/.well-known/jwks.json` and keeps them in memory. It downloads them again only when a token names a key it hasn't seen, such as after a key rotation, with a limit on how often. A library such as `jose` does this. The app reads the project URL from `SUPABASE_URL`, kept apart from the front end's `VITE_SUPABASE_URL`. Joe added it to the local `.env`. The server's `.env` still needs it. This phase's PR writes it into systems design section 3.
+- ~~How does the `web` image get the Supabase project's address and browser key? Vite builds them into the front end's files, and the image is built in GitHub Actions, which has no `.env` (systems design section 7). Phase 25 asks the same about Google's browser key, so answer both here. One option is GitHub repo variables, passed to the image build as build arguments. Raised in phase 6.~~ **Closed 2026-10-15,** agreed in chat: GitHub repo variables, passed to the `web` image build as build arguments. The values aren't secret, since they end up in the front end's files, but they stay out of the repo so Google and GitHub don't flag the key as exposed. Joe sets `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, and `VITE_GOOGLE_MAPS_BROWSER_KEY` in GitHub, and the same names go in the local `.env`. This phase's PR writes it into systems design section 7.
 
 **Do:**
 
-- Joe confirms the Supabase project has sign-up turned off and email sign-in on. He adds his own user, and a second test user for isolation tests.
+- ~~Joe confirms the Supabase project has sign-up turned off and email sign-in on. He adds his own user, and a second test user for isolation tests.~~ **Done 2026-10-15:** sign-up is off. Joe added `joe@jjk3.com` and `test@jjk3.com` by hand, set their passwords, and confirmed them. New users can only be added this way.
 - Add a sign-in page and sign-out to the front end, with Supabase's JavaScript library. The front end sends the token with each `/api` request.
 - In the app, check each token's signature with the Supabase project's public signing keys, and parse its contents with Zod. Refuse a request with no valid token.
 - Add `GET /api/me`, which returns the signed-in user's ID.
@@ -240,6 +240,8 @@ The server already exists, with Ubuntu, and so do its DNS records: `projects.jjk
 How the server signs in to the Claude Max plan is still open. This phase settles it.
 
 **Design:** [Systems design](../design/systems.md), sections 2, 5, and 8.
+
+**What Joe tried before:** in an earlier proof of concept, the app's container had Claude Code in it, and `CLAUDE_CONFIG_DIR` pointed at a mounted volume. Joe ran `claude` in the container once and did `/login`, and the login was saved to that volume. Later runs of the SDK used it. The setup is described in `/home/jjk3/PycharmProjects/personal/agentic-study/container/README.md`, outside this repo. It's one option to try. Check it against Anthropic's current docs.
 
 **Do:**
 
