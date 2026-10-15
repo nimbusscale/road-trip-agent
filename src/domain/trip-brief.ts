@@ -2,6 +2,7 @@ import { keptText, keptValue, startingValue } from "./keeps-value.js";
 import type { RouteType } from "./route-type.js";
 import { RuleError } from "./rule-error.js";
 import type { Tier } from "./tier.js";
+import { EIGHT_A_M, timeOfDayFrom, type TimeOfDay } from "./time-of-day.js";
 import { VIA_SERVICE } from "./via-service.js";
 
 // What a trip brief stores, to create one: a new one, or one read back from storage.
@@ -14,16 +15,13 @@ export interface TripBriefFields {
   comfortableDrivingInHours: number | null;
   routePreference: RouteType | null;
   restDaysText: string | null;
-  usualStartTime: string;
+  usualStartTime: TimeOfDay;
   defaultTier: Tier | null;
   budgetRulesText: string | null;
   mealPreferencesText: string | null;
 }
 
-// A time of day, as "HH:MM" on a 24-hour clock, such as "08:00" or "17:30".
-const TIME_OF_DAY = /^([01]\d|2[0-3]):[0-5]\d$/;
-
-export const DEFAULT_USUAL_START_TIME = "08:00";
+export const DEFAULT_USUAL_START_TIME = EIGHT_A_M;
 
 // What the user wants from the trip (domain model section 3.2). Every item but
 // usualStartTime is {keepsValue}. tripLengthInDays and comfortableDrivingInHours are
@@ -37,7 +35,7 @@ export class TripBrief {
   #comfortableDrivingInHours: number | null;
   #routePreference: RouteType | null;
   #restDaysText: string | null;
-  #usualStartTime: string;
+  #usualStartTime: TimeOfDay;
   #defaultTier: Tier | null;
   #budgetRulesText: string | null;
   #mealPreferencesText: string | null;
@@ -136,11 +134,11 @@ export class TripBrief {
     this.#restDaysText = keptText(value, itemName("restDaysText"));
   }
 
-  get usualStartTime(): string {
+  get usualStartTime(): TimeOfDay {
     return this.#usualStartTime;
   }
 
-  set usualStartTime(value: string) {
+  set usualStartTime(value: TimeOfDay) {
     this.#usualStartTime = checkedUsualStartTime(value);
   }
 
@@ -198,11 +196,6 @@ function checkedComfortableDriving(value: number): number {
   return value;
 }
 
-function checkedUsualStartTime(value: string): string {
-  if (!TIME_OF_DAY.test(value)) {
-    throw new RuleError(
-      `The trip brief's usualStartTime has to be a time of day as HH:MM, such as 08:00. It was given "${value}".`,
-    );
-  }
-  return value;
+function checkedUsualStartTime(value: TimeOfDay): TimeOfDay {
+  return timeOfDayFrom(value, itemName("usualStartTime"));
 }
