@@ -1,0 +1,13 @@
+{
+  "lateAllowanceMinutes": 15,
+  "stopOrderMinimumSavingMinutes": 15,
+  "driveBufferPercent": 10,
+  "alongLegEndDistanceMiles": 2,
+  "nearDistanceMiles": 15,
+  "maximumTripLengthDays": 14,
+  "maximumDailyDrivingHours": 12,
+  "recommendedDailyDrivingHours": 6,
+  "mealVisitMinutes": 60,
+  "maximumMemoryItems": 50,
+  "maximumMemoryItemCharacters": 300
+}
