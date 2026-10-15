@@ -189,7 +189,7 @@ The server already exists, with Ubuntu, and so do its DNS records: `projects.jjk
 
 **Settled in:** the PR.
 
-**Starts** once phase 4 is merged. Test the script against the local Postgres first. Set up the nightly run once phase 6 has deployed the database to the server.
+**Starts** once phase 4 is merged. Test the backup against the local Postgres first. It reaches the server through the phase 6 deploy.
 
 **Open questions:**
 
@@ -198,10 +198,10 @@ The server already exists, with Ubuntu, and so do its DNS records: `projects.jjk
 **Do:**
 
 - Add a script that dumps the database, copies the dump to the Spaces bucket, and removes dumps older than 3 days. The bucket is `jjk3-backups`, in the `nyc3` region, at `https://nyc3.digitaloceanspaces.com`.
-- Put the Spaces access key in the server's `.env` file. The local `.env` has it as `SPACES_ACCESS_KEY_ID` and `SPACES_SECRET_ACCESS_KEY`.
-- Run the script every night on the server.
+- Run it every night in a `backup` Compose service, with its own image, in the `production` profile. Nothing is installed on the server outside Docker, such as a crontab, so `docker compose down` stops it with everything else. Have the phase 6 deploy build, push, and start the image too.
+- Put the Spaces access key and `COMPOSE_PROFILES=production` in the server's `.env` file. The local `.env` has the key as `SPACES_ACCESS_KEY_ID` and `SPACES_SECRET_ACCESS_KEY`.
 
-**What phase 5 set up:** the `roadtrip` user's crontab works, so the nightly run can go there. The server has no S3 upload tool, so pick one, or run one in a container.
+**What phase 5 set up:** the server has Docker and Compose, and no S3 upload tool. Run one in the backup image.
 
 **Done when:**
 

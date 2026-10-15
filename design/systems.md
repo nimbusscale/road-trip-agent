@@ -132,7 +132,7 @@ The commands, code standards, and tests are in [DEVELOPMENT.md](../DEVELOPMENT.m
 **A merge to `main` deploys it.** A GitHub Actions workflow, `.github/workflows/deploy.yml`:
 
 1. Runs `npm run check`. If it fails, nothing is built or deployed. The check also runs on every pull request. It isn't a required status check, so a PR can still be merged when it fails, for the times that's needed.
-2. Builds two images: `app`, with the back end, and `web`, with Caddy and the front end's built files.
+2. Builds three images: `app`, with the back end, `web`, with Caddy and the front end's built files, and `backup`, with the nightly backup (section 9).
 3. Pushes them to GitHub's container registry, tagged with the commit.
 4. Copies `compose.yaml` and the repo's `ops/` folder to the server, over SSH. The server keeps only its `.env` file between deploys.
 5. Runs `ops/deploy.sh` on the server. It pulls the new images, and runs the database migrations from the new `app` image before the new app starts. Then it restarts the containers with the new images.
@@ -159,7 +159,7 @@ The commands, code standards, and tests are in [DEVELOPMENT.md](../DEVELOPMENT.m
 | Claude plan credential | `app` |
 | Google server key | `app` |
 | Postgres password | `app` and `postgres` |
-| Spaces access key | The nightly backup (section 9) |
+| Spaces access key | `backup` (section 9) |
 
 GitHub holds only what the deploy needs: the server's address, its SSH host keys, and an SSH key. It pushes images with its own built-in token.
 
@@ -176,6 +176,12 @@ GitHub holds only what the deploy needs: the server's address, its SSH host keys
 
 ## 9. Backups
 
-**A nightly job on the server dumps the database and copies the file to DigitalOcean Spaces.** Older dumps are removed after a set number of days. To restore, load a dump into a new, empty Postgres. Test a restore once, when the job is set up.
+**A `backup` container on the server dumps the database each night and copies the file to DigitalOcean Spaces.** Dumps older than 3 days are removed, so the last 3 nightly dumps are kept. To restore, load a dump into a new, empty Postgres. Test a restore once, when the job is set up.
+
+- **It's a Compose service, not a cron job,** so nothing is installed on the server itself. `docker compose down` stops it with everything else. It's in the `production` profile, and the server's `.env` sets `COMPOSE_PROFILES=production`, so it only starts there. Locally, `docker compose up` doesn't start it.
+- **It has its own image, `backup`,** built and deployed like `app` and `web` (section 7). It's built on the Postgres image, so its `pg_dump` matches the database's version, and it adds rclone for the upload. The scripts are in the image, from `docker/backup-now.sh` and `docker/backup-nightly.sh`.
+- **The container waits until 09:00 UTC, backs up, and waits again.** Its output is the container's log: `docker compose logs backup`. To back up once, now: `docker compose run --rm backup backup-now`.
+- **The dump is `pg_dump`'s custom format,** taken over the Compose network. It's compressed, and `pg_restore` loads it.
+- **Dumps go to the `jjk3-backups` bucket,** in the `road-trip-agent/` folder, named by the time they were made in UTC, such as `2026-10-15T090000Z.dump`. The container only writes and removes dumps in that folder.
 
 Users aren't in the dump, since they live in Supabase (section 3).
