@@ -464,6 +464,7 @@ By the end of this part, code can build both example trips through the services,
 - Add `Place`, with its opening periods and short line.
 - Add the places table, `PlaceRepository`, `PlaceWriter`, and `PlaceReader`.
 - Add `find_place` and `read_place` on the `places` server, and give them to the coordinator. `read_place` checks the place belongs to the session's trip.
+- Load the trip's places in `TripRepository`, and add `placeOf()` and `unnamedPlaceIds` to `EditableTrip`. Phase 10 left these out, since there was no places table.
 
 **Done when:**
 
@@ -485,6 +486,7 @@ By the end of this part, code can build both example trips through the services,
 - Add `Stop`, `Candidate`, the approvals, `CheckResult`, `WeatherText`, and `ActivityRecord`, with their rules. Approvals are a tagged union, with a `kind` field.
 - Add `Leg` as stored data only. Phase 19 routes it.
 - Add them all to the plan document's schema. Links are stored as IDs and turned back into links on load.
+- Phase 10 added `Itinerary` and `LastDay` with only what a new trip needs. Once the itinerary has its start date and start place, make `Trip.name` add the month, and make `Trip.hasStarted` and `EditableTrip.hasStarted()` real. Until then they're always false.
 
 **Done when:**
 
@@ -523,7 +525,7 @@ By the end of this part, code can build both example trips through the services,
 
 **Design:** [Domain model](../design/domain-model.md), sections 4.3 to 4.6 and 4.9. [Persistence design](../design/persistence.md), section 5.
 
-**Do:** add `ItineraryService`, `StaysService`, `DaysService`, `StopsService`, and `RejectionsService`.
+**Do:** add `ItineraryService`, `StaysService`, `DaysService`, `StopsService`, and `RejectionsService`. The "trip has started" error also gives the date it went by.
 
 **Done when:**
 
@@ -542,7 +544,7 @@ By the end of this part, code can build both example trips through the services,
 
 - Add the Google Routes client. It takes place IDs and pass-through waypoints, can ask for the best order, has a timeout, and turns an empty result into a "no driving route" error.
 - Add `LegsService`: `updateLegs()`, with waypoint placement and the stop-order calls, and `detourTimesOf()`.
-- Add the legs to the finish step of a write, and the leg changes to what a write hands back.
+- Add the legs to the finish step of a write, and the leg changes to what a write hands back. Phase 10's `WriteResult` holds only `changeResult`. This phase adds `legChanges`.
 
 **Done when:**
 
@@ -557,7 +559,7 @@ By the end of this part, code can build both example trips through the services,
 
 **Design:** [Technical spec](../design/technical-spec.md), section 8. [Domain model](../design/domain-model.md), sections 3.3 and 4.8.
 
-**Do:** add the `FeasibilityChecker`, and run it in the finish step of the coordinator's writes.
+**Do:** add the `FeasibilityChecker`, and run it in the finish step of the coordinator's writes. Phase 10's `TripWriter.write()` has no `by` argument yet. This phase adds it, and `checkComparison` in `WriteResult`.
 
 **Done when:** tests cover each row of the checks table in technical spec section 8, using the Moab trip's planted problems:
 
