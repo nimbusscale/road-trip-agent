@@ -12,55 +12,56 @@ This document lists the development work, phase by phase, in the order it's done
 
 - **Each phase is done on its own branch, and ends in a PR or a decision.** `main` is protected, so nothing is pushed to it directly ([DEVELOPMENT.md](../DEVELOPMENT.md), section 7). A PR is ready when `npm run check` passes and the phase's "Done when" items are checked. Joe merges it, or asks Claude Code to. Once phase 6 is done, a merge to `main` deploys.
 - **Run the "Done when" checks yourself,** and report each result in the PR description.
+- **Mark the phase done in its own PR.** Fill in its row of the table below with the date and the PR, such as "2026-10-15, PR #2". Use the date the PR is opened.
 - **Some steps need Joe,** such as creating keys in a console. The phase says so.
 - **Some phases list open questions,** after the design sections. Answering them is part of the phase. Propose each answer to Joe in chat first. Once he agrees, write it into the design doc it belongs to, in the same PR.
 - **When something new comes up,** such as an idea, a test, or a question, write it down right away. If a phase will deal with it, add it to that phase's open questions. If not, add it to the [open items](open-items.md).
 - **Tests in `npm run check` use fakes** for Google, Open-Meteo, Supabase, and Claude ([DEVELOPMENT.md](../DEVELOPMENT.md), section 5). Some phases also make a few real calls by hand. Those are listed in "Done when."
 - **The thin slice comes early.** Phases 10 to 14 build a small app that works end to end: Joe signs in on the live site and talks with the coordinator about the trip brief and memory. The riskiest parts get tested early: the Max plan on the server, streaming replies, and saved transcripts. The itinerary code and the rest of the tools come after.
 
-| Phase | What it builds |
-|---|---|
-| **Running the app** | |
-| 2 | Create the Google keys |
-| 3 | Choose the libraries the design leaves open |
-| 4 | Run the app locally |
-| 5 | Prepare the server |
-| 6 | Deploy on merge |
-| 7 | Back up the database nightly |
-| 8 | Sign in |
-| 9 | Run the Agent SDK on the server |
-| **The thin slice** | |
-| 10 | The trip, and saving it |
-| 11 | Store memory |
-| 12 | Store sessions and transcripts |
-| 13 | The first coordinator |
-| 14 | Chat in the browser |
-| **The itinerary** | |
-| 15 | Places |
-| 16 | The itinerary's objects |
-| 17 | The calendar and the day's schedule |
-| 18 | The services |
-| 19 | Legs |
-| 20 | Feasibility checks |
-| **Planning in chat** | |
-| 21 | Read the itinerary |
-| 22 | Build the skeleton |
-| 23 | Lay out days |
-| 24 | The itinerary view |
-| 25 | The map |
-| **Workers** | |
-| 26 | Place searches |
-| 27 | The stay researcher |
-| 28 | The leg scout |
-| 29 | Option cards |
-| 30 | Weather data |
-| 31 | The weather worker |
-| 32 | Finish the coordinator's instructions |
-| **Walk-throughs** | |
-| 33 | The simulated user |
-| 34 | Walk the San Francisco trip |
-| 35 | Walk the Moab trip |
-| 36 | Acceptance scenarios and memory tests |
+| Phase | What it builds | Done |
+|---|---|---|
+| **Running the app** | | |
+| 2 | Create the Google keys | 2026-10-15, [PR #2](https://github.com/nimbusscale/road-trip-agent/pull/2) |
+| 3 | Choose the libraries the design leaves open | |
+| 4 | Run the app locally | |
+| 5 | Prepare the server | |
+| 6 | Deploy on merge | |
+| 7 | Back up the database nightly | |
+| 8 | Sign in | |
+| 9 | Run the Agent SDK on the server | |
+| **The thin slice** | | |
+| 10 | The trip, and saving it | |
+| 11 | Store memory | |
+| 12 | Store sessions and transcripts | |
+| 13 | The first coordinator | |
+| 14 | Chat in the browser | |
+| **The itinerary** | | |
+| 15 | Places | |
+| 16 | The itinerary's objects | |
+| 17 | The calendar and the day's schedule | |
+| 18 | The services | |
+| 19 | Legs | |
+| 20 | Feasibility checks | |
+| **Planning in chat** | | |
+| 21 | Read the itinerary | |
+| 22 | Build the skeleton | |
+| 23 | Lay out days | |
+| 24 | The itinerary view | |
+| 25 | The map | |
+| **Workers** | | |
+| 26 | Place searches | |
+| 27 | The stay researcher | |
+| 28 | The leg scout | |
+| 29 | Option cards | |
+| 30 | Weather data | |
+| 31 | The weather worker | |
+| 32 | Finish the coordinator's instructions | |
+| **Walk-throughs** | | |
+| 33 | The simulated user | |
+| 34 | Walk the San Francisco trip | |
+| 35 | Walk the Moab trip | |
+| 36 | Acceptance scenarios and memory tests | |
 
 ---
 
