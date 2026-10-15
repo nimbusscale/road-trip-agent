@@ -91,6 +91,8 @@ The app never sees a password. Sign-out drops the token in the browser.
 
 **Requests are JSON over HTTPS, under `/api`.** A user's message is one request. The coordinator's reply streams back on that request with **Server-Sent Events**: the server sends each part of the reply as it's ready, and the browser shows it. The Agent SDK hands the app its messages one at a time, so the app passes each one on. Server-Sent Events only flow from the server to the browser, which is all a reply needs. WebSockets would carry messages both ways, with more code for reconnecting, and nothing needs that.
 
+**The API runs on Hono,** on Node. Request bodies are checked with Zod through `@hono/zod-validator`, and replies stream with Hono's `streamSSE`. The options compared are in [research/server-libraries.md](../research/server-libraries.md).
+
 **A closed tab doesn't stop a turn.** The turn finishes on the server, and its transcript is saved as it goes ([persistence design](persistence.md), section 6). When the user comes back, the session shows the finished reply, and the itinerary shows any changes.
 
 **The map loads in the browser,** with Google's browser key ([Google design](data-sources/google.md), section 1).
@@ -114,8 +116,8 @@ The app never sees a password. Sign-out drops the token in the browser.
 
 ## 6. Local development
 
-- **`npm run dev` runs the app and the front end on the developer's machine.** Vite serves the front end and passes `/api` to the app, the same split as Caddy in production.
-- **The same Docker Compose file runs on the server and locally.** Locally, it usually starts only Postgres. It can also build and start the whole stack, to try out production before a merge. Caddy reads its site name from the environment: `roadtrip.jjk3.com` on the server, `localhost` locally.
+- **`npm run dev` runs the app and the front end on the developer's machine.** Vite serves the front end on `localhost:5173`, and passes `/api` to the app on `127.0.0.1:3000`, the same split as Caddy in production.
+- **The same Docker Compose file runs on the server and locally.** Locally, it usually starts only Postgres, with `docker compose up -d postgres`. Postgres listens on `127.0.0.1:5432`, so only the machine itself reaches it. It can also build and start the whole stack, to try out production before a merge. Caddy reads its site name from the environment: `roadtrip.jjk3.com` on the server, `localhost` locally.
 - **Sign-in uses the same Supabase project as production** (section 3). Nothing about sign-in runs locally.
 - **Keys are in the repo's git-ignored `.env` file** ([Google design](data-sources/google.md), section 1). Google's browser key also allows `localhost`, so the map works locally.
 
@@ -137,7 +139,7 @@ The commands, code standards, and tests are in [DEVELOPMENT.md](../DEVELOPMENT.m
 
 `postgres` uses the standard Postgres image, so a deploy doesn't change it.
 
-**A migration** is a script that creates or changes tables. The migration tool is chosen during development, along with the database library.
+**A migration** is a script that creates or changes tables. Migrations use node-pg-migrate ([persistence design](persistence.md), section 1). The deploy runs them with `node dist/app/migrate.js`, in a one-off container from the new `app` image.
 
 **A deploy restarts the app,** which cuts off any turn in progress, like any restart ([persistence design](persistence.md), section 7). The app is unavailable for a moment while it restarts. Both are accepted.
 
