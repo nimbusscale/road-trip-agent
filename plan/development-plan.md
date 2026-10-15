@@ -34,9 +34,9 @@ This document lists the development work, phase by phase, in the order it's done
 | 9 | Run the Agent SDK on the server | 2026-10-15, [PR #14](https://github.com/nimbusscale/road-trip-agent/pull/14) |
 | **The thin slice** | | |
 | 10a | The shared start for phases 10 to 12 | 2026-10-15, [PR #17](https://github.com/nimbusscale/road-trip-agent/pull/17) |
-| 10 | The trip, and saving it | |
-| 11 | Store memory | |
-| 12 | Store sessions and transcripts | |
+| 10 | The trip, and saving it | 2026-10-15, [PR #25](https://github.com/nimbusscale/road-trip-agent/pull/25) |
+| 11 | Store memory | 2026-10-15, [PR #20](https://github.com/nimbusscale/road-trip-agent/pull/20) |
+| 12 | Store sessions and transcripts | 2026-10-15, [PR #23](https://github.com/nimbusscale/road-trip-agent/pull/23) |
 | 12a | Put phases 10 to 12 together | |
 | 13 | The first coordinator | |
 | 14 | Chat in the browser | |
