@@ -590,7 +590,7 @@ By the end of this part, the coordinator can build a trip's skeleton and lay out
 
 **Open questions:**
 
-- ~~How does the `web` image get Google's browser key? Vite writes `VITE_` variables into the front end's files when it builds them, and the image build doesn't see `.env` (it's left out by `.dockerignore`). Raised in phase 4. Phase 8 answers the same question for the Supabase values first, so use its answer.~~ **Answered 2026-10-15, in phase 8's PR:** the workflow passes the GitHub repo variable `VITE_GOOGLE_MAPS_BROWSER_KEY` to the `web` build (systems design section 7). The build already reads it. Joe still needs to add the variable in GitHub: on 2026-10-15, only the two Supabase ones were set.
+- ~~How does the `web` image get Google's browser key? Vite writes `VITE_` variables into the front end's files when it builds them, and the image build doesn't see `.env` (it's left out by `.dockerignore`). Raised in phase 4. Phase 8 answers the same question for the Supabase values first, so use its answer.~~ **Answered 2026-10-15, in phase 8's PR:** the workflow passes the GitHub repo variable `VITE_GOOGLE_MAPS_BROWSER_KEY` to the `web` build (systems design section 7). The build already reads it. Joe added the variable in GitHub on 2026-10-15.
 
 **Do:** add the Google map to the itinerary view, with the browser key. It shows the route lines, and different markers for stays, attractions, and restaurants. Clicking a marker shows the item's details.
 
