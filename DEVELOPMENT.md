@@ -23,8 +23,8 @@ Claude Code writes the code, Joe reviews the code he cares about, and the tools 
 | `npm run ask-claude` | Sends Claude one question through the Agent SDK, on the plan's token, and prints the reply. Dev only. A question can follow, as in `npm run ask-claude -- "your question"` |
 | `npm run build` | Builds the app into `dist/app` and the front end into `dist/web`, as the images do |
 | `npm run check` | Runs every check below, stopping at the first failure |
-| `npm run format` | Formats every file with Prettier |
-| `npm run format:check` | Fails if any file isn't formatted |
+| `npm run format` | Formats the code in `src/` and `web/` with Prettier |
+| `npm run format:check` | Fails if any file in `src/` or `web/` isn't formatted |
 | `npm run typecheck` | Type-checks with `tsc --noEmit` |
 | `npm run lint` | Runs ESLint, failing on any warning |
 | `npm run test` | Runs the tests with Vitest |
@@ -37,7 +37,7 @@ Postgres for local development runs in a container, with Docker Compose: `docker
 
 **Style comes from the tools and the rules below.** The rules follow the [Google TypeScript Style Guide](https://google.github.io/styleguide/tsguide.html), and cover what the tools can't check. There's no need to read the guide itself.
 
-- **Prettier formats all the code,** with its default options. Don't format by hand. Markdown docs are written by hand, and Prettier skips them.
+- **Prettier formats the code in `src/` and `web/`,** with its default options. Don't format by hand. Other files, such as the config files, workflows, and Markdown docs, are formatted by hand, and Prettier skips them.
 - **ESLint runs typescript-eslint's strictest type-checked rules,** plus limits on function size, nesting, and parameters, and bans on escape hatches such as `any`. The config holds the exact rules and limits.
 - **When a limit is hit, split the code.** Don't ask for a higher limit to fit one function. Example: a function with too many branches becomes two functions with clear names.
 - **Names follow the Google guide.** Classes and types are `UpperCamelCase`. Variables, functions, and properties are `lowerCamelCase`. Constants at the top of a module are `CONSTANT_CASE`. Names in code match the design docs, such as `TripBrief` and `rejectPlaces()` ([domain model](design/domain-model.md), section 1).

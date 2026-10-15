@@ -51,8 +51,8 @@
     "build:app": "esbuild src/main.ts src/migrate.ts src/ask-claude.ts --bundle --platform=node --format=esm --packages=external --sourcemap --outdir=dist/app",
     "build:web": "vite build",
     "check": "npm run format:check && npm run typecheck && npm run lint && npm run test",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
+    "format": "prettier --write src web",
+    "format:check": "prettier --check src web",
     "typecheck": "tsc --noEmit && tsc --noEmit -p web",
     "lint": "eslint . --max-warnings 0",
     "test": "vitest run"
