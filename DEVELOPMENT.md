@@ -72,7 +72,9 @@ Worker results aren't on the list. A worker returns text that the coordinator re
 
 **Vitest runs the tests.** It shares Vite's setup with the front end, and runs TypeScript directly.
 
-**Tests in `npm run check` make no outside calls.** Google, Open-Meteo, Supabase, and Claude are replaced with fakes. Postgres is the local container.
+**Tests in `npm run check` make no outside calls.** Google, Open-Meteo, Supabase, Claude, and Postgres are replaced with fakes. So the check runs without the database, locally and in GitHub.
+
+**Postgres is faked at the repositories,** the only code that sends SQL (section 8). Tests give the writers and readers fake repositories that keep rows in memory. What only the database can show, such as two writes waiting on the row lock, or a query's SQL, is checked by hand against the local Postgres. The PR says what was checked. This is a learning project with no staging server, so the risk that a later change breaks it unnoticed is accepted.
 
 **Tests that need the real agent run on their own,** outside `npm run check`. Examples: the acceptance scenarios (functional spec 11) and the memory tests (technical spec 3.1). They cost money and their results vary from run to run. How they run is settled when the first one is written.
 
@@ -89,3 +91,52 @@ Worker results aren't on the list. A worker returns text that the coordinator re
 ## 7. Branches and pull requests
 
 **`main` is protected.** Nothing is pushed to it directly. Every change goes on its own branch, and reaches `main` through a pull request. Only Joe decides when a pull request is merged: he merges it himself, or asks Claude Code to merge it. Claude Code never merges one without being asked. A merge to `main` deploys it ([systems design](design/systems.md), section 7).
+
+---
+
+## 8. Objects and persistence in code
+
+This section says how the [domain model](design/domain-model.md) and the [persistence design](design/persistence.md) look in TypeScript. Phase 10a set the pattern, and later code follows it. Phase 10 adds how `{viaService}` and `{keepsValue}` look.
+
+**Folders.** The trip's objects and services go in `src/domain/`. Repositories, writers, and readers go in `src/persistence/`, with memory items and sessions, since the persistence design defines those, not the domain model. Each ID comes from `newId()` in `src/ids/new-id.ts` (technical spec 7.1).
+
+**An object's properties.** The example is a memory item (persistence design, section 8.8):
+
+```ts
+export class MemoryItem {
+  readonly id: string;
+  readonly userId: string;
+  readonly tripId: string | null;
+  readonly createdDateTime: Date;
+  #text: string;
+
+  get text(): string {
+    return this.#text;
+  }
+
+  set text(value: string) {
+    if (value.trim() === "") {
+      throw new RuleError("A memory item's text can't be empty.");
+    }
+    this.#text = value;
+  }
+}
+```
+
+- **`{readOnly}` is TypeScript's `readonly`.** When the object's own operation changes the property, such as `Itinerary.replaceCheckResults()`, it's a private field with a getter instead.
+- **A private field starts with `#`,** such as `#text`. Only code inside the class can reach it.
+- **A property that can be set has a setter,** which runs the property's own rules. The constructor sets it through the setter too, so a new object can't break them.
+- **A broken rule throws `RuleError`** (`src/domain/rule-error.ts`). Its message is written for the agent, which reads it as the tool's error. It says what was refused and why, and gives the limit when there is one, such as "A trip is at most 14 days long."
+- **A rule that needs a setting, or another object, is a business rule.** It goes in a service, or for memory and sessions in the writer, not in the setter (domain model, section 1). Example: the maximum memory item length.
+
+**Repositories** are the only code that sends SQL (persistence design, section 8.7).
+
+- **Each is created for one connection,** a `Queryable` (`src/persistence/queryable.ts`): the pool for a read, or a transaction's client for a write.
+- **Each value goes into the SQL as a parameter,** such as `$1`, never joined into the text.
+- **Rows come back as `unknown`.** Each repository parses them with a Zod schema in a `*.schema.ts` file, which turns the column names into camelCase (section 4). Then it builds the object.
+- **Each repository's file exports an interface of its operations,** such as `MemoryStore`, and the class implements it. Writers and readers take the interface, so tests can pass a fake that keeps rows in memory (section 5).
+
+**Writers and readers** are the only way in from outside persistence (persistence design, section 8).
+
+- **Each is given the pool, and a function that makes its repository for a connection.** Tests pass a fake for both.
+- **A writer runs each change in a transaction** with `inTransaction()` (`src/persistence/transaction.ts`). If anything throws, nothing is saved.

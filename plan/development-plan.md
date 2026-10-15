@@ -18,7 +18,7 @@ This document lists the development work, phase by phase, in the order it's done
 - **A phase settles its questions and choices in chat or in the PR.** A phase that says "Settled in: the PR" proposes each answer in the PR description, and Joe agrees by approving the PR. Otherwise, propose each answer to Joe in chat first, and write it in once he agrees.
 - **Some phases run in parallel,** in batches. Claude Code coordinates, and a worker agent does each phase on its own branch. Batch 1 is phases 4 and 5. Batch 2 is phases 6 and 7, and starts once phase 4 is merged. Batch 3 is phases 10, 11, and 12, and starts once phase 10a is merged. Its PRs are merged in that order, since the migrations have to run in order (phase 10a).
 - **When something new comes up,** such as an idea, a test, or a question, write it down right away. If a phase will deal with it, add it to that phase's open questions. If not, add it to the [open items](open-items.md).
-- **Tests in `npm run check` use fakes** for Google, Open-Meteo, Supabase, and Claude ([DEVELOPMENT.md](../DEVELOPMENT.md), section 5). Some phases also make a few real calls by hand. Those are listed in "Done when."
+- **Tests in `npm run check` use fakes** for Google, Open-Meteo, Supabase, Claude, and Postgres ([DEVELOPMENT.md](../DEVELOPMENT.md), section 5). Some phases also make a few real calls, or check the database by hand. Those are listed in "Done when."
 - **The thin slice comes early.** Phases 10 to 14 build a small app that works end to end: Joe signs in on the live site and talks with the coordinator about the trip brief and memory. The riskiest parts get tested early: the Max plan on the server, streaming replies, and saved transcripts. The itinerary code and the rest of the tools come after.
 
 | Phase | What it builds | Done |
@@ -279,22 +279,20 @@ Phases 10, 11, and 12 are built at the same time, by three workers. Phase 10a fi
 
 **Open questions:**
 
-- How do tests reach Postgres, locally and in the workflow's check? Tests shouldn't touch the development data, and test files that run at the same time shouldn't touch each other's rows.
-- How does `{readOnly}` look in code? How are a repository, a writer, and a reader shaped, and how does a row read back get parsed? Show Joe a small example before going on. Phases 10 to 12 follow it.
+- ~~How do tests reach Postgres, locally and in the workflow's check?~~ **Closed 2026-10-15,** agreed in chat: they don't. Tests in `npm run check` fake the repositories, the only code that sends SQL. What only the database can show, such as the row lock, is checked by hand against the local Postgres, and the PR reports it. This is a learning project with no staging server, so the risk is accepted. This phase's PR writes it into DEVELOPMENT.md section 5.
+- ~~How does `{readOnly}` look in code? How are a repository, a writer, and a reader shaped, and how does a row read back get parsed? Show Joe a small example before going on. Phases 10 to 12 follow it.~~ **Closed 2026-10-15,** agreed in chat: `{readOnly}` is TypeScript's `readonly`, or a private field with a getter when the object's own operation changes it. A property that can be set has a setter that runs its rules. A refusal throws `RuleError`. Repositories take one connection, and parse rows with Zod. This phase's PR writes it into DEVELOPMENT.md.
 
 **Do:**
 
 - Add the ID maker: a prefix for the kind of item, then 8 random letters and digits, leaving out ones that are easy to confuse (technical spec 7.1).
 - Add the trips table, in migration `0002`: the trip's ID, its owner, and the plan as one JSON document. The migrations run in file-name order, and a deploy refuses one that comes before a migration that already ran. So each phase of batch 3 gets its own number: `0003` for phase 10, if it changes the trips table, `0004` for phase 11, and `0005` for phase 12.
-- Set up tests against Postgres, and add Postgres to the workflow's check job.
-- Add a test helper that adds a trip row directly, so phases 11 and 12 can test with a real trip ID before phase 10's code exists.
-- Write the pattern Joe agrees to into DEVELOPMENT.md.
+- Add `RuleError`, and a helper that runs a function in a transaction, for the writers.
+- Write the pattern into DEVELOPMENT.md, and say in section 5 that tests fake Postgres.
 
 **Done when:**
 
 - Tests show each ID has its prefix, 8 characters after it, and none of the left-out ones.
-- The workflow's check runs the migrations and the tests against Postgres, and passes.
-- A test adds a trip with the helper, and reads its row back.
+- `npm run migrate` adds the trips table to the local Postgres.
 - The pattern is written down.
 
 **Ends in:** a PR.
@@ -323,8 +321,7 @@ By the end of this part, Joe can sign in on the live site, start a trip, and tal
 **Done when:**
 
 - Tests cover each rule in domain model sections 3.2 and 4.2. Examples: an item can't be emptied once set, and a trip length over the maximum is refused.
-- Tests against the local Postgres show that two writes to one trip take turns, and neither loses the other's work.
-- A write to another trip doesn't wait.
+- Checked by hand against the local Postgres: two writes to one trip take turns, and neither loses the other's work. A write to another trip doesn't wait.
 - A refused write saves nothing.
 - A trip from a read can't be passed to `save()`. The type checker catches it.
 
@@ -348,6 +345,7 @@ The started-trip lock at save can't be tested yet, since nothing can set a start
 - Tests show user A can't read, update, or forget user B's items. The error is the same as for an ID that doesn't exist.
 - A trip item from another trip is refused the same way.
 - An add over the maximum memory items, or text over the maximum length, is refused, and the error gives the limit.
+- Checked by hand against the local Postgres: items save and read back, and user B's read doesn't return user A's items.
 
 **Ends in:** a PR.
 
@@ -384,11 +382,11 @@ The started-trip lock at save can't be tested yet, since nothing can set a start
 **Do:**
 
 - Pass `MemoryWriter` a check that uses `TripRepository.load()` and `Trip.hasStarted`, in place of phase 11's fake.
-- Run the memory and session tests with trips made by `TripWriter`, not only by phase 10a's helper.
+- Make a trip with `TripWriter` on the local Postgres, and give it memory items and sessions.
 
 **Done when:**
 
-- A trip made by `TripWriter` gets trip memory items and sessions, and each reads back with that trip.
+- Checked by hand against the local Postgres: a trip made by `TripWriter` gets trip memory items and sessions, and each reads back with that trip.
 - A change to a trip item on a trip that hasn't started goes through the real check. A started trip can't be made yet, since nothing sets a start date. Phase 18 tests it, as it does for `TripWriter`.
 - On the server, the `pgmigrations` table lists each migration from `0002` on, in order. Each merge in batch 3 ran its own.
 
