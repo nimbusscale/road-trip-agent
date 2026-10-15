@@ -236,9 +236,10 @@ classDiagram
     class MemoryRepository {
         add(item : MemoryItem)
         loadFor(userId : string, tripId : string) List~MemoryItem~
-        get(itemId : string) MemoryItem
+        countFor(userId : string, tripId : string?) number
+        get(userId : string, itemId : string) MemoryItem
         save(item : MemoryItem)
-        remove(itemId : string)
+        remove(userId : string, itemId : string)
     }
 
     class TranscriptAdapter {
@@ -400,9 +401,12 @@ A **repository** is a class that reads and saves one kind of record (section 2).
 
 - **`add(item)`** adds an item's row.
 - **`loadFor(userId, tripId)`** loads the user's memory and that trip's memory, in the order created.
-- **`get(itemId)`** loads one item.
+- **`countFor(userId, tripId)`** counts the items in user memory when `tripId` is empty, or in that trip's memory. `MemoryWriter` uses it for the maximum memory items.
+- **`get(userId, itemId)`** loads one of the user's items, or nothing if the user has no item with that ID.
 - **`save(item)`** saves an item's new text.
-- **`remove(itemId)`** removes an item's row.
+- **`remove(userId, itemId)`** removes one of the user's items.
+
+Each of these takes the user's ID, or an item that holds it, and puts it in the query (section 8.8).
 
 **TranscriptAdapter** is section 6's adapter for the Agent SDK's `sessionStore` option. The SDK sets its operations, so they aren't listed here. The app hands it to the SDK when it starts or resumes a session. It stores each transcript line as a row, and gives the lines back on resume.
 
