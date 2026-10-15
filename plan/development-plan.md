@@ -399,6 +399,7 @@ The started-trip lock at save can't be tested yet, since nothing can set a start
 **Open questions:**
 
 - Which model does each agent use, and where is it set? No design doc names one. Left to Claude Code, the model depends on where it runs: in phase 9, the same script got Opus run on Joe's machine and Sonnet in the `app` container. So the app should set the model itself. Raised in phase 9.
+- What does the app do when the Agent SDK sends a `mirror_error` message? The SDK sends it when it couldn't save transcript lines to the store after 3 tries, and drops them. The turn goes on, so a database outage can lose lines. At least log it. Raised in phase 12.
 
 **Do:**
 
@@ -686,6 +687,7 @@ By the end of this part, the full planning flow works: workers fill stops and lo
 
 - What exact fields go in a worker brief and in a worker's result? Technical spec section 5.3 lists the contents, not the fields.
 - Can a session resume when its transcript ends in a worker call that never got its result? A restart can leave it that way. If the SDK won't resume, the adapter drops the unfinished line.
+- May a worker run in the background? Each subagent definition has a `background` option. In phase 12's check, a background helper finished after the coordinator's turn ended, and the SDK started a second turn on its own, in the same `query()` call. Raised in phase 12.
 
 **Do:**
 
