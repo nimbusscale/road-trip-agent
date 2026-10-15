@@ -37,6 +37,8 @@ A trip is stored in four kinds of record:
 
 - **An object with no `id`,** such as a leg, a candidate, or an approval, is stored inside the object that holds it.
 - **A link is stored as an ID,** such as a stop's selected place, or a stop's search-area stay. The load turns each ID back into a link.
+- **A time of day is stored as text,** "HH:MM" on a 24-hour clock, such as "13:00" for a trip brief's `usualStartTime`. It's the domain model's `time` type (domain model section 1). The load parses it back into a time of day.
+- **The home screen reads the plan document too.** It shows each trip's name, dates, and last updated (functional spec 3). `listForOwner()` loads the user's trips, and each value comes from the `Trip`. The trip row has no extra columns for them. The name and dates are worked out from the brief and the itinerary, so a column would be a second copy that can go stale. A user has only a few trips, so loading each one whole costs little. If it ever gets slow, the query can read just those fields from the document.
 
 **Places and sessions are stored apart from the plan.** Neither is part of the plan, and neither goes through a write. A trip can also have hundreds of places, and saving places from a search shouldn't wait for the plan (section 4).
 
@@ -79,6 +81,7 @@ A write runs the four steps in domain model section 1 inside one database transa
 - **It survives a restart.** When the container dies, Postgres rolls back the write in progress and releases its lock.
 - **It works with more than one copy of the app,** since the lock is in the database, not in the app.
 - **The cost is waiting.** A write holds the lock through its Google calls, such as a re-route at the finish, or a leg scout's detour times (domain model 4.7). That's a few seconds at most. Saving places from a search takes no lock, so workers' searches never wait.
+- **A write waits 5 seconds for the lock, and tries 3 times.** When the lock isn't free within 5 seconds, the load gives up, and `TripWriter` tries the whole write again after a 1-second pause. After the third try, the write is refused, and the error says the trip is busy. That's about 17 seconds in all. One write ahead holds the lock a few seconds at most, so 5 seconds covers it, and 3 tries cover a few workers waiting in line. Trying again is safe, since the lock is taken at the load, before anything changes. No agent has to understand the lock. The three numbers are constants in the code, not settings, since they aren't about planning.
 - **Every Google call during a write has a timeout,** so a call that hangs can't hold the lock for long. A call that times out refuses the write, like any failed call (domain model 4.7).
 
 **Turned down:** saving only if nothing changed since the load. The trip would keep a version number, and code would rerun the tool call when someone else saved first. Workers wouldn't wait, but a conflict would repeat its Google calls, and the retry is more code. Conflicts are rare in the MVP, so waiting costs little.
@@ -302,7 +305,7 @@ The fixed list that the classes above use:
 `TripReader` reads trips. It takes no row lock, and never waits for a write (section 3).
 
 - **`read(tripId)`** loads one trip. The tools use it for reads, such as `read_itinerary`, and the search tools use it to leave out rejected places, with `itinerary.isRejected()`.
-- **`listForOwner(owner)`** loads every trip the user owns, for the home screen.
+- **`listForOwner(owner)`** loads every trip the user owns, for the home screen, newest change first. The name, dates, and last updated each come from the plan document (section 2).
 
 **A trip from a read is never saved.** Code can change it in memory, but `TripRepository.save()` only takes an `EditableTrip`, and only `loadForWrite()` makes one (section 8.4). So a change made to a read by mistake goes nowhere.
 
@@ -374,7 +377,7 @@ A **repository** is a class that reads and saves one kind of record (section 2).
 
 **TripRepository** reads and saves trip rows, and turns them into `Trip` objects. It uses `PlaceRepository`, on the same connection, to load the trip's places, and turns each place ID in the plan back into a link.
 
-- **`loadForWrite(tripId)`** loads the trip's row "for update," which takes the row lock (section 4). Then it loads the trip's places, and returns an `EditableTrip`. If the lock isn't free within a time limit, the write is refused, and the error says the trip is busy.
+- **`loadForWrite(tripId)`** loads the trip's row "for update," which takes the row lock (section 4). Then it loads the trip's places, and returns an `EditableTrip`. If the lock isn't free within 5 seconds, it refuses, and the error says the trip is busy. `TripWriter` tries again twice before passing the error on (section 4).
 - **`load(tripId)`** does the same without the row lock, and returns the `Trip`.
 - **`listForOwner(owner)`** loads every trip the user owns.
 - **`add(trip)`** adds a new trip's row.
