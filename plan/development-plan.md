@@ -16,7 +16,7 @@ This document lists the development work, phase by phase, in the order it's done
 - **Some steps need Joe,** such as creating keys in a console. The phase says so.
 - **Some phases list open questions,** after the design sections. Answering them is part of the phase. Each answer is written into the design doc it belongs to, in the same PR.
 - **A phase settles its questions and choices in chat or in the PR.** A phase that says "Settled in: the PR" proposes each answer in the PR description, and Joe agrees by approving the PR. Otherwise, propose each answer to Joe in chat first, and write it in once he agrees.
-- **Some phases run in parallel,** in batches. Claude Code coordinates, and a worker agent does each phase on its own branch. Batch 1 is phases 4 and 5. Batch 2 is phases 6 and 7, and starts once phase 4 is merged.
+- **Some phases run in parallel,** in batches. Claude Code coordinates, and a worker agent does each phase on its own branch. Batch 1 is phases 4 and 5. Batch 2 is phases 6 and 7, and starts once phase 4 is merged. Batch 3 is phases 10, 11, and 12, and starts once phase 10a is merged. Its PRs are merged in that order, since the migrations have to run in order (phase 10a).
 - **When something new comes up,** such as an idea, a test, or a question, write it down right away. If a phase will deal with it, add it to that phase's open questions. If not, add it to the [open items](open-items.md).
 - **Tests in `npm run check` use fakes** for Google, Open-Meteo, Supabase, and Claude ([DEVELOPMENT.md](../DEVELOPMENT.md), section 5). Some phases also make a few real calls by hand. Those are listed in "Done when."
 - **The thin slice comes early.** Phases 10 to 14 build a small app that works end to end: Joe signs in on the live site and talks with the coordinator about the trip brief and memory. The riskiest parts get tested early: the Max plan on the server, streaming replies, and saved transcripts. The itinerary code and the rest of the tools come after.
@@ -33,9 +33,11 @@ This document lists the development work, phase by phase, in the order it's done
 | 8 | Sign in | 2026-10-15, [PR #12](https://github.com/nimbusscale/road-trip-agent/pull/12) |
 | 9 | Run the Agent SDK on the server | 2026-10-15, [PR #14](https://github.com/nimbusscale/road-trip-agent/pull/14) |
 | **The thin slice** | | |
+| 10a | The shared start for phases 10 to 12 | |
 | 10 | The trip, and saving it | |
 | 11 | Store memory | |
 | 12 | Store sessions and transcripts | |
+| 12a | Put phases 10 to 12 together | |
 | 13 | The first coordinator | |
 | 14 | Chat in the browser | |
 | **The itinerary** | | |
@@ -269,6 +271,34 @@ How the server signs in to the Claude Max plan is still open. This phase settles
 
 ## The thin slice
 
+Phases 10, 11, and 12 are built at the same time, by three workers. Phase 10a first does what all three need. Phase 12a then puts them together. The two lettered phases were added later, so the other phases keep their numbers.
+
+### Phase 10a. The shared start for phases 10 to 12
+
+**Design:** [Technical spec](../design/technical-spec.md), section 7.1. [Domain model](../design/domain-model.md), section 1. [Persistence design](../design/persistence.md), sections 1, 2, and 8.7. [DEVELOPMENT.md](../DEVELOPMENT.md), sections 4 and 5.
+
+**Open questions:**
+
+- How do tests reach Postgres, locally and in the workflow's check? Tests shouldn't touch the development data, and test files that run at the same time shouldn't touch each other's rows.
+- How does `{readOnly}` look in code? How are a repository, a writer, and a reader shaped, and how does a row read back get parsed? Show Joe a small example before going on. Phases 10 to 12 follow it.
+
+**Do:**
+
+- Add the ID maker: a prefix for the kind of item, then 8 random letters and digits, leaving out ones that are easy to confuse (technical spec 7.1).
+- Add the trips table, in migration `0002`: the trip's ID, its owner, and the plan as one JSON document. The migrations run in file-name order, and a deploy refuses one that comes before a migration that already ran. So each phase of batch 3 gets its own number: `0003` for phase 10, if it changes the trips table, `0004` for phase 11, and `0005` for phase 12.
+- Set up tests against Postgres, and add Postgres to the workflow's check job.
+- Add a test helper that adds a trip row directly, so phases 11 and 12 can test with a real trip ID before phase 10's code exists.
+- Write the pattern Joe agrees to into DEVELOPMENT.md.
+
+**Done when:**
+
+- Tests show each ID has its prefix, 8 characters after it, and none of the left-out ones.
+- The workflow's check runs the migrations and the tests against Postgres, and passes.
+- A test adds a trip with the helper, and reads its row back.
+- The pattern is written down.
+
+**Ends in:** a PR.
+
 By the end of this part, Joe can sign in on the live site, start a trip, and talk it over with the coordinator. The coordinator fills in the trip brief, and remembers preferences across trips. It has no itinerary yet.
 
 ### Phase 10. The trip, and saving it
@@ -282,11 +312,10 @@ By the end of this part, Joe can sign in on the live site, start a trip, and tal
 
 **Do:**
 
-- Add the ID maker: a prefix for the kind of item, then 8 random letters and digits, leaving out ones that are easy to confuse.
-- Settle how the domain model's markers look in code: `{readOnly}`, `{viaService}`, and `{keepsValue}`. Every later object follows the same pattern, so show Joe the first one before going on.
+- Settle how the other two markers look in code: `{viaService}` and `{keepsValue}`. Phase 10a settled `{readOnly}`. Every later object follows the same pattern, so show Joe the first one before going on.
 - Add `TripBrief`, with its rules, and `TripBriefService`.
 - Add `Trip`, holding its owner, its trip brief, and an itinerary that holds only its last day for now.
-- Add the migration for the trips table, with the plan as one JSON document.
+- If the trips table needs more columns, such as for the home screen, add them in migration `0003` (phase 10a).
 - Add the Zod schema for the plan document. Later phases add to it as they add objects.
 - Add `TripRepository`, `EditableTrip`, `TripWriter`, and `TripReader`. For now, the finish step of a write only sets last updated. Phases 19 and 20 add the legs and the checks.
 - Retry "trip busy" a few times, with a short pause, before the error goes back. No agent has to understand the lock.
@@ -307,7 +336,12 @@ The started-trip lock at save can't be tested yet, since nothing can set a start
 
 **Design:** [Technical spec](../design/technical-spec.md), section 3.1. [Persistence design](../design/persistence.md), sections 2 and 8.8.
 
-**Do:** add the migration for memory items, `MemoryRepository`, `MemoryWriter`, and `MemoryReader`.
+**Starts** once phase 10a is merged, at the same time as phases 10 and 12.
+
+**Do:**
+
+- Add the migration for memory items, as `0004` (phase 10a), and `MemoryRepository`, `MemoryWriter`, and `MemoryReader`.
+- `MemoryWriter` refuses a change to a trip item on a started trip (persistence design, section 8.8). Phase 10's `Trip` doesn't exist yet, so give `MemoryWriter` a function that says whether the trip has started, and fake it in tests. Phase 12a passes in one that uses `TripRepository.load()`.
 
 **Done when:**
 
@@ -325,10 +359,12 @@ The started-trip lock at save can't be tested yet, since nothing can set a start
 
 - Where do the Agent SDK's local scratch files go?
 
+**Starts** once phase 10a is merged, at the same time as phases 10 and 11.
+
 **Do:**
 
 - First, check that the Agent SDK's `sessionStore` option works the way the design expects. It's marked alpha. Lines should reach the adapter as soon as they're written, and a resume should read them back from it. If it doesn't work, use the fallback in persistence design section 6, and tell Joe.
-- Add the migrations for sessions and transcript lines.
+- Add the migration for sessions and transcript lines, as `0005` (phase 10a).
 - Add `SessionRepository`, `SessionWriter`, `SessionReader`, and the `TranscriptAdapter`.
 
 **Done when:**
@@ -338,6 +374,25 @@ The started-trip lock at save can't be tested yet, since nothing can set a start
 - Tests with a fake SDK cover the adapter's ordering of lines.
 
 **Ends in:** a PR. If the SDK behaves differently from persistence design section 6, the PR also updates it.
+
+### Phase 12a. Put phases 10 to 12 together
+
+**Design:** [Persistence design](../design/persistence.md), sections 5, 8.5, and 8.8.
+
+**Starts** once phases 10, 11, and 12 are merged.
+
+**Do:**
+
+- Pass `MemoryWriter` a check that uses `TripRepository.load()` and `Trip.hasStarted`, in place of phase 11's fake.
+- Run the memory and session tests with trips made by `TripWriter`, not only by phase 10a's helper.
+
+**Done when:**
+
+- A trip made by `TripWriter` gets trip memory items and sessions, and each reads back with that trip.
+- A change to a trip item on a trip that hasn't started goes through the real check. A started trip can't be made yet, since nothing sets a start date. Phase 18 tests it, as it does for `TripWriter`.
+- On the server, the `pgmigrations` table lists each migration from `0002` on, in order. Each merge in batch 3 ran its own.
+
+**Ends in:** a PR.
 
 ### Phase 13. The first coordinator
 
