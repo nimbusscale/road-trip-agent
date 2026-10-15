@@ -11,6 +11,7 @@ const GOOD_ENV: readonly (readonly [string, string])[] = [
   ["POSTGRES_PASSWORD", "secret"],
   ["POSTGRES_DB", "roadtrip"],
   ["SUPABASE_URL", "https://abc.supabase.co"],
+  ["CLAUDE_CODE_OAUTH_TOKEN", "plan-token"],
 ];
 
 function envWith(name: string, value: string): Record<string, string> {
@@ -30,6 +31,7 @@ describe("parseEnv", () => {
       postgresPassword: "secret",
       postgresDb: "roadtrip",
       supabaseUrl: "https://abc.supabase.co",
+      claudeCodeOauthToken: "plan-token",
     });
   });
 

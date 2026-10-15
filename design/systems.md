@@ -49,7 +49,7 @@ One server runs everything we build. The browser signs in with Supabase, then ta
 | Container | Runs | Notes |
 |---|---|---|
 | `web` | Caddy | Serves the front end's files, and passes `/api` requests to `app`. Gets and renews the HTTPS certificate on its own |
-| `app` | Our TypeScript back end, on Node | Holds the API, the agents, and the tools. The Agent SDK starts a Claude Code process for each running session, a few hundred MB each |
+| `app` | Our TypeScript back end, on Node | Holds the API, the agents, and the tools. The Agent SDK starts a Claude Code process for each running session. One process answering a short question peaked at about 250 MB, measured in phase 9 |
 | `postgres` | Postgres | Its data is on a Docker volume on the server's disk |
 
 **One web address for the front end and the API.** Caddy serves both, so the browser never calls a second site, and the app needs no cross-site setup.
@@ -158,10 +158,15 @@ The commands, code standards, and tests are in [DEVELOPMENT.md](../DEVELOPMENT.m
 
 | Secret | Used by |
 |---|---|
-| Claude plan credential | `app` |
+| Claude plan token, `CLAUDE_CODE_OAUTH_TOKEN` | `app` |
 | Google server key | `app` |
 | Postgres password | `app` and `postgres` |
 | Spaces access key | `backup` (section 9) |
+
+**The app signs in to the Claude Max plan with a token,** made once by running `claude setup-token` on the owner's machine. The token lasts a year and can only make model requests. When it runs out, make a new one, put it in both `.env` files, and restart the app. The Agent SDK ships its own Claude Code program, and the app passes the token to it. Anthropic's docs give this token as the sign-in for the SDK and other automated use.
+
+- **Not a login saved on a volume.** Running `/login` inside the container would save a login that renews itself, but it needs a Docker volume and a login on the server. Anthropic's docs don't say how often it renews, and if it lapses, the agents stop with no warning.
+- **An `ANTHROPIC_API_KEY` would win over the token,** and bill an API account instead of the plan. So the app leaves every `ANTHROPIC_` variable out of the environment it gives Claude Code. A developer's shell that has a key set can't change which account the app uses.
 
 GitHub holds only what the deploy needs: the server's address, its SSH host keys, and an SSH key, as secrets, and the browser's values as repo variables (section 7). It pushes images with its own built-in token.
 
@@ -171,7 +176,7 @@ GitHub holds only what the deploy needs: the server's address, its SSH host keys
 
 **Spending limits matter more than where the secrets live.** On one server, anyone who gets in can read the secrets wherever they're kept. So each paid key has a limit on what a leak can cost:
 
-- **The Claude plan** caps use at its limits. If the plan offers paid use past its limits, keep that turned off, so a leaked credential can't run up a bill.
+- **The Claude plan** caps use at its limits. Paid use past the limits, which Anthropic calls extra usage or usage credits, is turned off, so a leaked token can't run up a bill. It's under Settings > Usage on claude.ai. Joe checked it on 2026-10-15.
 - **Google's keys** are each restricted to the APIs they use, and the account has a budget alert ([Google design](data-sources/google.md), section 5).
 
 ---

@@ -20,6 +20,7 @@ Claude Code writes the code, Joe reviews the code he cares about, and the tools 
 |---|---|
 | `npm run dev` | Runs the app and the front end locally ([systems design](design/systems.md), section 6) |
 | `npm run migrate` | Runs the database migrations that haven't run yet ([persistence design](design/persistence.md), section 1) |
+| `npm run ask-claude` | Sends Claude one question through the Agent SDK, on the plan's token, and prints the reply. Dev only. A question can follow, as in `npm run ask-claude -- "your question"` |
 | `npm run build` | Builds the app into `dist/app` and the front end into `dist/web`, as the images do |
 | `npm run check` | Runs every check below, stopping at the first failure |
 | `npm run format` | Formats every file with Prettier |

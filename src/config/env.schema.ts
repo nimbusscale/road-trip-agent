@@ -25,6 +25,8 @@ export const envSchema = z.object({
     })
     // The code adds paths such as /auth/v1, so a trailing slash would double up.
     .transform((url) => url.replace(/\/+$/, "")),
+  // The Claude plan's token, from claude setup-token (systems design section 8).
+  claudeCodeOauthToken: requiredText(),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -37,4 +39,5 @@ export const ENV_NAMES = {
   postgresPassword: "POSTGRES_PASSWORD",
   postgresDb: "POSTGRES_DB",
   supabaseUrl: "SUPABASE_URL",
+  claudeCodeOauthToken: "CLAUDE_CODE_OAUTH_TOKEN",
 } as const satisfies Record<keyof Env, string>;
