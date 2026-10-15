@@ -570,6 +570,10 @@ By the end of this part, the coordinator can build a trip's skeleton and lay out
 
 **Design:** [Functional spec](../design/functional-spec.md), section 9.2. [Google design](../design/data-sources/google.md), section 4.
 
+**Open questions:**
+
+- How does the `web` image get Google's browser key? Vite writes `VITE_` variables into the front end's files when it builds them, and the image build doesn't see `.env` (it's left out by `.dockerignore`). Raised in phase 4.
+
 **Do:** add the Google map to the itinerary view, with the browser key. It shows the route lines, and different markers for stays, attractions, and restaurants. Clicking a marker shows the item's details.
 
 **Done when:**

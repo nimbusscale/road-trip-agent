@@ -1,0 +1,17 @@
+# SITE_ADDRESS is roadtrip.jjk3.com on the server and localhost locally
+# (systems design section 6). For localhost, Caddy makes its own certificate.
+{$SITE_ADDRESS} {
+	encode
+
+	handle /api/* {
+		reverse_proxy app:3000
+	}
+
+	# Every other path gets the front end. Paths it doesn't have get index.html,
+	# so the React app can show its own pages.
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+}

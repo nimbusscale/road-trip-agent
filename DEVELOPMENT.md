@@ -19,6 +19,8 @@ Claude Code writes the code, Joe reviews the code he cares about, and the tools 
 | Command | Does |
 |---|---|
 | `npm run dev` | Runs the app and the front end locally ([systems design](design/systems.md), section 6) |
+| `npm run migrate` | Runs the database migrations that haven't run yet ([persistence design](design/persistence.md), section 1) |
+| `npm run build` | Builds the app into `dist/app` and the front end into `dist/web`, as the images do |
 | `npm run check` | Runs every check below, stopping at the first failure |
 | `npm run format` | Formats every file with Prettier |
 | `npm run format:check` | Fails if any file isn't formatted |
@@ -26,7 +28,7 @@ Claude Code writes the code, Joe reviews the code he cares about, and the tools 
 | `npm run lint` | Runs ESLint, failing on any warning |
 | `npm run test` | Runs the tests with Vitest |
 
-Postgres for local development runs in a container, with Docker Compose ([systems design](design/systems.md), section 6).
+Postgres for local development runs in a container, with Docker Compose: `docker compose up -d postgres` ([systems design](design/systems.md), section 6). Copy `.env.example` to `.env` and fill it in first.
 
 ---
 
