@@ -31,7 +31,7 @@ This document lists the development work, phase by phase, in the order it's done
 | 6 | Deploy on merge | 2026-10-15, [PR #9](https://github.com/nimbusscale/road-trip-agent/pull/9) |
 | 7 | Back up the database nightly | 2026-10-15, [PR #8](https://github.com/nimbusscale/road-trip-agent/pull/8) |
 | 8 | Sign in | 2026-10-15, [PR #12](https://github.com/nimbusscale/road-trip-agent/pull/12) |
-| 9 | Run the Agent SDK on the server | |
+| 9 | Run the Agent SDK on the server | 2026-10-15, [PR #14](https://github.com/nimbusscale/road-trip-agent/pull/14) |
 | **The thin slice** | | |
 | 10 | The trip, and saving it | |
 | 11 | Store memory | |
