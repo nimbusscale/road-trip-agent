@@ -16,3 +16,5 @@ This document lists what's still open and has no phase to settle it: questions n
 | 4 | **A reviewer.** A later worker that reads the finished itinerary with fresh eyes and checks it against the trip brief. Not in the MVP. | Technical spec |
 | 5 | **An interview agent** that scopes the trip with the user, then hands the coordinator a summary (technical spec, section 2). Revisit if the coordinator's discovery turns out weak. | Technical spec |
 | 6 | **Trip-level states.** Item-level status (functional spec 7.6) covers the need for now. Revisit with versioning in MVP+1. | Functional spec |
+| 7 | **Root sign-in over SSH.** The server still lets root sign in with a key. Password sign-in is off. Turn root sign-in off once nothing needs it. | Phase 5 |
+| 8 | **The deploy key is as strong as root.** Anyone in the `docker` group can take over the server, so the deploy key in GitHub's secrets can too. This comes with the design, but it isn't written down in systems design section 8 yet. | Phase 5 |
