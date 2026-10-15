@@ -26,7 +26,7 @@ This document lists the development work, phase by phase, in the order it's done
 | **Running the app** | | |
 | 2 | Create the Google keys | 2026-10-15, [PR #2](https://github.com/nimbusscale/road-trip-agent/pull/2) |
 | 3 | Combined with phase 4 | |
-| 4 | Choose the libraries, and run the app locally | |
+| 4 | Choose the libraries, and run the app locally | 2026-10-15, [PR #6](https://github.com/nimbusscale/road-trip-agent/pull/6) |
 | 5 | Prepare the server | 2026-10-15, no PR |
 | 6 | Deploy on merge | |
 | 7 | Back up the database nightly | |
