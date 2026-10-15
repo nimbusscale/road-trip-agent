@@ -15,6 +15,7 @@ readonly registry_user="$2"
 readonly images=(
   ghcr.io/nimbusscale/road-trip-agent-app
   ghcr.io/nimbusscale/road-trip-agent-web
+  ghcr.io/nimbusscale/road-trip-agent-backup
 )
 readonly repo_url="https://github.com/nimbusscale/road-trip-agent"
 
@@ -41,6 +42,7 @@ echo "== Running the migrations from the new app image"
 docker compose run --rm app node --enable-source-maps dist/app/migrate.js
 
 echo "== Restarting the containers on the new images"
+# .env sets COMPOSE_PROFILES=production on the server, so this starts backup too.
 docker compose up --detach --wait --remove-orphans
 
 echo "== Removing this app's images that are unused and more than a week old"

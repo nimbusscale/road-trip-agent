@@ -62,6 +62,35 @@ services:
       - app
     restart: unless-stopped
 
+  backup:
+    # The nightly backup (systems design section 9). It only starts on the server, where
+    # .env sets COMPOSE_PROFILES=production. Pulled or built the same way as app.
+    profiles: ["production"]
+    image: ghcr.io/nimbusscale/road-trip-agent-backup:latest
+    build:
+      context: .
+      dockerfile: docker/backup.Dockerfile
+    # The Spaces keys may be empty, so a checkout without them can still run the rest.
+    # backup-now stops with an error if they're missing.
+    environment:
+      PGHOST: postgres
+      PGUSER: ${POSTGRES_USER:?}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?}
+      PGDATABASE: ${POSTGRES_DB:?}
+      RCLONE_CONFIG_SPACES_ACCESS_KEY_ID: ${SPACES_ACCESS_KEY_ID:-}
+      RCLONE_CONFIG_SPACES_SECRET_ACCESS_KEY: ${SPACES_SECRET_ACCESS_KEY:-}
+    # The Postgres image declares a volume here for its data. Without this, Docker would
+    # make an empty volume for it that docker compose down leaves behind.
+    tmpfs:
+      - /var/lib/postgresql
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # A small init process runs the script, so docker compose down stops it at once,
+    # even while it waits for 09:00.
+    init: true
+    restart: unless-stopped
+
 volumes:
   postgres-data:
   caddy-data:
