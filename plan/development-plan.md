@@ -1,6 +1,6 @@
 # Road Trip Planner: Development Plan
 
-This document lists the development work, phase by phase, in the order it's done. How code is written and checked is in [DEVELOPMENT.md](../DEVELOPMENT.md). What the app does and how it's built is in [design/](../design/README.md). What's still open, and which phase settles it, is in the [open items](open-items.md).
+This document lists the development work, phase by phase, in the order it's done. How code is written and checked is in [DEVELOPMENT.md](../DEVELOPMENT.md). What the app does and how it's built is in [design/](../design/README.md). What's still open with no phase to settle it is in the [open items](open-items.md).
 
 **The goal.** At the end of this plan, the app can plan the two example trips in the [domain model](../design/domain-model.md), section 5: San Francisco to Los Angeles, and Grand Junction to Salt Lake City through Moab. A simulated user and Joe each walk both trips through the live app, the way the design walk-throughs did on paper.
 
@@ -13,8 +13,8 @@ This document lists the development work, phase by phase, in the order it's done
 - **Each phase is done on its own branch, and ends in a PR or a decision.** `main` is protected, so nothing is pushed to it directly ([DEVELOPMENT.md](../DEVELOPMENT.md), section 7). A PR is ready when `npm run check` passes and the phase's "Done when" items are checked. Joe merges it, or asks Claude Code to. Once phase 6 is done, a merge to `main` deploys.
 - **Run the "Done when" checks yourself,** and report each result in the PR description.
 - **Some steps need Joe,** such as creating keys in a console. The phase says so.
-- **When a phase settles an open item,** propose the decision to Joe in chat first. Once he agrees, write it into the design doc it belongs to, and close the item, in the same PR ([open items](open-items.md)).
-- **When something is set aside during a phase,** such as an idea, a test, or a question, add it to the [open items](open-items.md) right away.
+- **Some phases list open questions,** after the design sections. Answering them is part of the phase. Propose each answer to Joe in chat first. Once he agrees, write it into the design doc it belongs to, in the same PR.
+- **When something new comes up,** such as an idea, a test, or a question, write it down right away. If a phase will deal with it, add it to that phase's open questions. If not, add it to the [open items](open-items.md).
 - **Tests in `npm run check` use fakes** for Google, Open-Meteo, Supabase, and Claude ([DEVELOPMENT.md](../DEVELOPMENT.md), section 5). Some phases also make a few real calls by hand. Those are listed in "Done when."
 - **The thin slice comes early.** Phases 10 to 14 build a small app that works end to end: Joe signs in on the live site and talks with the coordinator about the trip brief and memory. The riskiest parts get tested early: the Max plan on the server, streaming replies, and saved transcripts. The itinerary code and the rest of the tools come after.
 
@@ -88,7 +88,7 @@ By the end of this part, an empty app runs on `roadtrip.jjk3.com`, deploys on ea
 
 ### Phase 3. Choose the libraries the design leaves open
 
-**Design:** [Open items](open-items.md) 2. [Persistence design](../design/persistence.md), sections 1 and 2. [Systems design](../design/systems.md), sections 4 and 7.
+**Design:** [Persistence design](../design/persistence.md), sections 1 and 2. [Systems design](../design/systems.md), sections 4 and 7.
 
 **Do:**
 
@@ -99,7 +99,7 @@ By the end of this part, an empty app runs on `roadtrip.jjk3.com`, deploys on ea
 - Write the comparison in `research/`.
 - Propose a choice for each to Joe in chat.
 
-**Done when:** Joe has agreed to each choice. It's written into the persistence and systems designs, and open item 2 is closed.
+**Done when:** Joe has agreed to each choice. It's written into the persistence and systems designs.
 
 **Ends in:** a PR with the comparison and the doc changes.
 
@@ -155,12 +155,15 @@ The server already exists, with Ubuntu, and so do its DNS records: `projects.jjk
 
 ### Phase 6. Deploy on merge
 
-**Design:** [Systems design](../design/systems.md), section 7. [Open items](open-items.md) 1 and 8.
+**Design:** [Systems design](../design/systems.md), sections 7 and 8.
+
+**Open questions:**
+
+- Should the container images be private? If so, how does the server sign in to pull them?
 
 **Do:**
 
 - Add the GitHub Actions workflow. On a push to `main`, it runs `npm run check`, builds the `app` and `web` images, and pushes them to GitHub's container registry. Then it connects to the server over SSH, pulls the images, runs the migrations from the new `app` image, and restarts the containers.
-- Decide whether the images are private, and if so, how the server signs in to pull them (open item 8). Propose it to Joe.
 
 **Done when:**
 
@@ -173,11 +176,15 @@ The server already exists, with Ubuntu, and so do its DNS records: `projects.jjk
 
 ### Phase 7. Back up the database nightly
 
-**Design:** [Systems design](../design/systems.md), sections 8 and 9. [Open items](open-items.md) 7.
+**Design:** [Systems design](../design/systems.md), sections 8 and 9.
+
+**Open questions:**
+
+- How many days of backups should be kept?
 
 **Do:**
 
-- Add a script that dumps the database, copies the dump to the Spaces bucket, and removes dumps older than a set number of days. Agree the number of days with Joe.
+- Add a script that dumps the database, copies the dump to the Spaces bucket, and removes dumps older than a set number of days.
 - Put the Spaces access key in the server's `.env` file.
 - Run the script every night on the server.
 
@@ -193,11 +200,15 @@ The server already exists, with Ubuntu, and so do its DNS records: `projects.jjk
 
 **Design:** [Systems design](../design/systems.md), sections 3, 4, and 8. [Functional spec](../design/functional-spec.md), section 3. [DEVELOPMENT.md](../DEVELOPMENT.md), section 4.
 
+**Open questions:**
+
+- How does the app get the Supabase project's public signing keys, and how often does it refresh them?
+
 **Do:**
 
 - Joe confirms the Supabase project has sign-up turned off and email sign-in on. He adds his own user, and a second test user for isolation tests.
 - Add a sign-in page and sign-out to the front end, with Supabase's JavaScript library. The front end sends the token with each `/api` request.
-- In the app, check each token's signature with the Supabase project's public signing keys, and parse its contents with Zod. Refuse a request with no valid token. Decide how the app gets the keys and how often it refreshes them (open item 9).
+- In the app, check each token's signature with the Supabase project's public signing keys, and parse its contents with Zod. Refuse a request with no valid token.
 - Add `GET /api/me`, which returns the signed-in user's ID.
 
 **Done when:**
@@ -210,7 +221,7 @@ The server already exists, with Ubuntu, and so do its DNS records: `projects.jjk
 
 ### Phase 9. Run the Agent SDK on the server
 
-How the server signs in to the Claude Max plan is open item 10. This phase settles it.
+How the server signs in to the Claude Max plan is still open. This phase settles it.
 
 **Design:** [Systems design](../design/systems.md), sections 2, 5, and 8.
 
@@ -240,16 +251,21 @@ By the end of this part, Joe can sign in on the live site, start a trip, and tal
 
 **Design:** [Technical spec](../design/technical-spec.md), section 7.1. [Domain model](../design/domain-model.md), sections 1, 3.1, 3.2, and 4.2. [Persistence design](../design/persistence.md), sections 1 to 5, 8.1 to 8.4, and 8.7.
 
+**Open questions:**
+
+- How does the home screen get each trip's name, dates, and last updated: from the plan document, or from extra columns?
+- How long does a write wait for the row lock before it's refused as "trip busy"?
+
 **Do:**
 
 - Add the ID maker: a prefix for the kind of item, then 8 random letters and digits, leaving out ones that are easy to confuse.
 - Settle how the domain model's markers look in code: `{readOnly}`, `{viaService}`, and `{keepsValue}`. Every later object follows the same pattern, so show Joe the first one before going on.
 - Add `TripBrief`, with its rules, and `TripBriefService`.
 - Add `Trip`, holding its owner, its trip brief, and an itinerary that holds only its last day for now.
-- Add the migration for the trips table, with the plan as one JSON document. Decide how the home screen gets each trip's name, dates, and last updated: from the plan, or from extra columns (open item 4).
+- Add the migration for the trips table, with the plan as one JSON document.
 - Add the Zod schema for the plan document. Later phases add to it as they add objects.
 - Add `TripRepository`, `EditableTrip`, `TripWriter`, and `TripReader`. For now, the finish step of a write only sets last updated. Phases 19 and 20 add the legs and the checks.
-- Set how long a write waits for the row lock, and retry "trip busy" a few times before the error goes back (open item 5).
+- Retry "trip busy" a few times, with a short pause, before the error goes back. No agent has to understand the lock.
 
 **Done when:**
 
@@ -281,11 +297,15 @@ The started-trip lock at save can't be tested yet, since nothing can set a start
 
 **Design:** [Persistence design](../design/persistence.md), sections 6, 7, and 8.5.
 
+**Open questions:**
+
+- Where do the Agent SDK's local scratch files go?
+
 **Do:**
 
 - First, check that the Agent SDK's `sessionStore` option works the way the design expects. It's marked alpha. Lines should reach the adapter as soon as they're written, and a resume should read them back from it. If it doesn't work, use the fallback in persistence design section 6, and tell Joe.
 - Add the migrations for sessions and transcript lines.
-- Add `SessionRepository`, `SessionWriter`, `SessionReader`, and the `TranscriptAdapter`. Decide where the SDK's local scratch files go (open item 11).
+- Add `SessionRepository`, `SessionWriter`, `SessionReader`, and the `TranscriptAdapter`.
 
 **Done when:**
 
@@ -323,7 +343,7 @@ The started-trip lock at save can't be tested yet, since nothing can set a start
 **Do:**
 
 - Add the endpoints: list the user's trips, with name, dates, and last updated; start a trip from the "New trip" form; list a trip's sessions; send a message, with the reply streamed back over Server-Sent Events; and resume a session.
-- Check that the signed-in user owns the trip before making a session's tools (open item 6).
+- Check that the signed-in user owns the trip before making a session's tools.
 - Keep a turn running when the browser disconnects.
 - Refuse to start or resume a session, or take a message, once the trip has started. Check before each message.
 - Add the home screen: the user's trips, and "New trip."
@@ -352,19 +372,23 @@ By the end of this part, code can build both example trips through the services,
 
 **Design:** [Domain model](../design/domain-model.md), section 3.10. [Persistence design](../design/persistence.md), section 8.6. [Google design](../design/data-sources/google.md), sections 1 and 2.1 to 2.3. [Tool design](../design/tools.md), section 2.3 (`find_place` and `read_place`). [Technical spec](../design/technical-spec.md), section 7.2.
 
+**Open questions:**
+
+- Does Google give a street address no name? If it returns the street as the name, "Mike's house" never fills in (domain model 3.10).
+
 **Do:**
 
 - Add the Google Places client for Text Search. It sends the key in a header, asks only for the fields it needs, has a timeout, and checks responses with Zod. Review text goes to the model labeled as place content.
 - Add `Place`, with its opening periods and short line.
 - Add the places table, `PlaceRepository`, `PlaceWriter`, and `PlaceReader`.
-- Add `find_place` and `read_place` on the `places` server, and give them to the coordinator. `read_place` checks the place belongs to the session's trip (open item 6).
+- Add `find_place` and `read_place` on the `places` server, and give them to the coordinator. `read_place` checks the place belongs to the session's trip.
 
 **Done when:**
 
 - Tests use saved Google responses.
 - A real lookup of "Smitty's Market, Lockhart, TX" stores the place with its opening periods.
 - Looking up the same place twice stores it once.
-- A real lookup of a street address shows whether Google gives it a name (open item 14).
+- A real lookup of a street address shows whether Google gives it a name.
 - In chat, the coordinator resolves "Moab," and answers "is Milt's open on Mondays?" from `read_place`.
 
 **Ends in:** a PR.
@@ -391,10 +415,14 @@ By the end of this part, code can build both example trips through the services,
 
 **Design:** [Domain model](../design/domain-model.md), section 4.1. [Persistence design](../design/persistence.md), section 5 (today's date). [Technical spec](../design/technical-spec.md), section 8 (opening hours).
 
+**Open questions:**
+
+- Which library finds the time zone from coordinates, with no outside call?
+
 **Do:**
 
 - Add the calendar's lookup functions, such as `dateOf()`, `startStayOf()`, `fromPlaceOf()`, and `isStayingPut()`.
-- Add `today()`. Choose a library that finds the time zone from coordinates, with no outside call (open item 12).
+- Add `today()`.
 - Add `scheduleOf()`, `openTimeInMinutesOf()`, `activitiesOf()`, and `isWeatherOutOfDate()`.
 
 **Done when:**
@@ -470,10 +498,14 @@ By the end of this part, the coordinator can build a trip's skeleton and lay out
 
 **Design:** [Tool design](../design/tools.md), sections 2.1 (`read_itinerary`) and 4. [Technical spec](../design/technical-spec.md), section 7.2.
 
+**Open questions:**
+
+- What's the size limit on an in-process MCP tool's result? Claude Code may cut off large results. The limit for MCP tools is believed to be 25,000 tokens, but it hasn't been checked for in-process servers.
+
 **Do:**
 
 - Add `read_itinerary`, for the whole trip or scoped to a day, stay, or stop. Leave out route lines.
-- Measure a full read of a 14-day trip, and find the limit on an in-process MCP tool's result (open item 13).
+- Measure a full read of a 14-day trip, and find the limit on an in-process MCP tool's result.
 
 **Done when:**
 
@@ -565,13 +597,16 @@ By the end of this part, the full planning flow works: workers fill stops and lo
 
 **Design:** [Technical spec](../design/technical-spec.md), sections 4.2 (fill), 5.3, 6.1, and 6.4. [Tool design](../design/tools.md), sections 2.1 (the candidate tools) and 3. [Web search design](../design/data-sources/web-search.md).
 
+**Open questions:**
+
+- What exact fields go in a worker brief and in a worker's result? Technical spec section 5.3 lists the contents, not the fields.
+- Can a session resume when its transcript ends in a worker call that never got its result? A restart can leave it that way. If the SDK won't resume, the adapter drops the unfinished line.
+
 **Do:**
 
 - Add `add_lodging_candidates` and `add_stop_candidates`.
 - Add the stay researcher, with only its tools, and its instructions.
-- Settle the worker brief and result formats (open item 15), and write them into technical spec section 5.3 once Joe agrees.
 - Add the coordinator's instructions for the fill round, and give it the `Agent` tool.
-- Test resuming a session whose transcript ends in a worker call that never got its result (open item 16).
 
 **Done when,** in chat:
 
@@ -585,11 +620,14 @@ By the end of this part, the full planning flow works: workers fill stops and lo
 
 **Design:** [Technical spec](../design/technical-spec.md), section 6.2. [Tool design](../design/tools.md), sections 2.1 (detour times) and 4. [Domain model](../design/domain-model.md), section 4.7.
 
+**Open questions:**
+
+- What timeout does each Google call get, and what time limit does the whole write get? One write can make several calls, such as selecting Moab lodging, which re-routes four days. Measure real writes first.
+
 **Do:**
 
 - Add the leg scout, its instructions, and detour times in `add_stop_candidates`.
 - Add the hook that denies a leg scout's web search unless it's limited to `atlasobscura.com`.
-- Measure how long real writes take. Set each Google call's timeout and a time limit for the whole write (open item 17).
 
 **Done when:**
 
@@ -603,10 +641,14 @@ By the end of this part, the full planning flow works: workers fill stops and lo
 
 **Design:** [Functional spec](../design/functional-spec.md), sections 7.1, 7.5, and 7.6. [Technical spec](../design/technical-spec.md), sections 4.2 (refine), 7.2, and 9. [Domain model](../design/domain-model.md), section 3.9.
 
+**Open questions:**
+
+- Which attractions show a rating and review count? A national park or a historic plaque shows none (functional spec 7.5).
+- Do Google's terms require the "Summarized with Gemini" label wherever a Places summary appears?
+
 **Do:**
 
 - Show an option card for the newest candidate set of each stop and stay with nothing selected, with each candidate's details. Select, More options, Higher tier, and Lower tier each send a message to the coordinator.
-- Decide which attractions show a rating (open item 19), and whether Places summaries need the "Summarized with Gemini" label (open item 20).
 - Add the coordinator's instructions for card actions and budget tiers.
 
 **Done when,** on the live site:
@@ -620,12 +662,16 @@ By the end of this part, the full planning flow works: workers fill stops and lo
 
 **Design:** [Google design](../design/data-sources/google.md), section 3. [Open-Meteo design](../design/data-sources/open-meteo.md). [Tool design](../design/tools.md), section 2.5.
 
+**Open questions:**
+
+- Is the first day of a Google Weather forecast today? Google design section 3 assumes so, but it isn't confirmed.
+
 **Do:** add the Google Weather client, the Open-Meteo client, and `stay_weather`, which picks the source from the stay's dates.
 
 **Done when:**
 
 - Tests use saved responses, including Open-Meteo's spent-limit reply.
-- A real call for a stay within 7 days returns a forecast. Its first day is today (open item 21).
+- A real call for a stay within 7 days returns a forecast.
 - A real call for a stay in October 2027 returns seasonal averages, labeled "Typical for this time of year, based on 2016–2025."
 - A forecast that leaves out a date returns an error.
 
@@ -651,12 +697,15 @@ By the end of this part, the full planning flow works: workers fill stops and lo
 
 ### Phase 32. Finish the coordinator's instructions
 
-**Design:** [Technical spec](../design/technical-spec.md), sections 5.2 and 9. [Open items](open-items.md) 18.
+**Design:** [Technical spec](../design/technical-spec.md), sections 5.2 and 9.
+
+**Open questions:**
+
+- Are about two dozen tools too many for the coordinator? If it chooses badly, merge the add, update, and remove tools for each kind of item.
 
 **Do:**
 
 - Go through every item in technical spec sections 5.2 and 9, and make sure the instructions cover it. Add what's missing, such as the opening line of a new session and "what's left to decide?"
-- Watch for wrong tool choices, since the coordinator has about two dozen tools (open item 18). Tell Joe if merging tools looks needed.
 
 **Done when:**
 
@@ -684,6 +733,10 @@ By the end of this part, both example trips have been planned through the live a
 **Ends in:** a PR.
 
 ### Phase 34. Walk the San Francisco trip
+
+**Open questions:**
+
+- How much of the Max plan does a planning session use? Check the usage bars before and after the run.
 
 **Do:**
 
