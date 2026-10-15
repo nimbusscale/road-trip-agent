@@ -37,6 +37,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:?}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
       POSTGRES_DB: ${POSTGRES_DB:?}
+      SUPABASE_URL: ${SUPABASE_URL:?}
     depends_on:
       postgres:
         condition: service_healthy
@@ -48,6 +49,12 @@ services:
     build:
       context: .
       dockerfile: docker/web.Dockerfile
+      # Only for a local build. On the server, the image comes from the workflow, so
+      # these can be missing from its .env.
+      args:
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:-}
+        VITE_SUPABASE_PUBLISHABLE_KEY: ${VITE_SUPABASE_PUBLISHABLE_KEY:-}
+        VITE_GOOGLE_MAPS_BROWSER_KEY: ${VITE_GOOGLE_MAPS_BROWSER_KEY:-}
     environment:
       SITE_ADDRESS: ${SITE_ADDRESS:?}
     ports:

@@ -10,6 +10,7 @@ const GOOD_ENV: readonly (readonly [string, string])[] = [
   ["POSTGRES_USER", "roadtrip"],
   ["POSTGRES_PASSWORD", "secret"],
   ["POSTGRES_DB", "roadtrip"],
+  ["SUPABASE_URL", "https://abc.supabase.co"],
 ];
 
 function envWith(name: string, value: string): Record<string, string> {
@@ -28,7 +29,20 @@ describe("parseEnv", () => {
       postgresUser: "roadtrip",
       postgresPassword: "secret",
       postgresDb: "roadtrip",
+      supabaseUrl: "https://abc.supabase.co",
     });
+  });
+
+  it("drops a trailing slash from the Supabase address", () => {
+    expect(
+      parseEnv(envWith("SUPABASE_URL", "https://abc.supabase.co/")).supabaseUrl,
+    ).toBe("https://abc.supabase.co");
+  });
+
+  it("refuses a Supabase address that isn't https", () => {
+    expect(() =>
+      parseEnv(envWith("SUPABASE_URL", "http://abc.supabase.co")),
+    ).toThrow("- SUPABASE_URL must be an https address");
   });
 
   it("ignores variables the app doesn't read", () => {

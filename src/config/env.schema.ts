@@ -15,6 +15,16 @@ export const envSchema = z.object({
   postgresUser: requiredText(),
   postgresPassword: requiredText(),
   postgresDb: requiredText(),
+  supabaseUrl: z
+    .url({
+      protocol: /^https$/,
+      error: (issue) =>
+        issue.input === undefined
+          ? "is missing"
+          : "must be an https address, such as https://abc.supabase.co",
+    })
+    // The code adds paths such as /auth/v1, so a trailing slash would double up.
+    .transform((url) => url.replace(/\/+$/, "")),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -26,4 +36,5 @@ export const ENV_NAMES = {
   postgresUser: "POSTGRES_USER",
   postgresPassword: "POSTGRES_PASSWORD",
   postgresDb: "POSTGRES_DB",
+  supabaseUrl: "SUPABASE_URL",
 } as const satisfies Record<keyof Env, string>;

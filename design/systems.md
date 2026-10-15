@@ -68,10 +68,12 @@ One server runs everything we build. The browser signs in with Supabase, then ta
 
 1. The browser signs in with Supabase's JavaScript library, and gets back a token. The token is signed by Supabase and holds the user's ID.
 2. The browser sends the token with each `/api` request.
-3. The app checks the token's signature with the Supabase project's public signing keys, and reads the user's ID from it. A request with no valid token is refused.
+3. The app checks the token's signature with the Supabase project's public signing keys, and reads the user's ID from it. A request with no valid token is refused, except `/api/health`, which the deploy calls (section 7).
 4. The app checks that the user owns the trip, then makes the session's tools with that user and trip ([tool design](tools.md), section 4).
 
 The app never sees a password. Sign-out drops the token in the browser.
+
+**The app needs no Supabase secret to check a token.** The project signs tokens with an asymmetric key, `ECC (P-256)`, and publishes the public half at `<project URL>/auth/v1/.well-known/jwks.json`. The app downloads the public keys from there and keeps them in memory. It downloads them again only when a token names a key it hasn't seen, such as after a key rotation, and at most once every 30 seconds. The `jose` library does this. The app reads the project's address from `SUPABASE_URL`. The front end has its own copy, `VITE_SUPABASE_URL` (section 7).
 
 **A user's ID is Supabase's ID for that user,** a UUID. Our trips and memory items store it (technical spec 7.1). Users live in Supabase and trips live in our Postgres, so no database link joins them.
 
@@ -132,7 +134,7 @@ The commands, code standards, and tests are in [DEVELOPMENT.md](../DEVELOPMENT.m
 **A merge to `main` deploys it.** A GitHub Actions workflow, `.github/workflows/deploy.yml`:
 
 1. Runs `npm run check`. If it fails, nothing is built or deployed. The check also runs on every pull request. It isn't a required status check, so a PR can still be merged when it fails, for the times that's needed.
-2. Builds three images: `app`, with the back end, `web`, with Caddy and the front end's built files, and `backup`, with the nightly backup (section 9).
+2. Builds three images: `app`, with the back end, `web`, with Caddy and the front end's built files, and `backup`, with the nightly backup (section 9). Vite builds the browser's values into the front end (section 8). The workflow has no `.env`, so it passes them to the `web` build from GitHub repo variables: `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, and `VITE_GOOGLE_MAPS_BROWSER_KEY`. They aren't secret, but they stay out of the repo, so Google and GitHub don't flag a key as exposed. Locally, the same names are in `.env`.
 3. Pushes them to GitHub's container registry, tagged with the commit.
 4. Copies `compose.yaml` and the repo's `ops/` folder to the server, over SSH. The server keeps only its `.env` file between deploys.
 5. Runs `ops/deploy.sh` on the server. It pulls the new images, and runs the database migrations from the new `app` image before the new app starts. Then it restarts the containers with the new images.
@@ -161,7 +163,7 @@ The commands, code standards, and tests are in [DEVELOPMENT.md](../DEVELOPMENT.m
 | Postgres password | `app` and `postgres` |
 | Spaces access key | `backup` (section 9) |
 
-GitHub holds only what the deploy needs: the server's address, its SSH host keys, and an SSH key. It pushes images with its own built-in token.
+GitHub holds only what the deploy needs: the server's address, its SSH host keys, and an SSH key, as secrets, and the browser's values as repo variables (section 7). It pushes images with its own built-in token.
 
 **The container images are private,** which is GitHub's default for a new image. The server has no registry credential of its own. Each deploy passes the workflow's built-in token to the server over SSH, and the server signs in with it only to pull that deploy's images. The sign-in is kept in a temporary folder that's removed right after, and the token stops working when the workflow job ends. So nobody has to make or renew a token, and none is left on the server.
 
