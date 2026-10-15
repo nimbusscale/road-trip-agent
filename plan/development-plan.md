@@ -14,7 +14,9 @@ This document lists the development work, phase by phase, in the order it's done
 - **Run the "Done when" checks yourself,** and report each result in the PR description.
 - **Mark the phase done in its own PR.** Fill in its row of the table below with the date and the PR, such as "2026-10-15, PR #2". Use the date the PR is opened.
 - **Some steps need Joe,** such as creating keys in a console. The phase says so.
-- **Some phases list open questions,** after the design sections. Answering them is part of the phase. Propose each answer to Joe in chat first. Once he agrees, write it into the design doc it belongs to, in the same PR.
+- **Some phases list open questions,** after the design sections. Answering them is part of the phase. Each answer is written into the design doc it belongs to, in the same PR.
+- **A phase settles its questions and choices in chat or in the PR.** A phase that says "Settled in: the PR" proposes each answer in the PR description, and Joe agrees by approving the PR. Otherwise, propose each answer to Joe in chat first, and write it in once he agrees.
+- **Some phases run in parallel,** in batches. Claude Code coordinates, and a worker agent does each phase on its own branch. Batch 1 is phases 4 and 5. Batch 2 is phases 6 and 7, and starts once phase 4 is merged.
 - **When something new comes up,** such as an idea, a test, or a question, write it down right away. If a phase will deal with it, add it to that phase's open questions. If not, add it to the [open items](open-items.md).
 - **Tests in `npm run check` use fakes** for Google, Open-Meteo, Supabase, and Claude ([DEVELOPMENT.md](../DEVELOPMENT.md), section 5). Some phases also make a few real calls by hand. Those are listed in "Done when."
 - **The thin slice comes early.** Phases 10 to 14 build a small app that works end to end: Joe signs in on the live site and talks with the coordinator about the trip brief and memory. The riskiest parts get tested early: the Max plan on the server, streaming replies, and saved transcripts. The itinerary code and the rest of the tools come after.
@@ -23,8 +25,8 @@ This document lists the development work, phase by phase, in the order it's done
 |---|---|---|
 | **Running the app** | | |
 | 2 | Create the Google keys | 2026-10-15, [PR #2](https://github.com/nimbusscale/road-trip-agent/pull/2) |
-| 3 | Choose the libraries the design leaves open | |
-| 4 | Run the app locally | |
+| 3 | Combined with phase 4 | |
+| 4 | Choose the libraries, and run the app locally | |
 | 5 | Prepare the server | |
 | 6 | Deploy on merge | |
 | 7 | Back up the database nightly | |
@@ -87,9 +89,15 @@ By the end of this part, an empty app runs on `roadtrip.jjk3.com`, deploys on ea
 
 **Ends in:** a PR adding `.env.example`.
 
-### Phase 3. Choose the libraries the design leaves open
+### Phase 3. Combined with phase 4
 
-**Design:** [Persistence design](../design/persistence.md), sections 1 and 2. [Systems design](../design/systems.md), sections 4 and 7.
+Choosing the libraries is now part of phase 4, since running the app needs all three choices.
+
+### Phase 4. Choose the libraries, and run the app locally
+
+**Design:** [Persistence design](../design/persistence.md), sections 1 and 2. [Systems design](../design/systems.md), sections 2, 4, 6, and 7. [DEVELOPMENT.md](../DEVELOPMENT.md), section 4. [Technical spec](../design/technical-spec.md), section 10.
+
+**Settled in:** the PR.
 
 **Do:**
 
@@ -97,19 +105,7 @@ By the end of this part, an empty app runs on `roadtrip.jjk3.com`, deploys on ea
   - **The database library.** It sends queries to Postgres directly, rather than mapping each class to a table (persistence design, section 2).
   - **The migration tool.** It runs from the `app` image before the new app starts (systems design, section 7).
   - **The HTTP server library** for the API. It needs Zod checks on request bodies, and Server-Sent Events for streaming replies.
-- Write the comparison in `research/`.
-- Propose a choice for each to Joe in chat.
-
-**Done when:** Joe has agreed to each choice. It's written into the persistence and systems designs.
-
-**Ends in:** a PR with the comparison and the doc changes.
-
-### Phase 4. Run the app locally
-
-**Design:** [Systems design](../design/systems.md), sections 2, 4, and 6. [DEVELOPMENT.md](../DEVELOPMENT.md), section 4. [Technical spec](../design/technical-spec.md), section 10.
-
-**Do:**
-
+- Write the comparison in `research/`. Pick one of each, write the choices into the persistence and systems designs, and explain them in the PR description.
 - Add the Docker Compose file, with `postgres`, `app`, and `web`. Postgres uses the standard image, keeps its data on a volume, and is reachable from the host but not from outside it.
 - Add the app's entry point. It parses the environment variables with Zod once, and loads the settings file in technical spec section 10, also with Zod. A missing or bad value stops the app from starting.
 - Add the migration tool and a first migration, with an npm script to run them.
@@ -117,7 +113,7 @@ By the end of this part, an empty app runs on `roadtrip.jjk3.com`, deploys on ea
 - Add the front end, with React, TypeScript, and Vite. For now it's one page that calls `/api/health` and shows the result.
 - Make `npm run dev` start the app and the front end. Vite passes `/api` to the app.
 - Add a Dockerfile for `app`, and one for `web`: Caddy with the front end's built files. Caddy passes `/api` to `app`, and reads its site name from the environment.
-- The front end needs its own TypeScript and lint settings. Those are config files that change only with Joe's approval ([DEVELOPMENT.md](../DEVELOPMENT.md), section 6). Show Joe the changes and why, and ask before making them.
+- Add the front end's own TypeScript and lint settings. Match the strictness and style of the existing config files, and explain the settings in the PR description. Approving the PR is Joe's approval for these config files ([DEVELOPMENT.md](../DEVELOPMENT.md), section 6). The rest of that rule still holds: never loosen a setting just to make a check pass.
 
 **Done when:**
 
@@ -128,8 +124,9 @@ By the end of this part, an empty app runs on `roadtrip.jjk3.com`, deploys on ea
 - `app` can't be reached from the host directly, only through Caddy.
 - `npm run lint` checks the front end's files.
 - Tests cover the parsing of the environment and the settings.
+- The comparison is in `research/`, and the choices are written into the persistence and systems designs.
 
-**Ends in:** a PR.
+**Ends in:** a PR with the comparison, the doc changes, and the code.
 
 ### Phase 5. Prepare the server
 
@@ -158,6 +155,10 @@ The server already exists, with Ubuntu, and so do its DNS records: `projects.jjk
 
 **Design:** [Systems design](../design/systems.md), sections 7 and 8.
 
+**Settled in:** the PR.
+
+**Starts** once phase 4 is merged. The PR is merged once phase 5 is done, since the merge deploys to the server.
+
 **Open questions:**
 
 - Should the container images be private? If so, how does the server sign in to pull them?
@@ -179,14 +180,18 @@ The server already exists, with Ubuntu, and so do its DNS records: `projects.jjk
 
 **Design:** [Systems design](../design/systems.md), sections 8 and 9.
 
+**Settled in:** the PR.
+
+**Starts** once phase 4 is merged. Test the script against the local Postgres first. Set up the nightly run once phase 6 has deployed the database to the server.
+
 **Open questions:**
 
-- How many days of backups should be kept?
+- ~~How many days of backups should be kept?~~ **Closed 2026-10-15:** 3 days, agreed in chat. This phase's PR writes it into systems design section 9.
 
 **Do:**
 
-- Add a script that dumps the database, copies the dump to the Spaces bucket, and removes dumps older than a set number of days.
-- Put the Spaces access key in the server's `.env` file.
+- Add a script that dumps the database, copies the dump to the Spaces bucket, and removes dumps older than 3 days. The bucket is `jjk3-backups`, in the `nyc3` region, at `https://nyc3.digitaloceanspaces.com`.
+- Put the Spaces access key in the server's `.env` file. The local `.env` has it as `SPACES_ACCESS_KEY_ID` and `SPACES_SECRET_ACCESS_KEY`.
 - Run the script every night on the server.
 
 **Done when:**
