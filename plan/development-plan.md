@@ -161,7 +161,7 @@ The server already exists, with Ubuntu, and so do its DNS records: `projects.jjk
 
 **Open questions:**
 
-- Should the container images be private? If so, how does the server sign in to pull them?
+- ~~Should the container images be private? If so, how does the server sign in to pull them?~~ **Answered 2026-10-15, in this phase's PR:** private. Each deploy signs the server in with the workflow's own short-lived token. Written into systems design section 8.
 
 **Do:**
 
@@ -218,6 +218,7 @@ The server already exists, with Ubuntu, and so do its DNS records: `projects.jjk
 **Open questions:**
 
 - How does the app get the Supabase project's public signing keys, and how often does it refresh them?
+- How does the `web` image get the Supabase project's address and browser key? Vite builds them into the front end's files, and the image is built in GitHub Actions, which has no `.env` (systems design section 7). Phase 25 asks the same about Google's browser key, so answer both here. One option is GitHub repo variables, passed to the image build as build arguments. Raised in phase 6.
 
 **Do:**
 
@@ -581,7 +582,7 @@ By the end of this part, the coordinator can build a trip's skeleton and lay out
 
 **Open questions:**
 
-- How does the `web` image get Google's browser key? Vite writes `VITE_` variables into the front end's files when it builds them, and the image build doesn't see `.env` (it's left out by `.dockerignore`). Raised in phase 4.
+- How does the `web` image get Google's browser key? Vite writes `VITE_` variables into the front end's files when it builds them, and the image build doesn't see `.env` (it's left out by `.dockerignore`). Raised in phase 4. Phase 8 answers the same question for the Supabase values first, so use its answer.
 
 **Do:** add the Google map to the itinerary view, with the browser key. It shows the route lines, and different markers for stays, attractions, and restaurants. Clicking a marker shows the item's details.
 
