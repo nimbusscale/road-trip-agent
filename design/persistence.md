@@ -1,6 +1,6 @@
 # Road Trip Planner: Persistence (MVP)
 
-This document covers how a trip, its sessions, and memory are stored and saved: what is stored together, what a write does with storage, how two writes to one trip are kept apart, how the started-trip lock is checked at save, how sessions and their transcripts are kept, how memory is kept, and which classes do each of these. It stays at the level of design. The database library, table layout, indexes, and migrations are settled during development.
+This document covers how a trip, its sessions, and memory are stored and saved: what is stored together, what a write does with storage, how two writes to one trip are kept apart, how the started-trip lock is checked at save, how sessions and their transcripts are kept, how memory is kept, and which classes do each of these. It stays at the level of design. The database library and the migration tool are in section 1. The table layout and indexes are settled during development.
 
 What a write is, and what it changes, is in the [domain model](domain-model.md), section 1, "A write." This document adds what a write does with storage. What memory holds, and the rules for writing it, are in the [technical spec](technical-spec.md), section 3.1.
 
@@ -13,6 +13,12 @@ What a write is, and what it changes, is in the [domain model](domain-model.md),
 - **Not in the app's memory.** The app runs in a container that can restart at any time ([Google design](data-sources/google.md), section 5). Anything held only in memory goes with it. It also wouldn't work across more than one copy of the app.
 - **Not in object storage.** S3-style object storage, DigitalOcean Spaces, holds only the nightly backups ([systems design](systems.md), section 9). It suits large files written once. Transcripts are the opposite: many small additions, read back in order (section 6). Object storage can't add to a file that already exists, so each addition would be its own small file. One store is also simpler to run and back up.
 - **Settings aren't in the database.** They're in a config file the app loads when it starts ([technical spec](technical-spec.md), section 10).
+
+**The app sends SQL to Postgres with node-postgres (`pg`).** There's no ORM: most of a trip is one JSON document (section 2), so mapping classes to tables would be code for nothing. Rows read back are parsed with Zod ([DEVELOPMENT.md](../DEVELOPMENT.md), section 4). Every value goes into a query as a parameter, such as `$1`, never joined into the SQL text.
+
+**Migrations are SQL files in `migrations/`, run by node-pg-migrate.** `npm run migrate` runs the new ones locally. A deploy runs them from the new `app` image ([systems design](systems.md), section 7). node-pg-migrate records each one in the `pgmigrations` table, and holds a lock while it runs, so two runs can't overlap. Migrations only go forward: a bad one is fixed by a new one.
+
+The options compared for both are in [research/server-libraries.md](../research/server-libraries.md).
 
 ---
 

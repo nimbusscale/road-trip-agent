@@ -1,9 +1,11 @@
 // The rules and limits here change only with Joe's approval (DEVELOPMENT.md section 6).
 import eslint from "@eslint/js";
 import eslintComments from "@eslint-community/eslint-plugin-eslint-comments/configs";
+import eslintReact from "@eslint-react/eslint-plugin";
 import eslintConfigPrettier from "eslint-config-prettier/flat";
-import { defineConfig } from "eslint/config";
+import { defineConfig, globalIgnores } from "eslint/config";
 import noBarrelFiles from "eslint-plugin-no-barrel-files";
+import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 
 const NAMING_CONVENTION = [
@@ -57,6 +59,8 @@ const ESCAPE_HATCH_BANS = {
 };
 
 export default defineConfig(
+  // Build output, not source.
+  globalIgnores(["dist/", "coverage/"]),
   eslint.configs.recommended,
   tseslint.configs.strictTypeChecked,
   tseslint.configs.stylisticTypeChecked,
@@ -117,6 +121,25 @@ export default defineConfig(
           selector: ["objectLiteralProperty", "typeProperty"],
           format: ["camelCase", "snake_case"],
         },
+      ],
+    },
+  },
+  {
+    // The front end. The React rules are the strictest type-checked set, and Vite's
+    // fast refresh rule keeps each component file exporting only components.
+    files: ["web/**/*.{ts,tsx}"],
+    extends: [
+      eslintReact.configs["strict-type-checked"],
+      reactRefresh.configs.vite,
+    ],
+  },
+  {
+    // React components are functions named in PascalCase, such as `HealthStatus`.
+    files: ["web/**/*.tsx"],
+    rules: {
+      "@typescript-eslint/naming-convention": [
+        ...NAMING_CONVENTION,
+        { selector: "function", format: ["camelCase", "PascalCase"] },
       ],
     },
   },
