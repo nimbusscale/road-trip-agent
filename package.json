@@ -28,7 +28,9 @@
   },
   "dependencies": {
     "@hono/node-server": "2.1.5",
+    "@supabase/supabase-js": "2.117.2",
     "hono": "4.13.13",
+    "jose": "6.2.12",
     "node-pg-migrate": "9.0.0",
     "pg": "8.23.1",
     "react": "19.3.1",

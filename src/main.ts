@@ -1,6 +1,7 @@
 import { serve } from "@hono/node-server";
 
 import { createApi } from "./api/api.js";
+import { createSupabaseTokenVerifier } from "./auth/token-verifier.js";
 import { ConfigError } from "./config/config-error.js";
 import { parseEnv } from "./config/env.js";
 import { loadSettings, SETTINGS_PATH } from "./config/settings.js";
@@ -18,6 +19,7 @@ function start(): void {
   const pool = createPool(env);
   const api = createApi({
     isDatabaseReachable: () => isDatabaseReachable(pool),
+    verifyToken: createSupabaseTokenVerifier(env.supabaseUrl),
   });
   const server = serve(
     { fetch: api.fetch, hostname: env.appHost, port: APP_PORT },

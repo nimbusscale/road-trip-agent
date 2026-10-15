@@ -1,7 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
-import { HealthStatus } from "./health-status";
+import { App } from "./app";
 
 const rootElement = document.getElementById("root");
 if (rootElement === null) {
@@ -10,7 +10,6 @@ if (rootElement === null) {
 
 createRoot(rootElement).render(
   <StrictMode>
-    <h1>Road Trip Planner</h1>
-    <HealthStatus />
+    <App />
   </StrictMode>,
 );
