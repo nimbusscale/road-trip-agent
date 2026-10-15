@@ -80,3 +80,9 @@ Worker results aren't on the list. A worker returns text that the coordinator re
 - **The config files change only with Joe's approval.** That's `tsconfig*.json`, `eslint.config.*`, the Prettier config and ignore file, `.claude/settings.json`, and the hook scripts. Claude Code writes them during first setup. After that, if a change seems needed, stop, say why, and ask first. Never edit them, or add a disable comment or `@ts-expect-error`, just to make a check pass. Permission ask rules make Claude Code prompt Joe before each edit to these files.
 - **After each edit to a `.ts` file, a hook runs Prettier and ESLint on it.** Errors come back right away, so fix them before moving on.
 - **There's no hook at the end of a turn.** Many sessions only change design docs, and a full check after every turn would slow them down. The per-edit hook, the rule in section 1, and the pre-commit hook cover it.
+
+---
+
+## 7. Branches and pull requests
+
+**`main` is protected.** Nothing is pushed to it directly. Every change goes on its own branch, and reaches `main` through a pull request. Only Joe decides when a pull request is merged: he merges it himself, or asks Claude Code to merge it. Claude Code never merges one without being asked. A merge to `main` deploys it ([systems design](design/systems.md), section 7).
