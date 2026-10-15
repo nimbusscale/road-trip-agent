@@ -23,6 +23,9 @@ services:
     restart: unless-stopped
 
   app:
+    # On the server, the deploy pulls this image and tags it :latest (ops/deploy.sh).
+    # Locally, Compose builds it from the Dockerfile.
+    image: ghcr.io/nimbusscale/road-trip-agent-app:latest
     build:
       context: .
       dockerfile: docker/app.Dockerfile
@@ -40,6 +43,8 @@ services:
     restart: unless-stopped
 
   web:
+    # Pulled or built the same way as app.
+    image: ghcr.io/nimbusscale/road-trip-agent-web:latest
     build:
       context: .
       dockerfile: docker/web.Dockerfile

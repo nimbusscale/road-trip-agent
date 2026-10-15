@@ -1,0 +1,127 @@
+# Checks every pull request. On a merge to main, it also builds the images and deploys
+# them to the server (systems design section 7).
+name: Check and deploy
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# One run at a time for each branch. A pull request's older run is cancelled. A deploy
+# is never cancelled halfway: the next merge waits for it.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  IMAGE_PREFIX: ghcr.io/nimbusscale/road-trip-agent
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+
+  build:
+    # Only after the check passes, and only on main.
+    needs: check
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        image: [app, web]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: docker/${{ matrix.image }}.Dockerfile
+          push: true
+          # Tagged with the commit, so each deploy pulls exactly what this run built.
+          tags: ${{ env.IMAGE_PREFIX }}-${{ matrix.image }}:${{ github.sha }}
+          # Links the image to this repo, so the workflow's token can pull it.
+          labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: read
+    env:
+      DEPLOY_DIR: /home/roadtrip/road-trip-agent
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up SSH to the server
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          install -m 600 /dev/null ~/.ssh/deploy_key
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          cat > ~/.ssh/config <<EOF
+          Host server
+            HostName $DEPLOY_HOST
+            User $DEPLOY_USER
+            IdentityFile ~/.ssh/deploy_key
+            IdentitiesOnly yes
+            StrictHostKeyChecking yes
+          EOF
+
+      - name: Copy compose.yaml and ops/ to the server
+        # The server keeps only .env between deploys. ops/ is replaced each time, so a
+        # file removed from the repo is removed from the server too.
+        run: |
+          rsync --archive compose.yaml "server:$DEPLOY_DIR/"
+          if [ -d ops ]; then
+            rsync --archive --delete ops/ "server:$DEPLOY_DIR/ops/"
+          fi
+
+      - name: Pull the images, run the migrations, and restart the containers
+        # The images are private. The server signs in with this job's own token, which
+        # stops working when the job ends (systems design section 8).
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SHA: ${{ github.sha }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          printf '%s' "$GITHUB_TOKEN" |
+            ssh server "bash $DEPLOY_DIR/ops/deploy.sh $SHA $ACTOR"
+
+      - name: Check the live site
+        # Caddy may still be getting its certificate on the first deploy, so allow two minutes.
+        run: |
+          for attempt in $(seq 1 24); do
+            if curl --fail --silent --show-error https://roadtrip.jjk3.com/api/health; then
+              echo
+              exit 0
+            fi
+            echo "Attempt $attempt failed, trying again in 5 seconds"
+            sleep 5
+          done
+          exit 1

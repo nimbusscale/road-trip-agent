@@ -129,21 +129,24 @@ The commands, code standards, and tests are in [DEVELOPMENT.md](../DEVELOPMENT.m
 
 ## 7. Deploys
 
-**A merge to `main` deploys it.** A GitHub Actions workflow:
+**A merge to `main` deploys it.** A GitHub Actions workflow, `.github/workflows/deploy.yml`:
 
-1. Builds two images: `app`, with the back end, and `web`, with Caddy and the front end's built files.
-2. Pushes them to GitHub's container registry.
-3. Connects to the server over SSH, and pulls the new images.
-4. Runs the database migrations, from the new `app` image, before the new app starts.
-5. Restarts the containers with the new images.
+1. Runs `npm run check`. If it fails, nothing is built or deployed. The check also runs on every pull request.
+2. Builds two images: `app`, with the back end, and `web`, with Caddy and the front end's built files.
+3. Pushes them to GitHub's container registry, tagged with the commit.
+4. Copies `compose.yaml` and the repo's `ops/` folder to the server, over SSH. The server keeps only its `.env` file between deploys.
+5. Runs `ops/deploy.sh` on the server. It pulls the new images, and runs the database migrations from the new `app` image before the new app starts. Then it restarts the containers with the new images.
+6. Calls `/api/health` on the live site, and fails if the site doesn't answer.
 
 `postgres` uses the standard Postgres image, so a deploy doesn't change it.
+
+**The images are private** (section 8). On the server, the deploy tags the images it pulled as `:latest`, and `compose.yaml` runs `:latest`. So `:latest` on the server is always the commit that's deployed. Locally, Compose builds the same image names from the Dockerfiles.
 
 **A migration** is a script that creates or changes tables. Migrations use node-pg-migrate ([persistence design](persistence.md), section 1). The deploy runs them with `node dist/app/migrate.js`, in a one-off container from the new `app` image.
 
 **A deploy restarts the app,** which cuts off any turn in progress, like any restart ([persistence design](persistence.md), section 7). The app is unavailable for a moment while it restarts. Both are accepted.
 
-**A bad deploy is fixed with another merge,** or by restarting the containers on an earlier image.
+**A bad deploy is fixed with another merge,** or by restarting the containers on an earlier image. Two ways to do that: re-run an earlier workflow run's deploy job in GitHub, or on the server, tag an earlier commit's images as `:latest` and run `docker compose up -d`. The server keeps unused images of this app for a week.
 
 ---
 
@@ -158,7 +161,9 @@ The commands, code standards, and tests are in [DEVELOPMENT.md](../DEVELOPMENT.m
 | Postgres password | `app` and `postgres` |
 | Spaces access key | The nightly backup (section 9) |
 
-GitHub holds only what the deploy needs: the server's address and an SSH key. It pushes images with its own built-in token.
+GitHub holds only what the deploy needs: the server's address, its SSH host keys, and an SSH key. It pushes images with its own built-in token.
+
+**The container images are private,** which is GitHub's default for a new image. The server has no registry credential of its own. Each deploy passes the workflow's built-in token to the server over SSH, and the server signs in with it only to pull that deploy's images. The sign-in is kept in a temporary folder that's removed right after, and the token stops working when the workflow job ends. So nobody has to make or renew a token, and none is left on the server.
 
 **Some values aren't secret,** because the browser has to have them: the Supabase project's address and its public browser key, and Google's browser key. They're built into the front end. Supabase's browser key only allows what a signed-in user may do. Google's browser key is restricted to our site and the map.
 
