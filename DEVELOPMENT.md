@@ -34,7 +34,7 @@ Postgres for local development runs in a container, with Docker Compose ([system
 
 **Style comes from the tools and the rules below.** The rules follow the [Google TypeScript Style Guide](https://google.github.io/styleguide/tsguide.html), and cover what the tools can't check. There's no need to read the guide itself.
 
-- **Prettier formats everything,** with its default options. Don't format by hand.
+- **Prettier formats all the code,** with its default options. Don't format by hand. Markdown docs are written by hand, and Prettier skips them.
 - **ESLint runs typescript-eslint's strictest type-checked rules,** plus limits on function size, nesting, and parameters, and bans on escape hatches such as `any`. The config holds the exact rules and limits.
 - **When a limit is hit, split the code.** Don't ask for a higher limit to fit one function. Example: a function with too many branches becomes two functions with clear names.
 - **Names follow the Google guide.** Classes and types are `UpperCamelCase`. Variables, functions, and properties are `lowerCamelCase`. Constants at the top of a module are `CONSTANT_CASE`. Names in code match the design docs, such as `TripBrief` and `rejectPlaces()` ([domain model](design/domain-model.md), section 1).
@@ -56,6 +56,8 @@ Postgres for local development runs in a container, with Docker Compose ([system
 - **Environment variables,** parsed once when the app starts. A missing or bad value stops the app from starting.
 
 **Types come from the schemas,** with `z.infer`, not declared a second time.
+
+**Schemas for outside data go in files named `*.schema.ts`.** There, property names can be snake_case to match the outside data, such as Open-Meteo's `temperature_2m_max`. Each schema converts them to camelCase after parsing, so the rest of the code sees only camelCase. Other files allow camelCase only.
 
 **A parse failure is an error the caller handles,** never a silent pass. Type assertions (`as SomeType`) aren't allowed on outside data. ESLint enforces this where it can.
 

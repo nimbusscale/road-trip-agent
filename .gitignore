@@ -1,2 +1,5 @@
 .env
 scratch/
+node_modules/
+coverage/
+dist/

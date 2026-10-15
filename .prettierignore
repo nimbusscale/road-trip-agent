@@ -1,0 +1,12 @@
+# Build output
+dist/
+build/
+
+# Test coverage
+coverage/
+
+# Lockfiles
+package-lock.json
+
+# Docs are written by hand, not formatted by Prettier
+*.md

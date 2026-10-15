@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "ask": [
+      "Edit(/tsconfig*.json)",
+      "Edit(/eslint.config.*)",
+      "Edit(/.prettierrc.json)",
+      "Edit(/.prettierignore)",
+      "Edit(/.claude/settings.json)",
+      "Edit(/.claude/hooks/**)",
+      "Edit(/lefthook.yml)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/check-edited-file.sh"
+          }
+        ]
+      }
+    ]
+  }
+}

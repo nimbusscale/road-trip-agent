@@ -1,0 +1,33 @@
+{
+  "name": "road-trip-agent",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "@eslint-community/eslint-plugin-eslint-comments": "4.8.1",
+    "@eslint/js": "10.0.1",
+    "@types/node": "24.19.2",
+    "eslint": "10.12.0",
+    "eslint-config-prettier": "10.1.8",
+    "eslint-plugin-no-barrel-files": "2.2.0",
+    "lefthook": "2.2.2",
+    "prettier": "3.9.10",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.71.2",
+    "vitest": "5.0.5"
+  },
+  "dependencies": {
+    "zod": "4.6.7"
+  },
+  "allowScripts": {
+    "lefthook@2.2.2": true
+  },
+  "scripts": {
+    "check": "npm run format:check && npm run typecheck && npm run lint && npm run test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --max-warnings 0",
+    "test": "vitest run"
+  }
+}
