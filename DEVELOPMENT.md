@@ -96,7 +96,7 @@ Worker results aren't on the list. A worker returns text that the coordinator re
 
 ## 8. Objects and persistence in code
 
-This section says how the [domain model](design/domain-model.md) and the [persistence design](design/persistence.md) look in TypeScript. Phase 10a set the pattern, and later code follows it. Phase 10 adds how `{viaService}` and `{keepsValue}` look.
+This section says how the [domain model](design/domain-model.md) and the [persistence design](design/persistence.md) look in TypeScript. Phase 10a set the pattern, and phase 10 added how `{viaService}` and `{keepsValue}` look. Later code follows it.
 
 **Folders.** The trip's objects and services go in `src/domain/`. Repositories, writers, and readers go in `src/persistence/`, with memory items and sessions, since the persistence design defines those, not the domain model. Each ID comes from `newId()` in `src/ids/new-id.ts` (technical spec 7.1).
 
@@ -125,7 +125,8 @@ export class MemoryItem {
 
 - **`{readOnly}` is TypeScript's `readonly`.** When the object's own operation changes the property, such as `Itinerary.replaceCheckResults()`, it's a private field with a getter instead.
 - **A private field starts with `#`,** such as `#text`. Only code inside the class can reach it.
-- **A property that can be set has a setter,** which runs the property's own rules. The constructor sets it through the setter too, so a new object can't break them.
+- **A property that can be set has a setter,** which runs the property's own rules. The constructor sets it through the setter too, so a new object can't break them. A property with no rules of its own is a plain field, such as the trip brief's `usualStartTime`, whose type is always a valid time.
+- **`{viaService}`: the property has a getter and no setter.** Its change method sits on the object under the key `VIA_SERVICE` (`src/domain/via-service.ts`), and runs the object's own rules. A service calls it as `brief[VIA_SERVICE].setTripLengthInDays(days)`. TypeScript has no way to make a method usable only by code in one folder. So the key doesn't hide anything when the code runs. It only means a caller has to import `VIA_SERVICE`, and a test (`via-service.test.ts`) fails if any file outside `src/domain/` imports it. Example: the trip brief's `tripLengthInDays`, which `TripBriefService.setTripLength()` sets.
 - **`{keepsValue}`: the getter returns the value or `null`, and the setter refuses `null` when it runs.** It calls `keptValue()`, or `keptText()` for text, from `src/domain/keeps-value.ts`. Text that's only spaces counts as empty. The setter has to take `null` too, since a lint rule makes a setter take whatever its getter returns, so the type checker can't refuse it. The constructor lets a stored `null` through with `startingValue()`, since that's how the property starts, and runs the setter's rule on any other value. Example: the trip brief's `focus`.
 - **A broken rule throws `RuleError`** (`src/domain/rule-error.ts`). Its message is written for the agent, which reads it as the tool's error. It says what was refused and why, and gives the limit when there is one, such as "A trip is at most 14 days long."
 - **A rule that needs a setting, or another object, is a business rule.** It goes in a service, or for memory and sessions in the writer, not in the setter (domain model, section 1). Example: the maximum memory item length.

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { RuleError } from "./rule-error.js";
+import { TimeOfDay } from "./time-of-day.js";
 import {
   DEFAULT_USUAL_START_TIME,
   TripBrief,
@@ -47,7 +48,7 @@ describe("TripBrief", () => {
     const brief = emptyBrief();
     expect(brief.focus).toBeNull();
     expect(brief.tripLengthInDays).toBeNull();
-    expect(brief.usualStartTime).toBe("08:00");
+    expect(brief.usualStartTime.toText()).toBe("08:00");
   });
 
   it.each(TEXT_ITEMS)("changes %s, but never empties it", (item) => {
@@ -70,12 +71,10 @@ describe("TripBrief", () => {
     expect(brief.defaultTier).toBe("midRange");
   });
 
-  it("refuses a usual start time that isn't a time of day", () => {
+  it("changes its usual start time", () => {
     const brief = emptyBrief();
-    brief.usualStartTime = "05:30";
-    expect(() => (brief.usualStartTime = "24:00")).toThrow(RuleError);
-    expect(() => (brief.usualStartTime = "")).toThrow(RuleError);
-    expect(brief.usualStartTime).toBe("05:30");
+    brief.usualStartTime = TimeOfDay.fromText("05:30");
+    expect(brief.usualStartTime.toText()).toBe("05:30");
   });
 
   it("refuses to be created breaking its own rules", () => {

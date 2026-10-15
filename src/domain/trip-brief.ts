@@ -2,7 +2,7 @@ import { keptText, keptValue, startingValue } from "./keeps-value.js";
 import type { RouteType } from "./route-type.js";
 import { RuleError } from "./rule-error.js";
 import type { Tier } from "./tier.js";
-import { EIGHT_A_M, timeOfDayFrom, type TimeOfDay } from "./time-of-day.js";
+import { EIGHT_A_M, type TimeOfDay } from "./time-of-day.js";
 import { VIA_SERVICE } from "./via-service.js";
 
 // What a trip brief stores, to create one: a new one, or one read back from storage.
@@ -35,10 +35,11 @@ export class TripBrief {
   #comfortableDrivingInHours: number | null;
   #routePreference: RouteType | null;
   #restDaysText: string | null;
-  #usualStartTime: TimeOfDay;
   #defaultTier: Tier | null;
   #budgetRulesText: string | null;
   #mealPreferencesText: string | null;
+  // Never empty. A TimeOfDay is always a valid time, so it has no rules to run here.
+  usualStartTime: TimeOfDay;
 
   // Only services reach these (domain model section 1). Each runs the brief's own rules.
   readonly [VIA_SERVICE] = {
@@ -74,7 +75,7 @@ export class TripBrief {
       fields.restDaysText,
       keptItemText("restDaysText"),
     );
-    this.#usualStartTime = checkedUsualStartTime(fields.usualStartTime);
+    this.usualStartTime = fields.usualStartTime;
     this.#defaultTier = fields.defaultTier;
     this.#budgetRulesText = startingValue(
       fields.budgetRulesText,
@@ -134,14 +135,6 @@ export class TripBrief {
     this.#restDaysText = keptText(value, itemName("restDaysText"));
   }
 
-  get usualStartTime(): TimeOfDay {
-    return this.#usualStartTime;
-  }
-
-  set usualStartTime(value: TimeOfDay) {
-    this.#usualStartTime = checkedUsualStartTime(value);
-  }
-
   get defaultTier(): Tier | null {
     return this.#defaultTier;
   }
@@ -194,8 +187,4 @@ function checkedComfortableDriving(value: number): number {
     );
   }
   return value;
-}
-
-function checkedUsualStartTime(value: TimeOfDay): TimeOfDay {
-  return timeOfDayFrom(value, itemName("usualStartTime"));
 }

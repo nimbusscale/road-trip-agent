@@ -57,7 +57,7 @@ describe("TripWriter.startTrip", () => {
     expect(trip.owner).toEqual(OWNER);
     expect(trip.tripBrief.id).toMatch(/^brief_/);
     expect(trip.tripBrief.focus).toBeNull();
-    expect(trip.tripBrief.usualStartTime).toBe("08:00");
+    expect(trip.tripBrief.usualStartTime.toText()).toBe("08:00");
     expect(trip.itinerary.id).toMatch(/^itin_/);
     expect(trip.itinerary.lastDay.id).toMatch(/^day_/);
     expect(trip.lastUpdatedDateTime).toEqual(STARTED);

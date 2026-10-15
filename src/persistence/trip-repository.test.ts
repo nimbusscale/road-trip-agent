@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { ZodError } from "zod";
 
 import { RuleError } from "../domain/rule-error.js";
+import { TimeOfDay } from "../domain/time-of-day.js";
 import { newTrip } from "../domain/trip.js";
 import { planDocumentOf } from "./plan-document.js";
 import type { Queryable } from "./queryable.js";
@@ -79,6 +80,20 @@ describe("TripRepository", () => {
     const bad = pgRow(tripId, { tripBrief: {} });
     const repository = new TripRepository(new FakeConnection([bad]));
     await expect(repository.load(tripId)).rejects.toThrow(ZodError);
+  });
+
+  it("parses a stored time of day, and refuses one that isn't HH:MM", async () => {
+    const { tripId } = storedRow();
+    const plan = planDocumentOf(newTrip(OWNER, new Date()));
+    plan.tripBrief.usualStartTime = "13:00";
+    const good = new TripRepository(new FakeConnection([pgRow(tripId, plan)]));
+    const trip = await good.load(tripId);
+    expect(trip.tripBrief.usualStartTime.equals(new TimeOfDay(13, 0))).toBe(
+      true,
+    );
+    plan.tripBrief.usualStartTime = "1 p.m.";
+    const bad = new TripRepository(new FakeConnection([pgRow(tripId, plan)]));
+    await expect(bad.load(tripId)).rejects.toThrow(ZodError);
   });
 
   it("refuses a stored plan that breaks an object's rule", async () => {

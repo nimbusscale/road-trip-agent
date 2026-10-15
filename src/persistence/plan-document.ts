@@ -1,15 +1,14 @@
 import { Itinerary } from "../domain/itinerary.js";
 import { LastDay } from "../domain/last-day.js";
-import { textOf, timeOfDayFrom } from "../domain/time-of-day.js";
 import { Trip } from "../domain/trip.js";
 import { TripBrief } from "../domain/trip-brief.js";
-import type { PlanDocument } from "./plan.schema.js";
+import type { PlanDocumentText } from "./plan.schema.js";
 import type { TripRow } from "./trip-row.schema.js";
 
 // Turns a trip into its plan document, and a parsed row back into a trip. The objects'
 // constructors run their own rules, so a stored value that breaks one fails the load.
 
-export function planDocumentOf(trip: Trip): PlanDocument {
+export function planDocumentOf(trip: Trip): PlanDocumentText {
   const brief = trip.tripBrief;
   return {
     tripBrief: {
@@ -21,7 +20,7 @@ export function planDocumentOf(trip: Trip): PlanDocument {
       comfortableDrivingInHours: brief.comfortableDrivingInHours,
       routePreference: brief.routePreference,
       restDaysText: brief.restDaysText,
-      usualStartTime: textOf(brief.usualStartTime),
+      usualStartTime: brief.usualStartTime.toText(),
       defaultTier: brief.defaultTier,
       budgetRulesText: brief.budgetRulesText,
       mealPreferencesText: brief.mealPreferencesText,
@@ -39,13 +38,7 @@ export function tripFromRow(row: TripRow): Trip {
   return new Trip({
     id: row.id,
     owner: { id: row.ownerId },
-    tripBrief: new TripBrief({
-      ...plan.tripBrief,
-      usualStartTime: timeOfDayFrom(
-        plan.tripBrief.usualStartTime,
-        "The trip brief's usualStartTime",
-      ),
-    }),
+    tripBrief: new TripBrief(plan.tripBrief),
     itinerary: new Itinerary({
       id: plan.itinerary.id,
       lastDay: new LastDay(plan.itinerary.lastDay.id),
