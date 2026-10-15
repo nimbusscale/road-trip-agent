@@ -27,7 +27,7 @@ This document lists the development work, phase by phase, in the order it's done
 | 2 | Create the Google keys | 2026-10-15, [PR #2](https://github.com/nimbusscale/road-trip-agent/pull/2) |
 | 3 | Combined with phase 4 | |
 | 4 | Choose the libraries, and run the app locally | |
-| 5 | Prepare the server | |
+| 5 | Prepare the server | 2026-10-15, no PR |
 | 6 | Deploy on merge | |
 | 7 | Back up the database nightly | |
 | 8 | Sign in | |
@@ -167,6 +167,13 @@ The server already exists, with Ubuntu, and so do its DNS records: `projects.jjk
 
 - Add the GitHub Actions workflow. On a push to `main`, it runs `npm run check`, builds the `app` and `web` images, and pushes them to GitHub's container registry. Then it connects to the server over SSH, pulls the images, runs the migrations from the new `app` image, and restarts the containers.
 
+**What phase 5 set up:**
+
+- **Signing in.** The containers run as the user `roadtrip`, in the `docker` group. The repo's secrets are `DEPLOY_HOST` (`projects.jjk3.com`), `DEPLOY_USER`, `DEPLOY_SSH_KEY`, and `DEPLOY_KNOWN_HOSTS`. Connect by host name, not IP address, since the known hosts entries only cover the name.
+- **Where to deploy.** Run Compose from `/home/roadtrip/road-trip-agent`, so it picks up the `.env` file there.
+- **The firewall.** `ufw` allows 22, 80, and 443 (TCP, and UDP for HTTP/3). Rules in Docker's `DOCKER-USER` chain, at the end of `/etc/ufw/after.rules`, stop published container ports from getting around it. Keep Docker's default firewall mode: its nftables mode drops that chain.
+- **Postgres** is published as `127.0.0.1:5432:5432`, so only the server itself reaches it.
+
 **Done when:**
 
 - Merging this phase's PR deploys it.
@@ -193,6 +200,8 @@ The server already exists, with Ubuntu, and so do its DNS records: `projects.jjk
 - Add a script that dumps the database, copies the dump to the Spaces bucket, and removes dumps older than 3 days. The bucket is `jjk3-backups`, in the `nyc3` region, at `https://nyc3.digitaloceanspaces.com`.
 - Put the Spaces access key in the server's `.env` file. The local `.env` has it as `SPACES_ACCESS_KEY_ID` and `SPACES_SECRET_ACCESS_KEY`.
 - Run the script every night on the server.
+
+**What phase 5 set up:** the `roadtrip` user's crontab works, so the nightly run can go there. The server has no S3 upload tool, so pick one, or run one in a container.
 
 **Done when:**
 
