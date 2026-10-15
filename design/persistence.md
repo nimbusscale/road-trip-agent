@@ -422,18 +422,3 @@ A **memory item** is one plain-text note in user memory or in one trip's memory 
 **MemoryReader** reads memory.
 
 - **`read(userId, tripId)`** returns all of the user's memory and all of this trip's memory, in the order created. The tool `read_memory` uses it (tool design 2.2).
-
----
-
-## 9. Left for development
-
-- The database library. It should send queries to Postgres directly, rather than map each class to a table of its own, since the plan is one document (section 2).
-- Table and column layout, indexes, and migrations.
-- How the home screen finds each trip's name, dates, and last updated, from the plan document or from extra columns.
-- The transcript adapter's code, and where the SDK's local scratch files go.
-- **Resuming with a worker call that has no result.** After a restart, the coordinator's transcript can end in an `Agent` call that never got its result. Test what the SDK does with it. If it won't resume, the adapter drops the unfinished line.
-- How long a write waits for the row lock, and each Google call's timeout.
-- **A time limit for the whole write,** as well as each Google call. One write can make several calls, such as selecting Moab lodging, which re-routes four days. Measure real times before setting it.
-- **Retrying "trip busy."** A write refused because it waited too long for the row lock (section 8.7) is retried by the tool a few times, with a short pause, before the error goes back. No agent has to understand the lock.
-- **Access checks.** `TripReader.read()`, `PlaceReader.get()`, and `SessionReader.get()` take no owner. The memory classes do take the user (section 8.8). The app checks that the signed-in user owns the trip before it makes a session's tools. `read_place` checks that the place belongs to the session's trip.
-- The time zone lookup.

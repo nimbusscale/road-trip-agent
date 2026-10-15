@@ -15,7 +15,7 @@ This document covers the Google Maps Platform APIs the app uses: Routes, Places,
 
 - **The agent reaches every API through its own custom tools.** Each tool writes its own description and returns only what the model needs (index, top rule).
 - **Two keys.** A server key for Routes, Places, and Weather, restricted to those three APIs. A browser key for the Maps JavaScript API, restricted to the app's site and to that one API.
-- **Keys come from environment variables.** For local development, the server key is `GOOGLE_MAPS_API_KEY` in the repo's git-ignored `.env` file.
+- **Keys come from environment variables:** `GOOGLE_MAPS_SERVER_KEY` and `VITE_GOOGLE_MAPS_BROWSER_KEY`. For local development, they're in the repo's git-ignored `.env` file. The browser key's name starts with `VITE_` because Vite only builds variables with that prefix into the front end.
 - **Send the key in the `X-Goog-Api-Key` header,** not in the URL.
 - **Routes and Places requests must list the fields they want** in an `X-Goog-FieldMask` header. There is no default list. The fields asked for set both the size of the response and the price of the call (section 5).
 

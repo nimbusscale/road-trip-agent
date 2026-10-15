@@ -186,7 +186,6 @@ The agent:
 - Restaurants are placed in each day's schedule.
 - The agent asks about breakfast (hotel or local) and other meal habits, and applies the answer.
 - Interest-driven trips (for example, barbecue) treat restaurants as attractions in their own right.
-- **Open question:** whether every meal gets a recommendation, depending on data availability (section 12).
 
 ### 7.4 Attractions and stops
 
@@ -345,10 +344,3 @@ User memory doesn't hold a dislike of one specific place, since it means nothing
 **S12. Trip memory stays with its trip.** On a Texas trip, the user says "stay off I-35 this time." On the user's next trip, the agent doesn't know it.
 
 **S13. A changed preference.** User memory says the user prefers hotel breakfast. On a new trip, the user says "from now on, local cafés for breakfast." The agent replaces the old preference, so user memory doesn't hold both.
-
----
-
-## 12. Open questions
-
-1. **Meal coverage.** Recommend every meal, or only lunch and dinner by default? Depends on data quality.
-2. **Trip-level states.** Not included. Item-level proposed or selected status (7.6) covers the need. Revisit with versioning in MVP+1.

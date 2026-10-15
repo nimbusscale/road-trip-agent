@@ -69,7 +69,7 @@ One server runs everything we build. The browser signs in with Supabase, then ta
 1. The browser signs in with Supabase's JavaScript library, and gets back a token. The token is signed by Supabase and holds the user's ID.
 2. The browser sends the token with each `/api` request.
 3. The app checks the token's signature with the Supabase project's public signing keys, and reads the user's ID from it. A request with no valid token is refused.
-4. The app checks that the user owns the trip, then makes the session's tools with that user and trip ([persistence design](persistence.md), section 9, and [tool design](tools.md), section 4).
+4. The app checks that the user owns the trip, then makes the session's tools with that user and trip ([tool design](tools.md), section 4).
 
 The app never sees a password. Sign-out drops the token in the browser.
 
@@ -137,7 +137,7 @@ The commands, code standards, and tests are in [DEVELOPMENT.md](../DEVELOPMENT.m
 
 `postgres` uses the standard Postgres image, so a deploy doesn't change it.
 
-**A migration** is a script that creates or changes tables. The migration tool is chosen during development, along with the database library ([persistence design](persistence.md), section 9).
+**A migration** is a script that creates or changes tables. The migration tool is chosen during development, along with the database library.
 
 **A deploy restarts the app,** which cuts off any turn in progress, like any restart ([persistence design](persistence.md), section 7). The app is unavailable for a moment while it restarts. Both are accepted.
 
@@ -172,14 +172,3 @@ GitHub holds only what the deploy needs: the server's address and an SSH key. It
 **A nightly job on the server dumps the database and copies the file to DigitalOcean Spaces.** Older dumps are removed after a set number of days. To restore, load a dump into a new, empty Postgres. Test a restore once, when the job is set up.
 
 Users aren't in the dump, since they live in Supabase (section 3).
-
----
-
-## 10. Left for development
-
-- The Docker Compose file, the Caddy config, and the GitHub Actions workflow.
-- The database library and migration tool ([persistence design](persistence.md), section 9).
-- How many days of backups to keep.
-- Whether the container images are private, and if so, how the server signs in to pull them.
-- How the app gets the Supabase project's public signing keys, and how often it refreshes them.
-- How the server signs in to the Claude Max plan, such as a long-lived sign-in token or an API key drawing on the plan's credits, and which value goes in the `.env` file.
