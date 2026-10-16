@@ -46,7 +46,7 @@ This document lists the development work, phase by phase, in the order it's done
 | 17 | The calendar and the day's schedule | 2026-10-15, [PR #32](https://github.com/nimbusscale/road-trip-agent/pull/32) |
 | 18 | The services | 2026-10-15, [PR #33](https://github.com/nimbusscale/road-trip-agent/pull/33) |
 | 19 | Legs | 2026-10-15, [PR #34](https://github.com/nimbusscale/road-trip-agent/pull/34) |
-| 20 | Feasibility checks | |
+| 20 | Feasibility checks | 2026-10-15, [PR #35](https://github.com/nimbusscale/road-trip-agent/pull/35) |
 | **Planning in chat** | | |
 | 21 | Read the itinerary | |
 | 22 | Build the skeleton | |
