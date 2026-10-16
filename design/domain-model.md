@@ -938,7 +938,7 @@ Each operation is written the same way as in section 3: its arguments and return
 
 ### 4.1 Calendar
 
-**Given:** the trip brief, for the usual start time, and the settings, for the drive buffer.
+**Given:** the trip brief, for the usual start time, the settings, for the drive buffer, and a clock, for today's date. Code passes the system clock. A test passes a fixed time, so it can check what happens at midnight.
 
 The calendar is a set of lookup functions over the itinerary. It holds no data. Like a service, it's created for one trip. Its functions take the itinerary. The services use it, and so does code that reads the itinerary, such as the tool `read_itinerary`, which shows each day's date and schedule.
 
@@ -963,7 +963,7 @@ It's there because an object can't see the object that holds it, or the ones bes
 | `locationOf(itinerary, day)` | `string?` | Where the day is, for the daily itinerary (functional spec 9.5). See below |
 | `startTimeOf(itinerary, day)` | `time` | The day's `ownStartTime`, or the trip brief's `usualStartTime` when it's empty |
 | `scheduleOf(itinerary, day)` | `List<ScheduleEntry>`, in time order | The day's schedule. See below |
-| `openTimeInMinutesOf(itinerary, stop)` | `integer?` | How many minutes of the stop's visit fall within its selected place's opening hours, from its arrival and end in `scheduleOf()`. Empty when it has no selected place, or its place's hours aren't known. `StopsService.approveOpeningHours()` records it, and the `FeasibilityChecker` compares with it |
+| `openTimeInMinutesOf(itinerary, stop)` | `integer?` | How many minutes of the stop's visit fall within its selected place's opening hours, from its arrival and end in `scheduleOf()`. Empty when it has no selected place, or its place's hours aren't known. Also empty while its date or its times aren't known yet, such as before there's a start date. `StopsService.approveOpeningHours()` records it, and the `FeasibilityChecker` compares with it |
 | `activitiesOf(itinerary, stay)` | `List<Stop>` | The attraction stops the stay's weather text is written for. See below |
 | `isWeatherOutOfDate(itinerary, stay)` | `boolean` | True when the stay's weather text no longer matches what it was written for. See below |
 
@@ -973,7 +973,7 @@ Worked-out values that need only an object's own data, or data it holds, stay on
 
 **Which days stay put.** A stay's first day always arrives from somewhere else, and so does the last day, even on a day trip, where the last day is the first day too. Every later day of a stay starts and ends at that stay, so it stays put. Adding, moving, or removing stays, or changing their nights, never changes which of a stay's days is its first. So `isStayingPut()` never changes for a day, and a rest day or a stop along the leg never stops fitting its day.
 
-**Location.** The towns the day runs between, by the stays' places, not their lodging. A day that moves shows both, such as "Monterey → San Luis Obispo". A day that stays put shows one, such as "Moab". The first day starts at the start place, and the last day ends at the end place, such as "San Luis Obispo → Mike's house". It's empty while a place it needs is empty.
+**Location.** The towns the day runs between, by the stays' places, not their lodging. A day that moves shows both, such as "Monterey → San Luis Obispo". A day that stays put shows one, such as "Moab". The first day starts at the start place, and the last day ends at the end place, such as "San Luis Obispo → Mike's house". It's empty while a place it needs is empty. A place with no name, such as an address no agent has named yet, shows as its address.
 
 **ScheduleEntry.** One item in a day's schedule: a drive, a stop, or free time. `scheduleOf()` works it out when the day is read, and it's never stored. Each one holds:
 
@@ -985,11 +985,13 @@ Worked-out values that need only an object's own data, or data it holds, stay on
 
 - **The day starts at `startTimeOf()`.** On a day with a leg, the party leaves where it slept at that time.
 - **Stops run in the day's order.** A stop's arrival is when the stop before it ends plus the drive to it, or its set time if that's later. The party waits before driving, not after, so the wait shows as free time before the drive. The schedule doesn't say where the party spends it. A stop ends after its visit time.
-- **Each drive is the leg's stored segment drive time plus the buffer** for fuel and short breaks, a setting (technical spec section 10). Example: on Moab Day 4, Capitol Gorge ends at 4:40 p.m., then free time until 12:35 a.m., then the drive to Panorama Point for stargazing at 1:00 a.m.
+- **Each drive is the leg's stored segment drive time plus the buffer** for fuel and short breaks, a setting (technical spec section 10). It's rounded up to the whole minute, so every time in the schedule is a whole minute. Example: on Moab Day 4, Capitol Gorge ends at 4:40 p.m., then free time until 12:35 a.m., then the drive to Panorama Point for stargazing at 1:00 a.m.
+- **The drive times are known only when the leg was routed through the day's selected places,** the ones it holds now, in its order. Partway through a write, a stop can be selected before the leg is re-routed at the end of the write. Until then, the drives' times aren't known, and neither are the times of anything after the first such drive. A read always sees routed legs, so this only matters to a service, such as `StopsService.approveOpeningHours()`.
 - **A stop with no selected place takes no time.** It has no drive and no visit time, so the drive to the next selected stop starts from the selected stop before it. One with a set time shows at its set time, or when the item before it ends if that's later. It holds its spot: the stop after it can't arrive before then. Example: on San Francisco Day 2, dinner is set for 6:30 and has no place yet, so dessert shows at 6:30, not 4:35. If the stop before dinner ran until 6:55, dinner would show at 6:55. The late check gives its warning (technical spec section 8). One with no set time has no times. So the stops after a stop with no selected place can show times that are too early (see Check result).
+- **A stop with no selected place goes where its time falls,** so the schedule stays in time order. When its time falls within the free time before the next selected stop, it splits the free time. Otherwise it comes after the drive to that stop, which passes it, since it has no place yet. One with no time stays next to the stops around it. Example: on San Francisco Day 2, with dinner still empty, the schedule reads: free time, the drive, dinner at 6:30, then dessert at 6:30. On Moab Day 2, with Milt's still empty and dinner at 7:00, it reads: free time, Milt's at 12:00, more free time, then the drive to dinner.
 - **After the last stop comes the drive to where the party sleeps,** or to the end place. Its times are unknown when a stop with no selected place comes after the last selected stop.
-- **A rest day has no drives.** Each of its stops has a set time, and the day ends when its last stop ends.
-- **A day can run past midnight.** It runs until the party reaches where it sleeps, or the end place. A stop after midnight stays on the day it follows, and its times are on the next calendar day. Example: stargazing at 1 a.m. after Moab Day 4 is the last stop on Day 4, not the first on Day 5. Nothing compares a day's end with the next day's start.
+- **A rest day has no drives.** Each of its stops has a set time, and the day ends when its last stop ends. Neither does a day that stays put with no selected stop, which has no leg yet (section 4.7).
+- **A day can run past midnight.** It runs until the party reaches where it sleeps, or the end place. A stop after midnight stays on the day it follows, and its times are on the next calendar day. Example: stargazing at 1 a.m. after Moab Day 4 is the last stop on Day 4, not the first on Day 5. Nothing compares a day's end with the next day's start. A `scheduleTime` holds only the day's own date and the next one, so a time later than that is left empty.
 
 **Activities.** The attraction stops the stay's clothing advice should cover (technical spec 6.3). Meals don't count, since clothing doesn't depend on which café the party picks. A stay's activities are:
 

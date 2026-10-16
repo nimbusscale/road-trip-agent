@@ -1,4 +1,5 @@
 import { RuleError } from "./rule-error.js";
+import { WEEKDAYS, type Weekday } from "./weekday.js";
 
 // "YYYY-MM-DD", such as "2027-05-13".
 export const CALENDAR_DATE_TEXT = /^\d{4}-\d{2}-\d{2}$/;
@@ -66,6 +67,11 @@ export class CalendarDate {
   // Such as "May 2027", for the trip's name (domain model 3.1).
   get monthAndYear(): string {
     return `${MONTH_NAMES[this.month - 1] ?? ""} ${String(this.year)}`;
+  }
+
+  // The day of the week, which opening hours are given by.
+  get weekday(): Weekday {
+    return WEEKDAYS[new Date(this.#utcMilliseconds()).getUTCDay()] ?? "sunday";
   }
 
   plusDays(days: number): CalendarDate {

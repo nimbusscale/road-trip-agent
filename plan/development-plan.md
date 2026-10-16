@@ -528,7 +528,7 @@ By the end of this part, code can build both example trips through the services,
 
 **Open questions:**
 
-- How does the started-trip lock test set the time? `Trip.hasStarted` and `EditableTrip.hasStarted()` read the system clock with `new Date()`. The test of a write that loads at 11:59 p.m. and saves after midnight needs a clock it controls. `TripWriter` already takes a `Clock`, so it could pass `now()` in. Raised in phase 16.
+- How does the started-trip lock test set the time? `Trip.hasStarted` and `EditableTrip.hasStarted()` read the system clock with `new Date()`. The test of a write that loads at 11:59 p.m. and saves after midnight needs a clock it controls. `TripWriter` already takes a `Clock`, so it could pass `now()` in. Raised in phase 16. Phase 17's `Calendar` takes a `now` function for `today()`, so the services' tests can already set the time through it.
 
 **Do:** add `ItineraryService`, `StaysService`, `DaysService`, `StopsService`, and `RejectionsService`. The "trip has started" error also gives the date it went by.
 

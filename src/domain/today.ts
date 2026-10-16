@@ -5,8 +5,7 @@ import type { Place } from "./place.js";
 
 // Today's date at a place: in the time zone its coordinates fall in (domain model 3.1).
 // The time zone comes from a lookup table in the library, with no outside call
-// (persistence design, section 5). The calendar's today() uses it with the start place
-// (phase 17).
+// (persistence design, section 5). The calendar's today() uses it with the start place.
 export function todayAt(place: Place, now: Date): CalendarDate {
   const timeZone = tzLookup(place.latitude, place.longitude);
   const parts = new Intl.DateTimeFormat("en-US", {
