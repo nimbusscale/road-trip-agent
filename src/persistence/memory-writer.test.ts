@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { CalendarDate } from "../domain/calendar-date.js";
 import { RuleError } from "../domain/rule-error.js";
 import { FAKE_POOL, FakeMemoryStore } from "./fake-memory-store.js";
 import type { MemoryItemProperties } from "./memory-item.js";
@@ -12,7 +13,7 @@ const TRIP_2 = "trip_bbbbbbbb";
 const STARTED_TRIP = "trip_ssssssss";
 const MISSING_ID = "mem_zzzzzzzz";
 const STARTED =
-  "This trip has started, so its memory can't change. User memory still can.";
+  "This trip has started, so its memory can't change. Today is Sunday, October 10, 2027 at its start place, on or after its start date. User memory still can.";
 
 const LIMITS = { maximumMemoryItems: 3, maximumMemoryItemCharacters: 20 };
 
@@ -27,7 +28,9 @@ function setUp(): Setup {
     pool: FAKE_POOL,
     makeStore: () => store,
     hasTripStarted: (connection, tripId) =>
-      Promise.resolve(tripId === STARTED_TRIP),
+      Promise.resolve(
+        tripId === STARTED_TRIP ? new CalendarDate(2027, 10, 10) : null,
+      ),
     limits: LIMITS,
   });
   return { store, writer };

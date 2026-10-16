@@ -44,7 +44,7 @@ describe("EditableTrip", () => {
     trip.itinerary.startPlace = examplePlace();
     expect(editable.loadedStartPlace).toBe(loadedStartPlace);
     expect(editable.loadedStartDate?.toText()).toBe("2027-10-10");
-    expect(editable.hasStarted()).toBe(false);
+    expect(editable.startedToday(new Date("2027-10-09T12:00:00Z"))).toBeNull();
   });
 
   it("has started when the start date as loaded has come", () => {
@@ -56,7 +56,9 @@ describe("EditableTrip", () => {
       { id: trip.id, ownerId: OWNER.id, plan },
       places,
     );
-    expect(new EditableTrip(started, places).hasStarted()).toBe(true);
-    expect(started.hasStarted).toBe(true);
+    const now = new Date("2026-10-15T12:00:00Z");
+    const today = new EditableTrip(started, places).startedToday(now);
+    expect(today?.toText()).toBe("2026-10-15");
+    expect(started.hasStarted(now)).toBe(true);
   });
 });

@@ -19,16 +19,27 @@ export function todayAt(place: Place, now: Date): CalendarDate {
   return new CalendarDate(part("year"), part("month"), part("day"));
 }
 
-// A trip has started once today, at its start place, is on or after its start date. It
-// hasn't while it has no start date (domain model 3.1). The itinerary refuses a start
-// date until it has a start place, so a start date always comes with one.
+// Today's date at the start place, once the trip has started: once today is on or
+// after its start date. Null while it hasn't, and while it has no start date (domain
+// model 3.1). The error for a started trip gives this date, so it matches the date the
+// coordinator was given (technical spec section 8). The itinerary refuses a start date
+// until it has a start place, so a start date always comes with one.
+export function startedToday(
+  startDate: CalendarDate | null,
+  startPlace: Place | null,
+  now: Date,
+): CalendarDate | null {
+  if (startDate === null || startPlace === null) {
+    return null;
+  }
+  const today = todayAt(startPlace, now);
+  return today.compareTo(startDate) >= 0 ? today : null;
+}
+
 export function hasStartedOn(
   startDate: CalendarDate | null,
   startPlace: Place | null,
   now: Date,
 ): boolean {
-  if (startDate === null || startPlace === null) {
-    return false;
-  }
-  return todayAt(startPlace, now).compareTo(startDate) >= 0;
+  return startedToday(startDate, startPlace, now) !== null;
 }

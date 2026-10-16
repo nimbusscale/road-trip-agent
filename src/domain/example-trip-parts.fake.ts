@@ -1,3 +1,4 @@
+import type { Settings } from "../config/settings.schema.js";
 import { Calendar } from "./calendar.js";
 import type { Day } from "./day.js";
 import type { Itinerary } from "./itinerary.js";
@@ -12,17 +13,54 @@ import type { Stay } from "./stay.js";
 import { newStop, type Stop } from "./stop.js";
 import { TimeOfDay } from "./time-of-day.js";
 import type { Trip } from "./trip.js";
+import { calendarAndServicesFor, type TripServices } from "./trip-services.js";
 import { VIA_SERVICE } from "./via-service.js";
 import type { Weekday } from "./weekday.js";
 
 // The parts the example trips (domain model section 5) are built from, for tests. The
-// trips are built with the objects' change methods, the way the services will build
-// them.
+// trips are built through the services, the way the tools will build them. Only the
+// legs are set directly, with made-up drive times, since LegsService routes them with
+// Google (phase 19).
 
 export const OWNER = { id: "4f6c1d0e-2a8b-4c3d-9e7f-1a2b3c4d5e6f" };
 
-// The drive buffer setting's starting value (technical spec section 10).
-export const DRIVE_BUFFER_PERCENT = 10;
+// The settings' starting values (technical spec section 10).
+export const EXAMPLE_SETTINGS: Settings = {
+  lateAllowanceMinutes: 15,
+  stopOrderMinimumSavingMinutes: 15,
+  driveBufferPercent: 10,
+  alongLegEndDistanceMiles: 2,
+  nearDistanceMiles: 15,
+  maximumTripLengthDays: 14,
+  maximumDailyDrivingHours: 12,
+  recommendedDailyDrivingHours: 6,
+  mealVisitMinutes: 60,
+  maximumMemoryItems: 50,
+  maximumMemoryItemCharacters: 300,
+};
+
+// The drive buffer setting's starting value.
+export const DRIVE_BUFFER_PERCENT = EXAMPLE_SETTINGS.driveBufferPercent;
+
+// When the example trips are planned: the morning of 2026-10-15 in the US, well before
+// either trip starts.
+export const PLANNED_AT = new Date("2026-10-15T16:00:00Z");
+
+// A trip being planned through its services, with the clock stopped at `now`.
+export interface Planning {
+  trip: Trip;
+  itinerary: Itinerary;
+  calendar: Calendar;
+  services: TripServices;
+}
+
+export function planningFor(trip: Trip, now = PLANNED_AT): Planning {
+  return {
+    trip,
+    itinerary: trip.itinerary,
+    ...calendarAndServicesFor(trip, EXAMPLE_SETTINGS, () => now),
+  };
+}
 
 // The calendar for a trip, with the clock stopped at `now`.
 export function calendarFor(trip: Trip, now = new Date()): Calendar {
@@ -101,9 +139,20 @@ export function attraction(plan: StopPlan): Stop {
   });
 }
 
-// Puts the stops on the day, in order.
-export function layOut(day: Day | undefined, stops: readonly Stop[]): void {
-  day?.[VIA_SERVICE].placeStops(stops, null);
+// Puts the stops on the day, in order, after any it has.
+export function layOut(
+  planning: Planning,
+  day: Day | undefined,
+  stops: readonly Stop[],
+): void {
+  if (day !== undefined) {
+    planning.services.stops.addStops(
+      planning.itinerary,
+      day,
+      stops,
+      day.stops.at(-1) ?? null,
+    );
+  }
 }
 
 // A stop, the place to select for it, and its visit time.
@@ -111,33 +160,44 @@ export type PickedStop = [Stop, Place, number];
 
 // Puts the stops on the day in order, and selects each one's place.
 export function fillDay(
+  planning: Planning,
   day: Day | undefined,
   stops: readonly PickedStop[],
 ): void {
   layOut(
+    planning,
     day,
     stops.map(([stop]) => stop),
   );
   stops.forEach(([stop, place, visit]) => {
-    pick(stop, place, visit);
+    pick(planning, stop, place, visit);
   });
 }
 
-// Selects a place the user named for the stop, with the visit time given.
-export function pick(stop: Stop, place: Place, visitTimeInMinutes = 60): void {
-  stop[VIA_SERVICE].addCandidates([
+// Selects a place the user named for the stop, as the tool select_user_place does. An
+// attraction gets the visit time given, and a meal the meal visit time setting.
+export function pick(
+  planning: Planning,
+  stop: Stop,
+  place: Place,
+  visitTimeInMinutes = 60,
+): void {
+  const { itinerary, services } = planning;
+  services.stops.addCandidates(itinerary, stop, [
     {
       ...userOffer(place),
       visitTimeInMinutes:
         stop.kind === "attraction" ? visitTimeInMinutes : null,
     },
   ]);
-  stop[VIA_SERVICE].selectCandidate(place, visitTimeInMinutes);
+  services.stops.selectCandidate(stop, place);
 }
 
 // Selects the stay's lodging, from a place the user named.
-export function lodgeAt(stay: Stay, place: Place): void {
-  stay[VIA_SERVICE].addLodgingCandidates([userOffer(place)]);
+export function lodgeAt(planning: Planning, stay: Stay, place: Place): void {
+  planning.services.stays.addLodgingCandidates(planning.itinerary, stay, [
+    userOffer(place),
+  ]);
   stay.selectCandidate(place);
 }
 

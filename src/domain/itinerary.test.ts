@@ -184,9 +184,9 @@ describe("Trip", () => {
 
   it("has started once today reaches the start date", () => {
     const trip = newTrip(OWNER, new Date());
-    expect(trip.hasStarted).toBe(false);
+    expect(trip.hasStarted(new Date())).toBe(false);
     trip.itinerary.startPlace = namedPlace("San Francisco");
     trip.itinerary[VIA_SERVICE].setStartDate(new CalendarDate(2020, 1, 1));
-    expect(trip.hasStarted).toBe(true);
+    expect(trip.hasStarted(new Date())).toBe(true);
   });
 });

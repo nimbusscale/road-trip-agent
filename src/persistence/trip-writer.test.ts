@@ -1,12 +1,14 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
 
 import { loadSettings, SETTINGS_PATH } from "../config/settings.js";
+import { CalendarDate } from "../domain/calendar-date.js";
+import { exampleMoabTrip } from "../domain/itinerary.fake.js";
 import { exampleAddress, examplePlace } from "../domain/place.fake.js";
 import { RuleError } from "../domain/rule-error.js";
 import type { Trip } from "../domain/trip.js";
 import type { EditableTrip } from "./editable-trip.js";
 import { NoSuchPlaceError } from "./place-errors.js";
-import { TripBusyError } from "./trip-errors.js";
+import { TripBusyError, TripStartedError } from "./trip-errors.js";
 import { TripReader } from "./trip-reader.js";
 import type { TripStore } from "./trip-repository.js";
 import { FakePool, FakeTripStore } from "./trip-store.fake.js";
@@ -64,7 +66,7 @@ describe("TripWriter.startTrip", () => {
     expect(trip.itinerary.lastDay.id).toMatch(/^day_/);
     expect(trip.lastUpdatedDateTime).toEqual(STARTED);
     expect(trip.name).toBeNull();
-    expect(trip.hasStarted).toBe(false);
+    expect(trip.hasStarted(STARTED)).toBe(false);
   });
 });
 
@@ -139,6 +141,78 @@ describe("TripWriter.write", () => {
     };
     await expect(writer.write(id, refuse)).rejects.toThrow("Refused.");
     expect(clock.pauses).toEqual([]);
+  });
+});
+
+describe("TripWriter's started-trip lock", () => {
+  // The Moab trip starts October 10, 2027, at Grand Junction, on Mountain time (UTC-6
+  // in October).
+  const nightBefore = new Date("2027-10-10T05:59:00Z");
+  const justAfterMidnight = new Date("2027-10-10T06:00:30Z");
+  const startedError = new TripStartedError(new CalendarDate(2027, 10, 10));
+
+  async function storedMoabTrip(store: FakeTripStore): Promise<string> {
+    const { trip, places } = exampleMoabTrip(OWNER);
+    await store.add(trip);
+    store.places.rows.push(
+      ...places.map((place) => ({ tripId: trip.id, place })),
+    );
+    return trip.id;
+  }
+
+  it("refuses a write that loads at 11:59 p.m. the night before the start date and saves after midnight", async () => {
+    const { writer, store, pool, clock } = setUp();
+    const id = await storedMoabTrip(store);
+    const before = store.rows.get(id);
+    clock.current = nightBefore;
+    const write = writer.write(id, ({ trip }) => {
+      trip.tripBrief.mealPreferencesText = "Swap the Day 2 dinner";
+      clock.current = justAfterMidnight;
+    });
+    await expect(write).rejects.toThrow(startedError);
+    expect(store.rows.get(id)).toBe(before);
+    expect(pool.statements.slice(-2)).toEqual(["BEGIN", "ROLLBACK"]);
+  });
+
+  it("goes by the start date as loaded, which the write may have moved", async () => {
+    const { writer, store, clock } = setUp();
+    const id = await storedMoabTrip(store);
+    const before = store.rows.get(id);
+    clock.current = nightBefore;
+    const write = writer.write(id, ({ trip, services }) => {
+      services.itinerary.setStartDate(
+        trip.itinerary,
+        new CalendarDate(2027, 10, 20),
+      );
+      clock.current = justAfterMidnight;
+    });
+    await expect(write).rejects.toThrow(startedError);
+    expect(store.rows.get(id)).toBe(before);
+  });
+
+  it("refuses a write to a started trip before its change runs", async () => {
+    const { writer, store, clock } = setUp();
+    const id = await storedMoabTrip(store);
+    clock.current = justAfterMidnight;
+    let hasRun = false;
+    const write = writer.write(id, () => {
+      hasRun = true;
+    });
+    await expect(write).rejects.toThrow(
+      "The trip has started, so it can't be changed. Today is Sunday, October 10, 2027 at its start place, on or after its start date.",
+    );
+    expect(hasRun).toBe(false);
+  });
+
+  it("saves a write that finishes before midnight", async () => {
+    const { writer, reader, store, clock } = setUp();
+    const id = await storedMoabTrip(store);
+    clock.current = nightBefore;
+    await writer.write(id, ({ trip }) => {
+      trip.tripBrief.mealPreferencesText = "Swap the Day 2 dinner";
+    });
+    const trip = await reader.read(id);
+    expect(trip.tripBrief.mealPreferencesText).toBe("Swap the Day 2 dinner");
   });
 });
 

@@ -1,11 +1,15 @@
 import type { Settings } from "../config/settings.schema.js";
 import type { Place } from "../domain/place.js";
+import type { Calendar } from "../domain/calendar.js";
 import { newTrip, type Trip } from "../domain/trip.js";
-import { TripBriefService } from "../domain/trip-brief-service.js";
+import {
+  calendarAndServicesFor,
+  type TripServices,
+} from "../domain/trip-services.js";
 import type { User } from "../domain/user.js";
 import type { Connectable, Queryable } from "./queryable.js";
 import { inTransaction } from "./transaction.js";
-import { TripBusyError, TripStartedError } from "./trip-errors.js";
+import { TripBusyError } from "./trip-errors.js";
 import type { TripStore } from "./trip-repository.js";
 
 // A busy trip is tried this many times in all, with this pause between tries, before
@@ -14,10 +18,11 @@ import type { TripStore } from "./trip-repository.js";
 export const BUSY_TRIES = 3;
 export const BUSY_PAUSE_MILLISECONDS = 1000;
 
-// What a write's change is given. Later phases add the other services and the calendar.
+// What a write's change is given (persistence design, section 8.2).
 export interface ChangeContext {
   trip: Trip;
-  services: { tripBrief: TripBriefService };
+  calendar: Calendar;
+  services: TripServices;
   // Turns a place ID the change is handed into one of the trip's places, or refuses it
   // (persistence design, section 8.4).
   placeOf: (placeId: string) => Place;
@@ -87,18 +92,19 @@ export class TripWriter {
     return inTransaction(pool, async (client) => {
       const store = storeFor(client);
       const editableTrip = await store.loadForWrite(tripId);
-      if (editableTrip.hasStarted()) {
-        throw new TripStartedError();
-      }
+      // Before anything changes. The save checks again (persistence design, section 5).
+      editableTrip.refuseIfStarted(clock.now());
       const trip = editableTrip.trip;
       const changeResult = await change({
         trip,
-        services: { tripBrief: new TripBriefService(settings) },
+        ...calendarAndServicesFor(trip, settings, () => clock.now()),
         placeOf: (placeId) => editableTrip.placeOf(placeId),
       });
       // The finish. Phases 19 and 20 add the legs and the checks before this.
       trip.lastUpdatedDateTime = clock.now();
-      await store.save(editableTrip);
+      // The save checks the lock again, which catches a trip that started during the
+      // write, at midnight.
+      await store.save(editableTrip, clock.now());
       return { changeResult };
     });
   }

@@ -1,32 +1,34 @@
-import { RouteTypeApproval } from "./approval.js";
 import type { Calendar } from "./calendar.js";
 import { CalendarDate } from "./calendar-date.js";
 import {
   at,
   attraction,
-  calendarFor,
   fillDay,
   lodgeAt,
   meal,
   OWNER,
   type PickedStop,
   placeNamed,
+  PLANNED_AT,
+  type Planning,
+  planningFor,
   routeDay,
 } from "./example-trip-parts.fake.js";
 import type { Place } from "./place.js";
 import { examplePlace } from "./place.fake.js";
-import { newStay, type Stay } from "./stay.js";
+import type { Stay } from "./stay.js";
 import type { Stop } from "./stop.js";
 import { newTrip, type Trip } from "./trip.js";
-import { VIA_SERVICE } from "./via-service.js";
+import type { TripServices } from "./trip-services.js";
 
 // Three days on the road, San Francisco to Mike's house in Los Angeles (domain model
-// 5.1), for tests. The drive times and visit times are made up, so the schedule's times
-// come out as the example shows them.
+// 5.1), for tests, built through the services. The drive times and visit times are made
+// up, so the schedule's times come out as the example shows them.
 
 export interface SanFranciscoExample {
   trip: Trip;
   calendar: Calendar;
+  services: TripServices;
   monterey: Stay;
   sanLuisObispo: Stay;
   // Day 2's dinner, set for 6:30, and its place.
@@ -39,9 +41,9 @@ export interface SanFranciscoExample {
 const DAY_2_SEGMENTS = [9, 13, 13, 31, 81, 54, 4, 5];
 
 export function sanFranciscoExample(): SanFranciscoExample {
-  const trip = newTrip(OWNER, new Date("2026-10-15T16:00:00Z"));
-  const calendar = calendarFor(trip);
-  const itinerary = trip.itinerary;
+  const trip = newTrip(OWNER, PLANNED_AT);
+  const planning = planningFor(trip);
+  const { itinerary, calendar, services } = planning;
   itinerary.startPlace = examplePlace({
     name: "San Francisco",
     googlePlaceId: "google-San Francisco",
@@ -57,25 +59,29 @@ export function sanFranciscoExample(): SanFranciscoExample {
   });
   mikesHouse.fillName("Mike's house");
   itinerary.endPlace = mikesHouse;
-  itinerary[VIA_SERVICE].setStartDate(new CalendarDate(2027, 5, 13));
-  const monterey = addStay(trip, "Monterey", null);
-  const sanLuisObispo = addStay(trip, "San Luis Obispo", monterey);
-  layOutDay1(monterey);
+  services.itinerary.setStartDate(itinerary, new CalendarDate(2027, 5, 13));
+  const monterey = addStay(planning, "Monterey", null);
+  const sanLuisObispo = addStay(planning, "San Luis Obispo", monterey);
+  layOutDay1(planning, monterey);
   routeDay(calendar, itinerary, monterey.days[0], [22, 22, 13, 45, 40, 5]);
-  const { firestone, firestoneGrill } = layOutDay2(monterey, sanLuisObispo);
+  const { firestone, firestoneGrill } = layOutDay2(
+    planning,
+    monterey,
+    sanLuisObispo,
+  );
   const day2 = sanLuisObispo.days[0];
   routeDay(calendar, itinerary, day2, DAY_2_SEGMENTS);
   day2?.setWaypoints([placeNamed("Big Sur village")]);
   routeDay(calendar, itinerary, itinerary.lastDay, [218]);
-  itinerary.lastDay[VIA_SERVICE].setApproval(
-    new RouteTypeApproval({
-      reason: "we want to get to LA quickly",
-      approvedRouteType: "fastest",
-    }),
+  services.days.approveRouteType(
+    itinerary.lastDay,
+    "fastest",
+    "we want to get to LA quickly",
   );
   return {
     trip,
     calendar,
+    services,
     monterey,
     sanLuisObispo,
     firestone,
@@ -84,20 +90,20 @@ export function sanFranciscoExample(): SanFranciscoExample {
   };
 }
 
-function addStay(trip: Trip, town: string, after: Stay | null): Stay {
-  const stay = newStay({
+function addStay(planning: Planning, town: string, after: Stay | null): Stay {
+  const stay = planning.services.stays.addStay(planning.itinerary, {
     place: placeNamed(town),
     nightCount: 1,
     tier: "value",
     tierRule: "the trip default",
+    after,
   });
-  trip.itinerary[VIA_SERVICE].placeStay(stay, after);
-  lodgeAt(stay, placeNamed(`${town} hotel`));
+  lodgeAt(planning, stay, placeNamed(`${town} hotel`));
   return stay;
 }
 
 // All five named by the user.
-function layOutDay1(monterey: Stay): void {
+function layOutDay1(planning: Planning, monterey: Stay): void {
   const stops: [Stop, string, number][] = [
     [
       meal({ purpose: "pancakes", searchArea: "alongLeg" }),
@@ -131,12 +137,14 @@ function layOutDay1(monterey: Stay): void {
     ],
   ];
   fillDay(
+    planning,
     monterey.days[0],
     stops.map(([stop, name, visit]) => [stop, placeNamed(name), visit]),
   );
 }
 
 function layOutDay2(
+  planning: Planning,
   monterey: Stay,
   sanLuisObispo: Stay,
 ): { firestone: Stop; firestoneGrill: Place } {
@@ -147,7 +155,7 @@ function layOutDay2(
     setTime: at("18:30"),
   });
   const firestoneGrill = placeNamed("Firestone Grill, San Luis Obispo");
-  fillDay(sanLuisObispo.days[0], [
+  fillDay(planning, sanLuisObispo.days[0], [
     ...day2Stops(monterey),
     [firestone, firestoneGrill, 60],
     [

@@ -1,8 +1,9 @@
 import type { CalendarDate } from "../domain/calendar-date.js";
 import type { Place } from "../domain/place.js";
-import { hasStartedOn } from "../domain/today.js";
+import { startedToday } from "../domain/today.js";
 import type { Trip } from "../domain/trip.js";
 import { NoSuchPlaceError } from "./place-errors.js";
+import { TripStartedError } from "./trip-errors.js";
 
 // A trip loaded for a write, under the row lock (persistence design, section 8.4).
 // Only TripRepository.loadForWrite() makes one, and save() takes only this, so a trip
@@ -48,13 +49,19 @@ export class EditableTrip {
   }
 
   // Worked out like Trip.hasStarted, but from the start date and place as loaded, since
-  // the write may change them. It looks up today's date when it's called. Phase 18
-  // tests the lock.
-  hasStarted(): boolean {
-    return hasStartedOn(
-      this.loadedStartDate,
-      this.loadedStartPlace,
-      new Date(),
-    );
+  // the write may change them. Today's date at the loaded start place once the trip has
+  // started at `now`, for the error, or null while it hasn't (persistence design,
+  // section 5). TripWriter passes its clock's time, so a test can set it.
+  startedToday(now: Date): CalendarDate | null {
+    return startedToday(this.loadedStartDate, this.loadedStartPlace, now);
+  }
+
+  // The started-trip lock (persistence design, section 5). TripWriter runs it after the
+  // load, and TripRepository.save() runs it before every save.
+  refuseIfStarted(now: Date): void {
+    const today = this.startedToday(now);
+    if (today !== null) {
+      throw new TripStartedError(today);
+    }
   }
 }

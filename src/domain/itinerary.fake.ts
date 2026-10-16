@@ -253,7 +253,13 @@ type ExamplePlaces = ReturnType<typeof examplePlaces>;
 
 function examplePlaces() {
   return {
-    grandJunction: namedPlace("Grand Junction"),
+    // Its own coordinates, so today's date comes from Mountain time.
+    grandJunction: examplePlace({
+      name: "Grand Junction",
+      googlePlaceId: "google-Grand Junction",
+      latitude: 39.0639,
+      longitude: -108.5506,
+    }),
     saltLakeCity: namedPlace("Salt Lake City"),
     moab: examplePlace({
       name: "Moab",

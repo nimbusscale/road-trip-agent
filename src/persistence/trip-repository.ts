@@ -6,11 +6,7 @@ import { EditableTrip } from "./editable-trip.js";
 import { PlaceRepository } from "./place-repository.js";
 import { planDocumentOf, tripFromRow } from "./plan-document.js";
 import type { Queryable } from "./queryable.js";
-import {
-  TripBusyError,
-  TripNotFoundError,
-  TripStartedError,
-} from "./trip-errors.js";
+import { TripBusyError, TripNotFoundError } from "./trip-errors.js";
 import { type TripRow, tripRowSchema } from "./trip-row.schema.js";
 
 // How long a write waits for the row lock before the trip counts as busy. A write
@@ -31,7 +27,8 @@ export interface TripStore {
   load(tripId: string): Promise<Trip>;
   listForOwner(owner: User): Promise<Trip[]>;
   add(trip: Trip): Promise<void>;
-  save(editableTrip: EditableTrip): Promise<void>;
+  // `now` is the time the started-trip lock goes by.
+  save(editableTrip: EditableTrip, now: Date): Promise<void>;
 }
 
 // Uses PlaceRepository, on the same connection, for the trip's places (section 8.7).
@@ -86,10 +83,10 @@ export class TripRepository implements TripStore {
     );
   }
 
-  async save(editableTrip: EditableTrip): Promise<void> {
-    if (editableTrip.hasStarted()) {
-      throw new TripStartedError();
-    }
+  // Refuses a started trip, so every save is covered by the lock, whoever calls it.
+  // TripWriter passes the time from its clock (persistence design, section 5).
+  async save(editableTrip: EditableTrip, now: Date): Promise<void> {
+    editableTrip.refuseIfStarted(now);
     const trip = editableTrip.trip;
     await this.connection.query("UPDATE trips SET plan = $2 WHERE id = $1", [
       trip.id,

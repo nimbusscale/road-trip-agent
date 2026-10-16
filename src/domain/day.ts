@@ -144,3 +144,12 @@ export abstract class Day {
 export function describeStop(stop: Stop): string {
   return `${stop.purpose} (${stop.id})`;
 }
+
+// For a refusal that lists stops for the coordinator to sort out: its purpose, its
+// selected place's name if it has one, and its ID (domain model 4.4).
+export function describeStopAndPlace(stop: Stop): string {
+  const name = stop.selectedPlace?.name;
+  return name === undefined || name === null
+    ? describeStop(stop)
+    : `${stop.purpose} at ${name} (${stop.id})`;
+}
