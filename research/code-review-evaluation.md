@@ -14,14 +14,17 @@ Sections 2 to 5 record what we found out and decided on 2026-10-16. Section 6 is
 
 | Round | What it tests | Status |
 |---|---|---|
-| 1, stage 1 | Stock `/code-review` on PRs #30 and #32, with four model and effort settings, two runs each | Not started. Plan in section 7 |
-| 1, stage 2 | Decided at the checkpoint after stage 1 | Not planned yet |
+| 1, stage 1 | Stock `/code-review` on PRs #30 and #32, with four model and level settings, two runs each | Done 2026-10-16. Results in section 8.1 |
+| 1, stage 2 | The `medium` and `xhigh` levels, with Opus and Sonnet, on the same PRs (section 7.4) | Done 2026-10-16. Results in section 8.2 |
+| 1, stage 3 | Opus at `high` and `xhigh` on PRs #31, #33, #34 and #35 (section 7.5) | Done 2026-10-16. Results in section 8.3 |
+| 1, the choice | Opus at `high` (section 8.5) | Decided 2026-10-16 |
 | 2 | Stock `/code-review` on older PRs that were never reviewed (#2 to #29) | Not planned yet. Depends on round 1 |
 
 **Still open:**
 - **A PR description format.** Section 5.3 proposes putting the task and the "Done when" results in the description, and the implementer's decisions in a PR comment. It isn't adopted yet. It would change the worker prompt and DEVELOPMENT.md.
-- **CI and the fix loop.** Section 9. Comes after round 1 picks a setting.
+- **CI and the fix loop.** Section 9. Round 1 picked Opus at `high`, so this is next.
 - **Our own review prompt.** Left for later. Round 1 tests only the stock `/code-review`.
+- **Model effort on its own.** The `/code-review` level sets the review's model effort, and `--effort` doesn't change it (section 4.1). So the stock command can't run the high recipe at low model effort, or the reverse. Only our own review prompt could test that.
 
 ---
 
@@ -74,12 +77,15 @@ The managed service is a packaged product, like CodeRabbit. It teaches little, a
 From the [local review docs](https://code.claude.com/docs/en/code-review-local):
 
 - **It looks for correctness bugs.** Depending on the model and effort, it also suggests cleanups: reuse, simplification, and efficiency.
-- **Effort is its main setting.** At `low`, it reports only the findings it's most sure of. From `medium` to `max`, it covers more ground.
+- **Its level sets both the recipe and the model's effort.** The level is `low` to `max`, the word after `/code-review`. The review runs in a subagent, and the subagent's model effort always matches the level. Passing `--effort` to `claude -p` doesn't change it, because the main session makes no model calls of its own. Round 1 read the recipes from the run transcripts:
+  - At `xhigh`, the recipe adds two angles, one for language pitfalls and one for code that wraps other code. It adds a last pass that looks only for gaps, and reports up to 15 findings. No level up to `xhigh` checks its findings again before reporting them.
+  - At `high` and `medium`, the recipe is the same, word for word. The reviewer checks eight angles. It reads each changed function whole, searches for callers, checks CLAUDE.md, and reports up to 10 findings. Only the model's effort differs.
+  - At `low`, it reads the diff once and opens no files. It skips test files, flags only what the changed lines show by themselves, and reports up to 4 findings.
 - **It takes a target:** a PR number, a branch, a path, or a commit range such as `abc1234^..def5678`.
 - **Its flags:** `--comment` posts inline comments on the PR. `--fix` applies the fixes. `--max-findings` changes how many findings it reports.
 - **It follows CLAUDE.md, even in a `-p` run.** It doesn't read `REVIEW.md`, which only the managed service uses.
 - **In a `-p` run it waits for the review,** and prints the findings as text or JSON.
-- **Its prompt can't be read.** It's a bundled skill, with no file on disk. A project skill named `code-review` replaces it, and `/review` still runs the bundled one.
+- **Its prompt has no file on disk.** It's a bundled skill. The recipe for a run can still be read in its transcript, as the first message of the review's subagent. A project skill named `code-review` replaces it, and `/review` still runs the bundled one.
 - **It runs as a forked skill.** A forked skill gets the skill's own prompt, not the caller's conversation. So nothing can be passed to it except the target text. Whatever the reviewer knows about the task, it has to find in the repo: CLAUDE.md, the docs, the commit messages, and the PR description if the target is a PR.
 - **Its behavior changes with Claude Code versions.** The docs list changes at 2.1.218, 2.1.223, and 2.1.246. A comparison has to pin one version.
 
@@ -159,12 +165,18 @@ The fix commits sit right after each range, and their messages name the bug, suc
 
 Round 1 runs on Joe's machine with `claude -p`, not in CI. It uses the Max subscription.
 
-| Setting | Model | Effort | Why |
+| Setting | Model | `/code-review` level | Why |
 |---|---|---|---|
 | A | Opus 5.5 | high | The baseline, and closest to batch 4 |
 | B | Sonnet 5.5 | high | Is a cheaper model enough? |
 | C | Opus 5.5 | low | Do fewer, surer findings miss the bugs? |
-| D | Sonnet 5.5 | low | The cheapest. Does low effort hurt Sonnet more than Opus? |
+| D | Sonnet 5.5 | low | The cheapest. Does the low level hurt Sonnet more than Opus? |
+| E | Opus 5.5 | medium | Stage 2. Section 7.4 |
+| F | Sonnet 5.5 | medium | Stage 2. Section 7.4 |
+| G | Opus 5.5 | xhigh | Stage 2. Section 7.4 |
+| H | Sonnet 5.5 | xhigh | Stage 2. Section 7.4 |
+
+The level also sets the model's effort for the review (section 4.1).
 
 Each review runs twice. Two runs show whether a setting finds the same things each time. With one run, a better setting can't be told from a lucky run.
 
@@ -188,7 +200,9 @@ This is a first look, to get a feel for how the settings differ. It isn't meant 
 For each run:
 
 - Make a clone that holds history only up to the end of the range (section 6.3).
-- Run `claude -p --model <model> --output-format json "/code-review <effort> <range>"` in it, with one pinned Claude Code version. Record the version.
+- Run `claude -p --model <model> --output-format json "/code-review <level> <range>"` in it, with one pinned Claude Code version and auto-update off. Record the version.
+- Keep the clone outside the repo. Inside it, Claude Code would also load today's CLAUDE.md from the folders above, and the reviewer could read this doc.
+- Allow `git`, `node`, and read-only shell commands such as `cat` and `grep`, so the reviewer isn't blocked partway through. Block edits, the web, and `gh`, so it can't open the real PR and see the fix.
 - Save the findings and the time taken.
 - Save the tokens used, by model and by kind: input, output, cache writes, and cache reads. The JSON result reports them. On the first run, check that its totals include the review's own subagent. If they don't, add the subagent's tokens from its transcript.
 
@@ -196,20 +210,111 @@ Score each run on:
 
 - **The code bugs.** Did it find the code bugs in the PRs it reviewed: #30's business name, #32's schedule order, and #35's driving count? These count most.
 - **The other findings.** Did it find the doc and plan findings?
-- **Extra findings.** How many, and how many are real? Joe checks these by hand.
+- **Extra findings.** How many, and how many are real? An agent checks each one against the code, and Joe spot-checks (section 8.4).
 - **Cost.** What the review would cost at Anthropic's API prices, worked out from its tokens. The runs use the Max subscription, so nothing is billed. The API price is just a common scale for comparing settings. Record the price list used and the date it was read.
+
+### 7.4 Stage 2
+
+At the checkpoint on 2026-10-16, Joe decided the low level isn't worth using. It found neither bug in any run (section 8.1). Stage 2 tries the `medium` level instead, with Opus and Sonnet, on the same two PRs, two runs each: 8 reviews. Joe then added the `xhigh` level the same way, for 8 more.
+
+### 7.5 Stage 3, and the fix cost
+
+Stages 1 and 2 were meant to narrow the settings down, and they did. On 2026-10-16, Joe picked two to run on the other four PRs: Opus at `high` and Opus at `xhigh`, two runs each, 16 reviews. Sonnet was right less often than Opus at the same level, and medium and low found less (section 8).
+
+The cost of a review is only part of the picture. Each finding also has to be read and fixed, or turned down. A wrong finding wastes that work, and a fixer might change code that was correct. A fourth stage was planned, to give the reviews to an agent that fixes what they find and measure what that costs. After stage 3, Joe dropped it (section 8.5).
 
 ---
 
 ## 8. Round 1 results
 
-Not run yet.
+All runs were on 2026-10-16 with Claude Code 2.1.301, as section 7.3 says. The reviews themselves, word for word, are in `scratch/code-review-eval/round-1-reviews.md` on Joe's machine, with the run transcripts next to them. `scratch/` isn't committed.
+
+Cost is at Anthropic's API prices, from the pricing page read on 2026-10-16. Per million tokens, Opus 5.5 is $4 input, $5 cache write, $0.20 cache read, and $20 output. Sonnet 5.5 is $2, $2.50, $0.10, and $10. Every cache write was a 5-minute write. The JSON result's totals include the review's subagent, and Claude Code's own cost figure matched these prices.
+
+| Setting | #32 schedule order | #30 business name | #30 plan gap | Findings per review | Time per review | Cost per review |
+|---|---|---|---|---|---|---|
+| A, Opus, high | 2 of 2 | 2 of 2 | 0 of 2 | 9 to 10 | 2 to 3.5 min | $0.60 to $0.94 |
+| B, Sonnet, high | 1 of 2 | 2 of 2 | 0 of 2 | 8 to 9 | 1 to 2.5 min | $0.20 to $0.36 |
+| E, Opus, medium | 1 of 2 | 1 of 2 | 0 of 2 | 7 to 9 | 1 to 2 min | $0.44 to $0.55 |
+| F, Sonnet, medium | 0 of 2 | 2 of 2 | 0 of 2 | 6 to 8 | under 1 min | $0.13 to $0.16 |
+| G, Opus, xhigh | 2 of 2 | 2 of 2 | 0 of 2 | 14 to 15 | 6.5 to 10 min | $1.74 to $2.93 |
+| H, Sonnet, xhigh | 1 of 2 | 2 of 2 | 0 of 2 | 11 to 14 | 5 to 10 min | $0.70 to $1.56 |
+| C, Opus, low | 0 of 4 | 0 of 4 | 0 of 4 | 0 to 2 | under 30 s | $0.19 to $0.22 |
+| D, Sonnet, low | 0 of 4 | 0 of 4 | 0 of 4 | 0 to 3 | under 20 s | $0.09 to $0.13 |
+
+C and D ran four times each. The second pair was meant to run at high model effort, but `--effort` turned out to have no effect (section 4.1). So all four ran the same way.
+
+One more run isn't in the table. A trial of setting A on #32 ran first, with fewer allowed commands. Two of its commands were blocked, and it still found the schedule order.
+
+### 8.1 Stage 1
+
+- **The low level can't find either bug.** It reads only the diff, and both bugs need more than the changed lines. Most low reviews reported no findings at all.
+- **At high, Opus found both bugs every time.** Sonnet found the business name both times, but missed the schedule order in one of its two runs. That run flagged other problems in the calendar code instead.
+- **No run found the #30 plan gap.** It needs the plan and persistence design 8.7 read side by side.
+- **PR #30 tests less than section 7.1 hoped.** The PR edited the domain model right next to the rule "Cards show Google's name whenever Google has one," so the rule is in the diff. Sonnet found the bug without opening any design doc.
+- **Sonnet at high costs about a third of Opus at high.** It also took about half the time.
+- **Some extra findings came up in every high run of a PR.** On #30: the closing tag in `place-content.ts` is removed in only one pass; a `RuleError` from Google's data escapes as the wrong error type; and a timeout while reading the body is swallowed. On #32: the leg check ignores a change to the leg's start or end. Section 8.4 says which extras are real.
+
+### 8.2 Stage 2
+
+- **Medium found less than high, with the same recipe.** Opus at medium found the schedule order in one run. Its other run flagged the same lines, but only for a drive whose time is unknown, so it doesn't count. It also missed the business name once. Sonnet at medium missed the schedule order in both runs.
+- **Medium saves less than it loses.** Opus at medium cost about a third less than Opus at high. Sonnet at medium cost about half as much as Sonnet at high. Sonnet at high found more than Opus at medium, for about half the price.
+- **The extra findings partly repeat.** The #30 closing tag, wrong error type, and swallowed timeout came up again, but not in every run. The #32 leg check came up in one Opus run.
+- **xhigh found the same key bugs as high.** Opus found both every time, and Sonnet still missed the schedule order once. It cost about 3 times as much as high, and took about 3 times as long.
+- **Opus at xhigh found one problem no other setting did.** Saving places from a search can wait on a write's row lock, which the persistence design says can't happen (open item 18). Both models found it in every xhigh run.
+
+### 8.3 Stage 3
+
+| Finding from the answer key | Opus, high | Opus, xhigh |
+|---|---|---|
+| #31: the domain model shows approvals as subclasses, but the code has three separate classes | 0 of 2 | 0 of 2 |
+| #31: a comment names the wrong function | 0 of 2 | 2 of 2 |
+| #33: the started-trip lock is no longer checked at save | 2 of 2 | 2 of 2 |
+| #34: phase 13 leaves out the `RoutesClient` | 0 of 2 | 0 of 2 |
+| #35: the warning and the schedule count a day's driving differently | 1 of 2 | 0 of 2 |
+| #35: persistence 8.2 doesn't say where the checker is made | 0 of 2 | 0 of 2 |
+
+Opus at high cost $0.89 to $1.29 per review, and took about 3 minutes. Opus at xhigh cost $2.55 to $3.35, and took 8 to 10 minutes.
+
+- **#33 counts as found, framed differently.** All four runs said `save()` no longer checks the lock while the design still says it does. They saw it as a code problem, not as the design contradicting itself. The fix put the check back in `save()`.
+- **Only one run found #35's driving count.** Opus at high worked out that the two ways of rounding already give different numbers. The other three runs saw that the formula is copied, and said only that the copies could drift apart.
+- **The stock `/code-review` doesn't catch plan or doc gaps.** Over all six PRs, no setting found a gap in the plan or a doc that doesn't match the code. Batch 4's reviewer was given the phase and its design sections, and the stock command isn't.
+- **One xhigh review returned JSON that doesn't parse.** A CI job that reads the JSON has to allow for that.
+
+### 8.4 Are the extra findings real?
+
+An agent checked every finding that isn't in the answer key against the code, one PR at a time. It grouped findings that describe the same issue, and gave each group one verdict. "Real" means a real bug or an accurate cleanup. "Design choice" means the code does what the design asks for. "Wrong" means the claim about the code is false. Shares are of findings, counting a repeated issue once per run.
+
+| Setting | PRs | Real | Design choice | Wrong |
+|---|---|---|---|---|
+| Opus, high | #30, #32 | 65% | 20% | 10% |
+| Opus, xhigh | #30, #32 | 75% | 14% | 8% |
+| Sonnet, high | #30, #32 | 49% | 26% | 20% |
+| Sonnet, xhigh | #30, #32 | 64% | 20% | 12% |
+| Opus, medium | #30, #32 | 50% | 24% | 24% |
+| Sonnet, medium | #30, #32 | 38% | 31% | 24% |
+| Opus, high | #31, #33, #34, #35 | 65% | 23% | 10% |
+| Opus, xhigh | #31, #33, #34, #35 | 71% | 20% | 7% |
+
+- **Opus is right more often than Sonnet at every level.** At high, a fifth of Sonnet's findings were wrong, twice the share for Opus.
+- **Most real bugs outside the answer key are minor.** Examples are "1 hours" in a warning, and a drive buffer that rounds one minute too far with an unusual buffer. The ones Joe wanted kept are open items 15 to 20.
+- **On #31 to #35, high and xhigh found the same number of real bugs.** Each found 8, and each found 4 the other missed. xhigh found 44 accurate cleanups against 26 for high.
+- **The wrong findings mostly come from not knowing rules elsewhere in the code.** For example, "the weekday getter falls back to Sunday" can never happen, because `CalendarDate` refuses a date that isn't real.
+
+### 8.5 The choice: Opus at high
+
+Joe chose Opus at `high` on 2026-10-16.
+
+- **Low and medium miss bugs that high finds.** Low found neither key bug in any run.
+- **Sonnet misses more and is wrong more often.** It's cheaper per review, but a wrong finding costs work to turn down.
+- **xhigh mostly adds cleanups, for about 3 times the cost.** Cleanups would matter more on a real product. For this project, high finds enough.
+- **No fix-run test.** The fourth stage in section 7.5 would have measured what fixing each setting's findings costs. With high chosen on review quality alone, it isn't needed.
 
 ---
 
 ## 9. Later: CI and the fix loop
 
-Once round 1 picks a setting, a GitHub Actions job runs `/code-review --comment` on each PR, with the Max subscription token.
+Round 1 picked Opus at `high` (section 8.5). A GitHub Actions job runs `/code-review high --comment` on each PR with Opus, using the Max subscription token.
 
 After that, the review needs a clear result. Either the PR is ready for Joe, or it has findings to fix. Findings would start another Claude Code run in CI, which reads the review, makes the fixes, and pushes. That loop stops after two or three rounds, so it can't run forever. A label or a check result on the PR could be the "ready for Joe" signal.
 
