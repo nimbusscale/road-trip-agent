@@ -38,6 +38,8 @@ A trip is stored in four kinds of record:
 - **An object with no `id`,** such as a leg, a candidate, or an approval, is stored inside the object that holds it.
 - **A link is stored as an ID,** such as a stop's selected place, or a stop's search-area stay. The load turns each ID back into a link.
 - **A time of day is stored as text,** "HH:MM" on a 24-hour clock, such as "13:00" for a trip brief's `usualStartTime`. It's the domain model's `time` type (domain model section 1). The load parses it back into a time of day.
+- **A date is stored as text too,** "YYYY-MM-DD", such as "2027-10-10" for the itinerary's `startDate`. A schedule time, such as a stop's `setTime`, is stored as its time of day and whether it falls on the next calendar date, such as `{"time": "01:00", "isNextDay": true}`.
+- **A link's property name ends in `Id`, or `Ids` for a list,** such as a stop's `selectedPlaceId` or a day's `waypointIds`. Every other property keeps the domain model's name.
 - **The home screen reads the plan document too.** It shows each trip's name, dates, and last updated (functional spec 3). `listForOwner()` loads the user's trips, and each value comes from the `Trip`. The trip row has no extra columns for them. The name and dates are worked out from the brief and the itinerary, so a column would be a second copy that can go stale. A user has only a few trips, so loading each one whole costs little. If it ever gets slow, the query can read just those fields from the document.
 
 **Places and sessions are stored apart from the plan.** Neither is part of the plan, and neither goes through a write. A trip can also have hundreds of places, and saving places from a search shouldn't wait for the plan (section 4).
@@ -100,7 +102,7 @@ A started trip can't be changed (domain model 3.1). `TripWriter` refuses a write
 
 **Trip memory is refused on a started trip too,** like the plan. User memory isn't, since it isn't about that trip. `MemoryWriter` checks right before it saves a trip item (section 8.8).
 
-**Today's date** is in the start place's time zone (domain model 3.1). Code works out the time zone from the start place's coordinates, with a lookup in code. It needs no call to Google, and nothing new is stored.
+**Today's date** is in the start place's time zone (domain model 3.1). Code works out the time zone from the start place's coordinates, with a lookup in code: the `@photostructure/tz-lookup` library, which holds a small table of the time zones' borders. It needs no call to Google, and nothing new is stored. Its borders are approximate near a time zone line, which is fine for a date that only changes at midnight.
 
 ---
 
@@ -399,7 +401,7 @@ A place is part of the trip, so it's in the domain model (domain model 3.10). Th
 
 A **repository** is a class that reads and saves one kind of record (section 2). Each is created for one connection: the database itself for a read, or an open transaction for a write. They hold no rules, other than the started-trip lock at save.
 
-**TripRepository** reads and saves trip rows, and turns them into `Trip` objects. It uses `PlaceRepository`, on the same connection, to load the trip's places, and turns each place ID in the plan back into a link.
+**TripRepository** reads and saves trip rows, and turns them into `Trip` objects. It uses `PlaceRepository`, on the same connection, to load the trip's places, and turns each place ID in the plan back into a link. Turning the itinerary's IDs back into links is the domain's `itineraryFromStored()`, not the repository's. The links run in a loop: a stay holds its days, a day holds its stops, and a stop near a stay links to a stay, often the one that holds it. So no order of constructors builds the itinerary. The domain builds the stays and days first, then adds the stops and legs to the days with their change methods, which only the domain reaches (domain model section 1).
 
 - **`loadForWrite(tripId)`** loads the trip's row "for update," which takes the row lock (section 4). Then it loads the trip's places, and returns an `EditableTrip`. If the lock isn't free within 5 seconds, it refuses, and the error says the trip is busy. `TripWriter` tries again twice before passing the error on (section 4).
 - **`load(tripId)`** does the same without the row lock, and returns the `Trip`.

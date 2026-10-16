@@ -1,3 +1,4 @@
+import type { Place } from "../domain/place.js";
 import type { Trip } from "../domain/trip.js";
 import type { User } from "../domain/user.js";
 import { EditableTrip } from "./editable-trip.js";
@@ -21,19 +22,14 @@ export class FakeTripStore implements TripStore {
     if (error !== undefined) {
       throw error;
     }
-    const trip = await this.load(tripId);
-    return new EditableTrip(trip, await this.places.loadForTrip(tripId));
+    // One set of places for the trip and placeOf(), so every link to a place is the
+    // same object, as with TripRepository.
+    const places = await this.places.loadForTrip(tripId);
+    return new EditableTrip(this.#tripFrom(tripId, places), places);
   }
 
-  load(tripId: string): Promise<Trip> {
-    const row = this.rows.get(tripId);
-    if (row === undefined) {
-      return Promise.reject(new Error(`There's no trip ${tripId}.`));
-    }
-    const plan = planSchema.parse(JSON.parse(row.plan));
-    return Promise.resolve(
-      tripFromRow({ id: tripId, ownerId: row.ownerId, plan }),
-    );
+  async load(tripId: string): Promise<Trip> {
+    return this.#tripFrom(tripId, await this.places.loadForTrip(tripId));
   }
 
   async listForOwner(owner: User): Promise<Trip[]> {
@@ -51,6 +47,15 @@ export class FakeTripStore implements TripStore {
   save(editableTrip: EditableTrip): Promise<void> {
     this.#store(editableTrip.trip);
     return this.places.fillNames(editableTrip.namedPlaces);
+  }
+
+  #tripFrom(tripId: string, places: readonly Place[]): Trip {
+    const row = this.rows.get(tripId);
+    if (row === undefined) {
+      throw new Error(`There's no trip ${tripId}.`);
+    }
+    const plan = planSchema.parse(JSON.parse(row.plan));
+    return tripFromRow({ id: tripId, ownerId: row.ownerId, plan }, places);
   }
 
   #store(trip: Trip): void {

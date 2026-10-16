@@ -68,6 +68,20 @@ describe("TripRepository", () => {
     expect(placesQuery?.values).toEqual([tripId]);
   });
 
+  it("loads the trip's places with a read too, and the home screen's list", async () => {
+    const { row, tripId } = storedRow();
+    const connection = new FakeConnection([row]);
+    const repository = new TripRepository(connection);
+    await repository.load(tripId);
+    expect(connection.queries[1]?.text).toMatch(
+      /FROM places WHERE trip_id = \$1$/,
+    );
+    expect(connection.queries[1]?.values).toEqual([tripId]);
+    const trips = await repository.listForOwner(OWNER);
+    expect(trips.map((trip) => trip.id)).toEqual([tripId]);
+    expect(connection.queries.at(-1)?.values).toEqual([tripId]);
+  });
+
   it("calls the trip busy when the lock wait runs out", async () => {
     const lockTimeout = Object.assign(new Error("lock timeout"), {
       code: "55P03",

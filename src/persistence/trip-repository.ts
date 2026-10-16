@@ -11,7 +11,7 @@ import {
   TripNotFoundError,
   TripStartedError,
 } from "./trip-errors.js";
-import { tripRowSchema } from "./trip-row.schema.js";
+import { type TripRow, tripRowSchema } from "./trip-row.schema.js";
 
 // How long a write waits for the row lock before the trip counts as busy. A write
 // holds the lock a few seconds at most (persistence design, section 4).
@@ -54,7 +54,8 @@ export class TripRepository implements TripStore {
         [tripId],
       );
       const places = await this.#places.loadForTrip(tripId);
-      return new EditableTrip(onlyTrip(rows, tripId), places);
+      const trip = tripFromRow(onlyRow(rows, tripId), places);
+      return new EditableTrip(trip, places);
     } catch (error) {
       if (lockNotAvailableSchema.safeParse(error).success) {
         throw new TripBusyError();
@@ -63,19 +64,19 @@ export class TripRepository implements TripStore {
     }
   }
 
-  // The plan links to no places yet, so a read doesn't load them. Phase 16 loads them
-  // here, to turn the plan's place IDs back into links (development plan, phase 16).
+  // Loads the trip's places too, to turn the plan's place IDs back into links.
   async load(tripId: string): Promise<Trip> {
     const rows = await this.#select(`${SELECT_TRIP} WHERE id = $1`, [tripId]);
-    return onlyTrip(rows, tripId);
+    return this.#tripFrom(onlyRow(rows, tripId));
   }
 
   // For the home screen. Newest change first.
   async listForOwner(owner: User): Promise<Trip[]> {
-    return this.#select(
+    const rows = await this.#select(
       `${SELECT_TRIP} WHERE owner_id = $1 ORDER BY plan->>'lastUpdatedDateTime' DESC`,
       [owner.id],
     );
+    return Promise.all(rows.map((row) => this.#tripFrom(row)));
   }
 
   async add(trip: Trip): Promise<void> {
@@ -97,16 +98,20 @@ export class TripRepository implements TripStore {
     await this.#places.fillNames(editableTrip.namedPlaces);
   }
 
-  async #select(text: string, values: readonly unknown[]): Promise<Trip[]> {
+  async #select(text: string, values: readonly unknown[]): Promise<TripRow[]> {
     const result = await this.connection.query(text, values);
-    return result.rows.map((row) => tripFromRow(tripRowSchema.parse(row)));
+    return result.rows.map((row) => tripRowSchema.parse(row));
+  }
+
+  async #tripFrom(row: TripRow): Promise<Trip> {
+    return tripFromRow(row, await this.#places.loadForTrip(row.id));
   }
 }
 
-function onlyTrip(trips: readonly Trip[], tripId: string): Trip {
-  const [trip] = trips;
-  if (trip === undefined) {
+function onlyRow(rows: readonly TripRow[], tripId: string): TripRow {
+  const [row] = rows;
+  if (row === undefined) {
     throw new TripNotFoundError(tripId);
   }
-  return trip;
+  return row;
 }
