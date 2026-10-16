@@ -43,7 +43,7 @@ This document lists the development work, phase by phase, in the order it's done
 | **The itinerary** | | |
 | 15 | Places | 2026-10-15, [PR #30](https://github.com/nimbusscale/road-trip-agent/pull/30) |
 | 16 | The itinerary's objects | 2026-10-15, [PR #31](https://github.com/nimbusscale/road-trip-agent/pull/31) |
-| 17 | The calendar and the day's schedule | |
+| 17 | The calendar and the day's schedule | 2026-10-15, [PR #32](https://github.com/nimbusscale/road-trip-agent/pull/32) |
 | 18 | The services | |
 | 19 | Legs | |
 | 20 | Feasibility checks | |
