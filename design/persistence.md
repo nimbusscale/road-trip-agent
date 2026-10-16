@@ -175,7 +175,7 @@ classDiagram
     }
 
     class PlaceReader {
-        get(placeId : string) Place
+        get(tripId : string, placeId : string) Place
     }
 
     class SessionWriter {
@@ -239,7 +239,7 @@ classDiagram
     class PlaceRepository {
         addPlaces(tripId : string, places : List~Place~) List~Place~
         loadForTrip(tripId : string) List~Place~
-        get(placeId : string) Place
+        get(tripId : string, placeId : string) Place
         fillNames(places : List~Place~)
     }
 
@@ -391,7 +391,7 @@ A place is part of the trip, so it's in the domain model (domain model 3.10). Th
 
 **PlaceReader** reads places.
 
-- **`get(placeId)`** returns one place, without loading the trip. The tool `read_place` uses it.
+- **`get(tripId, placeId)`** returns one of the trip's places, without loading the trip. The tool `read_place` uses it, with the session's trip. It refuses a place from another trip with the same error as an ID that doesn't exist, as `placeOf()` does (section 8.4).
 
 **Places are never removed.** That includes search results that were never offered as candidates, which will be most of a trip's places. Cleaning them up is out of scope for the MVP.
 
@@ -411,7 +411,7 @@ A **repository** is a class that reads and saves one kind of record (section 2).
 
 - **`addPlaces(tripId, places)`** adds each place as a row, unless the trip already has one with that Google place ID (section 3). It returns the stored places in the order given, so the caller gets the existing `id` for a place the trip already had.
 - **`loadForTrip(tripId)`** loads every place the trip has.
-- **`get(placeId)`** loads one place.
+- **`get(tripId, placeId)`** loads one of the trip's places, or nothing if the trip has no place with that ID.
 - **`fillNames(places)`** sets each place's name on its row, only where the row has none.
 
 **SessionRepository** reads and saves session rows (section 6).

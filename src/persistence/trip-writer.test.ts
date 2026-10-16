@@ -1,9 +1,11 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
 
 import { loadSettings, SETTINGS_PATH } from "../config/settings.js";
+import { exampleAddress, examplePlace } from "../domain/place.fake.js";
 import { RuleError } from "../domain/rule-error.js";
 import type { Trip } from "../domain/trip.js";
 import type { EditableTrip } from "./editable-trip.js";
+import { NoSuchPlaceError } from "./place-errors.js";
 import { TripBusyError } from "./trip-errors.js";
 import { TripReader } from "./trip-reader.js";
 import type { TripStore } from "./trip-repository.js";
@@ -137,6 +139,53 @@ describe("TripWriter.write", () => {
     };
     await expect(writer.write(id, refuse)).rejects.toThrow("Refused.");
     expect(clock.pauses).toEqual([]);
+  });
+});
+
+describe("TripWriter.write with places", () => {
+  it("turns a place ID into one of the trip's places, the same object each time", async () => {
+    const { writer, store } = setUp();
+    const { id } = await writer.startTrip(OWNER);
+    const [place] = await store.places.addPlaces(id, [examplePlace()]);
+    const placeId = place?.id ?? "";
+    const result = await writer.write(id, ({ placeOf }) => ({
+      name: placeOf(placeId).name,
+      isSameObject: placeOf(placeId) === placeOf(placeId),
+    }));
+    expect(result.changeResult).toEqual({
+      name: "Smitty's Market",
+      isSameObject: true,
+    });
+  });
+
+  it("refuses another trip's place ID, and saves nothing", async () => {
+    const { writer, reader, store } = setUp();
+    const { id } = await writer.startTrip(OWNER);
+    const other = await writer.startTrip(OWNER);
+    const [place] = await store.places.addPlaces(other.id, [examplePlace()]);
+    const write = writer.write(id, ({ trip, placeOf }) => {
+      trip.tripBrief.focus = "Texas barbecue";
+      placeOf(place?.id ?? "");
+    });
+    await expect(write).rejects.toThrow(NoSuchPlaceError);
+    expect((await reader.read(id)).tripBrief.focus).toBeNull();
+  });
+
+  it("saves a name the write filled in, and only that", async () => {
+    const { writer, store } = setUp();
+    const { id } = await writer.startTrip(OWNER);
+    const [address, smittys] = await store.places.addPlaces(id, [
+      exampleAddress(),
+      examplePlace(),
+    ]);
+    await writer.write(id, ({ placeOf }) => {
+      placeOf(address?.id ?? "").fillName("Mike's house");
+      placeOf(smittys?.id ?? "").fillName("The barbecue place");
+    });
+    const names = (await store.places.loadForTrip(id)).map(
+      (place) => place.name,
+    );
+    expect(names).toEqual(["Mike's house", "Smitty's Market"]);
   });
 });
 
