@@ -1,15 +1,18 @@
+import type { CalendarDate } from "../domain/calendar-date.js";
 import type { Place } from "../domain/place.js";
+import { hasStartedOn } from "../domain/today.js";
 import type { Trip } from "../domain/trip.js";
 import { NoSuchPlaceError } from "./place-errors.js";
 
 // A trip loaded for a write, under the row lock (persistence design, section 8.4).
 // Only TripRepository.loadForWrite() makes one, and save() takes only this, so a trip
 // from a read can never be saved. The object itself holds no lock.
-//
-// Phase 16 adds loadedStartDate and loadedStartPlace, with the itinerary's start date
-// and place.
 export class EditableTrip {
   readonly trip: Trip;
+  // The start date and place as loaded, for the started-trip check at save. The write
+  // may change them (persistence design, section 5).
+  readonly loadedStartDate: CalendarDate | null;
+  readonly loadedStartPlace: Place | null;
   // The places that had no name when loaded. A write can fill a name in, but never
   // change one, so these are the only place rows a save might update (section 8.4).
   readonly unnamedPlaceIds: readonly string[];
@@ -19,6 +22,8 @@ export class EditableTrip {
 
   constructor(trip: Trip, places: readonly Place[]) {
     this.trip = trip;
+    this.loadedStartDate = trip.itinerary.startDate;
+    this.loadedStartPlace = trip.itinerary.startPlace;
     this.#places = new Map(places.map((place) => [place.id, place]));
     this.unnamedPlaceIds = Object.freeze(
       places.filter((place) => place.name === null).map((place) => place.id),
@@ -42,9 +47,14 @@ export class EditableTrip {
       .filter((place) => place.name !== null);
   }
 
-  // Worked out from the trip as loaded, since the write may change its start date. The
-  // itinerary has no start date yet, so no trip has started. Phase 18 tests the lock.
+  // Worked out like Trip.hasStarted, but from the start date and place as loaded, since
+  // the write may change them. It looks up today's date when it's called. Phase 18
+  // tests the lock.
   hasStarted(): boolean {
-    return this.trip.hasStarted;
+    return hasStartedOn(
+      this.loadedStartDate,
+      this.loadedStartPlace,
+      new Date(),
+    );
   }
 }

@@ -622,7 +622,7 @@ Whether the text is out of date needs the stay's current dates and activities, w
 
 A day is one day of the trip, with a schedule (functional spec 4). There are two kinds. A **stay day** ends with a night at a stay, and the stay holds it. The **last day** ends at the end place, and the itinerary holds it.
 
-**Held as:** an entity. Its `id` has the prefix `day_` (technical spec 7.1). A stay day is held by its stay's `days`. The last day is held by the itinerary's `lastDay`. `Day` is the base, with `StayDay` and `LastDay` below it. In code, this is likely a tagged union.
+**Held as:** an entity. Its `id` has the prefix `day_` (technical spec 7.1). A stay day is held by its stay's `days`. The last day is held by the itinerary's `lastDay`. `Day` is the base, with `StayDay` and `LastDay` below it. In code, `Day` is a base class, and each kind has a `kind` field, `stayDay` or `lastDay`, so code can tell them apart like a tagged union.
 
 **Created and changed by:** `StaysService` creates a stay's days with the stay, and adds and removes them as the stay's nights change. The itinerary creates the last day. The coordinator sets a day's start time directly, and its rest day and approvals through `DaysService`, with the tool `update_day` (section 4.5). It adds, moves, and removes stops through `StopsService`, with the tools `add_stops`, `move_stop`, and `remove_stops` (section 4.6). It sets the day's waypoints with `setWaypoints()`, with the tool `set_waypoints`. `LegsService` adds, re-routes, and removes the day's leg at the end of every write (section 4.7).
 
@@ -817,7 +817,7 @@ A candidate is one place offered for a stop or for a stay's lodging, with the re
 
 **Held as:** held by a stop's `candidates` or a stay's `lodgingCandidates`, with no `id`. Agents refer to one by its stop or stay plus its place (technical spec 7.1).
 
-**Created and changed by:** code creates it from what a worker passes to the tools `add_lodging_candidates` and `add_stop_candidates`, or from what the coordinator passes to the tool `select_user_place`. Then `StaysService.addLodgingCandidates()` or `StopsService.addCandidates()` adds it, in a set (sections 4.4 and 4.6). The stop or stay that adds it gives it its set number, tier, and rule. After that it never changes. A rejection removes it (section 4.3), and so does removing its stop or stay. Nothing else does.
+**Created and changed by:** code creates it from what a worker passes to the tools `add_lodging_candidates` and `add_stop_candidates`, or from what the coordinator passes to the tool `select_user_place`. Then `StaysService.addLodgingCandidates()` or `StopsService.addCandidates()` adds it, in a set (sections 4.4 and 4.6). The stop or stay that adds it gives it its set number, tier, and rule. In code, what's passed in is a `CandidateOffer`: every property but those three. The stop or stay makes the candidate from it, so a candidate never exists without them. After that it never changes. A rejection removes it (section 4.3), and so does removing its stop or stay. Nothing else does.
 
 | Property | Stored or worked out | Type | Notes |
 |---|---|---|---|

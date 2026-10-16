@@ -502,7 +502,7 @@ By the end of this part, code can build both example trips through the services,
 
 **Open questions:**
 
-- Which library finds the time zone from coordinates, with no outside call?
+- ~~Which library finds the time zone from coordinates, with no outside call?~~ **Closed 2026-10-15,** proposed in phase 16's PR, under batch 4's rules: `@photostructure/tz-lookup`. Phase 16 needed it first, to make `Trip.hasStarted` real. Its `todayAt()` (`src/domain/today.ts`) gives today's date at a place, and the calendar's `today()` uses it with the start place. Written into persistence design section 5.
 
 **Do:**
 
@@ -525,6 +525,10 @@ By the end of this part, code can build both example trips through the services,
 ### Phase 18. The services
 
 **Design:** [Domain model](../design/domain-model.md), sections 4.3 to 4.6 and 4.9. [Persistence design](../design/persistence.md), section 5.
+
+**Open questions:**
+
+- How does the started-trip lock test set the time? `Trip.hasStarted` and `EditableTrip.hasStarted()` read the system clock with `new Date()`. The test of a write that loads at 11:59 p.m. and saves after midnight needs a clock it controls. `TripWriter` already takes a `Clock`, so it could pass `now()` in. Raised in phase 16.
 
 **Do:** add `ItineraryService`, `StaysService`, `DaysService`, `StopsService`, and `RejectionsService`. The "trip has started" error also gives the date it went by.
 
