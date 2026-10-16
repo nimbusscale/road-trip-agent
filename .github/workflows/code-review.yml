@@ -4,21 +4,14 @@
 name: Code review
 
 # Runs when a PR is opened or gets a new commit. A push to a branch with no PR doesn't
-# run it. Only PRs that change the app's code, settings, migrations, images, server
-# files, or workflows are reviewed. Docs, plans, tool config files, and dependency
-# changes in package.json aren't. The reviewer can't see inside a dependency anyway.
+# run it. Only PRs that change the app's code, in src/ or web/, are reviewed. Reviews of
+# other files found mostly minor things.
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - "src/**"
       - "web/**"
-      - "migrations/**"
-      - "ops/**"
-      - "docker/**"
-      - "compose.yaml"
-      - "settings.json"
-      - ".github/workflows/**"
 
 permissions:
   contents: read

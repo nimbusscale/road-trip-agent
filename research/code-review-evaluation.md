@@ -316,7 +316,7 @@ Joe chose Opus at `high` on 2026-10-16.
 
 Round 1 picked Opus at `high` (section 8.5). Since 2026-10-16, the "Code review" workflow (`.github/workflows/code-review.yml`) runs `/code-review high --comment` with Opus on each PR, using the Max subscription token.
 
-- **It runs when a PR is opened or gets a new commit,** if the PR changes `src/`, `web/`, `migrations/`, `ops/`, `docker/`, `compose.yaml`, `settings.json`, or a workflow. Plans, docs, and dependency changes aren't reviewed, since the stock review found no gaps in them (section 8). A push to a branch with no PR doesn't run it, and neither does a draft.
+- **It runs when a PR is opened or gets a new commit,** if the PR changes `src/` or `web/`. Other files aren't reviewed. The stock review found no gaps in plans and docs (section 8), and the seven reviews of the workflow's own PR, #39, found mostly minor things. A push to a branch with no PR doesn't run it, and neither does a draft.
 - **The PR description holds the task, and the implementer's decisions go in a comment** (section 5.3, now in DEVELOPMENT.md section 7). A line in CLAUDE.md tells the reviewer to start from the description and not read the PR's conversation comments.
 - **It uses Claude Code 2.1.301,** the version round 1 tested, installed fresh in each run. A fresh install took under 3 seconds, so a prebuilt container wouldn't be faster.
 - **Each run saves its transcript** as a workflow artifact, so we can check what the reviewer read.
