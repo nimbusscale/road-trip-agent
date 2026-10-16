@@ -25,7 +25,7 @@ Joe agreed to these on 2026-10-15, for this run only. They replace any step in a
 
 - **The coordinator settles open questions.** Phase 15 asks whether Google gives a street address a name, and its real lookup answers it. Phase 17 asks which time-zone library to use. The worker proposes an answer in its PR, and writes it into the design doc it belongs to. The reviewer checks it, and the coordinator accepts it by merging. The same goes for a design change a phase finds it needs. The final PR lists each one, so Joe can push back.
 - **No config file changes.** The config files in DEVELOPMENT.md section 6 change only with Joe's approval. If a worker thinks one needs to change, it writes down why in its PR, and works around it without loosening any check. It never adds a disable comment or `@ts-expect-error`. If the phase truly can't be done without the change, the run stops there.
-- **Real Google calls are fine.** Phases 15 and 19 each make a few real calls with the server key in `.env`, as their "Done when" lists. Make only those.
+- **Real Google calls are fine.** Phases 15 and 19 each make a few real calls with the server key in `.env`, as their "Done when" lists. Make only those. Phase 19 makes at most 100 real Google calls in all, counting retries and debugging. Joe set this limit on 2026-10-15. If the worker needs more, it stops calling Google, writes down why in its PR, and leaves that check open. Phase 15 made 4 calls.
 - **A blocked step stops the run.** If a permission prompt or anything else blocks a step, and these rules give no way around it, stop. Write in the log where the run stopped and why, then end.
 - **No attribution.** No `Claude-Session` lines, "Generated with" lines, or co-author lines in commits, PRs, or worker prompts.
 
