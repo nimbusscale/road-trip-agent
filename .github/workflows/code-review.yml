@@ -51,6 +51,13 @@ jobs:
         with:
           node-version: 24
       - run: npm install --global "@anthropic-ai/claude-code@$CLAUDE_CODE_VERSION"
+      - name: Install bubblewrap
+        # The token scrub below runs each command in a bubblewrap sandbox. Ubuntu 24.04
+        # blocks the namespaces bubblewrap needs, so allow them on this runner.
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq bubblewrap
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
 
       - name: Review the PR
         # A timeout here fails only this step, so the transcript is still saved.
