@@ -18,11 +18,12 @@ Sections 2 to 5 record what we found out and decided on 2026-10-16. Section 6 is
 | 1, stage 2 | The `medium` and `xhigh` levels, with Opus and Sonnet, on the same PRs (section 7.4) | Done 2026-10-16. Results in section 8.2 |
 | 1, stage 3 | Opus at `high` and `xhigh` on PRs #31, #33, #34 and #35 (section 7.5) | Done 2026-10-16. Results in section 8.3 |
 | 1, the choice | Opus at `high` (section 8.5) | Decided 2026-10-16 |
-| CI | `/code-review high --comment` with Opus on each PR (section 9) | Built 2026-10-16 |
+| CI | `/code-review high --comment` with Opus on each PR (section 9) | Built 2026-10-16, PR #39 |
+| The first CI runs | Seven reviews of PR #39, fixed by hand each time, and one of PR #40 (section 10) | Done 2026-10-16 |
 | 2 | Stock `/code-review` on older PRs that were never reviewed (#2 to #29) | Not planned yet. Depends on round 1 |
 
 **Still open:**
-- **The fix loop.** Section 9. When a CI review has findings, another run fixes them. Open item 14.
+- **The fix loop.** Section 9. When a CI review has findings, another run fixes them. Open item 14. Section 10 is what happened when it was done by hand, with no limits.
 - **Our own review prompt.** Left for later. Round 1 tests only the stock `/code-review`.
 - **Model effort on its own.** The `/code-review` level sets the review's model effort, and `--effort` doesn't change it (section 4.1). So the stock command can't run the high recipe at low model effort, or the reverse. Only our own review prompt could test that.
 
@@ -325,7 +326,51 @@ After that, the review needs a clear result. Either the PR is ready for Joe, or 
 
 ---
 
-## 10. Sources
+## 10. The first CI runs: a fix loop with no limits
+
+The workflow's own PR, #39, was reviewed by the new workflow. Claude Code fixed each review's findings and pushed, and each push started the next review. That was the fix loop of section 9, done by hand before it was designed. It went seven rounds before Joe stopped it.
+
+| Round | What the review did | Findings | Cost |
+|---|---|---|---|
+| 1 | Normal review | 9 posted | $0.41 |
+| 2 | Skipped all 9 earlier findings | 5 posted | $0.66 |
+| 3 | Failed to start: the token scrub needs bubblewrap | none | none |
+| 4 | Ran no commands: the sandbox also needs socat | 5, not posted | $0.38 |
+| 5 | Posted one earlier finding again, saying its fix hadn't worked | 6 posted | $0.58 |
+| 6 | Normal review | 6 posted | $0.64 |
+| 7 | Normal review | 5 posted | $1.09 |
+
+PR #40, the fixes for open items 15 to 20, had one review blind for want of socat, then one real review with 7 findings, for $1.30 and $1.09. Its findings were about the app's code, such as review text that can still close the `place_content` label with `</place_content >`. Joe stopped the fixes before any were pushed.
+
+**What went wrong:**
+
+- **The review never says "done."** Its recipe says "Target at least 5 findings," though it also says not to invent findings to reach that number. Every round found 5 or more. So "no findings left" can't be the signal to stop.
+- **Each fix gave the next review new lines to look at.** Most later findings were about lines the last fix had changed. Fixes to the token protection led to findings about the token protection.
+- **Nearly every finding was fixed, and most were minor.** Of the 36 findings, about 10 affected whether the review worked or how well the token was kept safe. Examples: comments posted again on every push, and the reviewer unable to post when `jq` was blocked. The rest were wording, a file name, or 8 seconds of setup time.
+- **The scope was wider than it needed to be.** PR #39 changed only the workflow and docs. It was reviewed because the workflow's folder was in the list of reviewed paths. With only `src/` and `web/`, it wouldn't have been reviewed at all. The list is now `src/` and `web/`.
+
+**What the fix loop needs** (open item 14):
+
+- **A rule for what to fix.** Fix only findings that cause wrong behavior, lost data, or a security hole. List the rest in the PR comment for Joe.
+- **A cap of two fix rounds,** then the PR goes to Joe, whatever the last review found.
+- **A check that the review ran.** Rounds 3 and 4 looked like they passed. The workflow now fails the step when the run itself fails, but a review whose commands are all blocked still passes.
+
+**What worked:**
+
+- **The reviewer kept to the description.** The transcripts show it read the PR description and the inline comments, and never the decisions comment.
+- **It didn't repeat findings.** From round 2 on, it read the earlier inline comments first and left those findings out, as CLAUDE.md asks. In round 5 it posted one again, because the fix hadn't covered it, and it said so. That one was right: an earlier reply had said `jq` worked, and inside the sandbox it didn't.
+- **The worker on PR #40 followed the new format** from CLAUDE.md and DEVELOPMENT.md alone. Its description held the task word for word and the "Done when" results, and its decisions went in a comment.
+
+**Setup problems, for the next workflow:**
+
+- **The token scrub needs a sandbox.** `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=1` runs each command in a bubblewrap sandbox, which also needs socat. Ubuntu 24.04 blocks that sandbox until `kernel.apparmor_restrict_unprivileged_userns` is set to 0.
+- **The sandbox changes which commands need approval.** Before the scrub, `jq` and `echo` ran without being on the allowed list. Inside the sandbox they were blocked until added.
+- **The checked-in `.claude/settings.json` applies in CI too.** Its allow rules add to the workflow's, and that includes the ssh and merge rules. They fail in CI only because the runner has no SSH key and the token can't write.
+- **The scrub doesn't cover the Read tool,** which runs inside Claude Code's own process. Open item 21.
+
+---
+
+## 11. Sources
 
 - [Code Review](https://code.claude.com/docs/en/code-review), Claude Code docs, read 2026-10-16
 - [Review locally with /code-review](https://code.claude.com/docs/en/code-review-local), Claude Code docs, read 2026-10-16
