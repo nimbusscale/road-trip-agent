@@ -963,6 +963,7 @@ It's there because an object can't see the object that holds it, or the ones bes
 | `locationOf(itinerary, day)` | `string?` | Where the day is, for the daily itinerary (functional spec 9.5). See below |
 | `startTimeOf(itinerary, day)` | `time` | The day's `ownStartTime`, or the trip brief's `usualStartTime` when it's empty |
 | `scheduleOf(itinerary, day)` | `List<ScheduleEntry>`, in time order | The day's schedule. See below |
+| `drivingInMinutesOf(itinerary, day)` | `integer?` | The day's driving: its drives in `scheduleOf()` added up, each the leg's segment drive time plus the drive buffer, rounded up to the whole minute. 0 on a day with no drives. Empty while the leg isn't routed through the day's selected places. The daily driving check and `FeasibilityChecker.isApplying()` use it (section 4.8) |
 | `openTimeInMinutesOf(itinerary, stop)` | `integer?` | How many minutes of the stop's visit fall within its selected place's opening hours, from its arrival and end in `scheduleOf()`. Empty when it has no selected place, or its place's hours aren't known. Also empty while its date or its times aren't known yet, such as before there's a start date. `StopsService.approveOpeningHours()` records it, and the `FeasibilityChecker` compares with it |
 | `activitiesOf(itinerary, stay)` | `List<Stop>` | The attraction stops the stay's weather text is written for. See below |
 | `isWeatherOutOfDate(itinerary, stay)` | `boolean` | True when the stay's weather text no longer matches what it was written for. See below |
@@ -1152,13 +1153,13 @@ The `FeasibilityChecker` runs the feasibility checks in technical spec section 8
 
 | Kind | Applies while |
 |---|---|
-| `DriveHoursApproval` | The day's driving, its leg's road time plus the drive buffer setting, is at most `approvedDrivingInHours` |
+| `DriveHoursApproval` | The day's driving, `drivingInMinutesOf()` (section 4.1), is at most `approvedDrivingInHours` |
 | `RouteTypeApproval` | Always |
 | `OpeningHoursApproval` | `openTimeInMinutesOf()` for the stop is at least `approvedOpenTimeInMinutes`. It doesn't apply while that's empty, such as while the stop's times aren't known |
 
 **How the checks work out their numbers.** Each check reads what the calendar and the legs already give. These are the choices the table in technical spec section 8 leaves open:
 
-- **A day's driving** is its leg's road time plus the drive buffer, rounded up to the whole minute, as one figure for the day. A day with no leg drives 0 minutes. The schedule rounds each drive on its own (section 4.1), so its drives can add up to a few minutes more. The warning says "about," so that's accepted. Example: Moab Day 4's 234 minutes of road time is about 4 h 18 m of driving.
+- **A day's driving** is the calendar's `drivingInMinutesOf()`: the day's drives in the schedule, added up (section 4.1). So the warning and the schedule never disagree near the limit. Example: Moab Day 4's drives of 104, 77, 18, 22, and 13 minutes of road time come to 4 h 20 m of driving.
 - **The daily driving warning** is given when the day drives more than the brief's comfortable driving hours, or more than the hours its approval gives, even when those are fewer. It's approved while the approval applies. Its text gives the approved hours when the day has an approval, and the comfortable hours when it doesn't.
 - **The opening-hours check** takes the stop's arrival and end from `scheduleOf()`, and its open minutes from `openTimeInMinutesOf()`. No open minutes is closed for the whole visit. Fewer than the visit is open, but not long enough. The warning gives the first opening or closing during the visit, such as "Milt's closes at 12:30 p.m.," then the arrival time. A stop whose times aren't known yet gives no opening-hours result, except "hours not known," which doesn't depend on the time.
 - **The late check** takes the stop's arrival from `scheduleOf()`. That's when it shows in the schedule, so it covers a stop with no place yet that has a set time.

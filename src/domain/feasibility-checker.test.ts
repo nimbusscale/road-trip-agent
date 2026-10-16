@@ -79,15 +79,15 @@ describe("FeasibilityChecker.compare, on the Moab trip", () => {
     const approved = resultOf(saved, "dailyDriving", day4.id);
     expect(approved?.isApproved).toBe(true);
     expect(approved?.text).toBe(
-      "Day 4 needs about 4 h 18 m of driving. You agreed to 5.",
+      "Day 4 needs about 4 h 20 m of driving. You agreed to 5.",
     );
-    // 291 minutes of road time, plus the 10% buffer, is about 5 h 21 m.
-    routeDay(calendar, itinerary, day4, [104, 77, 18, 22, 70]);
+    // With the 10% buffer, each drive rounded up: 115 + 85 + 20 + 25 + 75 minutes.
+    routeDay(calendar, itinerary, day4, [104, 77, 18, 22, 68]);
     const comparison = checker.compare(checker.workOut(itinerary), saved);
     const driving = resultOf(comparison.newResults, "dailyDriving", day4.id);
     expect(driving?.isApproved).toBe(false);
     expect(driving?.text).toBe(
-      "Day 4 needs about 5 h 21 m of driving. You agreed to 5.",
+      "Day 4 needs about 5 h 20 m of driving. You agreed to 5.",
     );
     expect(checker.isApplying(itinerary, day4, "driveHours")).toBe(false);
   });

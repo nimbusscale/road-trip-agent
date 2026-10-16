@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { at, calendarFor } from "./example-trip-parts.fake.js";
+import { at, calendarFor, routeDay } from "./example-trip-parts.fake.js";
 import {
   checkerFor,
   checksAbout,
@@ -57,6 +57,20 @@ describe("the trip and day checks", () => {
     expect(result?.isApproved).toBe(false);
     expect(result?.text).toBe(
       "Day 5 needs about 3 h 45 m of driving. Comfortable driving is 3 hours a day.",
+    );
+  });
+
+  it("counts driving the way the schedule does, each drive rounded up on its own", () => {
+    const { itinerary, calendar, checker, moab: moabStay } = moab();
+    const day1 = present(moabStay.days[0]);
+    // 218 minutes of road time. With the buffer as one figure it would be 240, at the
+    // 4-hour limit. Each drive rounded up gives 81 + 81 + 80.
+    routeDay(calendar, itinerary, day1, [0, 73, 73, 72]);
+    expect(calendar.drivingInMinutesOf(itinerary, day1)).toBe(242);
+    expect(
+      resultOf(checker.workOut(itinerary), "dailyDriving", day1.id)?.text,
+    ).toBe(
+      "Day 1 needs about 4 h 2 m of driving. Comfortable driving is 4 hours a day.",
     );
   });
 

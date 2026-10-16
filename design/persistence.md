@@ -304,7 +304,7 @@ The fixed list that the classes above use:
   1. Opens a transaction, and loads the trip with `TripRepository.loadForWrite()`.
   2. Refuses the write if the trip has started, before changing anything (section 5). Tools don't check this themselves.
   3. Creates the trip's calendar and services, and runs `change` with them.
-  4. Runs the finish: `LegsService.updateLegs()`, which returns the leg changes, then the `FeasibilityChecker` when `by` is `coordinator`, which gives the check comparison, then sets last updated (domain model section 1).
+  4. Runs the finish: `LegsService.updateLegs()`, which returns the leg changes, then the `FeasibilityChecker` when `by` is `coordinator`, which gives the check comparison, then sets last updated (domain model section 1). `TripWriter` creates the `FeasibilityChecker` here, in the finish of each coordinator write, and gives it the trip brief, the settings, and the write's calendar. It isn't one of the trip's services that `change` gets (domain model 4.8).
   5. Saves with `TripRepository.save()`, passing the time from its clock, and commits. The save refuses the write if the trip has started by then, from the trip as loaded (section 5).
   6. Returns a `WriteResult`.
 

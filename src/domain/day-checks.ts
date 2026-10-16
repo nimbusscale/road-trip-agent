@@ -14,24 +14,15 @@ export function dayCheckResults(context: CheckContext): CheckResult[] {
   );
 }
 
-// The day's driving: its leg's road time plus the drive buffer, rounded up to the whole
-// minute. 0 on a day with no leg.
-export function drivingInMinutesOf(context: CheckContext, day: Day): number {
-  const roadTime = day.leg?.driveTimeInMinutes ?? 0;
-  return Math.ceil(
-    (roadTime * (100 + context.settings.driveBufferPercent)) / 100,
-  );
-}
-
 // When the day's drive hours approval still covers its driving (domain model 4.8).
 export function isDriveHoursApprovalApplying(
   context: CheckContext,
   day: Day,
 ): boolean {
   const hours = approvedHoursOf(day);
+  const driving = context.calendar.drivingInMinutesOf(context.itinerary, day);
   return (
-    hours !== null &&
-    drivingInMinutesOf(context, day) <= hours * MINUTES_IN_HOUR
+    hours !== null && driving !== null && driving <= hours * MINUTES_IN_HOUR
   );
 }
 
@@ -39,10 +30,10 @@ export function isDriveHoursApprovalApplying(
 // longer than the hours the user approved for it. Skipped while the brief has none.
 function drivingResult(context: CheckContext, day: Day): CheckResult | null {
   const comfortable = context.tripBrief.comfortableDrivingInHours;
-  if (comfortable === null || day.leg === null) {
+  const driving = context.calendar.drivingInMinutesOf(context.itinerary, day);
+  if (comfortable === null || day.leg === null || driving === null) {
     return null;
   }
-  const driving = drivingInMinutesOf(context, day);
   const approved = approvedHoursOf(day);
   const isApproved = isDriveHoursApprovalApplying(context, day);
   const isOver = driving > comfortable * MINUTES_IN_HOUR;
