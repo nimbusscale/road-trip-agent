@@ -155,6 +155,31 @@ describe("a day's schedule", () => {
     ]);
   });
 
+  it("splits the free time around a stop with no place whose time falls within it", () => {
+    const { trip, calendar, moab, stops } = moabExample();
+    const itinerary = trip.itinerary;
+    const day2 = present(moab.days[1]);
+    const corona = present(day2.stops[4]);
+    for (const stop of [stops.milts, corona]) {
+      stop[VIA_SERVICE].removeCandidate(present(stop.selectedPlace));
+    }
+    routeDay(calendar, itinerary, day2, [22, 9, 27, 20, 5]);
+    const entries = calendar.scheduleOf(itinerary, day2);
+    expect(entries.slice(6, -1).map(describeEntry)).toEqual([
+      "stop Love Muffin Cafe: 10:20 a.m. to 11:20 a.m.",
+      "freeTime: 11:20 a.m. to 12:00 p.m.",
+      "stop burgers: 12:00 p.m. to 12:00 p.m.",
+      "freeTime: 12:00 p.m. to 6:38 p.m.",
+      "drive: 6:38 p.m. to 7:00 p.m.",
+      "stop a hike: null to null",
+      "stop Desert Bistro: 7:00 p.m. to 8:00 p.m.",
+    ]);
+    const starts = entries.flatMap((entry) =>
+      entry.startTime === null ? [] : [entry.startTime.time.toText()],
+    );
+    expect(starts).toEqual([...starts].sort());
+  });
+
   it("puts Moab Day 4's stargazing at 1:00 a.m. on the next day, with free time before it", () => {
     const { trip, calendar, torrey } = moabExample();
     const day4 = present(torrey.days[0]);

@@ -69,8 +69,9 @@ function plus(minute: number | null, minutes: number | null): number | null {
 class TimelineBuilder {
   readonly #input: TimelineInput;
   readonly #entries: TimelineEntry[] = [];
-  // Stops with no selected place since the last selected stop. They go after the free
-  // time and drive to the next selected stop, which keeps the entries in time order.
+  // Stops with no selected place since the last selected stop. Each goes where its time
+  // falls: within the free time before the next selected stop, which it splits, or
+  // after the drive. One with no time stays next to the stops around it.
   #waiting: TimelineEntry[] = [];
   // When the party can leave: the end of the last selected stop, or the day's start.
   #departure: number | null;
@@ -116,15 +117,10 @@ class TimelineBuilder {
     const drive = this.#nextDrive();
     const earliest = plus(this.#departure, drive);
     const arrival = this.#arrivalAt(earliest, stop);
-    if (arrival !== null && earliest !== null && arrival > earliest) {
-      this.#push("freeTime", this.#departure, arrival - (drive ?? 0));
-    }
+    const driveStart = plus(arrival, drive === null ? null : -drive);
+    this.#addFreeTimeUntil(driveStart);
     if (this.#input.hasDrives) {
-      this.#push(
-        "drive",
-        plus(arrival, drive === null ? null : -drive),
-        arrival,
-      );
+      this.#push("drive", driveStart, arrival);
     }
     this.#entries.push(...this.#waiting);
     this.#waiting = [];
@@ -137,6 +133,30 @@ class TimelineBuilder {
     });
     this.#departure = end;
     this.#heldUntil = end;
+  }
+
+  // The free time from the departure until the drive starts, with the waiting stops
+  // whose times fall within it. A waiting stop with no time before one of those goes
+  // with it, so the stops stay in the day's order.
+  #addFreeTimeUntil(freeEnd: number | null): void {
+    let from = this.#departure;
+    if (from === null || freeEnd === null) {
+      return;
+    }
+    const lastWithin = this.#waiting.findLastIndex(
+      (entry) => entry.startMinute !== null && entry.startMinute < freeEnd,
+    );
+    for (const entry of this.#waiting.slice(0, lastWithin + 1)) {
+      if (entry.startMinute !== null && entry.startMinute > from) {
+        this.#push("freeTime", from, entry.startMinute);
+        from = entry.startMinute;
+      }
+      this.#entries.push(entry);
+    }
+    this.#waiting = this.#waiting.slice(lastWithin + 1);
+    if (freeEnd > from) {
+      this.#push("freeTime", from, freeEnd);
+    }
   }
 
   #arrivalAt(earliest: number | null, stop: Stop): number | null {
