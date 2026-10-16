@@ -1,4 +1,5 @@
 import type { Settings } from "../config/settings.schema.js";
+import type { Place } from "../domain/place.js";
 import { newTrip, type Trip } from "../domain/trip.js";
 import { TripBriefService } from "../domain/trip-brief-service.js";
 import type { User } from "../domain/user.js";
@@ -13,11 +14,13 @@ import type { TripStore } from "./trip-repository.js";
 export const BUSY_TRIES = 3;
 export const BUSY_PAUSE_MILLISECONDS = 1000;
 
-// What a write's change is given. Later phases add the other services, the calendar,
-// and placeOf().
+// What a write's change is given. Later phases add the other services and the calendar.
 export interface ChangeContext {
   trip: Trip;
   services: { tripBrief: TripBriefService };
+  // Turns a place ID the change is handed into one of the trip's places, or refuses it
+  // (persistence design, section 8.4).
+  placeOf: (placeId: string) => Place;
 }
 
 export type Change<T> = (context: ChangeContext) => T | Promise<T>;
@@ -91,6 +94,7 @@ export class TripWriter {
       const changeResult = await change({
         trip,
         services: { tripBrief: new TripBriefService(settings) },
+        placeOf: (placeId) => editableTrip.placeOf(placeId),
       });
       // The finish. Phases 19 and 20 add the legs and the checks before this.
       trip.lastUpdatedDateTime = clock.now();

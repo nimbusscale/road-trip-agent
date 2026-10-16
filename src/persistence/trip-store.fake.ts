@@ -1,6 +1,7 @@
 import type { Trip } from "../domain/trip.js";
 import type { User } from "../domain/user.js";
 import { EditableTrip } from "./editable-trip.js";
+import { FakePlaceStore } from "./place-store.fake.js";
 import { planSchema } from "./plan.schema.js";
 import { planDocumentOf, tripFromRow } from "./plan-document.js";
 import type { Connectable, TransactionClient } from "./queryable.js";
@@ -12,13 +13,16 @@ export class FakeTripStore implements TripStore {
   readonly rows = new Map<string, { ownerId: string; plan: string }>();
   // Each entry makes one loadForWrite() throw it instead of loading.
   readonly loadForWriteErrors: Error[] = [];
+  // The trips' places, loaded with a trip for a write, as TripRepository does.
+  readonly places = new FakePlaceStore();
 
-  loadForWrite(tripId: string): Promise<EditableTrip> {
+  async loadForWrite(tripId: string): Promise<EditableTrip> {
     const error = this.loadForWriteErrors.shift();
     if (error !== undefined) {
-      return Promise.reject(error);
+      throw error;
     }
-    return this.load(tripId).then((trip) => new EditableTrip(trip));
+    const trip = await this.load(tripId);
+    return new EditableTrip(trip, await this.places.loadForTrip(tripId));
   }
 
   load(tripId: string): Promise<Trip> {
@@ -46,7 +50,7 @@ export class FakeTripStore implements TripStore {
 
   save(editableTrip: EditableTrip): Promise<void> {
     this.#store(editableTrip.trip);
-    return Promise.resolve();
+    return this.places.fillNames(editableTrip.namedPlaces);
   }
 
   #store(trip: Trip): void {

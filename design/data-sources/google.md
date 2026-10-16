@@ -41,7 +41,7 @@ This document covers the Google Maps Platform APIs the app uses: Routes, Places,
 
 | Card item (spec 7.5) | Field |
 |---|---|
-| Name, type, location | `displayName`, `primaryTypeDisplayName`, `formattedAddress`, `location`. The type is Google's readable wording, such as "Hotel" or "Mexican Restaurant" |
+| Name, type, location | `displayName`, `primaryTypeDisplayName`, `formattedAddress`, `location`. The type is Google's readable wording, such as "Hotel" or "Mexican Restaurant". `types` is asked for only to tell an address from a named place (2.4) |
 | Rating and review count | `rating`, `userRatingCount`. Shown for restaurants and hotels. For attractions, only where a rating means something (spec 7.5) |
 | Tier signal (spec 7.1) | `priceLevel` and `priceRange` for restaurants. Hotels don't have them, so the agent judges hotel tiers from the summaries |
 | Hours, for notes and feasibility checks | `regularOpeningHours`: `periods` for the checks, `weekdayDescriptions` for notes. `periods` gives each opening and closing as a day and a time, so hours past midnight are clear. Both come in the same field, at the Enterprise price |
@@ -70,6 +70,7 @@ This document covers the Google Maps Platform APIs the app uses: Routes, Places,
 | Places | Along-leg search can miss well-known stops. On the Big Sur leg it missed Piedras Blancas Light Station and found only a sign for Hearst Castle | Run more than one query per leg, such as "tourist attraction" and "scenic viewpoint" |
 | Places | One detour time was clearly wrong: a viewpoint on CA-1 came out at 35 minutes | Treat detour time as a hint |
 | Places | Places with very few reviews rate highly, such as 5.0★ from 1 review | The agent weighs review count, not rating alone |
+| Places | A street address comes back named with its street, such as "712 Neches St," with no type. Its `types` are `street_address` and `subpremise` | Code gives a place no name when it has no `primaryTypeDisplayName` and its `types` include `street_address`, `premise`, or `subpremise`, so an agent's name fills in (domain model 3.10). A named building can be a `premise` too, but it has a type, so it keeps its name |
 | Routes | No true scenic route option. `avoidHighways` failed as one: Monterey to San Luis Obispo stayed on US-101, Denver to Moab went from 5h28m to 8h13m, and Moab to Torrey used old back roads such as the TransAmerica Trail | The agent picks scenic waypoints. Route type is only a label (tool design 2.4) |
 | Routes | A plain-name waypoint can resolve far away with no error. "Dewey Bridge, UT" resolved to Salt Lake City, and the route grew from 2 hours to 8 | Waypoints on legs are place IDs. Where plain names are allowed, return what each resolved to |
 

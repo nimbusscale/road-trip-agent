@@ -458,7 +458,7 @@ By the end of this part, code can build both example trips through the services,
 
 **Open questions:**
 
-- Does Google give a street address no name? If it returns the street as the name, "Mike's house" never fills in (domain model 3.10).
+- ~~Does Google give a street address no name? If it returns the street as the name, "Mike's house" never fills in (domain model 3.10).~~ **Closed 2026-10-15,** proposed in this phase's PR, under batch 4's rules: Google names an address with its street, such as "712 Neches St." So code gives a place no name when Google gives it no type, and its `types` include `street_address`, `premise`, or `subpremise`. Written into domain model 3.10, and Google design 2.2 and 2.4.
 
 **Do:**
 
@@ -486,6 +486,7 @@ By the end of this part, code can build both example trips through the services,
 - Add `Stop`, `Candidate`, the approvals, `CheckResult`, `WeatherText`, and `ActivityRecord`, with their rules. Approvals are a tagged union, with a `kind` field.
 - Add `Leg` as stored data only. Phase 19 routes it.
 - Add them all to the plan document's schema. Links are stored as IDs and turned back into links on load.
+- Make `TripRepository.load()` load the trip's places, as `loadForWrite()` does, so the plan's place IDs can be turned back into links (persistence design, section 8.7). Phase 15 left this out, since the plan linked to no places yet.
 - Phase 10 added `Itinerary` and `LastDay` with only what a new trip needs. Once the itinerary has its start date and start place, make `Trip.name` add the month, and make `Trip.hasStarted` and `EditableTrip.hasStarted()` real. Until then they're always false.
 
 **Done when:**
@@ -540,6 +541,10 @@ By the end of this part, code can build both example trips through the services,
 ### Phase 19. Legs
 
 **Design:** [Domain model](../design/domain-model.md), sections 3.8 and 4.7. [Google design](../design/data-sources/google.md), sections 2.1 to 2.4 and 5. [Persistence design](../design/persistence.md), section 4.
+
+**Open questions:**
+
+- How does the app get the server key? Phase 15's `PlacesClient` takes it as an argument, and nothing in the app makes one yet, so `GOOGLE_MAPS_SERVER_KEY` isn't in the env schema (`src/config/env.schema.ts`) or in the `app` service's environment in `compose.yaml`. The legs run in every write, so this phase is the first whose code the app runs with a Google key. Add it to both, so a missing key stops the app from starting. Raised in phase 15.
 
 **Do:**
 

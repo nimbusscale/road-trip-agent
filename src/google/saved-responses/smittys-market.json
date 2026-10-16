@@ -1,0 +1,148 @@
+{
+  "places": [
+    {
+      "id": "ChIJUV8aVvFWQ4YRZfcmdUS-yAI",
+      "formattedAddress": "208 S Commerce St, Lockhart, TX 78644, USA",
+      "location": {
+        "latitude": 29.8836284,
+        "longitude": -97.6709195
+      },
+      "rating": 4.4,
+      "googleMapsUri": "https://maps.google.com/?cid=200619384650528613&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA",
+      "regularOpeningHours": {
+        "periods": [
+          {
+            "open": {
+              "day": 0,
+              "hour": 7,
+              "minute": 0
+            },
+            "close": {
+              "day": 0,
+              "hour": 18,
+              "minute": 0
+            }
+          },
+          {
+            "open": {
+              "day": 1,
+              "hour": 7,
+              "minute": 0
+            },
+            "close": {
+              "day": 1,
+              "hour": 18,
+              "minute": 0
+            }
+          },
+          {
+            "open": {
+              "day": 2,
+              "hour": 7,
+              "minute": 0
+            },
+            "close": {
+              "day": 2,
+              "hour": 18,
+              "minute": 0
+            }
+          },
+          {
+            "open": {
+              "day": 3,
+              "hour": 7,
+              "minute": 0
+            },
+            "close": {
+              "day": 3,
+              "hour": 18,
+              "minute": 0
+            }
+          },
+          {
+            "open": {
+              "day": 4,
+              "hour": 7,
+              "minute": 0
+            },
+            "close": {
+              "day": 4,
+              "hour": 18,
+              "minute": 0
+            }
+          },
+          {
+            "open": {
+              "day": 5,
+              "hour": 7,
+              "minute": 0
+            },
+            "close": {
+              "day": 5,
+              "hour": 18,
+              "minute": 0
+            }
+          },
+          {
+            "open": {
+              "day": 6,
+              "hour": 7,
+              "minute": 0
+            },
+            "close": {
+              "day": 6,
+              "hour": 18,
+              "minute": 30
+            }
+          }
+        ],
+        "weekdayDescriptions": [
+          "Monday: 7:00 AM – 6:00 PM",
+          "Tuesday: 7:00 AM – 6:00 PM",
+          "Wednesday: 7:00 AM – 6:00 PM",
+          "Thursday: 7:00 AM – 6:00 PM",
+          "Friday: 7:00 AM – 6:00 PM",
+          "Saturday: 7:00 AM – 6:30 PM",
+          "Sunday: 7:00 AM – 6:00 PM"
+        ]
+      },
+      "priceLevel": "PRICE_LEVEL_MODERATE",
+      "userRatingCount": 3697,
+      "displayName": {
+        "text": "Smitty's Market",
+        "languageCode": "en"
+      },
+      "primaryTypeDisplayName": {
+        "text": "Barbecue Restaurant",
+        "languageCode": "en-US"
+      },
+      "editorialSummary": {
+        "text": "Acclaimed BBQ spot offering meats fresh from the smoker in a no-frills space with communal tables.",
+        "languageCode": "en"
+      },
+      "generativeSummary": {
+        "overview": {
+          "text": "Traditional Texas barbecue restaurant serving signature brisket and sausage.",
+          "languageCode": "en"
+        },
+        "overviewFlagContentUri": "https://www.google.com/local/content/rap/report?postId=CiQweDg2NDM1NmYxNTYxYTVmNTE6MHgyYzhiZTQ0NzUyNmY3NjUwAg&d=17924085&t=12",
+        "disclosureText": {
+          "text": "Summarized with Gemini",
+          "languageCode": "en-US"
+        }
+      },
+      "reviewSummary": {
+        "text": {
+          "text": "Guests consistently praise this barbecue restaurant for its delicious turkey and especially the flavorful sausage, alongside the unique experience of ordering meat directly from the smoke pits. The friendly staff, clean dining area, and authentic old-school Texas barbecue vibe further enhance the positive dining experience.\n\nSome reviews mention the brisket can be dry and tough.",
+          "languageCode": "en-US"
+        },
+        "flagContentUri": "https://www.google.com/local/content/rap/report?postId=5%401:CAIQACodChtyc19oOm5hWUpfd2RRYkVrQ3RNVGotNHpVcUE%7CCAIQACoqChtyc19oOm5hWUpfd2RRYkVrQ3RNVGotNHpVcUESCwiW9LnQBhD42oM2&d=17924085&t=8",
+        "disclosureText": {
+          "text": "Summarized with Gemini",
+          "languageCode": "en-US"
+        },
+        "reviewsUri": "https://www.google.com/maps/place//data=!4m4!3m3!1s0x864356f1561a5f51:0x2c8be447526f765!9m1!1b1"
+      }
+    }
+  ]
+}

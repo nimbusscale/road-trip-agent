@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { Trip } from "../domain/trip.js";
 import type { User } from "../domain/user.js";
 import { EditableTrip } from "./editable-trip.js";
+import { PlaceRepository } from "./place-repository.js";
 import { planDocumentOf, tripFromRow } from "./plan-document.js";
 import type { Queryable } from "./queryable.js";
 import {
@@ -33,9 +34,13 @@ export interface TripStore {
   save(editableTrip: EditableTrip): Promise<void>;
 }
 
-// Phase 15 adds the places: loading them with the trip, and filling in names at save.
+// Uses PlaceRepository, on the same connection, for the trip's places (section 8.7).
 export class TripRepository implements TripStore {
-  constructor(private readonly connection: Queryable) {}
+  readonly #places: PlaceRepository;
+
+  constructor(private readonly connection: Queryable) {
+    this.#places = new PlaceRepository(connection);
+  }
 
   // Takes the row lock, so it has to run inside a transaction (TripWriter's).
   async loadForWrite(tripId: string): Promise<EditableTrip> {
@@ -48,7 +53,8 @@ export class TripRepository implements TripStore {
         `${SELECT_TRIP} WHERE id = $1 FOR UPDATE`,
         [tripId],
       );
-      return new EditableTrip(onlyTrip(rows, tripId));
+      const places = await this.#places.loadForTrip(tripId);
+      return new EditableTrip(onlyTrip(rows, tripId), places);
     } catch (error) {
       if (lockNotAvailableSchema.safeParse(error).success) {
         throw new TripBusyError();
@@ -57,6 +63,8 @@ export class TripRepository implements TripStore {
     }
   }
 
+  // The plan links to no places yet, so a read doesn't load them. Phase 16 loads them
+  // here, to turn the plan's place IDs back into links (development plan, phase 16).
   async load(tripId: string): Promise<Trip> {
     const rows = await this.#select(`${SELECT_TRIP} WHERE id = $1`, [tripId]);
     return onlyTrip(rows, tripId);
@@ -86,6 +94,7 @@ export class TripRepository implements TripStore {
       trip.id,
       JSON.stringify(planDocumentOf(trip)),
     ]);
+    await this.#places.fillNames(editableTrip.namedPlaces);
   }
 
   async #select(text: string, values: readonly unknown[]): Promise<Trip[]> {
