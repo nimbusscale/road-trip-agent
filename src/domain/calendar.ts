@@ -157,7 +157,11 @@ export class Calendar {
     const entry = this.#timelineOf(itinerary, day).find(
       (each) => each.stop === stop,
     );
-    if (entry?.startMinute == null || entry.endMinute === null) {
+    if (
+      entry === undefined ||
+      entry.startMinute === null ||
+      entry.endMinute === null
+    ) {
       return null;
     }
     return openMinutesWithin(place.openingPeriods, date.weekday, {
