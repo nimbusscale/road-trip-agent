@@ -1,4 +1,5 @@
 import type { Settings } from "../config/settings.schema.js";
+import type { CalendarDate } from "../domain/calendar-date.js";
 import { RuleError } from "../domain/rule-error.js";
 import { newId } from "../ids/new-id.js";
 import { MemoryItem } from "./memory-item.js";
@@ -6,13 +7,14 @@ import type { MemoryStore } from "./memory-repository.js";
 import type { Connectable, Queryable } from "./queryable.js";
 import { inTransaction } from "./transaction.js";
 
-// Says whether the trip has started, on the writer's connection. Phase 12a passes one that
-// loads the trip with TripRepository.load(), without the row lock (persistence design,
-// section 8.8).
+// Says whether the trip has started, on the writer's connection: today's date at its
+// start place once it has, for the error, or null while it hasn't. Phase 12a passes one
+// that loads the trip with TripRepository.load(), without the row lock (persistence
+// design, section 8.8).
 export type TripStartedCheck = (
   connection: Queryable,
   tripId: string,
-) => Promise<boolean>;
+) => Promise<CalendarDate | null>;
 
 export type MemoryLimits = Pick<
   Settings,
@@ -119,9 +121,10 @@ export class MemoryWriter {
     if (item.tripId === null) {
       return;
     }
-    if (await this.options.hasTripStarted(connection, item.tripId)) {
+    const today = await this.options.hasTripStarted(connection, item.tripId);
+    if (today !== null) {
       throw new RuleError(
-        "This trip has started, so its memory can't change. User memory still can.",
+        `This trip has started, so its memory can't change. Today is ${today.longText} at its start place, on or after its start date. User memory still can.`,
       );
     }
   }

@@ -41,12 +41,12 @@ This document lists the development work, phase by phase, in the order it's done
 | 13 | The first coordinator | |
 | 14 | Chat in the browser | |
 | **The itinerary** | | |
-| 15 | Places | |
-| 16 | The itinerary's objects | |
-| 17 | The calendar and the day's schedule | |
-| 18 | The services | |
-| 19 | Legs | |
-| 20 | Feasibility checks | |
+| 15 | Places | 2026-10-15, [PR #30](https://github.com/nimbusscale/road-trip-agent/pull/30) |
+| 16 | The itinerary's objects | 2026-10-15, [PR #31](https://github.com/nimbusscale/road-trip-agent/pull/31) |
+| 17 | The calendar and the day's schedule | 2026-10-15, [PR #32](https://github.com/nimbusscale/road-trip-agent/pull/32) |
+| 18 | The services | 2026-10-15, [PR #33](https://github.com/nimbusscale/road-trip-agent/pull/33) |
+| 19 | Legs | 2026-10-15, [PR #34](https://github.com/nimbusscale/road-trip-agent/pull/34) |
+| 20 | Feasibility checks | 2026-10-15, [PR #35](https://github.com/nimbusscale/road-trip-agent/pull/35) |
 | **Planning in chat** | | |
 | 21 | Read the itinerary | |
 | 22 | Build the skeleton | |
@@ -399,6 +399,7 @@ The started-trip lock at save can't be tested yet, since nothing can set a start
 **Open questions:**
 
 - Which model does each agent use, and where is it set? No design doc names one. Left to Claude Code, the model depends on where it runs: in phase 9, the same script got Opus run on Joe's machine and Sonnet in the `app` container. So the app should set the model itself. Raised in phase 9.
+- How does `update_trip_brief` get a `TripWriter`? Since phase 19, `TripWriter` needs a `routeFinder`, because every write updates the legs. Phase 13 makes the `RoutesClient` from `env.googleMapsServerKey` and the global `fetch`, and passes it to `TripWriter` as `routeFinder`. Raised in phase 19.
 - What does the app do when the Agent SDK sends a `mirror_error` message? The SDK sends it when it couldn't save transcript lines to the store after 3 tries, and drops them. The turn goes on, so a database outage can lose lines. At least log it. Also, a batch the SDK retries can land after batches sent later, so a database hiccup can put a few lines out of order. Raised in phase 12.
 
 **Do:**
@@ -458,7 +459,7 @@ By the end of this part, code can build both example trips through the services,
 
 **Open questions:**
 
-- Does Google give a street address no name? If it returns the street as the name, "Mike's house" never fills in (domain model 3.10).
+- ~~Does Google give a street address no name? If it returns the street as the name, "Mike's house" never fills in (domain model 3.10).~~ **Closed 2026-10-15,** proposed in this phase's PR, under batch 4's rules: Google names an address with its street, such as "712 Neches St." So code gives a place no name when Google gives it no type, and its `types` include `street_address`, `premise`, or `subpremise`. Written into domain model 3.10, and Google design 2.2 and 2.4.
 
 **Do:**
 
@@ -486,6 +487,7 @@ By the end of this part, code can build both example trips through the services,
 - Add `Stop`, `Candidate`, the approvals, `CheckResult`, `WeatherText`, and `ActivityRecord`, with their rules. Approvals are a tagged union, with a `kind` field.
 - Add `Leg` as stored data only. Phase 19 routes it.
 - Add them all to the plan document's schema. Links are stored as IDs and turned back into links on load.
+- Make `TripRepository.load()` load the trip's places, as `loadForWrite()` does, so the plan's place IDs can be turned back into links (persistence design, section 8.7). Phase 15 left this out, since the plan linked to no places yet.
 - Phase 10 added `Itinerary` and `LastDay` with only what a new trip needs. Once the itinerary has its start date and start place, make `Trip.name` add the month, and make `Trip.hasStarted` and `EditableTrip.hasStarted()` real. Until then they're always false.
 
 **Done when:**
@@ -501,7 +503,7 @@ By the end of this part, code can build both example trips through the services,
 
 **Open questions:**
 
-- Which library finds the time zone from coordinates, with no outside call?
+- ~~Which library finds the time zone from coordinates, with no outside call?~~ **Closed 2026-10-15,** proposed in phase 16's PR, under batch 4's rules: `@photostructure/tz-lookup`. Phase 16 needed it first, to make `Trip.hasStarted` real. Its `todayAt()` (`src/domain/today.ts`) gives today's date at a place, and the calendar's `today()` uses it with the start place. Written into persistence design section 5.
 
 **Do:**
 
@@ -525,6 +527,10 @@ By the end of this part, code can build both example trips through the services,
 
 **Design:** [Domain model](../design/domain-model.md), sections 4.3 to 4.6 and 4.9. [Persistence design](../design/persistence.md), section 5.
 
+**Open questions:**
+
+- ~~How does the started-trip lock test set the time? `Trip.hasStarted` and `EditableTrip.hasStarted()` read the system clock with `new Date()`. The test of a write that loads at 11:59 p.m. and saves after midnight needs a clock it controls. `TripWriter` already takes a `Clock`, so it could pass `now()` in. Raised in phase 16. Phase 17's `Calendar` takes a `now` function for `today()`, so the services' tests can already set the time through it.~~ **Closed 2026-10-15,** proposed in this phase's PR, under batch 4's rules: the time is passed in. `TripWriter` checks the lock after the load, and `TripRepository.save(editableTrip, now)` checks it again before every save, both with the time from `TripWriter`'s `Clock`. `EditableTrip.startedToday(now)` replaces `hasStarted()`, and gives today's date for the error. `Trip.hasStarted(now)` and the memory check (`tripStartedCheckUsing(storeFor, now)`) take the time the same way. Written into persistence design sections 5, 8.1, 8.2, 8.4, 8.7, and 8.8, and domain model 3.1.
+
 **Do:** add `ItineraryService`, `StaysService`, `DaysService`, `StopsService`, and `RejectionsService`. The "trip has started" error also gives the date it went by.
 
 **Done when:**
@@ -540,6 +546,10 @@ By the end of this part, code can build both example trips through the services,
 ### Phase 19. Legs
 
 **Design:** [Domain model](../design/domain-model.md), sections 3.8 and 4.7. [Google design](../design/data-sources/google.md), sections 2.1 to 2.4 and 5. [Persistence design](../design/persistence.md), section 4.
+
+**Open questions:**
+
+- ~~How does the app get the server key? Phase 15's `PlacesClient` takes it as an argument, and nothing in the app makes one yet, so `GOOGLE_MAPS_SERVER_KEY` isn't in the env schema (`src/config/env.schema.ts`) or in the `app` service's environment in `compose.yaml`. The legs run in every write, so this phase is the first whose code the app runs with a Google key. Add it to both, so a missing key stops the app from starting. Raised in phase 15.~~ **Closed 2026-10-15,** in this phase's PR: `GOOGLE_MAPS_SERVER_KEY` is in the env schema, so a missing or empty key stops the app and the migrations from starting, and in the `app` service's environment in `compose.yaml`. The server's `.env` already has it (phase 2). Written into systems design section 8.
 
 **Do:**
 
@@ -586,6 +596,7 @@ By the end of this part, the coordinator can build a trip's skeleton and lay out
 **Open questions:**
 
 - What's the size limit on an in-process MCP tool's result? Claude Code may cut off large results. The limit for MCP tools is believed to be 25,000 tokens, but it hasn't been checked for in-process servers.
+- How does `read_itinerary` get its check results? A read runs `FeasibilityChecker.workOut()` and `compare()`, and saves nothing (domain model 4.8). But `TripReader.read()` hands back only the trip. Phase 20 creates the checker only inside `TripWriter`'s finish, from the settings, the clock, and the write's calendar. The read tool needs the same: a calendar and a checker for the trip it read. Raised in phase 20.
 
 **Do:**
 

@@ -1,6 +1,8 @@
+import type { Place } from "../domain/place.js";
 import type { Trip } from "../domain/trip.js";
 import type { User } from "../domain/user.js";
 import { EditableTrip } from "./editable-trip.js";
+import { FakePlaceStore } from "./place-store.fake.js";
 import { planSchema } from "./plan.schema.js";
 import { planDocumentOf, tripFromRow } from "./plan-document.js";
 import type { Connectable, TransactionClient } from "./queryable.js";
@@ -12,24 +14,22 @@ export class FakeTripStore implements TripStore {
   readonly rows = new Map<string, { ownerId: string; plan: string }>();
   // Each entry makes one loadForWrite() throw it instead of loading.
   readonly loadForWriteErrors: Error[] = [];
+  // The trips' places, loaded with a trip for a write, as TripRepository does.
+  readonly places = new FakePlaceStore();
 
-  loadForWrite(tripId: string): Promise<EditableTrip> {
+  async loadForWrite(tripId: string): Promise<EditableTrip> {
     const error = this.loadForWriteErrors.shift();
     if (error !== undefined) {
-      return Promise.reject(error);
+      throw error;
     }
-    return this.load(tripId).then((trip) => new EditableTrip(trip));
+    // One set of places for the trip and placeOf(), so every link to a place is the
+    // same object, as with TripRepository.
+    const places = await this.places.loadForTrip(tripId);
+    return new EditableTrip(this.#tripFrom(tripId, places), places);
   }
 
-  load(tripId: string): Promise<Trip> {
-    const row = this.rows.get(tripId);
-    if (row === undefined) {
-      return Promise.reject(new Error(`There's no trip ${tripId}.`));
-    }
-    const plan = planSchema.parse(JSON.parse(row.plan));
-    return Promise.resolve(
-      tripFromRow({ id: tripId, ownerId: row.ownerId, plan }),
-    );
+  async load(tripId: string): Promise<Trip> {
+    return this.#tripFrom(tripId, await this.places.loadForTrip(tripId));
   }
 
   async listForOwner(owner: User): Promise<Trip[]> {
@@ -44,9 +44,20 @@ export class FakeTripStore implements TripStore {
     return Promise.resolve();
   }
 
-  save(editableTrip: EditableTrip): Promise<void> {
+  // Refuses a started trip, as TripRepository does.
+  save(editableTrip: EditableTrip, now: Date): Promise<void> {
+    editableTrip.refuseIfStarted(now);
     this.#store(editableTrip.trip);
-    return Promise.resolve();
+    return this.places.fillNames(editableTrip.namedPlaces);
+  }
+
+  #tripFrom(tripId: string, places: readonly Place[]): Trip {
+    const row = this.rows.get(tripId);
+    if (row === undefined) {
+      throw new Error(`There's no trip ${tripId}.`);
+    }
+    const plan = planSchema.parse(JSON.parse(row.plan));
+    return tripFromRow({ id: tripId, ownerId: row.ownerId, plan }, places);
   }
 
   #store(trip: Trip): void {

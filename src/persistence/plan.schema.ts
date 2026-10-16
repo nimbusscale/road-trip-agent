@@ -2,18 +2,12 @@ import { z } from "zod";
 
 import { ROUTE_TYPES } from "../domain/route-type.js";
 import { TIERS } from "../domain/tier.js";
-import { TIME_OF_DAY_TEXT, TimeOfDay } from "../domain/time-of-day.js";
+import { itinerarySchema } from "./itinerary-plan.schema.js";
+import { timeOfDaySchema } from "./plan-values.schema.js";
 
-// The plan document in a trip's row (persistence design, section 2). Phase 16 and later
-// add the rest of the itinerary as they add its objects. A link to another object is
-// stored as its ID. Values are checked here only for their type. The objects run their
-// own rules when plan-document.ts builds them.
-
-// A time of day is stored as "HH:MM" text, and parsed back into a TimeOfDay.
-const timeOfDaySchema = z
-  .string()
-  .regex(TIME_OF_DAY_TEXT)
-  .transform((text) => TimeOfDay.fromText(text));
+// The plan document in a trip's row (persistence design, section 2). A link to another
+// object is stored as its ID. Values are checked here only for their type. The objects
+// run their own rules when plan-document.ts builds them.
 
 const tripBriefSchema = z.strictObject({
   id: z.string(),
@@ -28,11 +22,6 @@ const tripBriefSchema = z.strictObject({
   defaultTier: z.enum(TIERS).nullable(),
   budgetRulesText: z.string().nullable(),
   mealPreferencesText: z.string().nullable(),
-});
-
-const itinerarySchema = z.strictObject({
-  id: z.string(),
-  lastDay: z.strictObject({ id: z.string() }),
 });
 
 export const planSchema = z.strictObject({

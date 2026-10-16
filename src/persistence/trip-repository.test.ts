@@ -1,12 +1,18 @@
 import { describe, expect, it } from "vitest";
 import { ZodError } from "zod";
 
+import { exampleMoabTrip } from "../domain/itinerary.fake.js";
 import { RuleError } from "../domain/rule-error.js";
 import { TimeOfDay } from "../domain/time-of-day.js";
 import { newTrip } from "../domain/trip.js";
+import { EditableTrip } from "./editable-trip.js";
 import { planDocumentOf } from "./plan-document.js";
 import type { Queryable } from "./queryable.js";
-import { TripBusyError, TripNotFoundError } from "./trip-errors.js";
+import {
+  TripBusyError,
+  TripNotFoundError,
+  TripStartedError,
+} from "./trip-errors.js";
 import { LOCK_WAIT, TripRepository } from "./trip-repository.js";
 
 const OWNER = { id: "4f6c1d0e-2a8b-4c3d-9e7f-1a2b3c4d5e6f" };
@@ -18,7 +24,8 @@ function pgRow(tripId: string, plan: unknown): unknown {
   return { id: tripId, [OWNER_ID_COLUMN]: OWNER.id, plan };
 }
 
-// Answers every SELECT with the rows given, or fails it with the error given.
+// Answers every SELECT from trips with the rows given, or fails it with the error given.
+// A trip's places come back empty.
 class FakeConnection implements Queryable {
   readonly queries: { text: string; values: readonly unknown[] }[] = [];
 
@@ -32,12 +39,12 @@ class FakeConnection implements Queryable {
     values: readonly unknown[] = [],
   ): Promise<{ rows: readonly unknown[] }> {
     this.queries.push({ text, values });
-    if (text.startsWith("SELECT id") && this.selectError !== undefined) {
+    const isTripSelect =
+      text.startsWith("SELECT") && text.includes("FROM trips");
+    if (isTripSelect && this.selectError !== undefined) {
       return Promise.reject(this.selectError);
     }
-    return Promise.resolve({
-      rows: text.startsWith("SELECT id") ? this.rows : [],
-    });
+    return Promise.resolve({ rows: isTripSelect ? this.rows : [] });
   }
 }
 
@@ -56,6 +63,29 @@ describe("TripRepository", () => {
     expect(connection.queries[0]?.values).toEqual([LOCK_WAIT]);
     expect(connection.queries[1]?.text).toMatch(/WHERE id = \$1 FOR UPDATE$/);
     expect(connection.queries[1]?.values).toEqual([tripId]);
+  });
+
+  it("loads the trip's places with it for a write, on the same connection", async () => {
+    const { row, tripId } = storedRow();
+    const connection = new FakeConnection([row]);
+    await new TripRepository(connection).loadForWrite(tripId);
+    const placesQuery = connection.queries[2];
+    expect(placesQuery?.text).toMatch(/FROM places WHERE trip_id = \$1$/);
+    expect(placesQuery?.values).toEqual([tripId]);
+  });
+
+  it("loads the trip's places with a read too, and the home screen's list", async () => {
+    const { row, tripId } = storedRow();
+    const connection = new FakeConnection([row]);
+    const repository = new TripRepository(connection);
+    await repository.load(tripId);
+    expect(connection.queries[1]?.text).toMatch(
+      /FROM places WHERE trip_id = \$1$/,
+    );
+    expect(connection.queries[1]?.values).toEqual([tripId]);
+    const trips = await repository.listForOwner(OWNER);
+    expect(trips.map((trip) => trip.id)).toEqual([tripId]);
+    expect(connection.queries.at(-1)?.values).toEqual([tripId]);
   });
 
   it("calls the trip busy when the lock wait runs out", async () => {
@@ -112,12 +142,23 @@ describe("TripRepository", () => {
     const connection = new FakeConnection([row]);
     const repository = new TripRepository(connection);
     const editable = await repository.loadForWrite(tripId);
-    await repository.save(editable);
+    await repository.save(editable, new Date());
     const update = connection.queries.at(-1);
     expect(update?.text).toBe("UPDATE trips SET plan = $2 WHERE id = $1");
     expect(update?.values[0]).toBe(tripId);
     expect(JSON.parse(String(update?.values[1]))).toEqual(
       planDocumentOf(editable.trip),
     );
+  });
+
+  it("refuses to save a trip that has started, and sends nothing", async () => {
+    const { trip, places } = exampleMoabTrip(OWNER);
+    const editable = new EditableTrip(trip, places);
+    const connection = new FakeConnection([]);
+    const repository = new TripRepository(connection);
+    // Just after midnight on October 10, 2027, the start date, in Grand Junction.
+    const save = repository.save(editable, new Date("2027-10-10T06:00:30Z"));
+    await expect(save).rejects.toThrow(TripStartedError);
+    expect(connection.queries).toEqual([]);
   });
 });

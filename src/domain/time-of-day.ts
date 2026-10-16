@@ -8,7 +8,7 @@ export const TIME_OF_DAY_TEXT = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 // A time of day, with no date (domain model section 1, the `time` type), such as a trip
 // brief's usualStartTime. It's stored as "HH:MM" text (persistence design, section 2).
-// A time in a day's schedule, which can fall after midnight, is phase 17's scheduleTime.
+// A time in a day's schedule, which can fall after midnight, is a ScheduleTime.
 export class TimeOfDay {
   readonly hours: number;
   readonly minutes: number;

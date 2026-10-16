@@ -2,6 +2,7 @@ import { newId } from "../ids/new-id.js";
 import { Itinerary } from "./itinerary.js";
 import { LastDay } from "./last-day.js";
 import { DEFAULT_USUAL_START_TIME, TripBrief } from "./trip-brief.js";
+import { hasStartedOn } from "./today.js";
 import type { User } from "./user.js";
 
 export interface TripFields {
@@ -31,22 +32,27 @@ export class Trip {
   }
 
   // The focus and the start month, such as "Pacific Coast Highway, May 2027". Empty
-  // while the focus is, and the home screen shows "New trip". The itinerary has no
-  // start date yet, so for now it's the focus alone. Phase 16 adds the month.
+  // while the focus is, and the home screen shows "New trip". The focus alone while the
+  // itinerary has no start date.
   get name(): string | null {
-    return this.tripBrief.focus;
+    const focus = this.tripBrief.focus;
+    const startDate = this.itinerary.startDate;
+    if (focus === null || startDate === null) {
+      return focus;
+    }
+    return `${focus}, ${startDate.monthAndYear}`;
   }
 
-  // True once today, in the start place's time zone, reaches the start date. The
-  // itinerary has no start date yet, so no trip has started. Phase 18 tests the lock.
-  get hasStarted(): boolean {
-    return isPastStartDate();
+  // True once today, in the start place's time zone, reaches the start date. False
+  // while there's no start date. It takes the current moment, so a test can set the
+  // time, such as just after midnight on the start date.
+  hasStarted(now: Date): boolean {
+    return hasStartedOn(
+      this.itinerary.startDate,
+      this.itinerary.startPlace,
+      now,
+    );
   }
-}
-
-// Phase 16 adds the start date and place, and this compares today's date with it.
-function isPastStartDate(): boolean {
-  return false;
 }
 
 // A new trip: a brief that holds only its usual start time, and an itinerary that
@@ -71,7 +77,17 @@ export function newTrip(owner: User, now: Date): Trip {
     }),
     itinerary: new Itinerary({
       id: newId("itinerary"),
-      lastDay: new LastDay(newId("day")),
+      startPlace: null,
+      endPlace: null,
+      startDate: null,
+      stays: [],
+      lastDay: new LastDay({
+        id: newId("day"),
+        ownStartTime: null,
+        approvals: [],
+      }),
+      rejectedPlaces: [],
+      checkResults: [],
     }),
     lastUpdatedDateTime: now,
   });

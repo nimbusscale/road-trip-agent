@@ -38,6 +38,8 @@ A trip is stored in four kinds of record:
 - **An object with no `id`,** such as a leg, a candidate, or an approval, is stored inside the object that holds it.
 - **A link is stored as an ID,** such as a stop's selected place, or a stop's search-area stay. The load turns each ID back into a link.
 - **A time of day is stored as text,** "HH:MM" on a 24-hour clock, such as "13:00" for a trip brief's `usualStartTime`. It's the domain model's `time` type (domain model section 1). The load parses it back into a time of day.
+- **A date is stored as text too,** "YYYY-MM-DD", such as "2027-10-10" for the itinerary's `startDate`. A schedule time, such as a stop's `setTime`, is stored as its time of day and whether it falls on the next calendar date, such as `{"time": "01:00", "isNextDay": true}`.
+- **A link's property name ends in `Id`, or `Ids` for a list,** such as a stop's `selectedPlaceId` or a day's `waypointIds`. Every other property keeps the domain model's name.
 - **The home screen reads the plan document too.** It shows each trip's name, dates, and last updated (functional spec 3). `listForOwner()` loads the user's trips, and each value comes from the `Trip`. The trip row has no extra columns for them. The name and dates are worked out from the brief and the itinerary, so a column would be a second copy that can go stale. A user has only a few trips, so loading each one whole costs little. If it ever gets slow, the query can read just those fields from the document.
 
 **Places and sessions are stored apart from the plan.** Neither is part of the plan, and neither goes through a write. A trip can also have hundreds of places, and saving places from a search shouldn't wait for the plan (section 4).
@@ -92,7 +94,9 @@ A write runs the four steps in domain model section 1 inside one database transa
 
 A started trip can't be changed (domain model 3.1). `TripWriter` refuses a write to a started trip right after loading it, before anything changes (section 8.2). The save checks again. That catches a trip that starts during a write, at midnight, and any later way in, such as a web form.
 
-**Persistence refuses to save the plan of a started trip.** The whole write is rolled back, and the error says the trip has started, with today's date as it was worked out. Place rows and session rows always save, since neither changes the plan.
+**Persistence refuses to save the plan of a started trip.** The whole write is rolled back, and the error says the trip has started, with today's date as it was worked out, such as "Today is Sunday, October 10, 2027 at its start place." Place rows and session rows always save, since neither changes the plan.
+
+**Both checks go by `TripWriter`'s clock.** `TripWriter` checks right after the load. `TripRepository.save(editableTrip, now)` checks again before it saves, so every save is covered, whoever calls it. `TripWriter` passes the time from the clock it's given, so a test can set the time, such as 11:59 p.m. at the load and just after midnight at the save (sections 8.2 and 8.7).
 
 **It checks the trip as it was loaded,** under the row lock. A write could have changed the start date, so the changed trip can't tell whether the trip had started (section 8.4).
 
@@ -100,7 +104,7 @@ A started trip can't be changed (domain model 3.1). `TripWriter` refuses a write
 
 **Trip memory is refused on a started trip too,** like the plan. User memory isn't, since it isn't about that trip. `MemoryWriter` checks right before it saves a trip item (section 8.8).
 
-**Today's date** is in the start place's time zone (domain model 3.1). Code works out the time zone from the start place's coordinates, with a lookup in code. It needs no call to Google, and nothing new is stored.
+**Today's date** is in the start place's time zone (domain model 3.1). Code works out the time zone from the start place's coordinates, with a lookup in code: the `@photostructure/tz-lookup` library, which holds a small table of the time zones' borders. It needs no call to Google, and nothing new is stored. Its borders are approximate near a time zone line, which is fine for a date that only changes at midnight.
 
 ---
 
@@ -175,7 +179,7 @@ classDiagram
     }
 
     class PlaceReader {
-        get(placeId : string) Place
+        get(tripId : string, placeId : string) Place
     }
 
     class SessionWriter {
@@ -224,7 +228,7 @@ classDiagram
         load(tripId : string) Trip
         listForOwner(owner : User) List~Trip~
         add(trip : Trip)
-        save(editableTrip : EditableTrip)
+        save(editableTrip : EditableTrip, now : dateTime)
     }
 
     class EditableTrip {
@@ -232,14 +236,15 @@ classDiagram
         loadedStartDate : date? #123;readOnly#125;
         loadedStartPlace : Place? #123;readOnly#125;
         unnamedPlaceIds : List~string~ #123;readOnly#125;
-        hasStarted() boolean
+        startedToday(now : dateTime) date?
+        refuseIfStarted(now : dateTime)
         placeOf(placeId : string) Place
     }
 
     class PlaceRepository {
         addPlaces(tripId : string, places : List~Place~) List~Place~
         loadForTrip(tripId : string) List~Place~
-        get(placeId : string) Place
+        get(tripId : string, placeId : string) Place
         fillNames(places : List~Place~)
     }
 
@@ -293,14 +298,14 @@ The fixed list that the classes above use:
 
 ### 8.2 TripWriter
 
-`TripWriter` runs everything that saves. It opens each transaction, and creates the repositories it uses inside it, so every query in a write is part of the same transaction. It's created once, when the app starts.
+`TripWriter` runs everything that saves. It opens each transaction, and creates the repositories it uses inside it, so every query in a write is part of the same transaction. It's created once, when the app starts. It's given the route finder, the Google Routes client, and creates each write's `LegsService` with it (domain model 4.7).
 
-- **`write(tripId, by, change)`** runs a write (section 3). `change` is a function the caller passes in. It takes the loaded trip, the trip's calendar and services, and `placeOf()` from the `EditableTrip` (section 8.4). It changes the trip, and returns whatever the caller needs back, such as the new stop's ID. Once the write is saved, `write()` returns a `WriteResult` (below). In order, it:
+- **`write(tripId, by, change)`** runs a write (section 3). `change` is a function the caller passes in. It takes the loaded trip, the trip's calendar and services, the write's `LegsService`, and `placeOf()` from the `EditableTrip` (section 8.4). The change uses `LegsService` only for detour times, such as in the tool `add_stop_candidates`. The finish uses the same one to update the legs. It changes the trip, and returns whatever the caller needs back, such as the new stop's ID. Once the write is saved, `write()` returns a `WriteResult` (below). In order, it:
   1. Opens a transaction, and loads the trip with `TripRepository.loadForWrite()`.
   2. Refuses the write if the trip has started, before changing anything (section 5). Tools don't check this themselves.
   3. Creates the trip's calendar and services, and runs `change` with them.
-  4. Runs the finish: `LegsService.updateLegs()`, which returns the leg changes, then the `FeasibilityChecker` when `by` is `coordinator`, which gives the check comparison, then sets last updated (domain model section 1).
-  5. Saves with `TripRepository.save()`, and commits.
+  4. Runs the finish: `LegsService.updateLegs()`, which returns the leg changes, then the `FeasibilityChecker` when `by` is `coordinator`, which gives the check comparison, then sets last updated (domain model section 1). `TripWriter` creates the `FeasibilityChecker` here, in the finish of each coordinator write, and gives it the trip brief, the settings, and the write's calendar. It isn't one of the trip's services that `change` gets (domain model 4.8).
+  5. Saves with `TripRepository.save()`, passing the time from its clock, and commits. The save refuses the write if the trip has started by then, from the trip as loaded (section 5).
   6. Returns a `WriteResult`.
 
   If anything refuses or fails along the way, it rolls back and passes the error on, and returns no `WriteResult`.
@@ -347,7 +352,7 @@ Only `TripWriter` and `TripRepository` use it. Tools never see it.
 
 **It holds one trip, and doesn't keep a copy.** The write changes that one trip object. `EditableTrip` keeps only three values from the load, because the write may change them and the save still needs them as they were:
 
-- **`loadedStartDate` and `loadedStartPlace`,** for the started-trip check at save (section 5). `hasStarted()` works it out like `Trip.hasStarted`, but from the loaded start date, in the loaded start place's time zone. It looks up today's date when it's called. Example: the Moab trip starts October 10. A write loads the trip at 11:59 p.m. on October 9, and reaches the save just after midnight. `hasStarted()` is now true, so the save refuses. It uses the loaded start date because the write might have changed the start date, and then the changed trip could give the wrong answer.
+- **`loadedStartDate` and `loadedStartPlace`,** for the started-trip check at save (section 5). `startedToday(now)` works it out like `Trip.hasStarted`, but from the loaded start date, in the loaded start place's time zone, at the time `now`. It returns today's date once the trip has started, for the error, and is empty while it hasn't. `refuseIfStarted(now)` throws the started-trip error when it gives a date. `TripWriter` runs it after the load, and `TripRepository.save()` before it saves, both with the time from `TripWriter`'s clock. Example: the Moab trip starts October 10. A write loads the trip at 11:59 p.m. on October 9, and reaches the save just after midnight. `startedToday()` now gives October 10, so the save refuses. It uses the loaded start date because the write might have changed the start date, and then the changed trip could give the wrong answer.
 - **`unnamedPlaceIds`:** the places that had no name when loaded. A write can fill a name in, but never change one (domain model 3.10). So these are the only places whose rows the save might update. Example: Mike's house had no name when loaded. The write sets it as the end place, with the name "Mike's house." At save, it's in `unnamedPlaceIds` and now has a name, so it goes to `PlaceRepository.fillNames()`.
 
 Nothing else compares the trip before and after a write. Follow-on changes work another way, such as each leg remembering what it was routed for (domain model 4.7).
@@ -391,7 +396,7 @@ A place is part of the trip, so it's in the domain model (domain model 3.10). Th
 
 **PlaceReader** reads places.
 
-- **`get(placeId)`** returns one place, without loading the trip. The tool `read_place` uses it.
+- **`get(tripId, placeId)`** returns one of the trip's places, without loading the trip. The tool `read_place` uses it, with the session's trip. It refuses a place from another trip with the same error as an ID that doesn't exist, as `placeOf()` does (section 8.4).
 
 **Places are never removed.** That includes search results that were never offered as candidates, which will be most of a trip's places. Cleaning them up is out of scope for the MVP.
 
@@ -399,19 +404,19 @@ A place is part of the trip, so it's in the domain model (domain model 3.10). Th
 
 A **repository** is a class that reads and saves one kind of record (section 2). Each is created for one connection: the database itself for a read, or an open transaction for a write. They hold no rules, other than the started-trip lock at save.
 
-**TripRepository** reads and saves trip rows, and turns them into `Trip` objects. It uses `PlaceRepository`, on the same connection, to load the trip's places, and turns each place ID in the plan back into a link.
+**TripRepository** reads and saves trip rows, and turns them into `Trip` objects. It uses `PlaceRepository`, on the same connection, to load the trip's places, and turns each place ID in the plan back into a link. Turning the itinerary's IDs back into links is the domain's `itineraryFromStored()`, not the repository's. The links run in a loop: a stay holds its days, a day holds its stops, and a stop near a stay links to a stay, often the one that holds it. So no order of constructors builds the itinerary. The domain builds the stays and days first, then adds the stops and legs to the days with their change methods, which only the domain reaches (domain model section 1).
 
 - **`loadForWrite(tripId)`** loads the trip's row "for update," which takes the row lock (section 4). Then it loads the trip's places, and returns an `EditableTrip`. If the lock isn't free within 5 seconds, it refuses, and the error says the trip is busy. `TripWriter` tries again twice before passing the error on (section 4).
 - **`load(tripId)`** does the same without the row lock, and returns the `Trip`.
 - **`listForOwner(owner)`** loads every trip the user owns.
 - **`add(trip)`** adds a new trip's row.
-- **`save(editableTrip)`** checks the started-trip lock with `editableTrip.hasStarted()`, and refuses when it's true (section 5). Otherwise it saves the plan document. Then it passes each place in `unnamedPlaceIds` that now has a name to `PlaceRepository.fillNames()`.
+- **`save(editableTrip, now)`** checks the started-trip lock with `editableTrip.refuseIfStarted(now)`, and refuses when the trip has started by `now` (section 5). Otherwise it saves the plan document. Then it passes each place in `unnamedPlaceIds` that now has a name to `PlaceRepository.fillNames()`. `TripWriter` passes the time from its clock.
 
 **PlaceRepository** reads and saves place rows.
 
 - **`addPlaces(tripId, places)`** adds each place as a row, unless the trip already has one with that Google place ID (section 3). It returns the stored places in the order given, so the caller gets the existing `id` for a place the trip already had.
 - **`loadForTrip(tripId)`** loads every place the trip has.
-- **`get(placeId)`** loads one place.
+- **`get(tripId, placeId)`** loads one of the trip's places, or nothing if the trip has no place with that ID.
 - **`fillNames(places)`** sets each place's name on its row, only where the row has none.
 
 **SessionRepository** reads and saves session rows (section 6).
@@ -459,7 +464,7 @@ A **memory item** is one plain-text note in user memory or in one trip's memory 
 - **`update(userId, tripId, itemId, text)`** replaces an item's text. It refuses text over the maximum memory item length.
 - **`forget(userId, tripId, itemId)`** removes the item's row. A forgotten item is gone, not hidden, so it can't affect anything again (functional spec 10.5).
 - **Each refuses an `itemId` that isn't the user's,** or that is another trip's item, with "no such memory item." That's the same error as an ID that doesn't exist, so it doesn't say whether another user's item exists.
-- **Each refuses a change to a trip item on a started trip** (section 5). It loads the trip with `TripRepository.load()`, without the row lock, and checks `Trip.hasStarted` right before it saves. User items can change on any day.
+- **Each refuses a change to a trip item on a started trip** (section 5). It loads the trip with `TripRepository.load()`, without the row lock, and checks whether the trip has started right before it saves. The error gives today's date at the start place, like the plan's. User items can change on any day.
 
 **MemoryReader** reads memory.
 

@@ -107,7 +107,7 @@ The sections below say a follow-on happens "at the end of the write" when it run
 
 The diagram shows only classes that hold stored data. The services and the calendar hold none, so they're in section 4 instead.
 
-How to read the lines: a filled diamond means the object at that end holds the other one, which goes away with it. An arrow means the object points to another one it doesn't hold. An open triangle means the object below is one kind of the object above. The label on a line is the property, in the box at the line's start, that holds the link. The numbers say how many: `1` is exactly one, `0..1` is zero or one, `*` is any number, and `1..*` is one or more. Operations end in `()`.
+How to read the lines: a filled diamond means the object at that end holds the other one, which goes away with it. An arrow means the object points to another one it doesn't hold. An open triangle means the object below is one kind of the object above. A dotted line with an open triangle means the box above is a union: a name for any one of the classes below it, not a class they share. The label on a line is the property, in the box at the line's start, that holds the link. The numbers say how many: `1` is exactly one, `0..1` is zero or one, `*` is any number, and `1..*` is one or more. Operations end in `()`.
 
 ```mermaid
 classDiagram
@@ -281,18 +281,26 @@ classDiagram
     }
 
     class Approval {
+        <<union>>
+        kind : ApprovalKind #123;readOnly#125;
         reason : string #123;readOnly#125;
     }
 
     class DriveHoursApproval {
+        kind : ApprovalKind #123;readOnly#125;
+        reason : string #123;readOnly#125;
         approvedDrivingInHours : decimal #123;readOnly#125;
     }
 
     class RouteTypeApproval {
+        kind : ApprovalKind #123;readOnly#125;
+        reason : string #123;readOnly#125;
         approvedRouteType : RouteType #123;readOnly#125;
     }
 
     class OpeningHoursApproval {
+        kind : ApprovalKind #123;readOnly#125;
+        reason : string #123;readOnly#125;
         approvedOpenTimeInMinutes : integer #123;readOnly#125;
     }
 
@@ -350,9 +358,9 @@ classDiagram
     Day <|-- StayDay
     Day <|-- LastDay
 
-    Approval <|-- DriveHoursApproval
-    Approval <|-- RouteTypeApproval
-    Approval <|-- OpeningHoursApproval
+    Approval <|.. DriveHoursApproval
+    Approval <|.. RouteTypeApproval
+    Approval <|.. OpeningHoursApproval
 ```
 
 The fixed lists that properties above use:
@@ -392,7 +400,7 @@ The trip is one planned road trip. Everything else in this model belongs to a tr
 | `itinerary` | Stored | `Itinerary`, an entity held by the trip, read only | Created holding only its last day |
 | `lastUpdatedDateTime` | Stored | `dateTime` | Set when the trip is created, and at the end of every write. See below |
 | `name` | Worked out | `string?` | The trip brief's `focus` and the start month, such as "Pacific Coast Highway, May 2027." See below |
-| `hasStarted` | Worked out | `boolean` | True when today's date is on or after the itinerary's `startDate`. False while the itinerary has no `startDate`. Today's date is looked up when needed, in the start place's time zone (see Rules) |
+| `hasStarted` | Worked out | `boolean` | True when today's date is on or after the itinerary's `startDate`. False while the itinerary has no `startDate`. Today's date is looked up when needed, in the start place's time zone (see Rules). In code it's `hasStarted(now)`, which takes the current moment, so a test can set the time |
 
 **`name`.** It's built from the trip brief's `focus` and the itinerary's start month, such as "Pacific Coast Highway, May 2027" (functional spec 10.1). While `focus` is empty, the name is empty, and the home screen shows "New trip." While the itinerary has no `startDate`, the name is `focus` alone. Renaming a trip isn't in the MVP.
 
@@ -613,6 +621,7 @@ Whether the text is out of date needs the stay's current dates and activities, w
 **Rules:**
 
 - **The lodging is always one of the stay's candidates.** When its candidate is removed, the stay clears its lodging. Only a rejection removes a candidate (section 4.3).
+- **Places are matched by their `id`,** when the stay looks for a place among its candidates, as `Itinerary.isRejected()` does.
 - **A stay always has a tier,** set when it's created.
 - **A stay holds at least one day,** so it has at least one night.
 - **A set of lodging candidates holds 1 to 3, with no place already among the stay's candidates.** Each candidate in a set gets the set number: one more than the highest set the stay still has, or 0 when it has none. A candidate a worker found also gets the stay's current tier and rule. One the user named gets none (see Candidate). A set that breaks this is refused whole, so a set is never partly written. A selection the stay already has stays selected.
@@ -622,7 +631,7 @@ Whether the text is out of date needs the stay's current dates and activities, w
 
 A day is one day of the trip, with a schedule (functional spec 4). There are two kinds. A **stay day** ends with a night at a stay, and the stay holds it. The **last day** ends at the end place, and the itinerary holds it.
 
-**Held as:** an entity. Its `id` has the prefix `day_` (technical spec 7.1). A stay day is held by its stay's `days`. The last day is held by the itinerary's `lastDay`. `Day` is the base, with `StayDay` and `LastDay` below it. In code, this is likely a tagged union.
+**Held as:** an entity. Its `id` has the prefix `day_` (technical spec 7.1). A stay day is held by its stay's `days`. The last day is held by the itinerary's `lastDay`. `Day` is the base, with `StayDay` and `LastDay` below it. In code, `Day` is a base class, and each kind has a `kind` field, `stayDay` or `lastDay`, so code can tell them apart like a tagged union.
 
 **Created and changed by:** `StaysService` creates a stay's days with the stay, and adds and removes them as the stay's nights change. The itinerary creates the last day. The coordinator sets a day's start time directly, and its rest day and approvals through `DaysService`, with the tool `update_day` (section 4.5). It adds, moves, and removes stops through `StopsService`, with the tools `add_stops`, `move_stop`, and `remove_stops` (section 4.6). It sets the day's waypoints with `setWaypoints()`, with the tool `set_waypoints`. `LegsService` adds, re-routes, and removes the day's leg at the end of every write (section 4.7).
 
@@ -632,7 +641,7 @@ A day is one day of the trip, with a schedule (functional spec 4). There are two
 | `ownStartTime` | Stored | `time?` | A start time the user agreed to for this day, such as 5:30 a.m. for a sunrise hike. Empty means the trip brief's `usualStartTime`. Set directly |
 | `stops` | Stored | `List<Stop>`, in order, via service | The day's stops, in the order the coordinator set. Code never reorders them. Changes only through `StopsService.addStops()`, `moveStop()`, and `removeStops()` |
 | `waypoints` | Stored | `List<Place>`, in the coordinator's order, read only | Places the day's drive must pass through without stopping, to steer the route, such as Big Sur village. Changes only through `setWaypoints()`, or when the leg goes. See below |
-| `leg` | Stored | `Leg?`, held by the day, via service | The day's drive, if it has one. Changes only through `LegsService.updateLegs()`, at the end of every write (section 4.7), or when the day is marked a rest day (see Rules). See Leg |
+| `leg` | Stored | `Leg?`, held by the day, via service | The day's drive, if it has one. Changes only through `LegsService.updateLegs()`, at the end of every write (section 4.7). That includes a rest day's leg, which it removes (see Rules). See Leg |
 | `approvals` | Stored | `List<Approval>`, in no order, via service | Drive hours and route type approvals, at most one of each. Changes only through `DaysService.approveDriveHours()`, `approveRouteType()`, and `removeApproval()` |
 
 **StayDay** adds one property:
@@ -664,7 +673,7 @@ A day is one day of the trip, with a schedule (functional spec 4). There are two
 
 - **`setWaypoints(waypoints : List<Place>)`** (the tool `set_waypoints`). Replaces the day's waypoints with the list given, in that order. An empty list clears them.
   - **Follows on:** the leg is re-routed at the end of the write.
-  - **Refused:** while the day has no leg, such as a rest day, or a day that stays put with no selected stop yet.
+  - **Refused:** while the day has no leg, such as a day that stays put with no selected stop yet. On a rest day, even one marked in this write, which keeps its leg until the end of the write.
 
 The day keeps change methods for `stops`, `leg`, and `approvals`, and a stay day for `isRestDay`, that only services reach (section 1). They run the day's own rules, below. Adding, moving, and removing stops are in `StopsService` (section 4.6). Rest days and approvals are in `DaysService` (section 4.5). Adding, re-routing, and removing the leg are in `LegsService` (section 4.7).
 
@@ -673,7 +682,7 @@ The day keeps change methods for `stops`, `leg`, and `approvals`, and a stay day
 - **The last day can't be a rest day.** Only a `StayDay` has `isRestDay`.
 - **A day's stops stay in the order the coordinator set.** Code never reorders them, even when the stop-order check finds a faster order (see Leg).
 - **A day holds each stop once.** An `after` given to place stops has to be one of the day's stops, and not a stop being placed.
-- **When a day is marked a rest day, it removes its own leg.** Its approvals stay.
+- **A rest day loses its leg at the end of the write.** Marking the day changes only `isRestDay`. Then `LegsService.updateLegs()` removes the leg, with its waypoints, so the write hands the removed leg back like any other leg change (section 4.7). Its approvals stay.
 - **A day has waypoints only while it has a leg.** When its leg goes, its waypoints go too. So a day that gets a leg again, such as a rest day that's unmarked, starts with none.
 - **Rules that need other objects are in the services.** A rest day's stops each have a set time, and only a day that stays put can be a rest day (sections 4.5 and 4.6). When a day has a leg is in `LegsService` (section 4.7).
 
@@ -737,6 +746,7 @@ Whether it fits its day is checked when `StopsService.addStops()` adds it (secti
 **Rules:**
 
 - **The selected place is always one of the stop's candidates.** When its candidate is removed, the stop clears its selected place. Only a rejection removes a candidate (section 4.3).
+- **Places are matched by their `id`,** when the stop looks for a place among its candidates, as `Itinerary.isRejected()` does.
 - **A stop has a visit time exactly when it has a selected place.** Setting a visit time on a stop with no place is refused. Clearing the place clears it.
 - **A set of candidates holds 1 to 3, with no place already among the stop's candidates.** Each candidate in a set gets the set number, and the stop's current tier and rule, the same way as a stay's lodging candidates (see Stay). An attraction has no tier, so its candidates get none. A set that breaks this is refused whole. A selection the stop already has stays selected.
 - **A candidate fits the stop's kind and search area.** An attraction's candidates each have a visit time. A meal's have none, since a meal's visit time is a setting. A candidate has a detour time exactly when the stop is along the leg and a worker found it. A set with a candidate that doesn't fit is refused whole.
@@ -751,7 +761,7 @@ Whether it fits its day is checked when `StopsService.addStops()` adds it (secti
 
 Whether an approval still applies needs the day's driving or the stop's place in the schedule, which the approval can't see. So it's `FeasibilityChecker.isApplying()` (section 4.8).
 
-Each kind is its own class below `Approval`, because each holds a different value:
+Each kind is its own class, because each holds a different value. In code, the three are separate classes with no shared base. Each has a `kind` field and a `reason`. `Approval` is a type that means any one of them, a tagged union, and code tells them apart by `kind`. A day's `approvals` is typed as drive hours or route type approvals only, and a stop's as opening hours approvals only. So the type checker keeps each kind on its holder.
 
 | Kind | Held by | Value | Covers |
 |---|---|---|---|
@@ -777,7 +787,7 @@ A leg is the drive on one day (functional spec 4). It's the route Google Routes 
 
 **Held as:** held by its day's `leg`, with no `id`. A day has at most one.
 
-**Created and changed by:** `LegsService.updateLegs()` creates it at the end of a write, with a call to Google Routes (section 4.7). A leg never changes. Re-routing replaces it whole, the way a new weather text replaces the old one. Nothing else creates or removes one, except marking its day a rest day.
+**Created and changed by:** `LegsService.updateLegs()` creates it at the end of a write, with a call to Google Routes (section 4.7). A leg never changes. Re-routing replaces it whole, the way a new weather text replaces the old one. Nothing else creates or removes one. A day marked a rest day loses its leg at the end of that write, in `updateLegs()`.
 
 **Segments.** The drive between two stops on a leg is a **segment**. Google Routes uses different names: it calls a segment a "leg," and our leg a "route." Code that calls Google needs a comment saying so.
 
@@ -817,7 +827,7 @@ A candidate is one place offered for a stop or for a stay's lodging, with the re
 
 **Held as:** held by a stop's `candidates` or a stay's `lodgingCandidates`, with no `id`. Agents refer to one by its stop or stay plus its place (technical spec 7.1).
 
-**Created and changed by:** code creates it from what a worker passes to the tools `add_lodging_candidates` and `add_stop_candidates`, or from what the coordinator passes to the tool `select_user_place`. Then `StaysService.addLodgingCandidates()` or `StopsService.addCandidates()` adds it, in a set (sections 4.4 and 4.6). The stop or stay that adds it gives it its set number, tier, and rule. After that it never changes. A rejection removes it (section 4.3), and so does removing its stop or stay. Nothing else does.
+**Created and changed by:** code creates it from what a worker passes to the tools `add_lodging_candidates` and `add_stop_candidates`, or from what the coordinator passes to the tool `select_user_place`. Then `StaysService.addLodgingCandidates()` or `StopsService.addCandidates()` adds it, in a set (sections 4.4 and 4.6). The stop or stay that adds it gives it its set number, tier, and rule. In code, what's passed in is a `CandidateOffer`: every property but those three. The stop or stay makes the candidate from it, so a candidate never exists without them. After that it never changes. A rejection removes it (section 4.3), and so does removing its stop or stay. Nothing else does.
 
 | Property | Stored or worked out | Type | Notes |
 |---|---|---|---|
@@ -882,6 +892,8 @@ A place is any real location: a town, hotel, restaurant, bar, attraction, friend
 
 **Name and type.** Both come from Google when the place is created. Cards show Google's name whenever Google has one. A name given by an agent is used only for a place Google has no name for, such as an address. A place is created from Google's answer before any agent picks it or names it, so that name comes later, with `fillName()`. The tools that offer or set a place always take a name, so the agent never has to decide whether to pass it (tool design 2.1). The first one given is kept. So a user's nickname, such as "the pink hotel," never replaces "Madonna Inn." An address has no type, such as Mike's house as the end place. That does no harm: the short line leaves it out.
 
+**Google names an address with its street.** A lookup of "712 Neches St, Lockhart, TX" comes back named "712 Neches St," with no type. That isn't a name, and keeping it would mean "Mike's house" never fills in. So code creates a place with no name when Google gives it no type, and its types include `street_address`, `premise`, or `subpremise` (Google design 2.4). Both have to hold, since a named building, such as a hotel, can be a `premise` too, and it keeps Google's name. Checked with a real lookup in phase 15.
+
 **The facts are a snapshot.** They're stored as the lookup returned them, and aren't looked up again when the trip is reopened (Google design section 6). When a later lookup returns a place the trip already has, the stored record is kept as it is, and the new facts are dropped. Weekly hours are a normal week only, with no seasonal hours (Google design 2.2).
 
 **The kind of place doesn't limit how it's used.** A hotel can be a stay's lodging, or a stop for its bar. On a loop trip, the start and end are the same place.
@@ -926,7 +938,7 @@ Each operation is written the same way as in section 3: its arguments and return
 
 ### 4.1 Calendar
 
-**Given:** the trip brief, for the usual start time, and the settings, for the drive buffer.
+**Given:** the trip brief, for the usual start time, the settings, for the drive buffer, and a clock, for today's date. Code passes the system clock. A test passes a fixed time, so it can check what happens at midnight.
 
 The calendar is a set of lookup functions over the itinerary. It holds no data. Like a service, it's created for one trip. Its functions take the itinerary. The services use it, and so does code that reads the itinerary, such as the tool `read_itinerary`, which shows each day's date and schedule.
 
@@ -951,7 +963,8 @@ It's there because an object can't see the object that holds it, or the ones bes
 | `locationOf(itinerary, day)` | `string?` | Where the day is, for the daily itinerary (functional spec 9.5). See below |
 | `startTimeOf(itinerary, day)` | `time` | The day's `ownStartTime`, or the trip brief's `usualStartTime` when it's empty |
 | `scheduleOf(itinerary, day)` | `List<ScheduleEntry>`, in time order | The day's schedule. See below |
-| `openTimeInMinutesOf(itinerary, stop)` | `integer?` | How many minutes of the stop's visit fall within its selected place's opening hours, from its arrival and end in `scheduleOf()`. Empty when it has no selected place, or its place's hours aren't known. `StopsService.approveOpeningHours()` records it, and the `FeasibilityChecker` compares with it |
+| `drivingInMinutesOf(itinerary, day)` | `integer?` | The day's driving: its drives in `scheduleOf()` added up, each the leg's segment drive time plus the drive buffer, rounded up to the whole minute. 0 on a day with no drives. Empty while the leg isn't routed through the day's selected places. The daily driving check and `FeasibilityChecker.isApplying()` use it (section 4.8) |
+| `openTimeInMinutesOf(itinerary, stop)` | `integer?` | How many minutes of the stop's visit fall within its selected place's opening hours, from its arrival and end in `scheduleOf()`. Empty when it has no selected place, or its place's hours aren't known. Also empty while its date or its times aren't known yet, such as before there's a start date. `StopsService.approveOpeningHours()` records it, and the `FeasibilityChecker` compares with it |
 | `activitiesOf(itinerary, stay)` | `List<Stop>` | The attraction stops the stay's weather text is written for. See below |
 | `isWeatherOutOfDate(itinerary, stay)` | `boolean` | True when the stay's weather text no longer matches what it was written for. See below |
 
@@ -961,7 +974,7 @@ Worked-out values that need only an object's own data, or data it holds, stay on
 
 **Which days stay put.** A stay's first day always arrives from somewhere else, and so does the last day, even on a day trip, where the last day is the first day too. Every later day of a stay starts and ends at that stay, so it stays put. Adding, moving, or removing stays, or changing their nights, never changes which of a stay's days is its first. So `isStayingPut()` never changes for a day, and a rest day or a stop along the leg never stops fitting its day.
 
-**Location.** The towns the day runs between, by the stays' places, not their lodging. A day that moves shows both, such as "Monterey → San Luis Obispo". A day that stays put shows one, such as "Moab". The first day starts at the start place, and the last day ends at the end place, such as "San Luis Obispo → Mike's house". It's empty while a place it needs is empty.
+**Location.** The towns the day runs between, by the stays' places, not their lodging. A day that moves shows both, such as "Monterey → San Luis Obispo". A day that stays put shows one, such as "Moab". The first day starts at the start place, and the last day ends at the end place, such as "San Luis Obispo → Mike's house". It's empty while a place it needs is empty. A place with no name, such as an address no agent has named yet, shows as its address.
 
 **ScheduleEntry.** One item in a day's schedule: a drive, a stop, or free time. `scheduleOf()` works it out when the day is read, and it's never stored. Each one holds:
 
@@ -973,11 +986,13 @@ Worked-out values that need only an object's own data, or data it holds, stay on
 
 - **The day starts at `startTimeOf()`.** On a day with a leg, the party leaves where it slept at that time.
 - **Stops run in the day's order.** A stop's arrival is when the stop before it ends plus the drive to it, or its set time if that's later. The party waits before driving, not after, so the wait shows as free time before the drive. The schedule doesn't say where the party spends it. A stop ends after its visit time.
-- **Each drive is the leg's stored segment drive time plus the buffer** for fuel and short breaks, a setting (technical spec section 10). Example: on Moab Day 4, Capitol Gorge ends at 4:40 p.m., then free time until 12:35 a.m., then the drive to Panorama Point for stargazing at 1:00 a.m.
+- **Each drive is the leg's stored segment drive time plus the buffer** for fuel and short breaks, a setting (technical spec section 10). It's rounded up to the whole minute, so every time in the schedule is a whole minute. Example: on Moab Day 4, Capitol Gorge ends at 4:40 p.m., then free time until 12:35 a.m., then the drive to Panorama Point for stargazing at 1:00 a.m.
+- **The drive times are known only when the leg was routed through the day's selected places,** the ones it holds now, in its order. Partway through a write, a stop can be selected before the leg is re-routed at the end of the write. Until then, the drives' times aren't known, and neither are the times of anything after the first such drive. A read always sees routed legs, so this only matters to a service, such as `StopsService.approveOpeningHours()`.
 - **A stop with no selected place takes no time.** It has no drive and no visit time, so the drive to the next selected stop starts from the selected stop before it. One with a set time shows at its set time, or when the item before it ends if that's later. It holds its spot: the stop after it can't arrive before then. Example: on San Francisco Day 2, dinner is set for 6:30 and has no place yet, so dessert shows at 6:30, not 4:35. If the stop before dinner ran until 6:55, dinner would show at 6:55. The late check gives its warning (technical spec section 8). One with no set time has no times. So the stops after a stop with no selected place can show times that are too early (see Check result).
+- **A stop with no selected place goes where its time falls,** so the schedule stays in time order. When its time falls within the free time before the next selected stop, it splits the free time. Otherwise it comes after the drive to that stop, which passes it, since it has no place yet. One with no time stays next to the stops around it. Example: on San Francisco Day 2, with dinner still empty, the schedule reads: free time, the drive, dinner at 6:30, then dessert at 6:30. On Moab Day 2, with Milt's still empty and dinner at 7:00, it reads: free time, Milt's at 12:00, more free time, then the drive to dinner.
 - **After the last stop comes the drive to where the party sleeps,** or to the end place. Its times are unknown when a stop with no selected place comes after the last selected stop.
-- **A rest day has no drives.** Each of its stops has a set time, and the day ends when its last stop ends.
-- **A day can run past midnight.** It runs until the party reaches where it sleeps, or the end place. A stop after midnight stays on the day it follows, and its times are on the next calendar day. Example: stargazing at 1 a.m. after Moab Day 4 is the last stop on Day 4, not the first on Day 5. Nothing compares a day's end with the next day's start.
+- **A rest day has no drives.** Each of its stops has a set time, and the day ends when its last stop ends. Neither does a day that stays put with no selected stop, which has no leg yet (section 4.7).
+- **A day can run past midnight.** It runs until the party reaches where it sleeps, or the end place. A stop after midnight stays on the day it follows, and its times are on the next calendar day. Example: stargazing at 1 a.m. after Moab Day 4 is the last stop on Day 4, not the first on Day 5. Nothing compares a day's end with the next day's start. A `scheduleTime` holds only the day's own date and the next one, so a time later than that is left empty.
 
 **Activities.** The attraction stops the stay's clothing advice should cover (technical spec 6.3). Meals don't count, since clothing doesn't depend on which café the party picks. A stay's activities are:
 
@@ -1023,7 +1038,7 @@ The two trip brief items whose limits are settings. Every other item is set dire
 
 **Given:** the settings, for the maximum trip length. The calendar, for a stay's dates, today, and its activities.
 
-- **`addStay(itinerary : Itinerary, place : Place, nightCount : integer, tier : Tier, tierRule : string, after : Stay?) : Stay`** (the tool `add_stay`). Creates the stay, with its place, its nights, and its tier and rule, and the stay creates its days (see Stay). Puts it after the stay `after`, or first when `after` is empty. Returns the new stay.
+- **`addStay(itinerary : Itinerary, place : Place, nightCount : integer, tier : Tier, tierRule : string, after : Stay?) : Stay`** (the tool `add_stay`). In code, the arguments after the itinerary are one object, `NewStay`, since the lint rules allow a function at most 4 parameters (DEVELOPMENT.md section 3). Creates the stay, with its place, its nights, and its tier and rule, and the stay creates its days (see Stay). Puts it after the stay `after`, or first when `after` is empty. Returns the new stay.
   - **Follows on:** every later day moves back, and keeps its ID. Every leg whose start or end changed is re-routed at the end of the write. The tool lists the stops on every day whose start or end changed (tool design 2.1). The day keeps its stops, because which day each one belongs on is a judgment call. The coordinator talks them through with the user (technical spec 5.2). Example: adding a Big Sur stay after Monterey puts a new, empty day after Monterey's. The day that drove Monterey to San Luis Obispo now drives Big Sur to San Luis Obispo. It still holds the Monterey breakfast, Point Lobos, and Bixby, which are now behind the party.
   - **Refused:** until the itinerary has a `startPlace`, an `endPlace`, and a `startDate` (technical spec 4.2). When the trip would be longer than the maximum trip length, a setting (technical spec section 10). The error gives the limit. By the stay's own rules: when `nightCount` is less than 1, or the rule is empty. By the itinerary's own rule: when `after` isn't one of its stays.
 - **`moveStay(itinerary : Itinerary, stay : Stay, after : Stay?)`** (the tool `update_stay`). Moves the stay to after the stay `after`, or first when `after` is empty. Its days move with it, since the stay holds them, with their stops, rest-day marks, start times, and approvals. It needs no business rule. It's here because `stays` is via service (section 1).
@@ -1044,8 +1059,8 @@ The two trip brief items whose limits are settings. Every other item is set dire
 
 **Given:** the settings, for the maximum daily driving. The calendar, for whether a day stays put.
 
-- **`setRestDay(itinerary : Itinerary, day : StayDay, isRestDay : boolean)`** (the tool `update_day`). Marks or unmarks the day as a rest day. Marking it makes the day remove its leg, with its waypoints, by the day's own rule. The day's approvals stay.
-  - **Follows on:** marking it re-routes nothing, since the day has no leg now. Unmarking it gives the day a leg again at the end of the write, when it has a selected stop, without the old waypoints (section 4.7).
+- **`setRestDay(itinerary : Itinerary, day : StayDay, isRestDay : boolean)`** (the tool `update_day`). Marks or unmarks the day as a rest day. The day's approvals stay.
+  - **Follows on:** marking it removes the day's leg, with its waypoints, at the end of the write (section 4.7). Unmarking it gives the day a leg again at the end of the write, when it has a selected stop, without the old waypoints (section 4.7).
   - **Refused:** marking a day that doesn't stay put (`isStayingPut()`), since a day that moves has to drive. Marking a day while a stop on it has no set time, since nothing would place that stop in the day. The error lists those stops.
 - **`approveDriveHours(day : Day, drivingInHours : decimal, reason : string)`** (the tool `update_day`). Adds a drive hours approval, replacing any the day has.
   - **Refused:** when the hours are more than the maximum daily driving, a setting (technical spec section 10). By the approval's own rules: when the reason is empty, or the hours aren't more than 0.
@@ -1064,8 +1079,8 @@ The two trip brief items whose limits are settings. Every other item is set dire
     - Along the leg, on a day that stays put (`isStayingPut()`).
     - Near the start place, except on the first day. Near the end place, except on the last day.
     - With no set time, on a rest day.
-  - **Also refused,** by the day's own rule, when `after` isn't on the day.
-- **`moveStop(itinerary : Itinerary, stop : Stop, toDay : Day, after : Stop?, setTime : scheduleTime?)`** (the tool `move_stop`). Moves the stop to after the stop `after` on `toDay`, or first on it when `after` is empty, and sets its `setTime`. `toDay` can be the stop's own day. The set time is part of the move for two reasons. The tool always restates it, so an old time never carries over. And the rest-day rule needs the new day and the new time together. The stop keeps its candidates, selection, visit time, and approvals. An opening hours approval stays, since the place is the same. It applies or not at the new time.
+  - **Also refused** when a stop is already in the itinerary, on any day. A new stop never is, so this only catches a mistake in code. By the day's own rule: when `after` isn't on the day.
+- **`moveStop(itinerary : Itinerary, stop : Stop, toDay : Day, after : Stop?, setTime : scheduleTime?)`** (the tool `move_stop`). In code, the last three arguments are one object, `StopMove`, since the lint rules allow a function at most 4 parameters (DEVELOPMENT.md section 3). Moves the stop to after the stop `after` on `toDay`, or first on it when `after` is empty, and sets its `setTime`. `toDay` can be the stop's own day. The set time is part of the move for two reasons. The tool always restates it, so an old time never carries over. And the rest-day rule needs the new day and the new time together. The stop keeps its candidates, selection, visit time, and approvals. An opening hours approval stays, since the place is the same. It applies or not at the new time.
   - **Follows on:** the legs of the day it left and the day it joined are re-routed at the end of the write, when their selected places changed. A stop near a stay, or near the start or end place, can land on a day that doesn't start or end there. Here the search area rule is soft: the move goes through, and the checks give the `searchAreaDoesNotFitDay` warning. A moved attraction can change a stay's activities.
   - **Refused:** when a stop along the leg would land on a day that stays put, since it has no leg to be along. The error says to remove the stop and add a new one. When `setTime` is empty and `toDay` is a rest day. By the day's own rule: when `after` isn't on `toDay`, or is the stop itself.
 - **`removeStops(itinerary : Itinerary, stops : List<Stop>)`** (the tool `remove_stops`). Removes the stops, with their candidates and approvals. They can be on several days. It finds each one's day with `dayOf()`. The places stay stored.
@@ -1082,13 +1097,13 @@ The two trip brief items whose limits are settings. Every other item is set dire
   - **Follows on:** the day's leg is re-routed at the end of the write. A day that stays put, and isn't a rest day, gains a leg with its first selected stop (section 4.7). A selected attraction can change a stay's activities.
   - **Refused:** by the stop's own rule, when the place isn't one of its candidates.
 - **`approveOpeningHours(itinerary : Itinerary, stop : Stop, reason : string)`** (the tool `update_stop`). Adds an opening hours approval, replacing any the stop has. It records how many minutes of the visit now fall within the selected place's opening hours, from `openTimeInMinutesOf()`.
-  - **Refused:** when the stop has no selected place, or its place's hours aren't known, so there's no warning to approve. By the approval's own rule: when the reason is empty.
+  - **Refused:** when the stop has no selected place, or its place's hours aren't known, so there's no warning to approve. When the stop's visit times aren't known yet, so `openTimeInMinutesOf()` is empty, such as before there's a start date, or after a stop with no place and no set time. There's no amount to record then. By the approval's own rule: when the reason is empty.
 - **`removeApproval(stop : Stop, kind : ApprovalKind)`** (the tool `update_stop`). Removes the stop's approval of that kind. It does nothing when the stop has none. It's here because a stop's `approvals` is via service.
   - **Refused:** by the stop's own rule, for a drive hours or route type approval, which only days hold.
 
 ### 4.7 LegsService
 
-**Given:** the calendar, for where each day starts and ends, and whether it stays put. A route finder: the code that calls Google Routes (Google design 2.1). The route finder is outside this model.
+**Given:** the calendar, for where each day starts and ends, and whether it stays put. A route finder: the code that calls Google Routes (Google design 2.1). The route finder is outside this model. In code, it's the `RouteFinder` interface, with two calls: a route through places in order, and the best order of some stops. The Google Routes client is one, and tests use a fake. `TripWriter` creates the `LegsService` for each write (persistence design, section 8.2).
 
 It decides which days have a leg, and routes them. It's the one place that calls Google Routes for the itinerary.
 
@@ -1098,8 +1113,9 @@ It decides which days have a leg, and routes them. It's the one place that calls
   - **Removes** the leg from a day that shouldn't have one. The day's waypoints go with it, by the day's own rule.
   - **Leaves alone** every other leg. Changing a stop's set time, visit time, tier, or approvals re-routes nothing, and neither does adding, moving, or removing a stop with no selected place. The schedule is worked out from the stored segment drive times (section 4.1), so it needs no new route.
   - **Returns** one `LegChange` for each day whose leg it added, re-routed, or removed. Each holds the day, its old leg, and its new leg. The old leg is empty for an added leg, and the new leg for a removed one. The write hands them back to the tool (section 1). The tool's reply uses them to give each day's old and new drive time, such as "Day 2: 2 h 10 m → 1 h 30 m," and counts their days as touched (technical spec section 8). A `LegChange` isn't stored.
-  - **Refused:** when Google finds no driving route, such as to a place no road reaches, or when a call to Google fails, such as when the Routes limit is spent. The whole write is thrown away, and the error says why (section 1).
-- **`detourTimesOf(itinerary : Itinerary, stop : Stop, places : List<Place>) : List<integer>`** (the tool `add_stop_candidates`, before `StopsService.addCandidates()`). Works out each place's detour time for a stop along the leg, with one call to Google Routes per place, against the day's leg as it is now. The place goes in at the stop's position among the day's selected stops. Example: a pie stop between Goblin Valley and Capitol Gorge is measured there. The waypoints are placed the same way as for the leg, so both routes take the same road. A place's detour time is that route's drive time minus the leg's, and never less than 0. Returns them in the order given. It changes nothing. Nothing from the worker's search is reused, so nothing has to be stored or cleared.
+  - **Refused:** when Google finds no driving route, such as to a place no road reaches, or when a call to Google fails, such as when the Routes limit is spent. The whole write is thrown away, and the error says why (section 1). Every day is routed before any leg changes, so a refusal leaves every leg as it was.
+  - **A day that's gone gives no `LegChange`,** such as one removed with its stay, or with `setNightCount()`. Its leg went with it, and the tool's reply already says which days were removed.
+- **`detourTimesOf(itinerary : Itinerary, stop : Stop, places : List<Place>) : List<integer>`** (the tool `add_stop_candidates`, before `StopsService.addCandidates()`). Works out each place's detour time for a stop along the leg, with one call to Google Routes per place, against the day's leg as it is now. The place goes in at the stop's position among the day's selected stops. Example: a pie stop between Goblin Valley and Capitol Gorge is measured there. The waypoints are placed the same way as for the leg, so both routes take the same road. When the stop already has a selected place, each place measured stands in for it. A place's detour time is that route's drive time minus the leg's, and never less than 0. Returns them in the order given. It changes nothing. Nothing from the worker's search is reused, so nothing has to be stored or cleared.
   - **Refused:** when the stop isn't along the leg, or its day has no leg yet. When a call to Google fails, the same way as `updateLegs()`.
 
 **Which days have a leg.** A day has a leg when it isn't a rest day, both its ends are known, and either it moves or it has a selected stop:
@@ -1115,9 +1131,9 @@ It decides which days have a leg, and routes them. It's the one place that calls
 - **A waypoint that's the same place as the leg's start or end is skipped.** It would add nothing to the route. Example: a Big Sur stay added on the same place as Day 2's Big Sur waypoint.
 - **Straight-line distance can guess wrong** where the road bends far from it, such as around a bay. It works because a waypoint sits on the road the coordinator wants.
 - **A late-night stop near the lodging is routed on the way in.** The leg runs through the stops in the day's order, then to where the party sleeps. Example: Moab Day 4 is routed Capitol Gorge → Panorama Point → Torrey hotel, though the party really checks in first and drives out again at night. The times barely differ, because Panorama Point is close to Torrey.
-- **With two or more selected stops, the stop-order check runs too.** It takes one or two more calls, without the waypoints, and gives `stopsInBestOrder` and `timeSavedInMinutes` (technical spec section 8).
+- **With two or more selected stops, the stop-order check runs too.** It takes one or two more calls, without the waypoints, and gives `stopsInBestOrder` and `timeSavedInMinutes` (technical spec section 8). When Google's order is the same as the day's, `stopsInBestOrder` holds the day's own order, and `timeSavedInMinutes` is 0.
 
-The new leg stores each segment's drive time, the distance, and the route line from the answer, and what it was routed for (see Leg).
+The new leg stores each segment's drive time, the distance, and the route line from the answer, and what it was routed for (see Leg). Each segment's drive time is rounded to the nearest minute, and the distance to a tenth of a mile. Drive times don't follow traffic, since a trip is planned well ahead (Google design 2.3).
 
 **Where the party sleeps** is the stay's lodging once one is selected, and the stay's town until then (`Stay.sleepsAt`). So selecting a hotel re-routes every leg that starts or ends at the stay. For most towns, this barely changes the drive time. In a big city it can: a hotel in Santa Monica and one in Pasadena are far apart.
 
@@ -1132,13 +1148,23 @@ The `FeasibilityChecker` runs the feasibility checks in technical spec section 8
   - **New:** a current check result with no match. Also one whose match was approved and that isn't approved now. Also one whose match had `hasUnselectedStopBefore` true and that has it false now.
   - **Already known:** every other current check result.
   - **Gone:** a saved check result with no current match. Its saved `text` describes it, since its subject may no longer exist.
-- **`isApplying(itinerary : Itinerary, day : Day, kind : ApprovalKind) : boolean`,** and the same with a stop in place of the day. Whether the holder's approval of that kind still covers the plan as it is now. False when it has none. The tool `read_itinerary` uses it to mark each approval as applying or not.
+  - In code, `CheckComparison` holds the three lists as `newResults`, `knownResults`, and `goneResults`.
+- **`isApplying(itinerary : Itinerary, day : Day, kind : ApprovalKind) : boolean`,** and the same with a stop in place of the day. Whether the holder's approval of that kind still covers the plan as it is now. False when it has none. The tool `read_itinerary` uses it to mark each approval as applying or not. In code, it's one method that takes a day or a stop.
 
 | Kind | Applies while |
 |---|---|
-| `DriveHoursApproval` | The day's driving, its leg's road time plus the drive buffer setting, is at most `approvedDrivingInHours` |
+| `DriveHoursApproval` | The day's driving, `drivingInMinutesOf()` (section 4.1), is at most `approvedDrivingInHours` |
 | `RouteTypeApproval` | Always |
-| `OpeningHoursApproval` | `openTimeInMinutesOf()` for the stop is at least `approvedOpenTimeInMinutes` |
+| `OpeningHoursApproval` | `openTimeInMinutesOf()` for the stop is at least `approvedOpenTimeInMinutes`. It doesn't apply while that's empty, such as while the stop's times aren't known |
+
+**How the checks work out their numbers.** Each check reads what the calendar and the legs already give. These are the choices the table in technical spec section 8 leaves open:
+
+- **A day's driving** is the calendar's `drivingInMinutesOf()`: the day's drives in the schedule, added up (section 4.1). So the warning and the schedule never disagree near the limit. Example: Moab Day 4's drives of 104, 77, 18, 22, and 13 minutes of road time come to 4 h 20 m of driving.
+- **The daily driving warning** is given when the day drives more than the brief's comfortable driving hours, or more than the hours its approval gives, even when those are fewer. It's approved while the approval applies. Its text gives the approved hours when the day has an approval, and the comfortable hours when it doesn't.
+- **The opening-hours check** takes the stop's arrival and end from `scheduleOf()`, and its open minutes from `openTimeInMinutesOf()`. No open minutes is closed for the whole visit. Fewer than the visit is open, but not long enough. The warning gives the first opening or closing during the visit, such as "Milt's closes at 12:30 p.m.," then the arrival time. A stop whose times aren't known yet gives no opening-hours result, except "hours not known," which doesn't depend on the time.
+- **The late check** takes the stop's arrival from `scheduleOf()`. That's when it shows in the schedule, so it covers a stop with no place yet that has a set time.
+- **The stop-order note** is given only when the leg's best order differs from the day's own order, and saves at least the stop-order minimum saving and at least one minute.
+- **The `FeasibilityChecker` isn't made with the other services.** `TripWriter` creates one for each coordinator write, in the finish, with the write's calendar ([persistence design](persistence.md), section 8.2).
 
 **When it runs.** At the end of every coordinator write, after the legs are updated (section 1), code runs `workOut()`, compares the result with the itinerary's `checkResults`, and then saves the current list with `Itinerary.replaceCheckResults()`. The write hands the comparison back to the tool (section 1). A worker's write runs none of this. A read runs `workOut()` and `compare()`, but saves nothing. Which check results a tool's reply includes is a rule of the tools, not of this model (tool design 2.1, and technical spec section 8).
 

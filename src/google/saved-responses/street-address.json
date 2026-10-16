@@ -1,0 +1,17 @@
+{
+  "places": [
+    {
+      "id": "ChIJEX1Gu_pWQ4YRp13kgnRFwCg",
+      "types": ["subpremise", "street_address"],
+      "formattedAddress": "712 Neches St, Lockhart, TX 78644, USA",
+      "location": {
+        "latitude": 29.879570100000002,
+        "longitude": -97.6649206
+      },
+      "googleMapsUri": "https://maps.google.com/?cid=2936423323760090535&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA",
+      "displayName": {
+        "text": "712 Neches St"
+      }
+    }
+  ]
+}

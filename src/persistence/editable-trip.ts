@@ -1,21 +1,67 @@
+import type { CalendarDate } from "../domain/calendar-date.js";
+import type { Place } from "../domain/place.js";
+import { startedToday } from "../domain/today.js";
 import type { Trip } from "../domain/trip.js";
+import { NoSuchPlaceError } from "./place-errors.js";
+import { TripStartedError } from "./trip-errors.js";
 
 // A trip loaded for a write, under the row lock (persistence design, section 8.4).
 // Only TripRepository.loadForWrite() makes one, and save() takes only this, so a trip
 // from a read can never be saved. The object itself holds no lock.
-//
-// Phase 15 adds placeOf() and unnamedPlaceIds, with the places table. Phase 16 adds
-// loadedStartDate and loadedStartPlace, with the itinerary's start date and place.
 export class EditableTrip {
   readonly trip: Trip;
+  // The start date and place as loaded, for the started-trip check at save. The write
+  // may change them (persistence design, section 5).
+  readonly loadedStartDate: CalendarDate | null;
+  readonly loadedStartPlace: Place | null;
+  // The places that had no name when loaded. A write can fill a name in, but never
+  // change one, so these are the only place rows a save might update (section 8.4).
+  readonly unnamedPlaceIds: readonly string[];
+  // Every place the trip had when loaded. Each is loaded once per write, so every link
+  // to it is the same object.
+  readonly #places: ReadonlyMap<string, Place>;
 
-  constructor(trip: Trip) {
+  constructor(trip: Trip, places: readonly Place[]) {
     this.trip = trip;
+    this.loadedStartDate = trip.itinerary.startDate;
+    this.loadedStartPlace = trip.itinerary.startPlace;
+    this.#places = new Map(places.map((place) => [place.id, place]));
+    this.unnamedPlaceIds = Object.freeze(
+      places.filter((place) => place.name === null).map((place) => place.id),
+    );
   }
 
-  // Worked out from the trip as loaded, since the write may change its start date. The
-  // itinerary has no start date yet, so no trip has started. Phase 18 tests the lock.
-  hasStarted(): boolean {
-    return this.trip.hasStarted;
+  // TripWriter passes this into the write's change, which turns each place ID it's
+  // handed into a place. It refuses an ID that isn't one of this trip's places.
+  placeOf(placeId: string): Place {
+    const place = this.#places.get(placeId);
+    if (place === undefined) {
+      throw new NoSuchPlaceError(placeId);
+    }
+    return place;
+  }
+
+  // The places whose name the write filled in, for PlaceRepository.fillNames().
+  get namedPlaces(): Place[] {
+    return this.unnamedPlaceIds
+      .map((placeId) => this.placeOf(placeId))
+      .filter((place) => place.name !== null);
+  }
+
+  // Worked out like Trip.hasStarted, but from the start date and place as loaded, since
+  // the write may change them. Today's date at the loaded start place once the trip has
+  // started at `now`, for the error, or null while it hasn't (persistence design,
+  // section 5). TripWriter passes its clock's time, so a test can set it.
+  startedToday(now: Date): CalendarDate | null {
+    return startedToday(this.loadedStartDate, this.loadedStartPlace, now);
+  }
+
+  // The started-trip lock (persistence design, section 5). TripWriter runs it after the
+  // load, and TripRepository.save() runs it before every save.
+  refuseIfStarted(now: Date): void {
+    const today = this.startedToday(now);
+    if (today !== null) {
+      throw new TripStartedError(today);
+    }
   }
 }
