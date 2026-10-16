@@ -57,7 +57,7 @@ Don't merge it. Joe reviews it in the morning.
 
 ## 6. The prompts
 
-**The worker prompt.** Fill in the phase number and branch name.
+**The worker prompt.** Fill in the phase number and branch name. Since 2026-10-16, a PR description holds only the task and the "Done when" results, and decisions go in a PR comment (DEVELOPMENT.md section 7). Change section 5's list of what goes in the description, and both prompts, before reusing them.
 
 > You're doing phase N of `plan/development-plan.md` in this repo, as part of the overnight run in `plan/batch-4.md`. Read that doc's section 3, "Rules for the run," first. Nobody can answer questions tonight, and those rules replace any step that would ask Joe.
 >

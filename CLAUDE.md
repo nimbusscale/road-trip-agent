@@ -14,3 +14,8 @@ Don't read `research/` or `reviews/` unless the prompt tells you to. `research/`
 - The config files listed in DEVELOPMENT.md section 6 change only with Joe's approval. If a change seems needed, stop, say why, and ask first. Never edit them, or add a disable comment or `@ts-expect-error`, just to make a check pass.
 - Check outside data with Zod where it enters the program (DEVELOPMENT.md section 4).
 - No barrel files. Import from the file that defines the thing.
+
+## Pull requests
+
+- A PR description holds only the task and the "Done when" results. Decisions, things set aside, and config changes you think are needed go in a PR comment, posted right after the PR is opened (DEVELOPMENT.md section 7).
+- When reviewing a PR, start from the task in its description. Don't read the PR's conversation comments, such as with `gh pr view --comments`. They hold the implementer's reasons, which would color the review. Inline review comments are fine to read. Before posting findings, read them, and don't post a finding that an earlier inline comment already makes. The exception is when the lines it points to have changed since, and the problem is still there. Then post it again, and say the change didn't fix it.

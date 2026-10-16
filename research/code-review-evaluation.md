@@ -18,11 +18,11 @@ Sections 2 to 5 record what we found out and decided on 2026-10-16. Section 6 is
 | 1, stage 2 | The `medium` and `xhigh` levels, with Opus and Sonnet, on the same PRs (section 7.4) | Done 2026-10-16. Results in section 8.2 |
 | 1, stage 3 | Opus at `high` and `xhigh` on PRs #31, #33, #34 and #35 (section 7.5) | Done 2026-10-16. Results in section 8.3 |
 | 1, the choice | Opus at `high` (section 8.5) | Decided 2026-10-16 |
+| CI | `/code-review high --comment` with Opus on each PR (section 9) | Built 2026-10-16 |
 | 2 | Stock `/code-review` on older PRs that were never reviewed (#2 to #29) | Not planned yet. Depends on round 1 |
 
 **Still open:**
-- **A PR description format.** Section 5.3 proposes putting the task and the "Done when" results in the description, and the implementer's decisions in a PR comment. It isn't adopted yet. It would change the worker prompt and DEVELOPMENT.md.
-- **CI and the fix loop.** Section 9. Round 1 picked Opus at `high`, so this is next.
+- **The fix loop.** Section 9. When a CI review has findings, another run fixes them. Open item 14.
 - **Our own review prompt.** Left for later. Round 1 tests only the stock `/code-review`.
 - **Model effort on its own.** The `/code-review` level sets the review's model effort, and `--effort` doesn't change it (section 4.1). So the stock command can't run the high recipe at low model effort, or the reverse. Only our own review prompt could test that.
 
@@ -314,7 +314,12 @@ Joe chose Opus at `high` on 2026-10-16.
 
 ## 9. Later: CI and the fix loop
 
-Round 1 picked Opus at `high` (section 8.5). A GitHub Actions job runs `/code-review high --comment` on each PR with Opus, using the Max subscription token.
+Round 1 picked Opus at `high` (section 8.5). Since 2026-10-16, the "Code review" workflow (`.github/workflows/code-review.yml`) runs `/code-review high --comment` with Opus on each PR, using the Max subscription token.
+
+- **It runs when a PR is opened or gets a new commit,** if the PR changes `src/` or `web/`. Other files aren't reviewed. The stock review found no gaps in plans and docs (section 8), and the seven reviews of the workflow's own PR, #39, found mostly minor things. A push to a branch with no PR doesn't run it, and neither does a draft.
+- **The PR description holds the task, and the implementer's decisions go in a comment** (section 5.3, now in DEVELOPMENT.md section 7). A line in CLAUDE.md tells the reviewer to start from the description and not read the PR's conversation comments.
+- **It uses Claude Code 2.1.301,** the version round 1 tested, installed fresh in each run. A fresh install took under 3 seconds, so a prebuilt container wouldn't be faster.
+- **Each run saves its transcript** as a workflow artifact, so we can check what the reviewer read.
 
 After that, the review needs a clear result. Either the PR is ready for Joe, or it has findings to fix. Findings would start another Claude Code run in CI, which reads the review, makes the fixes, and pushes. That loop stops after two or three rounds, so it can't run forever. A label or a check result on the PR could be the "ready for Joe" signal.
 
