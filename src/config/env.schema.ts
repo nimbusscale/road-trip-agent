@@ -27,6 +27,8 @@ export const envSchema = z.object({
     .transform((url) => url.replace(/\/+$/, "")),
   // The Claude plan's token, from claude setup-token (systems design section 8).
   claudeCodeOauthToken: requiredText(),
+  // Google's server key, for Routes, Places, and Weather (Google design section 1).
+  googleMapsServerKey: requiredText(),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -40,4 +42,5 @@ export const ENV_NAMES = {
   postgresDb: "POSTGRES_DB",
   supabaseUrl: "SUPABASE_URL",
   claudeCodeOauthToken: "CLAUDE_CODE_OAUTH_TOKEN",
+  googleMapsServerKey: "GOOGLE_MAPS_SERVER_KEY",
 } as const satisfies Record<keyof Env, string>;

@@ -1,6 +1,5 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
 
-import { loadSettings, SETTINGS_PATH } from "../config/settings.js";
 import { CalendarDate } from "../domain/calendar-date.js";
 import { exampleMoabTrip } from "../domain/itinerary.fake.js";
 import { exampleAddress, examplePlace } from "../domain/place.fake.js";
@@ -8,49 +7,13 @@ import { RuleError } from "../domain/rule-error.js";
 import type { Trip } from "../domain/trip.js";
 import type { EditableTrip } from "./editable-trip.js";
 import { NoSuchPlaceError } from "./place-errors.js";
-import { TripBusyError, TripStartedError } from "./trip-errors.js";
-import { TripReader } from "./trip-reader.js";
 import type { TripStore } from "./trip-repository.js";
-import { FakePool, FakeTripStore } from "./trip-store.fake.js";
-import {
-  BUSY_PAUSE_MILLISECONDS,
-  TripWriter,
-  type Clock,
-} from "./trip-writer.js";
+import { TripBusyError, TripStartedError } from "./trip-errors.js";
+import type { FakeTripStore } from "./trip-store.fake.js";
+import { BUSY_PAUSE_MILLISECONDS } from "./trip-writer.js";
+import { setUp, STARTED, WRITTEN } from "./trip-writer.fake.js";
 
 const OWNER = { id: "4f6c1d0e-2a8b-4c3d-9e7f-1a2b3c4d5e6f" };
-const STARTED = new Date("2026-10-15T09:00:00Z");
-const WRITTEN = new Date("2026-10-15T10:00:00Z");
-
-class FakeClock implements Clock {
-  readonly pauses: number[] = [];
-  current = STARTED;
-
-  now(): Date {
-    return this.current;
-  }
-
-  pause(milliseconds: number): Promise<void> {
-    this.pauses.push(milliseconds);
-    return Promise.resolve();
-  }
-}
-
-function setUp(): {
-  writer: TripWriter;
-  reader: TripReader;
-  store: FakeTripStore;
-  pool: FakePool;
-  clock: FakeClock;
-} {
-  const store = new FakeTripStore();
-  const pool = new FakePool();
-  const clock = new FakeClock();
-  const storeFor = (): TripStore => store;
-  const settings = loadSettings(SETTINGS_PATH);
-  const writer = new TripWriter({ pool, storeFor, settings, clock });
-  return { writer, reader: new TripReader(pool, storeFor), store, pool, clock };
-}
 
 describe("TripWriter.startTrip", () => {
   it("adds a new trip, with an empty brief and only a last day", async () => {

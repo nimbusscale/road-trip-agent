@@ -13,9 +13,9 @@ export interface LegFields {
   routedWaypoints: readonly Place[];
 }
 
-// The drive on one day: the route Google Routes gave for it (domain model 3.8). It's
-// stored data only here. Phase 19's LegsService routes it. A leg never changes: a
-// re-route replaces it whole. Google calls a segment a "leg", and our leg a "route".
+// The drive on one day: the route Google Routes gave for it (domain model 3.8).
+// LegsService routes it at the end of a write. A leg never changes: a re-route
+// replaces it whole. Google calls a segment a "leg", and our leg a "route".
 export class Leg {
   // Each segment's drive time, in route order, without the drive buffer.
   readonly segmentDriveTimesInMinutes: readonly number[];

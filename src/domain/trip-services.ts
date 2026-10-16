@@ -8,9 +8,9 @@ import { StopsService } from "./stops-service.js";
 import type { Trip } from "./trip.js";
 import { TripBriefService } from "./trip-brief-service.js";
 
-// The services for one trip (domain model section 4). LegsService and the
-// FeasibilityChecker run in the finish of a write, not in its change, so they aren't
-// here.
+// The services for one trip (domain model section 4). LegsService needs a route finder,
+// and runs in the finish of a write, so TripWriter makes it from this calendar. The
+// FeasibilityChecker runs in the finish too. Neither is here.
 export interface TripServices {
   tripBrief: TripBriefService;
   itinerary: ItineraryService;

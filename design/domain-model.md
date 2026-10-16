@@ -641,7 +641,7 @@ A day is one day of the trip, with a schedule (functional spec 4). There are two
 | `ownStartTime` | Stored | `time?` | A start time the user agreed to for this day, such as 5:30 a.m. for a sunrise hike. Empty means the trip brief's `usualStartTime`. Set directly |
 | `stops` | Stored | `List<Stop>`, in order, via service | The day's stops, in the order the coordinator set. Code never reorders them. Changes only through `StopsService.addStops()`, `moveStop()`, and `removeStops()` |
 | `waypoints` | Stored | `List<Place>`, in the coordinator's order, read only | Places the day's drive must pass through without stopping, to steer the route, such as Big Sur village. Changes only through `setWaypoints()`, or when the leg goes. See below |
-| `leg` | Stored | `Leg?`, held by the day, via service | The day's drive, if it has one. Changes only through `LegsService.updateLegs()`, at the end of every write (section 4.7), or when the day is marked a rest day (see Rules). See Leg |
+| `leg` | Stored | `Leg?`, held by the day, via service | The day's drive, if it has one. Changes only through `LegsService.updateLegs()`, at the end of every write (section 4.7). That includes a rest day's leg, which it removes (see Rules). See Leg |
 | `approvals` | Stored | `List<Approval>`, in no order, via service | Drive hours and route type approvals, at most one of each. Changes only through `DaysService.approveDriveHours()`, `approveRouteType()`, and `removeApproval()` |
 
 **StayDay** adds one property:
@@ -682,7 +682,7 @@ The day keeps change methods for `stops`, `leg`, and `approvals`, and a stay day
 - **The last day can't be a rest day.** Only a `StayDay` has `isRestDay`.
 - **A day's stops stay in the order the coordinator set.** Code never reorders them, even when the stop-order check finds a faster order (see Leg).
 - **A day holds each stop once.** An `after` given to place stops has to be one of the day's stops, and not a stop being placed.
-- **When a day is marked a rest day, it removes its own leg.** Its approvals stay.
+- **A rest day loses its leg at the end of the write.** Marking the day changes only `isRestDay`. Then `LegsService.updateLegs()` removes the leg, with its waypoints, so the write hands the removed leg back like any other leg change (section 4.7). Its approvals stay.
 - **A day has waypoints only while it has a leg.** When its leg goes, its waypoints go too. So a day that gets a leg again, such as a rest day that's unmarked, starts with none.
 - **Rules that need other objects are in the services.** A rest day's stops each have a set time, and only a day that stays put can be a rest day (sections 4.5 and 4.6). When a day has a leg is in `LegsService` (section 4.7).
 
@@ -787,7 +787,7 @@ A leg is the drive on one day (functional spec 4). It's the route Google Routes 
 
 **Held as:** held by its day's `leg`, with no `id`. A day has at most one.
 
-**Created and changed by:** `LegsService.updateLegs()` creates it at the end of a write, with a call to Google Routes (section 4.7). A leg never changes. Re-routing replaces it whole, the way a new weather text replaces the old one. Nothing else creates or removes one, except marking its day a rest day.
+**Created and changed by:** `LegsService.updateLegs()` creates it at the end of a write, with a call to Google Routes (section 4.7). A leg never changes. Re-routing replaces it whole, the way a new weather text replaces the old one. Nothing else creates or removes one. A day marked a rest day loses its leg at the end of that write, in `updateLegs()`.
 
 **Segments.** The drive between two stops on a leg is a **segment**. Google Routes uses different names: it calls a segment a "leg," and our leg a "route." Code that calls Google needs a comment saying so.
 
@@ -1058,8 +1058,8 @@ The two trip brief items whose limits are settings. Every other item is set dire
 
 **Given:** the settings, for the maximum daily driving. The calendar, for whether a day stays put.
 
-- **`setRestDay(itinerary : Itinerary, day : StayDay, isRestDay : boolean)`** (the tool `update_day`). Marks or unmarks the day as a rest day. Marking it makes the day remove its leg, with its waypoints, by the day's own rule. The day's approvals stay.
-  - **Follows on:** marking it re-routes nothing, since the day has no leg now. Unmarking it gives the day a leg again at the end of the write, when it has a selected stop, without the old waypoints (section 4.7).
+- **`setRestDay(itinerary : Itinerary, day : StayDay, isRestDay : boolean)`** (the tool `update_day`). Marks or unmarks the day as a rest day. The day's approvals stay.
+  - **Follows on:** marking it removes the day's leg, with its waypoints, at the end of the write (section 4.7). Unmarking it gives the day a leg again at the end of the write, when it has a selected stop, without the old waypoints (section 4.7).
   - **Refused:** marking a day that doesn't stay put (`isStayingPut()`), since a day that moves has to drive. Marking a day while a stop on it has no set time, since nothing would place that stop in the day. The error lists those stops.
 - **`approveDriveHours(day : Day, drivingInHours : decimal, reason : string)`** (the tool `update_day`). Adds a drive hours approval, replacing any the day has.
   - **Refused:** when the hours are more than the maximum daily driving, a setting (technical spec section 10). By the approval's own rules: when the reason is empty, or the hours aren't more than 0.
@@ -1102,7 +1102,7 @@ The two trip brief items whose limits are settings. Every other item is set dire
 
 ### 4.7 LegsService
 
-**Given:** the calendar, for where each day starts and ends, and whether it stays put. A route finder: the code that calls Google Routes (Google design 2.1). The route finder is outside this model.
+**Given:** the calendar, for where each day starts and ends, and whether it stays put. A route finder: the code that calls Google Routes (Google design 2.1). The route finder is outside this model. In code, it's the `RouteFinder` interface, with two calls: a route through places in order, and the best order of some stops. The Google Routes client is one, and tests use a fake. `TripWriter` creates the `LegsService` for each write (persistence design, section 8.2).
 
 It decides which days have a leg, and routes them. It's the one place that calls Google Routes for the itinerary.
 
@@ -1112,8 +1112,9 @@ It decides which days have a leg, and routes them. It's the one place that calls
   - **Removes** the leg from a day that shouldn't have one. The day's waypoints go with it, by the day's own rule.
   - **Leaves alone** every other leg. Changing a stop's set time, visit time, tier, or approvals re-routes nothing, and neither does adding, moving, or removing a stop with no selected place. The schedule is worked out from the stored segment drive times (section 4.1), so it needs no new route.
   - **Returns** one `LegChange` for each day whose leg it added, re-routed, or removed. Each holds the day, its old leg, and its new leg. The old leg is empty for an added leg, and the new leg for a removed one. The write hands them back to the tool (section 1). The tool's reply uses them to give each day's old and new drive time, such as "Day 2: 2 h 10 m → 1 h 30 m," and counts their days as touched (technical spec section 8). A `LegChange` isn't stored.
-  - **Refused:** when Google finds no driving route, such as to a place no road reaches, or when a call to Google fails, such as when the Routes limit is spent. The whole write is thrown away, and the error says why (section 1).
-- **`detourTimesOf(itinerary : Itinerary, stop : Stop, places : List<Place>) : List<integer>`** (the tool `add_stop_candidates`, before `StopsService.addCandidates()`). Works out each place's detour time for a stop along the leg, with one call to Google Routes per place, against the day's leg as it is now. The place goes in at the stop's position among the day's selected stops. Example: a pie stop between Goblin Valley and Capitol Gorge is measured there. The waypoints are placed the same way as for the leg, so both routes take the same road. A place's detour time is that route's drive time minus the leg's, and never less than 0. Returns them in the order given. It changes nothing. Nothing from the worker's search is reused, so nothing has to be stored or cleared.
+  - **Refused:** when Google finds no driving route, such as to a place no road reaches, or when a call to Google fails, such as when the Routes limit is spent. The whole write is thrown away, and the error says why (section 1). Every day is routed before any leg changes, so a refusal leaves every leg as it was.
+  - **A day that's gone gives no `LegChange`,** such as one removed with its stay, or with `setNightCount()`. Its leg went with it, and the tool's reply already says which days were removed.
+- **`detourTimesOf(itinerary : Itinerary, stop : Stop, places : List<Place>) : List<integer>`** (the tool `add_stop_candidates`, before `StopsService.addCandidates()`). Works out each place's detour time for a stop along the leg, with one call to Google Routes per place, against the day's leg as it is now. The place goes in at the stop's position among the day's selected stops. Example: a pie stop between Goblin Valley and Capitol Gorge is measured there. The waypoints are placed the same way as for the leg, so both routes take the same road. When the stop already has a selected place, each place measured stands in for it. A place's detour time is that route's drive time minus the leg's, and never less than 0. Returns them in the order given. It changes nothing. Nothing from the worker's search is reused, so nothing has to be stored or cleared.
   - **Refused:** when the stop isn't along the leg, or its day has no leg yet. When a call to Google fails, the same way as `updateLegs()`.
 
 **Which days have a leg.** A day has a leg when it isn't a rest day, both its ends are known, and either it moves or it has a selected stop:
@@ -1129,9 +1130,9 @@ It decides which days have a leg, and routes them. It's the one place that calls
 - **A waypoint that's the same place as the leg's start or end is skipped.** It would add nothing to the route. Example: a Big Sur stay added on the same place as Day 2's Big Sur waypoint.
 - **Straight-line distance can guess wrong** where the road bends far from it, such as around a bay. It works because a waypoint sits on the road the coordinator wants.
 - **A late-night stop near the lodging is routed on the way in.** The leg runs through the stops in the day's order, then to where the party sleeps. Example: Moab Day 4 is routed Capitol Gorge → Panorama Point → Torrey hotel, though the party really checks in first and drives out again at night. The times barely differ, because Panorama Point is close to Torrey.
-- **With two or more selected stops, the stop-order check runs too.** It takes one or two more calls, without the waypoints, and gives `stopsInBestOrder` and `timeSavedInMinutes` (technical spec section 8).
+- **With two or more selected stops, the stop-order check runs too.** It takes one or two more calls, without the waypoints, and gives `stopsInBestOrder` and `timeSavedInMinutes` (technical spec section 8). When Google's order is the same as the day's, `stopsInBestOrder` holds the day's own order, and `timeSavedInMinutes` is 0.
 
-The new leg stores each segment's drive time, the distance, and the route line from the answer, and what it was routed for (see Leg).
+The new leg stores each segment's drive time, the distance, and the route line from the answer, and what it was routed for (see Leg). Each segment's drive time is rounded to the nearest minute, and the distance to a tenth of a mile. Drive times don't follow traffic, since a trip is planned well ahead (Google design 2.3).
 
 **Where the party sleeps** is the stay's lodging once one is selected, and the stay's town until then (`Stay.sleepsAt`). So selecting a hotel re-routes every leg that starts or ends at the stay. For most towns, this barely changes the drive time. In a big city it can: a hotel in Santa Monica and one in Pasadena are far apart.
 

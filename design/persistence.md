@@ -298,9 +298,9 @@ The fixed list that the classes above use:
 
 ### 8.2 TripWriter
 
-`TripWriter` runs everything that saves. It opens each transaction, and creates the repositories it uses inside it, so every query in a write is part of the same transaction. It's created once, when the app starts.
+`TripWriter` runs everything that saves. It opens each transaction, and creates the repositories it uses inside it, so every query in a write is part of the same transaction. It's created once, when the app starts. It's given the route finder, the Google Routes client, and creates each write's `LegsService` with it (domain model 4.7).
 
-- **`write(tripId, by, change)`** runs a write (section 3). `change` is a function the caller passes in. It takes the loaded trip, the trip's calendar and services, and `placeOf()` from the `EditableTrip` (section 8.4). It changes the trip, and returns whatever the caller needs back, such as the new stop's ID. Once the write is saved, `write()` returns a `WriteResult` (below). In order, it:
+- **`write(tripId, by, change)`** runs a write (section 3). `change` is a function the caller passes in. It takes the loaded trip, the trip's calendar and services, the write's `LegsService`, and `placeOf()` from the `EditableTrip` (section 8.4). The change uses `LegsService` only for detour times, such as in the tool `add_stop_candidates`. The finish uses the same one to update the legs. It changes the trip, and returns whatever the caller needs back, such as the new stop's ID. Once the write is saved, `write()` returns a `WriteResult` (below). In order, it:
   1. Opens a transaction, and loads the trip with `TripRepository.loadForWrite()`.
   2. Refuses the write if the trip has started, before changing anything (section 5). Tools don't check this themselves.
   3. Creates the trip's calendar and services, and runs `change` with them.

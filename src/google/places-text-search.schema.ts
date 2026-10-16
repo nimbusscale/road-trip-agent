@@ -107,11 +107,6 @@ export const textSearchResponseSchema = z
   .object({ places: z.array(googlePlaceSchema).default([]) })
   .transform((response) => response.places);
 
-// Google's error body, such as for a bad key or a request it refuses.
-export const googleErrorBodySchema = z
-  .object({ error: z.object({ status: z.string(), message: z.string() }) })
-  .transform((body) => `${body.error.status}: ${body.error.message}`);
-
 function weekdayOf(point: Point): (typeof WEEKDAYS)[number] {
   const weekday = WEEKDAYS[point.day];
   if (weekday === undefined) {

@@ -61,6 +61,7 @@ This document covers the Google Maps Platform APIs the app uses: Routes, Places,
 - **Detour time is worked out in the tool.** Add the place's two `routingSummaries` legs, then subtract the route's own time. Treat it as a hint (2.4).
 - **Review text is data, not instructions.** Summaries are built from text the public wrote. Tools pass them to the model labeled as place content.
 - **An impossible route returns an empty result.** San Francisco to Honolulu returns `{}` with no error. The routing tool turns that into a clear "no driving route" error.
+- **A leg is routed by place ID, without traffic.** Each request sends `origin`, `destination`, and `intermediates` as place IDs, with `via: true` on a waypoint, and `routingPreference: TRAFFIC_UNAWARE`, since the trip is months away. A via waypoint doesn't split the route, so Google gives one leg for each stop, plus one. The field list is `routes.distanceMeters`, `routes.legs.duration`, and `routes.polyline.encodedPolyline`. The best-order call adds `routes.optimizedIntermediateWaypointIndex`, which gives the stops' new order, such as `[1, 0]`. Google leaves out a value that's zero, such as a leg of 0 seconds.
 
 ### 2.4 Known quirks
 

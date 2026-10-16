@@ -8,8 +8,8 @@ import { StayDay } from "./stay-day.js";
 
 // Both example trips (domain model section 5) are built, laid out, and filled through
 // the services, in moabExample() and sanFranciscoExample(). Only their legs are set
-// directly, until LegsService routes them (phase 19). These check what the services
-// built. The calendar tests check their schedules come out as the examples show.
+// directly, with made-up drive times. These check what the services built. The
+// calendar tests check their schedules come out as the examples show.
 
 function shapeOf(calendar: Calendar, itinerary: Itinerary) {
   return itinerary.days.map((day) => ({
