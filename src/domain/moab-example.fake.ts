@@ -47,6 +47,9 @@ export function moabExample(): MoabExample {
   const trip = newTrip(OWNER, PLANNED_AT);
   const planning = planningFor(trip);
   const { itinerary, calendar, services } = planning;
+  // The brief items the example uses, which the checks compare against.
+  services.tripBrief.setTripLength(trip.tripBrief, 5);
+  services.tripBrief.setComfortableDriving(trip.tripBrief, 4);
   itinerary.startPlace = examplePlace({
     name: "Grand Junction",
     googlePlaceId: "google-Grand Junction",

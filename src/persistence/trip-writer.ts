@@ -1,6 +1,10 @@
 import type { Settings } from "../config/settings.schema.js";
 import type { Place } from "../domain/place.js";
 import type { Calendar } from "../domain/calendar.js";
+import {
+  type CheckComparison,
+  FeasibilityChecker,
+} from "../domain/feasibility-checker.js";
 import { type LegChange, LegsService } from "../domain/legs-service.js";
 import type { RouteFinder } from "../domain/route-finder.js";
 import { newTrip, type Trip } from "../domain/trip.js";
@@ -35,12 +39,21 @@ export interface ChangeContext {
 
 export type Change<T> = (context: ChangeContext) => T | Promise<T>;
 
-// What a write hands back (persistence design, section 8.2). Phase 20 adds
-// checkComparison.
+// Who a write is for (persistence design, section 8.1). Only a coordinator write runs
+// the checks: a worker can't act on a check result, and one saved during its write
+// would be marked already known without ever reaching the coordinator (domain model
+// 4.8).
+export const WRITE_BYS = ["coordinator", "worker"] as const;
+
+export type WriteBy = (typeof WRITE_BYS)[number];
+
+// What a write hands back (persistence design, section 8.2).
 export interface WriteResult<T> {
   readonly changeResult: T;
   // One for each day whose leg the finish added, re-routed, or removed.
   readonly legChanges: readonly LegChange[];
+  // Null after a worker write, which runs no checks.
+  readonly checkComparison: CheckComparison | null;
 }
 
 export interface Clock {
@@ -74,10 +87,14 @@ export class TripWriter {
     this.#options = options;
   }
 
-  async write<T>(tripId: string, change: Change<T>): Promise<WriteResult<T>> {
+  async write<T>(
+    tripId: string,
+    by: WriteBy,
+    change: Change<T>,
+  ): Promise<WriteResult<T>> {
     for (let tries = 1; ; tries++) {
       try {
-        return await this.#writeOnce(tripId, change);
+        return await this.#writeOnce(tripId, by, change);
       } catch (error) {
         if (!(error instanceof TripBusyError) || tries >= BUSY_TRIES) {
           throw error;
@@ -96,7 +113,11 @@ export class TripWriter {
 
   // The four steps of a write (domain model section 1). The lock is taken at the load,
   // before anything changes, so a busy trip is safe to try again.
-  #writeOnce<T>(tripId: string, change: Change<T>): Promise<WriteResult<T>> {
+  #writeOnce<T>(
+    tripId: string,
+    by: WriteBy,
+    change: Change<T>,
+  ): Promise<WriteResult<T>> {
     const { pool, storeFor, settings, clock, routeFinder } = this.#options;
     return inTransaction(pool, async (client) => {
       const store = storeFor(client);
@@ -117,14 +138,38 @@ export class TripWriter {
         legs,
         placeOf: (placeId) => editableTrip.placeOf(placeId),
       });
-      // The finish: legs first, since the checks need the new drive times. Phase 20
-      // adds the checks after them. A failed Google call refuses the whole write.
+      // The finish: legs first, since the checks need the new drive times. A failed
+      // Google call refuses the whole write.
       const legChanges = await legs.updateLegs(trip.itinerary);
+      const checkComparison =
+        by === "coordinator"
+          ? checkAndCompare(
+              trip,
+              new FeasibilityChecker({
+                tripBrief: trip.tripBrief,
+                settings,
+                calendar,
+              }),
+            )
+          : null;
       trip.lastUpdatedDateTime = clock.now();
       // The save checks the lock again, which catches a trip that started during the
       // write, at midnight.
       await store.save(editableTrip, clock.now());
-      return { changeResult, legChanges };
+      return { changeResult, legChanges, checkComparison };
     });
   }
+}
+
+// Works out the current check results, compares them with the saved list, and saves
+// the current list in its place (domain model 4.8, "When it runs").
+function checkAndCompare(
+  trip: Trip,
+  checker: FeasibilityChecker,
+): CheckComparison {
+  const itinerary = trip.itinerary;
+  const current = checker.workOut(itinerary);
+  const comparison = checker.compare(current, itinerary.checkResults);
+  itinerary.replaceCheckResults(current);
+  return comparison;
 }

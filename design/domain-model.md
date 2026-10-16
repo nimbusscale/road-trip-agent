@@ -1147,13 +1147,23 @@ The `FeasibilityChecker` runs the feasibility checks in technical spec section 8
   - **New:** a current check result with no match. Also one whose match was approved and that isn't approved now. Also one whose match had `hasUnselectedStopBefore` true and that has it false now.
   - **Already known:** every other current check result.
   - **Gone:** a saved check result with no current match. Its saved `text` describes it, since its subject may no longer exist.
-- **`isApplying(itinerary : Itinerary, day : Day, kind : ApprovalKind) : boolean`,** and the same with a stop in place of the day. Whether the holder's approval of that kind still covers the plan as it is now. False when it has none. The tool `read_itinerary` uses it to mark each approval as applying or not.
+  - In code, `CheckComparison` holds the three lists as `newResults`, `knownResults`, and `goneResults`.
+- **`isApplying(itinerary : Itinerary, day : Day, kind : ApprovalKind) : boolean`,** and the same with a stop in place of the day. Whether the holder's approval of that kind still covers the plan as it is now. False when it has none. The tool `read_itinerary` uses it to mark each approval as applying or not. In code, it's one method that takes a day or a stop.
 
 | Kind | Applies while |
 |---|---|
 | `DriveHoursApproval` | The day's driving, its leg's road time plus the drive buffer setting, is at most `approvedDrivingInHours` |
 | `RouteTypeApproval` | Always |
-| `OpeningHoursApproval` | `openTimeInMinutesOf()` for the stop is at least `approvedOpenTimeInMinutes` |
+| `OpeningHoursApproval` | `openTimeInMinutesOf()` for the stop is at least `approvedOpenTimeInMinutes`. It doesn't apply while that's empty, such as while the stop's times aren't known |
+
+**How the checks work out their numbers.** Each check reads what the calendar and the legs already give. These are the choices the table in technical spec section 8 leaves open:
+
+- **A day's driving** is its leg's road time plus the drive buffer, rounded up to the whole minute, as one figure for the day. A day with no leg drives 0 minutes. The schedule rounds each drive on its own (section 4.1), so its drives can add up to a few minutes more. The warning says "about," so that's accepted. Example: Moab Day 4's 234 minutes of road time is about 4 h 18 m of driving.
+- **The daily driving warning** is given when the day drives more than the brief's comfortable driving hours, or more than the hours its approval gives, even when those are fewer. It's approved while the approval applies. Its text gives the approved hours when the day has an approval, and the comfortable hours when it doesn't.
+- **The opening-hours check** takes the stop's arrival and end from `scheduleOf()`, and its open minutes from `openTimeInMinutesOf()`. No open minutes is closed for the whole visit. Fewer than the visit is open, but not long enough. The warning gives the first opening or closing during the visit, such as "Milt's closes at 12:30 p.m.," then the arrival time. A stop whose times aren't known yet gives no opening-hours result, except "hours not known," which doesn't depend on the time.
+- **The late check** takes the stop's arrival from `scheduleOf()`. That's when it shows in the schedule, so it covers a stop with no place yet that has a set time.
+- **The stop-order note** is given only when the leg's best order differs from the day's own order, and saves at least the stop-order minimum saving and at least one minute.
+- **The `FeasibilityChecker` isn't made with the other services.** `TripWriter` creates one for each coordinator write, in the finish, with the write's calendar ([persistence design](persistence.md), section 8.2).
 
 **When it runs.** At the end of every coordinator write, after the legs are updated (section 1), code runs `workOut()`, compares the result with the itinerary's `checkResults`, and then saves the current list with `Itinerary.replaceCheckResults()`. The write hands the comparison back to the tool (section 1). A worker's write runs none of this. A read runs `workOut()` and `compare()`, but saves nothing. Which check results a tool's reply includes is a rule of the tools, not of this model (tool design 2.1, and technical spec section 8).
 
