@@ -16,10 +16,10 @@ This document lists the development work, phase by phase, in the order it's done
 - **Some steps need Joe,** such as creating keys in a console. The phase says so.
 - **Some phases list open questions,** after the design sections. Answering them is part of the phase. Each answer is written into the design doc it belongs to, in the same PR.
 - **A phase settles its questions and choices in chat or in the PR.** A phase that says "Settled in: the PR" proposes each answer in the PR description, and Joe agrees by approving the PR. Otherwise, propose each answer to Joe in chat first, and write it in once he agrees.
-- **Some phases run in parallel,** in batches. Claude Code coordinates, and a worker agent does each phase on its own branch. Batch 1 is phases 4 and 5. Batch 2 is phases 6 and 7, and starts once phase 4 is merged. Batch 3 is phases 10, 11, and 12, and starts once phase 10a is merged. Its PRs are merged in that order, since the migrations have to run in order (phase 10a).
+- **Some phases run in parallel,** in batches. Claude Code coordinates, and a worker agent does each phase on its own branch. Batch 1 is phases 4 and 5. Batch 2 is phases 6 and 7, and starts once phase 4 is merged. Batch 3 is phases 10, 11, and 12, and starts once phase 10a is merged. Its PRs are merged in that order, since the migrations have to run in order (phase 10a). Batch 4 is phases 15 to 20, done one at a time overnight, before phase 13, on a `development` branch. [Batch 4](batch-4.md) says how.
 - **When something new comes up,** such as an idea, a test, or a question, write it down right away. If a phase will deal with it, add it to that phase's open questions. If not, add it to the [open items](open-items.md).
 - **Tests in `npm run check` use fakes** for Google, Open-Meteo, Supabase, Claude, and Postgres ([DEVELOPMENT.md](../DEVELOPMENT.md), section 5). Some phases also make a few real calls, or check the database by hand. Those are listed in "Done when."
-- **The thin slice comes early.** Phases 10 to 14 build a small app that works end to end: Joe signs in on the live site and talks with the coordinator about the trip brief and memory. The riskiest parts get tested early: the Max plan on the server, streaming replies, and saved transcripts. The itinerary code and the rest of the tools come after.
+- **The thin slice comes early.** Phases 10 to 14 build a small app that works end to end: Joe signs in on the live site and talks with the coordinator about the trip brief and memory. The riskiest parts get tested early: the Max plan on the server, streaming replies, and saved transcripts. The rest of the tools come after. The itinerary code, phases 15 to 20, was moved ahead of phase 13 on 2026-10-15, so work on the agents can start with the domain finished.
 
 | Phase | What it builds | Done |
 |---|---|---|
@@ -452,7 +452,9 @@ By the end of this part, code can build both example trips through the services,
 
 ### Phase 15. Places
 
-**Design:** [Domain model](../design/domain-model.md), section 3.10. [Persistence design](../design/persistence.md), section 8.6. [Google design](../design/data-sources/google.md), sections 1 and 2.1 to 2.3. [Tool design](../design/tools.md), section 2.3 (`find_place` and `read_place`). [Technical spec](../design/technical-spec.md), section 7.2.
+**Design:** [Domain model](../design/domain-model.md), section 3.10. [Persistence design](../design/persistence.md), section 8.6. [Google design](../design/data-sources/google.md), sections 1 and 2.1 to 2.3. [Technical spec](../design/technical-spec.md), section 7.2.
+
+**2026-10-15:** this phase now runs before phase 13, in [batch 4](batch-4.md). The tools `find_place` and `read_place` moved to phase 21, since they need the coordinator.
 
 **Open questions:**
 
@@ -463,7 +465,6 @@ By the end of this part, code can build both example trips through the services,
 - Add the Google Places client for Text Search. It sends the key in a header, asks only for the fields it needs, has a timeout, and checks responses with Zod. Review text goes to the model labeled as place content.
 - Add `Place`, with its opening periods and short line.
 - Add the places table, `PlaceRepository`, `PlaceWriter`, and `PlaceReader`.
-- Add `find_place` and `read_place` on the `places` server, and give them to the coordinator. `read_place` checks the place belongs to the session's trip.
 - Load the trip's places in `TripRepository`, and add `placeOf()` and `unnamedPlaceIds` to `EditableTrip`. Phase 10 left these out, since there was no places table.
 
 **Done when:**
@@ -472,7 +473,6 @@ By the end of this part, code can build both example trips through the services,
 - A real lookup of "Smitty's Market, Lockhart, TX" stores the place with its opening periods.
 - Looking up the same place twice stores it once.
 - A real lookup of a street address shows whether Google gives it a name.
-- In chat, the coordinator resolves "Moab," and answers "is Milt's open on Mondays?" from `read_place`.
 
 **Ends in:** a PR.
 
@@ -533,6 +533,7 @@ By the end of this part, code can build both example trips through the services,
 - Rejecting the selected Moab hotel clears the stay's lodging, and returns the Moab stay as changed.
 - Each refusal in those sections has a test.
 - The started-trip lock works: a write that loads at 11:59 p.m. the night before the start date and saves after midnight is refused.
+- `MemoryWriter` refuses a change to a trip item once the trip has started. Phase 12a left this test for now.
 
 **Ends in:** a PR.
 
@@ -580,7 +581,7 @@ By the end of this part, the coordinator can build a trip's skeleton and lay out
 
 ### Phase 21. Read the itinerary
 
-**Design:** [Tool design](../design/tools.md), sections 2.1 (`read_itinerary`) and 4. [Technical spec](../design/technical-spec.md), section 7.2.
+**Design:** [Tool design](../design/tools.md), sections 2.1 (`read_itinerary`), 2.3 (`find_place` and `read_place`), and 4. [Technical spec](../design/technical-spec.md), section 7.2.
 
 **Open questions:**
 
@@ -588,11 +589,13 @@ By the end of this part, the coordinator can build a trip's skeleton and lay out
 
 **Do:**
 
+- Add `find_place` and `read_place` on the `places` server, and give them to the coordinator. `read_place` checks the place belongs to the session's trip. These moved here from phase 15.
 - Add `read_itinerary`, for the whole trip or scoped to a day, stay, or stop. Leave out route lines.
 - Measure a full read of a 14-day trip, and find the limit on an in-process MCP tool's result.
 
 **Done when:**
 
+- In chat, the coordinator resolves "Moab," and answers "is Milt's open on Mondays?" from `read_place`.
 - Tests on the example trips show what each scope returns.
 - The measured size and the limit are written into tool design section 2.1. If a full read would be cut off, Joe hears about it before the next phase.
 
