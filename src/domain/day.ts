@@ -36,7 +36,7 @@ export interface DayChanges {
 // stay holds it, or the day before it: the calendar works those out.
 //
 // A day is created with no stops, leg, or waypoints. Services add them, and so does the
-// load, with itineraryFromRecord().
+// load, with itineraryFromStored().
 export abstract class Day {
   abstract readonly kind: "stayDay" | "lastDay";
   readonly id: string;

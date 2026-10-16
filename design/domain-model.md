@@ -107,7 +107,7 @@ The sections below say a follow-on happens "at the end of the write" when it run
 
 The diagram shows only classes that hold stored data. The services and the calendar hold none, so they're in section 4 instead.
 
-How to read the lines: a filled diamond means the object at that end holds the other one, which goes away with it. An arrow means the object points to another one it doesn't hold. An open triangle means the object below is one kind of the object above. The label on a line is the property, in the box at the line's start, that holds the link. The numbers say how many: `1` is exactly one, `0..1` is zero or one, `*` is any number, and `1..*` is one or more. Operations end in `()`.
+How to read the lines: a filled diamond means the object at that end holds the other one, which goes away with it. An arrow means the object points to another one it doesn't hold. An open triangle means the object below is one kind of the object above. A dotted line with an open triangle means the box above is a union: a name for any one of the classes below it, not a class they share. The label on a line is the property, in the box at the line's start, that holds the link. The numbers say how many: `1` is exactly one, `0..1` is zero or one, `*` is any number, and `1..*` is one or more. Operations end in `()`.
 
 ```mermaid
 classDiagram
@@ -281,18 +281,26 @@ classDiagram
     }
 
     class Approval {
+        <<union>>
+        kind : ApprovalKind #123;readOnly#125;
         reason : string #123;readOnly#125;
     }
 
     class DriveHoursApproval {
+        kind : ApprovalKind #123;readOnly#125;
+        reason : string #123;readOnly#125;
         approvedDrivingInHours : decimal #123;readOnly#125;
     }
 
     class RouteTypeApproval {
+        kind : ApprovalKind #123;readOnly#125;
+        reason : string #123;readOnly#125;
         approvedRouteType : RouteType #123;readOnly#125;
     }
 
     class OpeningHoursApproval {
+        kind : ApprovalKind #123;readOnly#125;
+        reason : string #123;readOnly#125;
         approvedOpenTimeInMinutes : integer #123;readOnly#125;
     }
 
@@ -350,9 +358,9 @@ classDiagram
     Day <|-- StayDay
     Day <|-- LastDay
 
-    Approval <|-- DriveHoursApproval
-    Approval <|-- RouteTypeApproval
-    Approval <|-- OpeningHoursApproval
+    Approval <|.. DriveHoursApproval
+    Approval <|.. RouteTypeApproval
+    Approval <|.. OpeningHoursApproval
 ```
 
 The fixed lists that properties above use:
@@ -613,6 +621,7 @@ Whether the text is out of date needs the stay's current dates and activities, w
 **Rules:**
 
 - **The lodging is always one of the stay's candidates.** When its candidate is removed, the stay clears its lodging. Only a rejection removes a candidate (section 4.3).
+- **Places are matched by their `id`,** when the stay looks for a place among its candidates, as `Itinerary.isRejected()` does.
 - **A stay always has a tier,** set when it's created.
 - **A stay holds at least one day,** so it has at least one night.
 - **A set of lodging candidates holds 1 to 3, with no place already among the stay's candidates.** Each candidate in a set gets the set number: one more than the highest set the stay still has, or 0 when it has none. A candidate a worker found also gets the stay's current tier and rule. One the user named gets none (see Candidate). A set that breaks this is refused whole, so a set is never partly written. A selection the stay already has stays selected.
@@ -737,6 +746,7 @@ Whether it fits its day is checked when `StopsService.addStops()` adds it (secti
 **Rules:**
 
 - **The selected place is always one of the stop's candidates.** When its candidate is removed, the stop clears its selected place. Only a rejection removes a candidate (section 4.3).
+- **Places are matched by their `id`,** when the stop looks for a place among its candidates, as `Itinerary.isRejected()` does.
 - **A stop has a visit time exactly when it has a selected place.** Setting a visit time on a stop with no place is refused. Clearing the place clears it.
 - **A set of candidates holds 1 to 3, with no place already among the stop's candidates.** Each candidate in a set gets the set number, and the stop's current tier and rule, the same way as a stay's lodging candidates (see Stay). An attraction has no tier, so its candidates get none. A set that breaks this is refused whole. A selection the stop already has stays selected.
 - **A candidate fits the stop's kind and search area.** An attraction's candidates each have a visit time. A meal's have none, since a meal's visit time is a setting. A candidate has a detour time exactly when the stop is along the leg and a worker found it. A set with a candidate that doesn't fit is refused whole.
@@ -751,7 +761,7 @@ Whether it fits its day is checked when `StopsService.addStops()` adds it (secti
 
 Whether an approval still applies needs the day's driving or the stop's place in the schedule, which the approval can't see. So it's `FeasibilityChecker.isApplying()` (section 4.8).
 
-Each kind is its own class below `Approval`, because each holds a different value:
+Each kind is its own class, because each holds a different value. In code, the three are separate classes with no shared base. Each has a `kind` field and a `reason`. `Approval` is a type that means any one of them, a tagged union, and code tells them apart by `kind`. A day's `approvals` is typed as drive hours or route type approvals only, and a stop's as opening hours approvals only. So the type checker keeps each kind on its holder.
 
 | Kind | Held by | Value | Covers |
 |---|---|---|---|
