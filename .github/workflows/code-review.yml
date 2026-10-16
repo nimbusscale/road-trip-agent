@@ -5,7 +5,8 @@ name: Code review
 
 # Runs when a PR is opened or gets a new commit. A push to a branch with no PR doesn't
 # run it. Only PRs that change the app's code, settings, migrations, images, server
-# files, or workflows are reviewed. Docs, plans, and tool config files aren't.
+# files, or workflows are reviewed. Docs, plans, tool config files, and dependency
+# changes in package.json aren't. The reviewer can't see inside a dependency anyway.
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
@@ -51,12 +52,13 @@ jobs:
         with:
           node-version: 24
       - run: npm install --global "@anthropic-ai/claude-code@$CLAUDE_CODE_VERSION"
-      - name: Install bubblewrap
-        # The token scrub below runs each command in a bubblewrap sandbox. Ubuntu 24.04
-        # blocks the namespaces bubblewrap needs, so allow them on this runner.
+      - name: Install the sandbox tools
+        # The token scrub below runs each command in a sandbox, which needs bubblewrap and
+        # socat. Ubuntu 24.04 blocks the namespaces bubblewrap needs, so allow them on
+        # this runner.
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq bubblewrap
+          sudo apt-get install -y -qq --no-install-recommends bubblewrap socat
           sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
 
       - name: Review the PR
@@ -64,11 +66,12 @@ jobs:
         timeout-minutes: 25
         # The token is the Max subscription (research doc section 4.2). The reviewer
         # gets read-only tools, plus gh to read the PR and post comments. The Edit and
-        # Write tools and the web tools are blocked, and so is node, since the code under
-        # review holds Google text that could carry instructions. The scrub keeps the
-        # Claude token out of the commands the reviewer runs. sed, awk, and gh could
-        # still write a file or call GitHub. That's accepted, since only this repo's own
-        # PRs are reviewed, and a PR can change this workflow anyway.
+        # Write tools and the web tools are blocked. Calling node directly is blocked too,
+        # though git, awk, sed, and find could still start a program. The scrub keeps the
+        # Claude token out of every command the reviewer runs, since the code under review
+        # holds Google text that could carry instructions. What's left is the job's GitHub
+        # token, which can only read code and write PR comments. That's accepted, since
+        # only this repo's own PRs are reviewed, and a PR can change this workflow anyway.
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: 1
@@ -81,6 +84,8 @@ jobs:
             -- "/code-review high --comment $PR_NUMBER" > "$RUNNER_TEMP/review.json"
           jq -r '.result' "$RUNNER_TEMP/review.json" >> "$GITHUB_STEP_SUMMARY"
           jq -r '"\nCost at API prices: $\(.total_cost_usd)"' "$RUNNER_TEMP/review.json" >> "$GITHUB_STEP_SUMMARY"
+          # Fails the step when the run itself failed, such as a bad token or a usage limit.
+          jq -e '.is_error == false' "$RUNNER_TEMP/review.json" > /dev/null
 
       - name: Save the transcript
         # Shows what the reviewer read, such as whether it opened the PR's comments.
