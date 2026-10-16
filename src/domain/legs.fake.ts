@@ -60,7 +60,10 @@ export function legsFor(planning: Planning): WithLegs {
 export function sanFranciscoDay2(): Planning & WithLegs & { day2: StayDay } {
   const planning = planningFor(newTrip(OWNER, PLANNED_AT));
   const { itinerary, services } = planning;
-  itinerary.startPlace = placeAt("San Francisco", 37.7749, -122.4194);
+  services.itinerary.setStartPlace(
+    itinerary,
+    placeAt("San Francisco", 37.7749, -122.4194),
+  );
   itinerary.endPlace = placeAt("Mike's house", 34.09, -118.27);
   services.itinerary.setStartDate(itinerary, new CalendarDate(2027, 5, 13));
   const monterey = addStay(planning, MONTEREY, null);

@@ -23,6 +23,7 @@ export interface ItineraryFields {
 // The change methods only services reach (domain model section 1). Each runs the
 // itinerary's own rules.
 export interface ItineraryChanges {
+  setStartPlace(startPlace: Place): void;
   setStartDate(startDate: CalendarDate): void;
   // Puts the stay after `after`, or first when it's null. A stay already in the
   // itinerary moves.
@@ -46,6 +47,9 @@ export class Itinerary {
   #checkResults: CheckResult[];
 
   readonly [VIA_SERVICE]: ItineraryChanges = {
+    setStartPlace: (startPlace) => {
+      this.#startPlace = startPlace;
+    },
     setStartDate: (startDate) => {
       this.#startDate = this.#checkedStartDate(startDate);
     },
@@ -83,12 +87,9 @@ export class Itinerary {
   }
 
   // Where the trip starts. Empty until the coordinator sets it, and never emptied.
+  // ItineraryService.setStartPlace() sets it.
   get startPlace(): Place | null {
     return this.#startPlace;
-  }
-
-  set startPlace(value: Place | null) {
-    this.#startPlace = keptValue(value, "The itinerary's startPlace");
   }
 
   // The same place as startPlace on a loop trip.

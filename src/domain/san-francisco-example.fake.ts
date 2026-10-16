@@ -44,21 +44,8 @@ export function sanFranciscoExample(): SanFranciscoExample {
   const trip = newTrip(OWNER, PLANNED_AT);
   const planning = planningFor(trip);
   const { itinerary, calendar, services } = planning;
-  itinerary.startPlace = examplePlace({
-    name: "San Francisco",
-    googlePlaceId: "google-San Francisco",
-    latitude: 37.7749,
-    longitude: -122.4194,
-  });
-  const mikesHouse = examplePlace({
-    name: null,
-    type: null,
-    googlePlaceId: "google-Mike's house",
-    address: "1234 Silver Lake Blvd, Los Angeles, CA 90026, USA",
-    openingPeriods: [],
-  });
-  mikesHouse.fillName("Mike's house");
-  itinerary.endPlace = mikesHouse;
+  services.itinerary.setStartPlace(itinerary, sanFrancisco());
+  itinerary.endPlace = mikesHouse();
   services.itinerary.setStartDate(itinerary, new CalendarDate(2027, 5, 13));
   const monterey = addStay(planning, "Monterey", null);
   const sanLuisObispo = addStay(planning, "San Luis Obispo", monterey);
@@ -88,6 +75,28 @@ export function sanFranciscoExample(): SanFranciscoExample {
     firestoneGrill,
     day2Segments: DAY_2_SEGMENTS,
   };
+}
+
+function sanFrancisco(): Place {
+  return examplePlace({
+    name: "San Francisco",
+    googlePlaceId: "google-San Francisco",
+    latitude: 37.7749,
+    longitude: -122.4194,
+  });
+}
+
+// An address Google has no name for, named by the coordinator.
+function mikesHouse(): Place {
+  const place = examplePlace({
+    name: null,
+    type: null,
+    googlePlaceId: "google-Mike's house",
+    address: "1234 Silver Lake Blvd, Los Angeles, CA 90026, USA",
+    openingPeriods: [],
+  });
+  place.fillName("Mike's house");
+  return place;
 }
 
 function addStay(planning: Planning, town: string, after: Stay | null): Stay {

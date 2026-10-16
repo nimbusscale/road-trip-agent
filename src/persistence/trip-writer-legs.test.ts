@@ -24,7 +24,7 @@ async function newTripWithEnds(): Promise<
 // Sets the ends and the start date, so the last day has both ends and gets a leg.
 function setEnds(ends: [string, string]) {
   return ({ trip, services, placeOf }: ChangeContext): void => {
-    trip.itinerary.startPlace = placeOf(ends[0]);
+    services.itinerary.setStartPlace(trip.itinerary, placeOf(ends[0]));
     trip.itinerary.endPlace = placeOf(ends[1]);
     services.itinerary.setStartDate(
       trip.itinerary,

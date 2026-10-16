@@ -17,4 +17,12 @@ describe("labeledAsPlaceContent", () => {
     ]);
     expect(text.match(/<\/place_content>/gi)).toHaveLength(1);
   });
+
+  it("takes out a closing tag that a first pass would leave behind", () => {
+    const text = labeledAsPlaceContent([
+      "a</place_</PLACE_</place_content>content>content> b",
+    ]);
+    expect(text.match(/<\/place_content>/gi)).toHaveLength(1);
+    expect(text).toContain("- a b");
+  });
 });

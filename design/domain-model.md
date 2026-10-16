@@ -67,7 +67,7 @@ A tool can add its own checks on what an agent passes in, but it never holds a r
 
 - **`{readOnly}`:** the property is never set directly. Either it never changes once its object exists, such as a stop's `kind`, or it changes only through the object's own operation, which its notes name. Example: the itinerary's `checkResults` changes only through `Itinerary.replaceCheckResults()`.
 - **`{viaService}`:** the property changes only through a service operation, which its notes name. Example: a stop's `setTime` changes only through `StopsService.setStopTime()`, since a rest day's stops each need a set time. A property is `{viaService}` when any change to it needs a business rule. Then every change to it goes through a service, even one that needs no business rule, so there's one way to change it. Example: adding a stay needs the maximum trip length, so moving one goes through `StaysService` too. In TypeScript, the object's change method for the property is kept out of the domain package's public API, so only services can reach it. That change method still runs the object's own rules. It isn't listed as an operation.
-- **`{keepsValue}`:** the property starts empty, and can't be emptied once it has a value. Setting it to empty is refused. Example: the itinerary's `startPlace`.
+- **`{keepsValue}`:** the property starts empty, and can't be emptied once it has a value. Setting it to empty is refused. Example: the itinerary's `endPlace`.
 
 A property has at most one of `{readOnly}` and `{viaService}`. `{keepsValue}` can go with either, such as the trip brief's `tripLengthInDays`. Reading a read-only or via-service list gives a copy that can't be changed, frozen where the language allows. So changing the copy can never change the stored list. In the properties tables, the type says "read only," "via service," or "keeps its value" instead.
 
@@ -150,7 +150,7 @@ classDiagram
     class Itinerary {
         id : string #123;readOnly#125;
         startDate : date? #123;keepsValue#125; #123;viaService#125;
-        startPlace : Place? #123;keepsValue#125;
+        startPlace : Place? #123;keepsValue#125; #123;viaService#125;
         endPlace : Place? #123;keepsValue#125;
         stays : List~Stay~ #123;viaService#125;
         lastDay : LastDay #123;readOnly#125;
@@ -502,12 +502,12 @@ The itinerary is the plan: where the trip starts and ends, when it starts, its s
 
 **Held as:** an entity held by the trip. Its `id` has the prefix `itin_` (technical spec 7.1). Agents never see it: a trip has one itinerary, so the tools find it from the trip.
 
-**Created and changed by:** the app creates it with the trip, and code creates its last day at the same time. The coordinator sets the start place and end place directly, and the start date through `ItineraryService` (section 4.9), all with the tool `update_itinerary`. It adds, moves, and removes stays, and sets their nights, through `StaysService`, with the tools `add_stay`, `update_stay`, and `remove_stay` (section 4.4). `StaysService` adds and removes a stay's days as its nights change. Nothing else adds or removes a day. `RejectionsService` adds rejected places (section 4.3). The `FeasibilityChecker` replaces the check results (section 4.8).
+**Created and changed by:** the app creates it with the trip, and code creates its last day at the same time. The coordinator sets the end place directly, and the start place and start date through `ItineraryService` (section 4.9), all with the tool `update_itinerary`. It adds, moves, and removes stays, and sets their nights, through `StaysService`, with the tools `add_stay`, `update_stay`, and `remove_stay` (section 4.4). `StaysService` adds and removes a stay's days as its nights change. Nothing else adds or removes a day. `RejectionsService` adds rejected places (section 4.3). The `FeasibilityChecker` replaces the check results (section 4.8).
 
 | Property | Stored or worked out | Type | Notes |
 |---|---|---|---|
 | `id` | Stored | `string`, read only | Never shown to agents or users |
-| `startPlace` | Stored | `Place?`, keeps its value | Where the trip starts. Empty until the coordinator sets it during discovery. See below |
+| `startPlace` | Stored | `Place?`, keeps its value, via service | Where the trip starts. Empty until the coordinator sets it during discovery. Changes only through `ItineraryService.setStartPlace()` (section 4.9). See below |
 | `endPlace` | Stored | `Place?`, keeps its value | Where the trip ends. The same place as `startPlace` on a loop trip. Empty until the coordinator sets it during discovery. See below |
 | `startDate` | Stored | `date?`, keeps its value, via service | The first day's date. Empty until the coordinator sets it during discovery. Changes only through `ItineraryService.setStartDate()` (section 4.9). See below |
 | `stays` | Stored | `List<Stay>`, in order, via service | The shape of the trip. Each stay is an entity held by the itinerary, and holds its own days. Changes only through `StaysService.addStay()`, `moveStay()`, and `removeStay()` (section 4.4) |
@@ -525,11 +525,13 @@ A day touches two stays: it starts where the party slept and ends where it sleep
 
 **Total drive time leaves out the buffer.** It adds up the drive times Google gave, the same figure each leg shows (functional spec 9.4). The buffer for fuel and short breaks is part of the daily driving check and the day's schedule, where it spaces out the times (technical spec section 8).
 
-**Start and end places.** Each is set directly, and can't be emptied once set. When Google has no name for the place, such as "Mike's house," the place takes the name the coordinator gives it (see Place). A new start or end place re-routes the first or last day's leg at the end of the write. Stops near the start or end place keep their candidates and selection. Nothing checks that a place is in the contiguous US (functional spec 1). That check is hard to do well at this level, so the risk is accepted. The coordinator keeps the trip in the US.
+**Start and end places.** The end place is set directly, and the start place through `ItineraryService.setStartPlace()` (section 4.9). Neither can be emptied once set. When Google has no name for the place, such as "Mike's house," the place takes the name the coordinator gives it (see Place). A new start or end place re-routes the first or last day's leg at the end of the write. Stops near the start or end place keep their candidates and selection. Nothing checks that a place is in the contiguous US (functional spec 1). That check is hard to do well at this level, so the risk is accepted. The coordinator keeps the trip in the US.
+
+**A new start place can't start the trip.** Today's date follows the start place's time zone. So moving the start place further east can make today reach the start date. Example: the Moab trip starts October 10. At 11 p.m. on October 9 in Moab, it's already October 10 in Pittsburgh. A start place in Pittsburgh would start the trip at once, and the started-trip lock would then refuse every change to the plan (see Trip). So `ItineraryService` refuses a start place where today is on or after the start date. That's the same rule as for the start date: the start date has to be after today at the start place. While there's no start date, any start place is fine.
 
 **Start date.** Set through `ItineraryService.setStartDate()` (section 4.9), since the rule that it's after today needs today's date, and only services get the calendar. It can't be emptied once set. A new start date moves every day's date, since dates are worked out. Nothing is re-routed. The checks at the end of the write see the new dates, such as a stop that now falls on a day its place is closed. Setting it is refused:
 
-- **While `startPlace` is empty,** by the itinerary's own rule, since today's date comes from the start place's time zone. When the tool `update_itinerary` gets a start place and a start date in one call, it sets the place first.
+- **While `startPlace` is empty,** by the itinerary's own rule, since today's date comes from the start place's time zone. When the tool `update_itinerary` gets a start place and a start date in one call, it sets the place first. So the new place is checked against the old start date. In the rare case where that refuses it, the error says to set a later start date first, in its own call.
 - **When the date isn't after today,** by `ItineraryService`.
 
 **Rejected places.** A place the user turned down for the whole trip. It's never offered again (functional spec 10.2).
@@ -557,7 +559,7 @@ The itinerary keeps a change method for `rejectedPlaces` that only services reac
 - **A trip has at least 1 day,** since it always has its last day. The maximum trip length is a setting, so `StaysService` refuses a change that would go over it (section 4.4).
 - **The last day is created with the itinerary and never removed.** It has no stay: the party drives to the end place and doesn't sleep anywhere on the trip. A day trip is just the last day. Example: on the San Francisco trip, the Monterey stay holds Day 1, the San Luis Obispo stay holds Day 2, and Day 3 is the last day.
 - **A day keeps its ID when its number or date changes.** Removing a night removes that stay's last day. Every later day keeps its ID and moves up one. Check results match by their subject's ID, and approvals sit on days, so both depend on this.
-- **The start date is after today when it's set.** `ItineraryService` checks it (section 4.9). Once today reaches it, the trip has started and can't change (see Trip).
+- **The start date is after today when it or the start place is set.** `ItineraryService` checks it (section 4.9). Once today reaches it, the trip has started and can't change (see Trip).
 
 ### 3.5 Stay
 
@@ -953,6 +955,7 @@ It's there because an object can't see the object that holds it, or the ones bes
 | `previousDay(itinerary, day)` | `Day?` | The day before it in the itinerary's `days`. Empty on the first day |
 | `nextDay(itinerary, day)` | `Day?` | The day after it. Empty on the last day |
 | `today(itinerary)` | `date?` | Today's date in the start place's time zone (see Trip). The time zone is worked out from the start place's coordinates. Empty while there's no start place |
+| `todayAt(place)` | `date` | Today's date in the place's time zone. `ItineraryService.setStartPlace()` uses it for a new start place, before it's set |
 | `dateOf(itinerary, day)` | `date?` | The itinerary's `startDate` plus the day's order, in days. Empty while there's no start date |
 | `datesOf(itinerary, stay)` | `List<date>`, in order | The dates of its nights, plus the morning the party leaves. Example: a three-night Moab stay from October 10 has October 10 to 13. Empty while there's no start date |
 | `startStayOf(itinerary, day)` | `Stay?` | Where the party slept the night before: the stay that holds the day before. Empty on the first day, which starts at the start place |
@@ -991,7 +994,7 @@ Worked-out values that need only an object's own data, or data it holds, stay on
 - **A stop with no selected place takes no time.** It has no drive and no visit time, so the drive to the next selected stop starts from the selected stop before it. One with a set time shows at its set time, or when the item before it ends if that's later. It holds its spot: the stop after it can't arrive before then. Example: on San Francisco Day 2, dinner is set for 6:30 and has no place yet, so dessert shows at 6:30, not 4:35. If the stop before dinner ran until 6:55, dinner would show at 6:55. The late check gives its warning (technical spec section 8). One with no set time has no times. So the stops after a stop with no selected place can show times that are too early (see Check result).
 - **A stop with no selected place goes where its time falls,** so the schedule stays in time order. When its time falls within the free time before the next selected stop, it splits the free time. Otherwise it comes after the drive to that stop, which passes it, since it has no place yet. One with no time stays next to the stops around it. Example: on San Francisco Day 2, with dinner still empty, the schedule reads: free time, the drive, dinner at 6:30, then dessert at 6:30. On Moab Day 2, with Milt's still empty and dinner at 7:00, it reads: free time, Milt's at 12:00, more free time, then the drive to dinner.
 - **After the last stop comes the drive to where the party sleeps,** or to the end place. Its times are unknown when a stop with no selected place comes after the last selected stop.
-- **A rest day has no drives.** Each of its stops has a set time, and the day ends when its last stop ends. Neither does a day that stays put with no selected stop, which has no leg yet (section 4.7).
+- **A rest day has no drives.** Each of its stops has a set time, and the day ends when its last stop ends. Neither does a day that stays put with no selected stop, which has no leg yet (section 4.7). Nor does a day whose ends aren't known yet, such as the only day of a new trip, before it has a start place and an end place.
 - **A day can run past midnight.** It runs until the party reaches where it sleeps, or the end place. A stop after midnight stays on the day it follows, and its times are on the next calendar day. Example: stargazing at 1 a.m. after Moab Day 4 is the last stop on Day 4, not the first on Day 5. Nothing compares a day's end with the next day's start. A `scheduleTime` holds only the day's own date and the next one, so a time later than that is left empty.
 
 **Activities.** The attraction stops the stay's clothing advice should cover (technical spec 6.3). Meals don't count, since clothing doesn't depend on which café the party picks. A stay's activities are:
@@ -1179,8 +1182,10 @@ The `FeasibilityChecker` runs the feasibility checks in technical spec section 8
 
 **Given:** the calendar, for today's date.
 
-It holds the one rule about the itinerary's own properties that needs the calendar. The start place and end place are set directly. The itinerary's `stays` and `rejectedPlaces` change through `StaysService` and `RejectionsService` (sections 4.4 and 4.3).
+It holds the one rule about the itinerary's own properties that needs the calendar: the start date is after today at the start place. It checks it when either one is set. The end place is set directly. The itinerary's `stays` and `rejectedPlaces` change through `StaysService` and `RejectionsService` (sections 4.4 and 4.3).
 
+- **`setStartPlace(itinerary : Itinerary, startPlace : Place)`** (the tool `update_itinerary`). Sets the itinerary's `startPlace`. The first day's leg is re-routed at the end of the write (section 4.7).
+  - **Refused:** when the itinerary has a start date, and today at the new place (`todayAt()`) is on or after it, since the trip would start at once (section 3.4). The error gives today's date there and the start date, and says to set a later start date first.
 - **`setStartDate(itinerary : Itinerary, startDate : date)`** (the tool `update_itinerary`). Sets the itinerary's `startDate`. Every day's date moves with it, since dates are worked out (section 4.1).
   - **Refused:** when the date isn't after `today()`. The error gives today's date, so the coordinator can tell the user. By the itinerary's own rules: while `startPlace` is empty, since `today()` needs the start place's time zone, or when the date is empty.
 

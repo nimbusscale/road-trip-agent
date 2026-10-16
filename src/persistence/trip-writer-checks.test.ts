@@ -16,7 +16,7 @@ async function shortTrip(): Promise<ReturnType<typeof setUp> & { id: string }> {
     examplePlace({ name: "Mike's house", googlePlaceId: "google-la" }),
   ]);
   await fixture.writer.write(id, "worker", ({ trip, services, placeOf }) => {
-    trip.itinerary.startPlace = placeOf(start?.id ?? "");
+    services.itinerary.setStartPlace(trip.itinerary, placeOf(start?.id ?? ""));
     trip.itinerary.endPlace = placeOf(end?.id ?? "");
     services.itinerary.setStartDate(
       trip.itinerary,

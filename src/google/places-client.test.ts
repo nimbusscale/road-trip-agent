@@ -217,7 +217,33 @@ describe("PlacesClient.searchText", () => {
       `didn't answer within ${String(TIMEOUT_MILLISECONDS / 1000)} seconds`,
     );
   });
+
+  it("gives up when the time runs out while the reply is still being read", async () => {
+    const stallsInBody: typeof fetch = () =>
+      Promise.resolve(new Response(bodyThatTimesOut()));
+    const client = new PlacesClient({ apiKey: API_KEY, fetch: stallsInBody });
+    await expect(client.searchText("x", 1)).rejects.toThrow(
+      `Google Places didn't answer within ${String(TIMEOUT_MILLISECONDS / 1000)} seconds. Try again.`,
+    );
+  });
+
+  it("refuses a reply that isn't JSON as one it doesn't understand", async () => {
+    await expect(
+      clientFor("<html>Oops</html>").client.searchText("x", 1),
+    ).rejects.toThrow(
+      "Google Places sent a response the app doesn't understand",
+    );
+  });
 });
+
+// A body whose stream fails the way fetch's timeout makes it fail.
+function bodyThatTimesOut(): ReadableStream<Uint8Array> {
+  return new ReadableStream({
+    start(controller) {
+      controller.error(new DOMException("timed out", "TimeoutError"));
+    },
+  });
+}
 
 function onlyPlace(places: readonly Place[]): Place {
   const [place] = places;

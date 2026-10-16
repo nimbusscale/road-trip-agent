@@ -72,7 +72,12 @@ export class Calendar {
   // Today's date in the start place's time zone. Empty while there's no start place.
   today(itinerary: Itinerary): CalendarDate | null {
     const startPlace = itinerary.startPlace;
-    return startPlace === null ? null : todayAt(startPlace, this.#given.now());
+    return startPlace === null ? null : this.todayAt(startPlace);
+  }
+
+  // Today's date in the place's time zone, such as a new start place before it's set.
+  todayAt(place: Place): CalendarDate {
+    return todayAt(place, this.#given.now());
   }
 
   dateOf(itinerary: Itinerary, day: Day): CalendarDate | null {
@@ -220,10 +225,17 @@ export class Calendar {
     });
   }
 
-  // A rest day has no drives, and nor does a day that stays put with no selected stop,
-  // since it has nothing to drive to (domain model 4.7, "Which days have a leg").
+  // A rest day has no drives, and nor does a day whose ends aren't known yet, or a day
+  // that stays put with no selected stop, since it has nothing to drive to (domain
+  // model 4.7, "Which days have a leg").
   #hasDrives(itinerary: Itinerary, day: Day): boolean {
     if (day instanceof StayDay && day.isRestDay) {
+      return false;
+    }
+    if (
+      this.fromPlaceOf(itinerary, day) === null ||
+      this.toPlaceOf(itinerary, day) === null
+    ) {
       return false;
     }
     return (

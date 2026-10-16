@@ -8,6 +8,7 @@ import type {
   StopsPath,
 } from "../domain/route-finder.js";
 import { googleErrorBodySchema } from "./google-error.schema.js";
+import { jsonBodyOf } from "./json-body.js";
 import { type GoogleRoute, routesResponseSchema } from "./routes.schema.js";
 
 const COMPUTE_ROUTES_URL =
@@ -118,6 +119,7 @@ export class RoutesClient implements RouteFinder {
 
   async #post(request: object, fieldMask: string): Promise<unknown> {
     let response: Response;
+    let body: unknown;
     try {
       response = await this.#options.fetch(COMPUTE_ROUTES_URL, {
         method: "POST",
@@ -130,10 +132,11 @@ export class RoutesClient implements RouteFinder {
         body: JSON.stringify(request),
         signal: AbortSignal.timeout(TIMEOUT_MILLISECONDS),
       });
+      // The timeout covers reading the body too.
+      body = await jsonBodyOf(response);
     } catch (error) {
       throw new GoogleRoutesError(failedCallMessage(error), { cause: error });
     }
-    const body: unknown = await response.json().catch(() => null);
     if (!response.ok) {
       const detail = googleErrorBodySchema.safeParse(body);
       throw new GoogleRoutesError(

@@ -148,6 +148,22 @@ describe("RoutesClient.route", () => {
     ).rejects.toThrow("Google Routes gave 2 segments for a route with 1.");
   });
 
+  // Google's answer on 2026-10-16 for Monterey to Monterey, with no stops: one leg of
+  // "0s", no distance, and a route line of one point (open item 19).
+  it("routes a day that starts and ends at the same place as 0 minutes and 0 miles", async () => {
+    const { client } = clientFor(savedResponse("route-same-place"));
+    const route = await client.route({
+      from: MONTEREY,
+      through: [],
+      to: MONTEREY,
+    });
+    expect(route).toEqual({
+      segmentDriveTimesInMinutes: [0],
+      distanceInMiles: 0,
+      routeLine: "c|j~Efe_gV",
+    });
+  });
+
   it("counts a segment Google leaves no duration on as 0 minutes", async () => {
     const { client } = clientFor(
       JSON.stringify({
@@ -178,6 +194,25 @@ describe("RoutesClient.route", () => {
         Promise.reject(new DOMException("timed out", "TimeoutError")),
     });
     await expect(failing.route(THROUGH_BIG_SUR)).rejects.toThrow(
+      "Google Routes didn't answer within 10 seconds. Try again.",
+    );
+  });
+
+  it("refuses a call whose time runs out while the reply is still being read", async () => {
+    const stallsInBody = new RoutesClient({
+      apiKey: API_KEY,
+      fetch: () =>
+        Promise.resolve(
+          new Response(
+            new ReadableStream({
+              start(controller) {
+                controller.error(new DOMException("timed out", "TimeoutError"));
+              },
+            }),
+          ),
+        ),
+    });
+    await expect(stallsInBody.route(THROUGH_BIG_SUR)).rejects.toThrow(
       "Google Routes didn't answer within 10 seconds. Try again.",
     );
   });

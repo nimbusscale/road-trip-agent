@@ -18,7 +18,7 @@ import { newTrip } from "./trip.js";
 function readyToAddStays(): Planning {
   const planning = planningFor(newTrip(OWNER, new Date()));
   const { itinerary, services } = planning;
-  itinerary.startPlace = placeNamed("Grand Junction");
+  services.itinerary.setStartPlace(itinerary, placeNamed("Grand Junction"));
   itinerary.endPlace = placeNamed("Salt Lake City");
   services.itinerary.setStartDate(itinerary, new CalendarDate(2027, 10, 10));
   return planning;
@@ -58,7 +58,10 @@ describe("StaysService.addStay", () => {
 
   it("refuses until the itinerary has its start place, end place, and start date", () => {
     const planning = planningFor(newTrip(OWNER, new Date()));
-    planning.itinerary.startPlace = placeNamed("Grand Junction");
+    planning.services.itinerary.setStartPlace(
+      planning.itinerary,
+      placeNamed("Grand Junction"),
+    );
     expect(() => addStay(planning, "Moab", 1)).toThrow(
       "It still needs its end place, start date.",
     );

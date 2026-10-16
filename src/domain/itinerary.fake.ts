@@ -36,7 +36,7 @@ export function exampleMoabTrip(owner: User): ExampleTrip {
   const places = examplePlaces();
   const trip = newTrip(owner, new Date("2026-10-15T09:00:00Z"));
   const itinerary = trip.itinerary;
-  itinerary.startPlace = places.grandJunction;
+  itinerary[VIA_SERVICE].setStartPlace(places.grandJunction);
   itinerary.endPlace = places.saltLakeCity;
   itinerary[VIA_SERVICE].setStartDate(new CalendarDate(2027, 10, 10));
   const moab = newStay({

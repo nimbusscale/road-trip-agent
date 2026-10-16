@@ -45,12 +45,15 @@ export class PlaceRepository implements PlaceStore {
       return [];
     }
     // A place the trip already has keeps its row, and the new facts are dropped
-    // (domain model 3.10).
+    // (domain model 3.10). The rows go in by Google place ID, so two saves of the same
+    // new places wait for each other in the same order, and can't deadlock
+    // (persistence design, section 4).
+    const inInsertOrder = [...places].sort(byGooglePlaceId);
     await this.connection.query(
       `INSERT INTO places (${PLACE_COLUMNS.join(", ")})
-       VALUES ${[...places.keys()].map(placeholdersOf).join(", ")}
+       VALUES ${[...inInsertOrder.keys()].map(placeholdersOf).join(", ")}
        ON CONFLICT (trip_id, google_place_id) DO NOTHING`,
-      places.flatMap((place) => valuesOf(tripId, place)),
+      inInsertOrder.flatMap((place) => valuesOf(tripId, place)),
     );
     const { rows } = await this.connection.query(
       `${SELECT_PLACES} WHERE trip_id = $1 AND google_place_id = ANY($2)`,
@@ -83,6 +86,15 @@ export class PlaceRepository implements PlaceStore {
       );
     }
   }
+}
+
+// Compares the IDs as plain strings, so every copy of the app sorts them the same way,
+// whatever its locale.
+function byGooglePlaceId(one: Place, other: Place): number {
+  if (one.googlePlaceId === other.googlePlaceId) {
+    return 0;
+  }
+  return one.googlePlaceId < other.googlePlaceId ? -1 : 1;
 }
 
 function toPlace(row: unknown): Place {

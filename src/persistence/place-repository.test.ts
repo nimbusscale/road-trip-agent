@@ -64,6 +64,29 @@ describe("PlaceRepository", () => {
     expect(insert?.text).not.toContain("Smitty");
   });
 
+  it("adds the rows in Google place ID order, so two saves can't deadlock", async () => {
+    const connection = new FakeConnection();
+    const later = examplePlace({ googlePlaceId: "ChIJz" });
+    const earlier = exampleAddress();
+    const middle = examplePlace({ googlePlaceId: "ChIJm" });
+    await new PlaceRepository(connection)
+      .addPlaces(TRIP_ID, [later, earlier, middle])
+      .catch(() => []);
+    const values = connection.calls[0]?.values ?? [];
+    const idAt = PLACE_COLUMNS.indexOf("google_place_id");
+    const inserted = [0, 1, 2].map(
+      (row) => values[row * PLACE_COLUMNS.length + idAt],
+    );
+    expect(inserted).toEqual(
+      [later, earlier, middle].map((place) => place.googlePlaceId).sort(),
+    );
+    expect(inserted).not.toEqual([
+      later.googlePlaceId,
+      earlier.googlePlaceId,
+      middle.googlePlaceId,
+    ]);
+  });
+
   it("reads back a stored place as it was saved", async () => {
     const place = examplePlace();
     const rows = await storedRowsOf([place]);

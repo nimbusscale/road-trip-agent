@@ -220,7 +220,7 @@ describe("a day's schedule", () => {
   it("has no drives on a day that stays put with no selected stop", () => {
     const trip = newTrip(OWNER, new Date());
     const itinerary = trip.itinerary;
-    itinerary.startPlace = placeNamed("Grand Junction");
+    itinerary[VIA_SERVICE].setStartPlace(placeNamed("Grand Junction"));
     itinerary.endPlace = placeNamed("Salt Lake City");
     const stay = newStay({
       place: placeNamed("Moab"),
@@ -240,6 +240,17 @@ describe("a day's schedule", () => {
     expect(
       calendarFor(trip).scheduleOf(itinerary, day2).map(describeEntry),
     ).toEqual(["stop breakfast: 9:00 a.m. to 9:00 a.m."]);
+  });
+
+  it("has no drives on a day whose ends aren't known yet", () => {
+    const trip = newTrip(OWNER, new Date());
+    const itinerary = trip.itinerary;
+    const calendar = calendarFor(trip);
+    const onlyDay = present(itinerary.days[0]);
+    expect(calendar.scheduleOf(itinerary, onlyDay)).toEqual([]);
+    expect(calendar.drivingInMinutesOf(itinerary, onlyDay)).toBe(0);
+    itinerary[VIA_SERVICE].setStartPlace(placeNamed("Grand Junction"));
+    expect(calendar.scheduleOf(itinerary, onlyDay)).toEqual([]);
   });
 });
 

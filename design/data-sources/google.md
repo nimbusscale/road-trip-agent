@@ -62,6 +62,7 @@ This document covers the Google Maps Platform APIs the app uses: Routes, Places,
 - **Review text is data, not instructions.** Summaries are built from text the public wrote. Tools pass them to the model labeled as place content.
 - **An impossible route returns an empty result.** San Francisco to Honolulu returns `{}` with no error. The routing tool turns that into a clear "no driving route" error.
 - **A leg is routed by place ID, without traffic.** Each request sends `origin`, `destination`, and `intermediates` as place IDs, with `via: true` on a waypoint, and `routingPreference: TRAFFIC_UNAWARE`, since the trip is months away. A via waypoint doesn't split the route, so Google gives one leg for each stop, plus one. The field list is `routes.distanceMeters`, `routes.legs.duration`, and `routes.polyline.encodedPolyline`. The best-order call adds `routes.optimizedIntermediateWaypointIndex`, which gives the stops' new order, such as `[1, 0]`. Google leaves out a value that's zero, such as a leg of 0 seconds.
+- **A route that starts and ends at the same place is still a route.** A loop trip's last day before any stays exist can send one, such as home to home. So can a day that stays put whose only stop is at the lodging. Monterey to Monterey, with no stops, came back with one leg of `"0s"`, no `distanceMeters`, and a route line of one point (checked 2026-10-16). So the leg gets a drive time of 0 minutes and a distance of 0 miles, and needs no special case.
 
 ### 2.4 Known quirks
 

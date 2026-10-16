@@ -1,6 +1,7 @@
 import { Place } from "../domain/place.js";
 import { newId } from "../ids/new-id.js";
 import { googleErrorBodySchema } from "./google-error.schema.js";
+import { jsonBodyOf } from "./json-body.js";
 import { textSearchResponseSchema } from "./places-text-search.schema.js";
 
 const TEXT_SEARCH_URL = "https://places.googleapis.com/v1/places:searchText";
@@ -78,6 +79,7 @@ export class PlacesClient {
 
   async #post(request: object): Promise<unknown> {
     let response: Response;
+    let body: unknown;
     try {
       response = await this.#options.fetch(TEXT_SEARCH_URL, {
         method: "POST",
@@ -90,10 +92,11 @@ export class PlacesClient {
         body: JSON.stringify(request),
         signal: AbortSignal.timeout(TIMEOUT_MILLISECONDS),
       });
+      // The timeout covers reading the body too.
+      body = await jsonBodyOf(response);
     } catch (error) {
       throw new GooglePlacesError(failedCallMessage(error), { cause: error });
     }
-    const body: unknown = await response.json().catch(() => null);
     if (!response.ok) {
       const detail = googleErrorBodySchema.safeParse(body);
       throw new GooglePlacesError(
