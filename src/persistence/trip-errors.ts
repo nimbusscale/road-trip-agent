@@ -1,3 +1,4 @@
+import type { CalendarDate } from "../domain/calendar-date.js";
 import { RuleError } from "../domain/rule-error.js";
 
 // Another write held the trip's row lock for longer than a write waits (persistence
@@ -12,13 +13,16 @@ export class TripBusyError extends Error {
   }
 }
 
-// Persistence holds the started-trip lock (domain model section 1). Phase 18 adds the
-// date it used to the message, once the itinerary has a start date.
+// Persistence holds the started-trip lock (domain model section 1). The message gives
+// the date it used, today's date at the start place, so it matches the date the
+// coordinator was given (technical spec section 8).
 export class TripStartedError extends RuleError {
   override name = "TripStartedError";
 
-  constructor() {
-    super("The trip has started, so it can't be changed.");
+  constructor(today: CalendarDate) {
+    super(
+      `The trip has started, so it can't be changed. Today is ${today.longText} at its start place, on or after its start date.`,
+    );
   }
 }
 

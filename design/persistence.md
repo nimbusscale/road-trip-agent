@@ -94,7 +94,9 @@ A write runs the four steps in domain model section 1 inside one database transa
 
 A started trip can't be changed (domain model 3.1). `TripWriter` refuses a write to a started trip right after loading it, before anything changes (section 8.2). The save checks again. That catches a trip that starts during a write, at midnight, and any later way in, such as a web form.
 
-**Persistence refuses to save the plan of a started trip.** The whole write is rolled back, and the error says the trip has started, with today's date as it was worked out. Place rows and session rows always save, since neither changes the plan.
+**Persistence refuses to save the plan of a started trip.** The whole write is rolled back, and the error says the trip has started, with today's date as it was worked out, such as "Today is Sunday, October 10, 2027 at its start place." Place rows and session rows always save, since neither changes the plan.
+
+**`TripWriter` checks both times, with its clock.** It checks after the load, and again right before it calls `TripRepository.save()`. It takes the time from the clock it's given, so a test can set the time, such as 11:59 p.m. at the load and just after midnight at the save (section 8.2).
 
 **It checks the trip as it was loaded,** under the row lock. A write could have changed the start date, so the changed trip can't tell whether the trip had started (section 8.4).
 
@@ -234,7 +236,7 @@ classDiagram
         loadedStartDate : date? #123;readOnly#125;
         loadedStartPlace : Place? #123;readOnly#125;
         unnamedPlaceIds : List~string~ #123;readOnly#125;
-        hasStarted() boolean
+        startedToday(now : dateTime) date?
         placeOf(placeId : string) Place
     }
 
@@ -302,7 +304,7 @@ The fixed list that the classes above use:
   2. Refuses the write if the trip has started, before changing anything (section 5). Tools don't check this themselves.
   3. Creates the trip's calendar and services, and runs `change` with them.
   4. Runs the finish: `LegsService.updateLegs()`, which returns the leg changes, then the `FeasibilityChecker` when `by` is `coordinator`, which gives the check comparison, then sets last updated (domain model section 1).
-  5. Saves with `TripRepository.save()`, and commits.
+  5. Refuses the write if the trip has started by now, from the trip as loaded (section 5). Then it saves with `TripRepository.save()`, and commits.
   6. Returns a `WriteResult`.
 
   If anything refuses or fails along the way, it rolls back and passes the error on, and returns no `WriteResult`.
@@ -349,7 +351,7 @@ Only `TripWriter` and `TripRepository` use it. Tools never see it.
 
 **It holds one trip, and doesn't keep a copy.** The write changes that one trip object. `EditableTrip` keeps only three values from the load, because the write may change them and the save still needs them as they were:
 
-- **`loadedStartDate` and `loadedStartPlace`,** for the started-trip check at save (section 5). `hasStarted()` works it out like `Trip.hasStarted`, but from the loaded start date, in the loaded start place's time zone. It looks up today's date when it's called. Example: the Moab trip starts October 10. A write loads the trip at 11:59 p.m. on October 9, and reaches the save just after midnight. `hasStarted()` is now true, so the save refuses. It uses the loaded start date because the write might have changed the start date, and then the changed trip could give the wrong answer.
+- **`loadedStartDate` and `loadedStartPlace`,** for the started-trip check at save (section 5). `startedToday(now)` works it out like `Trip.hasStarted`, but from the loaded start date, in the loaded start place's time zone, at the time `now`. It returns today's date once the trip has started, for the error, and is empty while it hasn't. `TripWriter` passes the time from its clock. Example: the Moab trip starts October 10. A write loads the trip at 11:59 p.m. on October 9, and reaches the save just after midnight. `startedToday()` now gives October 10, so the save refuses. It uses the loaded start date because the write might have changed the start date, and then the changed trip could give the wrong answer.
 - **`unnamedPlaceIds`:** the places that had no name when loaded. A write can fill a name in, but never change one (domain model 3.10). So these are the only places whose rows the save might update. Example: Mike's house had no name when loaded. The write sets it as the end place, with the name "Mike's house." At save, it's in `unnamedPlaceIds` and now has a name, so it goes to `PlaceRepository.fillNames()`.
 
 Nothing else compares the trip before and after a write. Follow-on changes work another way, such as each leg remembering what it was routed for (domain model 4.7).
@@ -407,7 +409,7 @@ A **repository** is a class that reads and saves one kind of record (section 2).
 - **`load(tripId)`** does the same without the row lock, and returns the `Trip`.
 - **`listForOwner(owner)`** loads every trip the user owns.
 - **`add(trip)`** adds a new trip's row.
-- **`save(editableTrip)`** checks the started-trip lock with `editableTrip.hasStarted()`, and refuses when it's true (section 5). Otherwise it saves the plan document. Then it passes each place in `unnamedPlaceIds` that now has a name to `PlaceRepository.fillNames()`.
+- **`save(editableTrip)`** saves the plan document. Then it passes each place in `unnamedPlaceIds` that now has a name to `PlaceRepository.fillNames()`. It doesn't check the started-trip lock: `TripWriter` does, right before it calls `save()`, with its clock (section 5). Only `TripWriter` calls it.
 
 **PlaceRepository** reads and saves place rows.
 
@@ -461,7 +463,7 @@ A **memory item** is one plain-text note in user memory or in one trip's memory 
 - **`update(userId, tripId, itemId, text)`** replaces an item's text. It refuses text over the maximum memory item length.
 - **`forget(userId, tripId, itemId)`** removes the item's row. A forgotten item is gone, not hidden, so it can't affect anything again (functional spec 10.5).
 - **Each refuses an `itemId` that isn't the user's,** or that is another trip's item, with "no such memory item." That's the same error as an ID that doesn't exist, so it doesn't say whether another user's item exists.
-- **Each refuses a change to a trip item on a started trip** (section 5). It loads the trip with `TripRepository.load()`, without the row lock, and checks `Trip.hasStarted` right before it saves. User items can change on any day.
+- **Each refuses a change to a trip item on a started trip** (section 5). It loads the trip with `TripRepository.load()`, without the row lock, and checks whether the trip has started right before it saves. The error gives today's date at the start place, like the plan's. User items can change on any day.
 
 **MemoryReader** reads memory.
 

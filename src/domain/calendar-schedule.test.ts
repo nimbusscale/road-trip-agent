@@ -259,7 +259,7 @@ describe("a stop's open time", () => {
   });
 
   it("counts a bar open Monday from 5 p.m. to 2 a.m. as open at 1 a.m. on Tuesday", () => {
-    const { trip, calendar, moab } = moabExample();
+    const { trip, calendar, services, moab } = moabExample();
     const itinerary = trip.itinerary;
     const day2 = present(moab.days[1]);
     expect(calendar.dateOf(itinerary, day2)?.weekday).toBe("monday");
@@ -276,7 +276,8 @@ describe("a stop's open time", () => {
       closeDay: "tuesday",
       closeTime: TimeOfDay.fromText("02:00"),
     });
-    pick(bar, placeNamed("Woody's Tavern", [barHours]), 60);
+    const planning = { trip, itinerary, calendar, services };
+    pick(planning, bar, placeNamed("Woody's Tavern", [barHours]));
     routeDay(calendar, itinerary, day2, [22, 9, 27, 5, 13, 13, 5, 5]);
     expect(calendar.openTimeInMinutesOf(itinerary, bar)).toBe(60);
   });

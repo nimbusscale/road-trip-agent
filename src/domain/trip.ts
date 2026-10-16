@@ -44,12 +44,13 @@ export class Trip {
   }
 
   // True once today, in the start place's time zone, reaches the start date. False
-  // while there's no start date. Phase 18 tests the lock.
-  get hasStarted(): boolean {
+  // while there's no start date. It takes the current moment, so a test can set the
+  // time, such as just after midnight on the start date.
+  hasStarted(now: Date): boolean {
     return hasStartedOn(
       this.itinerary.startDate,
       this.itinerary.startPlace,
-      new Date(),
+      now,
     );
   }
 }

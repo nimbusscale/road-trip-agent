@@ -69,6 +69,15 @@ export class CalendarDate {
     return `${MONTH_NAMES[this.month - 1] ?? ""} ${String(this.year)}`;
   }
 
+  // Such as "Sunday, October 10, 2027", the way the coordinator is given today's date
+  // (technical spec 5.2). Errors that name a date use it.
+  get longText(): string {
+    const weekday = this.weekday;
+    const weekdayName = `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)}`;
+    const monthName = MONTH_NAMES[this.month - 1] ?? "";
+    return `${weekdayName}, ${monthName} ${String(this.day)}, ${String(this.year)}`;
+  }
+
   // The day of the week, which opening hours are given by.
   get weekday(): Weekday {
     return WEEKDAYS[new Date(this.#utcMilliseconds()).getUTCDay()] ?? "sunday";

@@ -1,11 +1,9 @@
-import { DriveHoursApproval } from "./approval.js";
 import type { Calendar } from "./calendar.js";
 import { CalendarDate } from "./calendar-date.js";
 import {
   ALWAYS_OPEN,
   at,
   attraction,
-  calendarFor,
   fillDay,
   lodgeAt,
   meal,
@@ -13,23 +11,27 @@ import {
   OWNER,
   type PickedStop,
   placeNamed,
+  PLANNED_AT,
+  type Planning,
+  planningFor,
   routeDay,
 } from "./example-trip-parts.fake.js";
 import { examplePlace } from "./place.fake.js";
-import { newStay, type Stay } from "./stay.js";
+import type { Stay } from "./stay.js";
 import type { Stop } from "./stop.js";
 import { TimeOfDay } from "./time-of-day.js";
 import { newTrip, type Trip } from "./trip.js";
-import { VIA_SERVICE } from "./via-service.js";
+import type { TripServices } from "./trip-services.js";
 
 // A three-night stay with a rest day: Grand Junction to Salt Lake City through Moab
-// (domain model 5.2), for tests. The drive times and visit times are made up, so the
-// schedule's times come out as the example shows them. The hours are the example's
+// (domain model 5.2), for tests, built through the services. The drive times and visit
+// times are made up, so the schedule's times come out as the example shows them. The hours are the example's
 // "assume" hours.
 
 export interface MoabExample {
   trip: Trip;
   calendar: Calendar;
+  services: TripServices;
   moab: Stay;
   torrey: Stay;
   stops: {
@@ -42,9 +44,9 @@ export interface MoabExample {
 }
 
 export function moabExample(): MoabExample {
-  const trip = newTrip(OWNER, new Date("2026-10-15T16:00:00Z"));
-  const calendar = calendarFor(trip);
-  const itinerary = trip.itinerary;
+  const trip = newTrip(OWNER, PLANNED_AT);
+  const planning = planningFor(trip);
+  const { itinerary, calendar, services } = planning;
   itinerary.startPlace = examplePlace({
     name: "Grand Junction",
     googlePlaceId: "google-Grand Junction",
@@ -52,30 +54,32 @@ export function moabExample(): MoabExample {
     longitude: -108.5506,
   });
   itinerary.endPlace = placeNamed("Salt Lake City");
-  itinerary[VIA_SERVICE].setStartDate(new CalendarDate(2027, 10, 10));
-  const moab = addStay(trip, "Moab", 3, null);
-  const torrey = addStay(trip, "Torrey", 1, moab);
-  const { fisherTowers } = layOutDay1(moab);
-  const { delicateArch, milts } = layOutDay2(moab);
-  layOutDay3(moab);
-  const { gifford, panoramaPoint } = layOutDay4(torrey);
+  services.itinerary.setStartDate(itinerary, new CalendarDate(2027, 10, 10));
+  const moab = addStay(planning, "Moab", 3, null);
+  const torrey = addStay(planning, "Torrey", 1, moab);
+  const { fisherTowers } = layOutDay1(planning, moab);
+  const { delicateArch, milts } = layOutDay2(planning, moab);
+  layOutDay3(planning, moab);
+  const { gifford, panoramaPoint } = layOutDay4(planning, torrey);
   const [day1, day2] = moab.days;
   const day4 = torrey.days[0];
   routeDay(calendar, itinerary, day1, [0, 100, 27, 2]);
   day1?.setWaypoints([placeNamed("Dewey Bridge")]);
   routeDay(calendar, itinerary, day2, [22, 9, 27, 5, 13, 13, 5]);
   routeDay(calendar, itinerary, day4, [104, 77, 18, 22, 13]);
-  day4?.[VIA_SERVICE].setApproval(
-    new DriveHoursApproval({
-      reason: "we want to see the hoodoos and Capitol Reef on the way",
-      approvedDrivingInHours: 5,
-    }),
-  );
+  if (day4 !== undefined) {
+    services.days.approveDriveHours(
+      day4,
+      5,
+      "we want to see the hoodoos and Capitol Reef on the way",
+    );
+  }
   itinerary.lastDay.ownStartTime = TimeOfDay.fromText("10:00");
   routeDay(calendar, itinerary, itinerary.lastDay, [204]);
   return {
     trip,
     calendar,
+    services,
     moab,
     torrey,
     stops: { fisherTowers, delicateArch, milts, gifford, panoramaPoint },
@@ -83,28 +87,28 @@ export function moabExample(): MoabExample {
 }
 
 function addStay(
-  trip: Trip,
+  planning: Planning,
   town: string,
   nightCount: number,
   after: Stay | null,
 ): Stay {
-  const stay = newStay({
+  const stay = planning.services.stays.addStay(planning.itinerary, {
     place: placeNamed(town),
     nightCount,
     tier: nightCount >= 2 ? "midRange" : "value",
     tierRule: nightCount >= 2 ? "stays of 2+ nights" : "the trip default",
+    after,
   });
-  trip.itinerary[VIA_SERVICE].placeStay(stay, after);
-  lodgeAt(stay, placeNamed(`${town} hotel`));
+  lodgeAt(planning, stay, placeNamed(`${town} hotel`));
   return stay;
 }
 
-function layOutDay1(moab: Stay): { fisherTowers: Stop } {
+function layOutDay1(planning: Planning, moab: Stay): { fisherTowers: Stop } {
   const fisherTowers = attraction({
     purpose: "towers",
     searchArea: "alongLeg",
   });
-  fillDay(moab.days[0], [
+  fillDay(planning, moab.days[0], [
     [
       meal({ purpose: "breakfast", searchArea: "nearStartPlace" }),
       placeNamed("Grand Junction café"),
@@ -126,7 +130,10 @@ function layOutDay1(moab: Stay): { fisherTowers: Stop } {
   return { fisherTowers };
 }
 
-function layOutDay2(moab: Stay): { delicateArch: Stop; milts: Stop } {
+function layOutDay2(
+  planning: Planning,
+  moab: Stay,
+): { delicateArch: Stop; milts: Stop } {
   const near = { searchArea: "nearStay", stay: moab } as const;
   const delicateArch = attraction({
     ...near,
@@ -154,13 +161,13 @@ function layOutDay2(moab: Stay): { delicateArch: Stop; milts: Stop } {
       60,
     ],
   ];
-  fillDay(day2, stops);
+  fillDay(planning, day2, stops);
   return { delicateArch, milts };
 }
 
-function layOutDay3(moab: Stay): void {
+function layOutDay3(planning: Planning, moab: Stay): void {
   const day3 = moab.days[2];
-  fillDay(day3, [
+  fillDay(planning, day3, [
     [
       meal({
         purpose: "dinner near the hotel",
@@ -172,10 +179,15 @@ function layOutDay3(moab: Stay): void {
       60,
     ],
   ]);
-  day3?.[VIA_SERVICE].setRestDay(true);
+  if (day3 !== undefined) {
+    planning.services.days.setRestDay(planning.itinerary, day3, true);
+  }
 }
 
-function layOutDay4(torrey: Stay): { gifford: Stop; panoramaPoint: Stop } {
+function layOutDay4(
+  planning: Planning,
+  torrey: Stay,
+): { gifford: Stop; panoramaPoint: Stop } {
   const gifford = meal({ purpose: "pie", searchArea: "alongLeg" });
   const panoramaPoint = attraction({
     purpose: "stargazing",
@@ -188,7 +200,7 @@ function layOutDay4(torrey: Stay): { gifford: Stop; panoramaPoint: Stop } {
     openOn("tuesday", "11:00", "17:00"),
     openOn("thursday", "11:00", "17:00"),
   ];
-  fillDay(torrey.days[0], [
+  fillDay(planning, torrey.days[0], [
     [
       attraction({ purpose: "hoodoos", searchArea: "alongLeg" }),
       placeNamed("Goblin Valley State Park"),

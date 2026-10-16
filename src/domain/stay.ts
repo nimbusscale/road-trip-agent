@@ -213,7 +213,7 @@ function newStayDay(): StayDay {
   });
 }
 
-function checkedNightCount(nightCount: number): number {
+export function checkedNightCount(nightCount: number): number {
   if (!Number.isInteger(nightCount) || nightCount < 1) {
     throw new RuleError(
       `A stay has a whole number of nights, at least 1. It was given ${String(nightCount)}.`,
