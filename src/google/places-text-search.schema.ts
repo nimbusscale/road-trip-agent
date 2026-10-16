@@ -154,9 +154,14 @@ function factsOf(place: GooglePlace): Omit<PlaceFields, "id"> {
 
 // Google names a street address with its street line, such as "712 Neches St". That
 // isn't a name, so the place starts with none, and the first name an agent gives, such
-// as "Mike's house", fills it in (domain model 3.10).
+// as "Mike's house", fills it in (domain model 3.10). An address has no type. A named
+// building, such as a hotel, can also be a premise, but it has a type, so it keeps
+// Google's name.
 function isAddress(place: GooglePlace): boolean {
-  return place.types.some((type) => ADDRESS_TYPES.has(type));
+  return (
+    place.primaryTypeDisplayName === null &&
+    place.types.some((type) => ADDRESS_TYPES.has(type))
+  );
 }
 
 function emptyAsNull(text: string | undefined): string | null {

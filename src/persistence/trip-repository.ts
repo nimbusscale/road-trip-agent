@@ -64,7 +64,7 @@ export class TripRepository implements TripStore {
   }
 
   // The plan links to no places yet, so a read doesn't load them. Phase 16 loads them
-  // here, to turn the plan's place IDs back into links.
+  // here, to turn the plan's place IDs back into links (development plan, phase 16).
   async load(tripId: string): Promise<Trip> {
     const rows = await this.#select(`${SELECT_TRIP} WHERE id = $1`, [tripId]);
     return onlyTrip(rows, tripId);

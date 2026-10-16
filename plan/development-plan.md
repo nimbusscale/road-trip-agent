@@ -458,7 +458,7 @@ By the end of this part, code can build both example trips through the services,
 
 **Open questions:**
 
-- ~~Does Google give a street address no name? If it returns the street as the name, "Mike's house" never fills in (domain model 3.10).~~ **Closed 2026-10-15,** proposed in this phase's PR, under batch 4's rules: Google names an address with its street, such as "712 Neches St." So code gives a place no name when Google's `types` include `street_address`, `premise`, or `subpremise`. Written into domain model 3.10, and Google design 2.2 and 2.4.
+- ~~Does Google give a street address no name? If it returns the street as the name, "Mike's house" never fills in (domain model 3.10).~~ **Closed 2026-10-15,** proposed in this phase's PR, under batch 4's rules: Google names an address with its street, such as "712 Neches St." So code gives a place no name when Google gives it no type, and its `types` include `street_address`, `premise`, or `subpremise`. Written into domain model 3.10, and Google design 2.2 and 2.4.
 
 **Do:**
 
@@ -486,6 +486,7 @@ By the end of this part, code can build both example trips through the services,
 - Add `Stop`, `Candidate`, the approvals, `CheckResult`, `WeatherText`, and `ActivityRecord`, with their rules. Approvals are a tagged union, with a `kind` field.
 - Add `Leg` as stored data only. Phase 19 routes it.
 - Add them all to the plan document's schema. Links are stored as IDs and turned back into links on load.
+- Make `TripRepository.load()` load the trip's places, as `loadForWrite()` does, so the plan's place IDs can be turned back into links (persistence design, section 8.7). Phase 15 left this out, since the plan linked to no places yet.
 - Phase 10 added `Itinerary` and `LastDay` with only what a new trip needs. Once the itinerary has its start date and start place, make `Trip.name` add the month, and make `Trip.hasStarted` and `EditableTrip.hasStarted()` real. Until then they're always false.
 
 **Done when:**

@@ -139,6 +139,23 @@ describe("PlacesClient.searchText", () => {
     expect(place?.shortLine).toBe("Lockhart");
   });
 
+  it("keeps Google's name for a named building with an address type", async () => {
+    const hotel = JSON.stringify({
+      places: [
+        {
+          id: "ChIJhotel",
+          displayName: { text: "Madonna Inn" },
+          primaryTypeDisplayName: { text: "Hotel" },
+          types: ["hotel", "lodging", "premise"],
+          formattedAddress: "100 Madonna Rd, San Luis Obispo, CA 93405, USA",
+          location: { latitude: 35.27, longitude: -120.67 },
+        },
+      ],
+    });
+    const [place] = await clientFor(hotel).client.searchText("Madonna Inn", 1);
+    expect(place?.name).toBe("Madonna Inn");
+  });
+
   it("returns no places when nothing matches", async () => {
     const { client } = clientFor("{}");
     expect(await client.searchText("nowhere at all", 3)).toEqual([]);
