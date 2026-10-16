@@ -4,7 +4,8 @@
 name: Code review
 
 # Runs when a PR is opened or gets a new commit. A push to a branch with no PR doesn't
-# run it. Only PRs that change the app or how it's built and deployed are reviewed.
+# run it. Only PRs that change the app's code, migrations, images, server files, or
+# workflows are reviewed. Docs, plans, and root config files aren't.
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
@@ -52,28 +53,32 @@ jobs:
 
       - name: Review the PR
         # The token is the Max subscription (research doc section 4.2). The reviewer
-        # can read the repo and use gh to read the PR and post comments. It can't edit
-        # files or reach the web.
+        # gets read-only tools, plus gh to read the PR and post comments. The Edit and
+        # Write tools and the web tools are blocked, and so is node, since the code under
+        # review holds Google text that could carry instructions. sed, awk, and gh could
+        # still write a file or call GitHub. That's accepted, since only this repo's own
+        # PRs are reviewed, and a PR can change this workflow anyway.
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           claude -p --model claude-opus-5-5 --output-format json \
-            --allowedTools "Bash(git:*)" "Bash(gh:*)" "Bash(cd:*)" "Bash(cat:*)" "Bash(ls:*)" "Bash(grep:*)" "Bash(rg:*)" "Bash(find:*)" "Bash(head:*)" "Bash(tail:*)" "Bash(wc:*)" "Bash(sed:*)" "Bash(awk:*)" "Bash(sort:*)" "Bash(node:*)" Read Grep Glob \
-            --disallowedTools Edit Write NotebookEdit WebFetch WebSearch \
-            -- "/code-review high --comment $PR_NUMBER" > review.json
-          jq -r '.result' review.json >> "$GITHUB_STEP_SUMMARY"
-          jq -r '"\nCost at API prices: $\(.total_cost_usd)"' review.json >> "$GITHUB_STEP_SUMMARY"
+            --allowedTools "Bash(git:*)" "Bash(gh:*)" "Bash(cd:*)" "Bash(cat:*)" "Bash(ls:*)" "Bash(grep:*)" "Bash(rg:*)" "Bash(find:*)" "Bash(head:*)" "Bash(tail:*)" "Bash(wc:*)" "Bash(sed:*)" "Bash(awk:*)" "Bash(sort:*)" Read Grep Glob \
+            --disallowedTools Edit Write NotebookEdit WebFetch WebSearch "Bash(node:*)" \
+            -- "/code-review high --comment $PR_NUMBER" > "$RUNNER_TEMP/review.json"
+          jq -r '.result' "$RUNNER_TEMP/review.json" >> "$GITHUB_STEP_SUMMARY"
+          jq -r '"\nCost at API prices: $\(.total_cost_usd)"' "$RUNNER_TEMP/review.json" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Save the transcript
         # Shows what the reviewer read, such as whether it opened the PR's comments.
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7
         with:
-          name: review-transcript
+          # A rerun of the job is a new attempt, with its own artifact.
+          name: review-transcript-${{ github.run_attempt }}
           path: |
             ~/.claude/projects/
-            review.json
+            ${{ runner.temp }}/review.json
           include-hidden-files: true
           retention-days: 30
