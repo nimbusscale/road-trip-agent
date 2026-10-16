@@ -4,8 +4,8 @@
 name: Code review
 
 # Runs when a PR is opened or gets a new commit. A push to a branch with no PR doesn't
-# run it. Only PRs that change the app's code, migrations, images, server files, or
-# workflows are reviewed. Docs, plans, and root config files aren't.
+# run it. Only PRs that change the app's code, settings, migrations, images, server
+# files, or workflows are reviewed. Docs, plans, and tool config files aren't.
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
@@ -16,6 +16,7 @@ on:
       - "ops/**"
       - "docker/**"
       - "compose.yaml"
+      - "settings.json"
       - ".github/workflows/**"
 
 permissions:
@@ -52,14 +53,18 @@ jobs:
       - run: npm install --global "@anthropic-ai/claude-code@$CLAUDE_CODE_VERSION"
 
       - name: Review the PR
+        # A timeout here fails only this step, so the transcript is still saved.
+        timeout-minutes: 25
         # The token is the Max subscription (research doc section 4.2). The reviewer
         # gets read-only tools, plus gh to read the PR and post comments. The Edit and
         # Write tools and the web tools are blocked, and so is node, since the code under
-        # review holds Google text that could carry instructions. sed, awk, and gh could
+        # review holds Google text that could carry instructions. The scrub keeps the
+        # Claude token out of the commands the reviewer runs. sed, awk, and gh could
         # still write a file or call GitHub. That's accepted, since only this repo's own
         # PRs are reviewed, and a PR can change this workflow anyway.
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: 1
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
