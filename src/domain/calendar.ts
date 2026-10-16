@@ -144,6 +144,20 @@ export class Calendar {
     return this.#timelineOf(itinerary, day).map(toScheduleEntry);
   }
 
+  // The day's driving: its drives in the schedule added up, each with the drive buffer
+  // and rounded up to the whole minute. The daily driving check uses it, so the
+  // warning matches the schedule. 0 on a day with no drives. Null while the leg isn't
+  // routed through the day's selected places.
+  drivingInMinutesOf(itinerary: Itinerary, day: Day): number | null {
+    if (!this.#hasDrives(itinerary, day)) {
+      return 0;
+    }
+    const drives = this.#driveMinutesOf(day);
+    return drives === null
+      ? null
+      : drives.reduce((total, minutes) => total + minutes, 0);
+  }
+
   // How many minutes of the stop's visit fall within its selected place's opening
   // hours. Empty when it has no selected place, its place's hours aren't known, or its
   // date or times aren't known yet.

@@ -36,7 +36,7 @@ function setEnds(ends: [string, string]) {
 describe("TripWriter.write's legs", () => {
   it("routes the legs in the finish, saves them, and hands back the leg changes", async () => {
     const { writer, reader, routeFinder, id, ends } = await newTripWithEnds();
-    const result = await writer.write(id, setEnds(ends));
+    const result = await writer.write(id, "coordinator", setEnds(ends));
     expect(result.legChanges).toHaveLength(1);
     const [change] = result.legChanges;
     expect(change?.oldLeg).toBeNull();
@@ -49,8 +49,8 @@ describe("TripWriter.write's legs", () => {
 
   it("hands back no leg changes, and calls Google for nothing, when no leg needs routing", async () => {
     const { writer, routeFinder, id, ends } = await newTripWithEnds();
-    await writer.write(id, setEnds(ends));
-    const result = await writer.write(id, ({ trip }) => {
+    await writer.write(id, "coordinator", setEnds(ends));
+    const result = await writer.write(id, "coordinator", ({ trip }) => {
       trip.tripBrief.focus = "Pacific Coast Highway";
     });
     expect(result.legChanges).toEqual([]);
@@ -65,9 +65,9 @@ describe("TripWriter.write's legs", () => {
     routeFinder.failure = new GoogleRoutesError(
       "Google Routes couldn't be reached. Try again.",
     );
-    await expect(writer.write(id, setEnds(ends))).rejects.toThrow(
-      "Google Routes couldn't be reached. Try again.",
-    );
+    await expect(
+      writer.write(id, "coordinator", setEnds(ends)),
+    ).rejects.toThrow("Google Routes couldn't be reached. Try again.");
     expect(store.rows.get(id)).toBe(before);
     expect(pool.statements.slice(-2)).toEqual(["BEGIN", "ROLLBACK"]);
     const trip = await reader.read(id);
@@ -79,6 +79,7 @@ describe("TripWriter.write's legs", () => {
     const { writer, id } = await newTripWithEnds();
     const result = await writer.write(
       id,
+      "worker",
       ({ legs }) => typeof legs.detourTimesOf,
     );
     expect(result.changeResult).toBe("function");

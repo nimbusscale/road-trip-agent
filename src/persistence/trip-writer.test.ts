@@ -38,11 +38,15 @@ describe("TripWriter.write", () => {
     const { writer, reader, pool, clock } = setUp();
     const { id } = await writer.startTrip(OWNER);
     clock.current = WRITTEN;
-    const result = await writer.write(id, ({ trip, services }) => {
-      trip.tripBrief.focus = "Pacific Coast Highway";
-      services.tripBrief.setTripLength(trip.tripBrief, 3);
-      return "done";
-    });
+    const result = await writer.write(
+      id,
+      "coordinator",
+      ({ trip, services }) => {
+        trip.tripBrief.focus = "Pacific Coast Highway";
+        services.tripBrief.setTripLength(trip.tripBrief, 3);
+        return "done";
+      },
+    );
     expect(result.changeResult).toBe("done");
     const trip = await reader.read(id);
     expect(trip.name).toBe("Pacific Coast Highway");
@@ -56,7 +60,7 @@ describe("TripWriter.write", () => {
     const { id } = await writer.startTrip(OWNER);
     const before = store.rows.get(id);
     clock.current = WRITTEN;
-    const write = writer.write(id, ({ trip, services }) => {
+    const write = writer.write(id, "coordinator", ({ trip, services }) => {
       trip.tripBrief.focus = "Texas barbecue";
       services.tripBrief.setTripLength(trip.tripBrief, 15);
     });
@@ -72,7 +76,7 @@ describe("TripWriter.write", () => {
     const { writer, reader, store, clock } = setUp();
     const { id } = await writer.startTrip(OWNER);
     store.loadForWriteErrors.push(new TripBusyError(), new TripBusyError());
-    await writer.write(id, ({ trip }) => {
+    await writer.write(id, "coordinator", ({ trip }) => {
       trip.tripBrief.mustSeesText = "Big Sur";
     });
     expect(clock.pauses).toEqual([
@@ -90,9 +94,9 @@ describe("TripWriter.write", () => {
       new TripBusyError(),
       new TripBusyError(),
     );
-    await expect(writer.write(id, () => "never")).rejects.toThrow(
-      "The trip is busy",
-    );
+    await expect(
+      writer.write(id, "coordinator", () => "never"),
+    ).rejects.toThrow("The trip is busy");
     expect(clock.pauses).toHaveLength(2);
   });
 
@@ -102,7 +106,9 @@ describe("TripWriter.write", () => {
     const refuse = (): never => {
       throw new RuleError("Refused.");
     };
-    await expect(writer.write(id, refuse)).rejects.toThrow("Refused.");
+    await expect(writer.write(id, "coordinator", refuse)).rejects.toThrow(
+      "Refused.",
+    );
     expect(clock.pauses).toEqual([]);
   });
 });
@@ -128,7 +134,7 @@ describe("TripWriter's started-trip lock", () => {
     const id = await storedMoabTrip(store);
     const before = store.rows.get(id);
     clock.current = nightBefore;
-    const write = writer.write(id, ({ trip }) => {
+    const write = writer.write(id, "coordinator", ({ trip }) => {
       trip.tripBrief.mealPreferencesText = "Swap the Day 2 dinner";
       clock.current = justAfterMidnight;
     });
@@ -142,7 +148,7 @@ describe("TripWriter's started-trip lock", () => {
     const id = await storedMoabTrip(store);
     const before = store.rows.get(id);
     clock.current = nightBefore;
-    const write = writer.write(id, ({ trip, services }) => {
+    const write = writer.write(id, "coordinator", ({ trip, services }) => {
       services.itinerary.setStartDate(
         trip.itinerary,
         new CalendarDate(2027, 10, 20),
@@ -158,7 +164,7 @@ describe("TripWriter's started-trip lock", () => {
     const id = await storedMoabTrip(store);
     clock.current = justAfterMidnight;
     let hasRun = false;
-    const write = writer.write(id, () => {
+    const write = writer.write(id, "coordinator", () => {
       hasRun = true;
     });
     await expect(write).rejects.toThrow(
@@ -171,7 +177,7 @@ describe("TripWriter's started-trip lock", () => {
     const { writer, reader, store, clock } = setUp();
     const id = await storedMoabTrip(store);
     clock.current = nightBefore;
-    await writer.write(id, ({ trip }) => {
+    await writer.write(id, "coordinator", ({ trip }) => {
       trip.tripBrief.mealPreferencesText = "Swap the Day 2 dinner";
     });
     const trip = await reader.read(id);
@@ -185,7 +191,7 @@ describe("TripWriter.write with places", () => {
     const { id } = await writer.startTrip(OWNER);
     const [place] = await store.places.addPlaces(id, [examplePlace()]);
     const placeId = place?.id ?? "";
-    const result = await writer.write(id, ({ placeOf }) => ({
+    const result = await writer.write(id, "coordinator", ({ placeOf }) => ({
       name: placeOf(placeId).name,
       isSameObject: placeOf(placeId) === placeOf(placeId),
     }));
@@ -200,7 +206,7 @@ describe("TripWriter.write with places", () => {
     const { id } = await writer.startTrip(OWNER);
     const other = await writer.startTrip(OWNER);
     const [place] = await store.places.addPlaces(other.id, [examplePlace()]);
-    const write = writer.write(id, ({ trip, placeOf }) => {
+    const write = writer.write(id, "coordinator", ({ trip, placeOf }) => {
       trip.tripBrief.focus = "Texas barbecue";
       placeOf(place?.id ?? "");
     });
@@ -215,7 +221,7 @@ describe("TripWriter.write with places", () => {
       exampleAddress(),
       examplePlace(),
     ]);
-    await writer.write(id, ({ placeOf }) => {
+    await writer.write(id, "coordinator", ({ placeOf }) => {
       placeOf(address?.id ?? "").fillName("Mike's house");
       placeOf(smittys?.id ?? "").fillName("The barbecue place");
     });

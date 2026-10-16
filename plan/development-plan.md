@@ -596,6 +596,7 @@ By the end of this part, the coordinator can build a trip's skeleton and lay out
 **Open questions:**
 
 - What's the size limit on an in-process MCP tool's result? Claude Code may cut off large results. The limit for MCP tools is believed to be 25,000 tokens, but it hasn't been checked for in-process servers.
+- How does `read_itinerary` get its check results? A read runs `FeasibilityChecker.workOut()` and `compare()`, and saves nothing (domain model 4.8). But `TripReader.read()` hands back only the trip. Phase 20 creates the checker only inside `TripWriter`'s finish, from the settings, the clock, and the write's calendar. The read tool needs the same: a calendar and a checker for the trip it read. Raised in phase 20.
 
 **Do:**
 
