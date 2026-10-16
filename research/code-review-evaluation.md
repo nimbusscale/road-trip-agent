@@ -14,7 +14,8 @@ Sections 2 to 5 record what we found out and decided on 2026-10-16. Section 6 is
 
 | Round | What it tests | Status |
 |---|---|---|
-| 1 | Stock `/code-review` on the six batch 4 PRs, with four model and effort settings, two runs each | Not started. Plan in section 7 |
+| 1, stage 1 | Stock `/code-review` on PRs #30 and #32, with four model and effort settings, two runs each | Not started. Plan in section 7 |
+| 1, stage 2 | Decided at the checkpoint after stage 1 | Not planned yet |
 | 2 | Stock `/code-review` on older PRs that were never reviewed (#2 to #29) | Not planned yet. Depends on round 1 |
 
 **Still open:**
@@ -165,7 +166,24 @@ Round 1 runs on Joe's machine with `claude -p`, not in CI. It uses the Max subsc
 | C | Opus 5.5 | low | Do fewer, surer findings miss the bugs? |
 | D | Sonnet 5.5 | low | The cheapest. Does low effort hurt Sonnet more than Opus? |
 
-Each setting runs twice on each of the six PRs, so 48 reviews in all. Two runs show whether a setting finds the same things each time. With one run, a better setting can't be told from a lucky run.
+Each review runs twice. Two runs show whether a setting finds the same things each time. With one run, a better setting can't be told from a lucky run.
+
+### 7.1 Stage 1
+
+All four settings, on two PRs, two runs each: 16 reviews.
+
+- **PR #32 has a plain code bug,** the schedule out of time order. A reviewer can find it from the code alone. A setting that misses it is weak at the basics.
+- **PR #30 has a bug that needs the design,** the hotel losing its name. It tests whether the reviewer finds and reads the design docs on its own.
+
+PR #35 is smaller, but its main finding came from a review the coordinator steered (section 6.2), so it's weaker evidence for a first look.
+
+### 7.2 The checkpoint
+
+Stage 1 is a checkpoint, not a pass-or-fail test. Joe reads the actual reviews, and then decides on stage 2. That could mean dropping a setting, trying medium effort, running the other four PRs, or changing the approach. A setting that misses both bugs in all four of its runs is probably not worth going on with, but that's a guide, not a rule.
+
+This is a first look, to get a feel for how the settings differ. It isn't meant to be a full study.
+
+### 7.3 Each run
 
 For each run:
 
@@ -176,7 +194,7 @@ For each run:
 
 Score each run on:
 
-- **The code bugs.** Did it find #30's business name, #32's schedule order, and #35's driving count? These count most.
+- **The code bugs.** Did it find the code bugs in the PRs it reviewed: #30's business name, #32's schedule order, and #35's driving count? These count most.
 - **The other findings.** Did it find the doc and plan findings?
 - **Extra findings.** How many, and how many are real? Joe checks these by hand.
 - **Cost.** What the review would cost at Anthropic's API prices, worked out from its tokens. The runs use the Max subscription, so nothing is billed. The API price is just a common scale for comparing settings. Record the price list used and the date it was read.
