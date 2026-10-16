@@ -673,7 +673,7 @@ A day is one day of the trip, with a schedule (functional spec 4). There are two
 
 - **`setWaypoints(waypoints : List<Place>)`** (the tool `set_waypoints`). Replaces the day's waypoints with the list given, in that order. An empty list clears them.
   - **Follows on:** the leg is re-routed at the end of the write.
-  - **Refused:** while the day has no leg, such as a rest day, or a day that stays put with no selected stop yet.
+  - **Refused:** while the day has no leg, such as a day that stays put with no selected stop yet. On a rest day, even one marked in this write, which keeps its leg until the end of the write.
 
 The day keeps change methods for `stops`, `leg`, and `approvals`, and a stay day for `isRestDay`, that only services reach (section 1). They run the day's own rules, below. Adding, moving, and removing stops are in `StopsService` (section 4.6). Rest days and approvals are in `DaysService` (section 4.5). Adding, re-routing, and removing the leg are in `LegsService` (section 4.7).
 

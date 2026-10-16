@@ -135,6 +135,16 @@ describe("a rest day", () => {
     expect(day.approvals).toEqual([FIVE_HOURS]);
   });
 
+  it("refuses waypoints, even while it still has its leg", () => {
+    const day = newDay();
+    day[VIA_SERVICE].setLeg(leg());
+    day[VIA_SERVICE].setRestDay(true);
+    expect(() => {
+      day.setWaypoints([BIG_SUR]);
+    }).toThrow("A rest day can't have waypoints, since it has no drive.");
+    expect(day.waypoints).toEqual([]);
+  });
+
   it("is only a stay day: the last day has no rest-day mark", () => {
     const lastDay = new LastDay({
       id: "day_k7m2x9qa",
