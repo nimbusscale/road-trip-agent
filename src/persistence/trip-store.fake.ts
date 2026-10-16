@@ -44,7 +44,9 @@ export class FakeTripStore implements TripStore {
     return Promise.resolve();
   }
 
-  save(editableTrip: EditableTrip): Promise<void> {
+  // Refuses a started trip, as TripRepository does.
+  save(editableTrip: EditableTrip, now: Date): Promise<void> {
+    editableTrip.refuseIfStarted(now);
     this.#store(editableTrip.trip);
     return this.places.fillNames(editableTrip.namedPlaces);
   }

@@ -96,7 +96,7 @@ A started trip can't be changed (domain model 3.1). `TripWriter` refuses a write
 
 **Persistence refuses to save the plan of a started trip.** The whole write is rolled back, and the error says the trip has started, with today's date as it was worked out, such as "Today is Sunday, October 10, 2027 at its start place." Place rows and session rows always save, since neither changes the plan.
 
-**`TripWriter` checks both times, with its clock.** It checks after the load, and again right before it calls `TripRepository.save()`. It takes the time from the clock it's given, so a test can set the time, such as 11:59 p.m. at the load and just after midnight at the save (section 8.2).
+**Both checks go by `TripWriter`'s clock.** `TripWriter` checks right after the load. `TripRepository.save(editableTrip, now)` checks again before it saves, so every save is covered, whoever calls it. `TripWriter` passes the time from the clock it's given, so a test can set the time, such as 11:59 p.m. at the load and just after midnight at the save (sections 8.2 and 8.7).
 
 **It checks the trip as it was loaded,** under the row lock. A write could have changed the start date, so the changed trip can't tell whether the trip had started (section 8.4).
 
@@ -228,7 +228,7 @@ classDiagram
         load(tripId : string) Trip
         listForOwner(owner : User) List~Trip~
         add(trip : Trip)
-        save(editableTrip : EditableTrip)
+        save(editableTrip : EditableTrip, now : dateTime)
     }
 
     class EditableTrip {
@@ -237,6 +237,7 @@ classDiagram
         loadedStartPlace : Place? #123;readOnly#125;
         unnamedPlaceIds : List~string~ #123;readOnly#125;
         startedToday(now : dateTime) date?
+        refuseIfStarted(now : dateTime)
         placeOf(placeId : string) Place
     }
 
@@ -304,7 +305,7 @@ The fixed list that the classes above use:
   2. Refuses the write if the trip has started, before changing anything (section 5). Tools don't check this themselves.
   3. Creates the trip's calendar and services, and runs `change` with them.
   4. Runs the finish: `LegsService.updateLegs()`, which returns the leg changes, then the `FeasibilityChecker` when `by` is `coordinator`, which gives the check comparison, then sets last updated (domain model section 1).
-  5. Refuses the write if the trip has started by now, from the trip as loaded (section 5). Then it saves with `TripRepository.save()`, and commits.
+  5. Saves with `TripRepository.save()`, passing the time from its clock, and commits. The save refuses the write if the trip has started by then, from the trip as loaded (section 5).
   6. Returns a `WriteResult`.
 
   If anything refuses or fails along the way, it rolls back and passes the error on, and returns no `WriteResult`.
@@ -351,7 +352,7 @@ Only `TripWriter` and `TripRepository` use it. Tools never see it.
 
 **It holds one trip, and doesn't keep a copy.** The write changes that one trip object. `EditableTrip` keeps only three values from the load, because the write may change them and the save still needs them as they were:
 
-- **`loadedStartDate` and `loadedStartPlace`,** for the started-trip check at save (section 5). `startedToday(now)` works it out like `Trip.hasStarted`, but from the loaded start date, in the loaded start place's time zone, at the time `now`. It returns today's date once the trip has started, for the error, and is empty while it hasn't. `TripWriter` passes the time from its clock. Example: the Moab trip starts October 10. A write loads the trip at 11:59 p.m. on October 9, and reaches the save just after midnight. `startedToday()` now gives October 10, so the save refuses. It uses the loaded start date because the write might have changed the start date, and then the changed trip could give the wrong answer.
+- **`loadedStartDate` and `loadedStartPlace`,** for the started-trip check at save (section 5). `startedToday(now)` works it out like `Trip.hasStarted`, but from the loaded start date, in the loaded start place's time zone, at the time `now`. It returns today's date once the trip has started, for the error, and is empty while it hasn't. `refuseIfStarted(now)` throws the started-trip error when it gives a date. `TripWriter` runs it after the load, and `TripRepository.save()` before it saves, both with the time from `TripWriter`'s clock. Example: the Moab trip starts October 10. A write loads the trip at 11:59 p.m. on October 9, and reaches the save just after midnight. `startedToday()` now gives October 10, so the save refuses. It uses the loaded start date because the write might have changed the start date, and then the changed trip could give the wrong answer.
 - **`unnamedPlaceIds`:** the places that had no name when loaded. A write can fill a name in, but never change one (domain model 3.10). So these are the only places whose rows the save might update. Example: Mike's house had no name when loaded. The write sets it as the end place, with the name "Mike's house." At save, it's in `unnamedPlaceIds` and now has a name, so it goes to `PlaceRepository.fillNames()`.
 
 Nothing else compares the trip before and after a write. Follow-on changes work another way, such as each leg remembering what it was routed for (domain model 4.7).
@@ -409,7 +410,7 @@ A **repository** is a class that reads and saves one kind of record (section 2).
 - **`load(tripId)`** does the same without the row lock, and returns the `Trip`.
 - **`listForOwner(owner)`** loads every trip the user owns.
 - **`add(trip)`** adds a new trip's row.
-- **`save(editableTrip)`** saves the plan document. Then it passes each place in `unnamedPlaceIds` that now has a name to `PlaceRepository.fillNames()`. It doesn't check the started-trip lock: `TripWriter` does, right before it calls `save()`, with its clock (section 5). Only `TripWriter` calls it.
+- **`save(editableTrip, now)`** checks the started-trip lock with `editableTrip.refuseIfStarted(now)`, and refuses when the trip has started by `now` (section 5). Otherwise it saves the plan document. Then it passes each place in `unnamedPlaceIds` that now has a name to `PlaceRepository.fillNames()`. `TripWriter` passes the time from its clock.
 
 **PlaceRepository** reads and saves place rows.
 

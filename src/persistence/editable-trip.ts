@@ -3,6 +3,7 @@ import type { Place } from "../domain/place.js";
 import { startedToday } from "../domain/today.js";
 import type { Trip } from "../domain/trip.js";
 import { NoSuchPlaceError } from "./place-errors.js";
+import { TripStartedError } from "./trip-errors.js";
 
 // A trip loaded for a write, under the row lock (persistence design, section 8.4).
 // Only TripRepository.loadForWrite() makes one, and save() takes only this, so a trip
@@ -53,5 +54,14 @@ export class EditableTrip {
   // section 5). TripWriter passes its clock's time, so a test can set it.
   startedToday(now: Date): CalendarDate | null {
     return startedToday(this.loadedStartDate, this.loadedStartPlace, now);
+  }
+
+  // The started-trip lock (persistence design, section 5). TripWriter runs it after the
+  // load, and TripRepository.save() runs it before every save.
+  refuseIfStarted(now: Date): void {
+    const today = this.startedToday(now);
+    if (today !== null) {
+      throw new TripStartedError(today);
+    }
   }
 }

@@ -7,10 +7,9 @@ import {
   type TripServices,
 } from "../domain/trip-services.js";
 import type { User } from "../domain/user.js";
-import type { EditableTrip } from "./editable-trip.js";
 import type { Connectable, Queryable } from "./queryable.js";
 import { inTransaction } from "./transaction.js";
-import { TripBusyError, TripStartedError } from "./trip-errors.js";
+import { TripBusyError } from "./trip-errors.js";
 import type { TripStore } from "./trip-repository.js";
 
 // A busy trip is tried this many times in all, with this pause between tries, before
@@ -93,7 +92,8 @@ export class TripWriter {
     return inTransaction(pool, async (client) => {
       const store = storeFor(client);
       const editableTrip = await store.loadForWrite(tripId);
-      this.#refuseIfStarted(editableTrip);
+      // Before anything changes. The save checks again (persistence design, section 5).
+      editableTrip.refuseIfStarted(clock.now());
       const trip = editableTrip.trip;
       const changeResult = await change({
         trip,
@@ -102,19 +102,10 @@ export class TripWriter {
       });
       // The finish. Phases 19 and 20 add the legs and the checks before this.
       trip.lastUpdatedDateTime = clock.now();
-      // Again at save, which catches a trip that started during the write, at midnight
-      // (persistence design, section 5).
-      this.#refuseIfStarted(editableTrip);
-      await store.save(editableTrip);
+      // The save checks the lock again, which catches a trip that started during the
+      // write, at midnight.
+      await store.save(editableTrip, clock.now());
       return { changeResult };
     });
-  }
-
-  // Goes by the trip as loaded, under the row lock, and the clock's time now.
-  #refuseIfStarted(editableTrip: EditableTrip): void {
-    const today = editableTrip.startedToday(this.#options.clock.now());
-    if (today !== null) {
-      throw new TripStartedError(today);
-    }
   }
 }
