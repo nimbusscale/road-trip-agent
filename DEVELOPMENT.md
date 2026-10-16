@@ -92,7 +92,7 @@ Worker results aren't on the list. A worker returns text that the coordinator re
 
 **`main` is protected.** Nothing is pushed to it directly. Every change goes on its own branch, and reaches `main` through a pull request. Only Joe decides when a pull request is merged: he merges it himself, or asks Claude Code to merge it. Claude Code never merges one without being asked. A merge to `main` deploys it ([systems design](design/systems.md), section 7).
 
-**A PR description holds the task, and nothing about how it was done.** It starts with the task, word for word: what the implementer was asked to do, such as "Do phase 19 of the development plan," or what Joe asked for. Then it lists each "Done when" item with its result, and what was checked by hand.
+**A PR description holds the task, and nothing about how it was done.** It starts with the task, word for word, though filler words in a spoken request can be dropped: what the implementer was asked to do, such as "Do phase 19 of the development plan," or what Joe asked for. Then it lists each "Done when" item with its result, and what was checked by hand.
 
 **Everything else goes in one PR comment, the decisions comment.** Post it right after the PR is opened. It holds:
 
