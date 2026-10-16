@@ -64,7 +64,6 @@ These are the options Anthropic documents, as of 2026-10-16 and Claude Code 2.1.
 | **Code Review**, the managed service | Anthropic's servers, started by PR activity or an `@claude review` comment. Team and Enterprise plans only | Anthropic. The only setting is the level: Quick, Standard, or Deep |
 | **`/code-review`**, the bundled command | Your own Claude Code session, on any plan. Can run with `-p` | You choose the model and effort. The prompt is built into Claude Code |
 | **Ultrareview**, `/code-review ultra` | A cloud sandbox | Anthropic |
-| **The code-review plugin** | Your own Claude Code session | You can edit its prompt. It's the older approach |
 | **Your own prompt**, in a subagent, a skill, or a `-p` run | Wherever you run Claude Code | You |
 
 The managed service is a packaged product, like CodeRabbit. It teaches little, and it doesn't allow a model choice. So the choice is between the bundled `/code-review` and a prompt of our own.
@@ -83,11 +82,7 @@ From the [local review docs](https://code.claude.com/docs/en/code-review-local):
 - **It runs as a forked skill.** A forked skill gets the skill's own prompt, not the caller's conversation. So nothing can be passed to it except the target text. Whatever the reviewer knows about the task, it has to find in the repo: CLAUDE.md, the docs, the commit messages, and the PR description if the target is a PR.
 - **Its behavior changes with Claude Code versions.** The docs list changes at 2.1.218, 2.1.223, and 2.1.246. A comparison has to pin one version.
 
-### 4.2 The plugin
-
-The [plugin's README](https://raw.githubusercontent.com/anthropics/claude-code/refs/heads/main/plugins/code-review/README.md) describes version 1.0.0, from about a year ago. It starts four agents: two check the change against CLAUDE.md, one looks for bugs, and one reads the git history. A separate step scores each finding from 0 to 100, and drops anything under 80. It also drops "general quality issues not in CLAUDE.md," so it may skip findings like a design doc that doesn't match the code. The bundled command looks like its newer replacement.
-
-### 4.3 Running it with the Max subscription
+### 4.2 Running it with the Max subscription
 
 `claude setup-token` makes a long-lived token for the Max subscription. A GitHub Action can use it in place of an API key, so reviews count against Max limits instead of billing per token. The token is the whole account, so a workflow using it should only run on `pull_request`, never `pull_request_target`, so that a PR from a fork never gets it.
 
@@ -175,14 +170,16 @@ Each setting runs twice on each of the six PRs, so 48 reviews in all. Two runs s
 For each run:
 
 - Make a clone that holds history only up to the end of the range (section 6.3).
-- Run `claude -p --model <model> "/code-review <effort> <range>"` in it, with one pinned Claude Code version. Record the version.
-- Save the findings, the time taken, and the tokens used.
+- Run `claude -p --model <model> --output-format json "/code-review <effort> <range>"` in it, with one pinned Claude Code version. Record the version.
+- Save the findings and the time taken.
+- Save the tokens used, by model and by kind: input, output, cache writes, and cache reads. The JSON result reports them. On the first run, check that its totals include the review's own subagent. If they don't, add the subagent's tokens from its transcript.
 
 Score each run on:
 
 - **The code bugs.** Did it find #30's business name, #32's schedule order, and #35's driving count? These count most.
 - **The other findings.** Did it find the doc and plan findings?
 - **Extra findings.** How many, and how many are real? Joe checks these by hand.
+- **Cost.** What the review would cost at Anthropic's API prices, worked out from its tokens. The runs use the Max subscription, so nothing is billed. The API price is just a common scale for comparing settings. Record the price list used and the date it was read.
 
 ---
 
@@ -204,7 +201,6 @@ After that, the review needs a clear result. Either the PR is ready for Joe, or 
 
 - [Code Review](https://code.claude.com/docs/en/code-review), Claude Code docs, read 2026-10-16
 - [Review locally with /code-review](https://code.claude.com/docs/en/code-review-local), Claude Code docs, read 2026-10-16
-- [Code-review plugin README](https://raw.githubusercontent.com/anthropics/claude-code/refs/heads/main/plugins/code-review/README.md), read 2026-10-16
 - [CodeRabbit linked issues](https://docs.coderabbit.ai/guides/linked-issues)
 - [Qodo compliance checks](https://sdtimes.com/qodo-launches-automated-compliance-checks-in-its-code-review-agent), SD Times
 - [GitHub Spec Kit](https://github.github.com/spec-kit/)
