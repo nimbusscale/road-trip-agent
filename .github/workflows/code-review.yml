@@ -48,6 +48,11 @@ jobs:
           # lines the comments point to. Full history, so the reviewer can use git log.
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
+      - name: Make a local branch for the PR's base
+        # The checkout leaves only origin/<base>, so `git diff main...HEAD` would fail.
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: git branch "$BASE_REF" "origin/$BASE_REF"
       - uses: actions/setup-node@v7
         with:
           node-version: 24
@@ -79,7 +84,7 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           claude -p --model claude-opus-5-5 --output-format json \
-            --allowedTools "Bash(git:*)" "Bash(gh:*)" "Bash(cd:*)" "Bash(cat:*)" "Bash(ls:*)" "Bash(grep:*)" "Bash(rg:*)" "Bash(find:*)" "Bash(head:*)" "Bash(tail:*)" "Bash(wc:*)" "Bash(sed:*)" "Bash(awk:*)" "Bash(sort:*)" Read Grep Glob \
+            --allowedTools "Bash(git:*)" "Bash(gh:*)" "Bash(cd:*)" "Bash(cat:*)" "Bash(ls:*)" "Bash(grep:*)" "Bash(rg:*)" "Bash(find:*)" "Bash(head:*)" "Bash(tail:*)" "Bash(wc:*)" "Bash(sed:*)" "Bash(awk:*)" "Bash(sort:*)" "Bash(uniq:*)" "Bash(cut:*)" "Bash(tr:*)" "Bash(diff:*)" "Bash(jq:*)" "Bash(echo:*)" "Bash(printf:*)" Read Grep Glob \
             --disallowedTools Edit Write NotebookEdit WebFetch WebSearch "Bash(node:*)" \
             -- "/code-review high --comment $PR_NUMBER" > "$RUNNER_TEMP/review.json"
           jq -r '.result' "$RUNNER_TEMP/review.json" >> "$GITHUB_STEP_SUMMARY"
