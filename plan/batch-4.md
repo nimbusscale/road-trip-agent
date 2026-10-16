@@ -86,3 +86,4 @@ The coordinator adds a row after each phase is merged.
 
 | Phase | PR | Decisions for Joe to look at | Still open |
 |---|---|---|---|
+| 15 | [#30](https://github.com/nimbusscale/road-trip-agent/pull/30) | Google names a street address ("712 Neches St"). Code drops that name when the place has no `primaryTypeDisplayName` and its types include `street_address`, `premise`, or `subpremise`, so a name like "Mike's house" can fill in (domain model 3.10, Google design 2.4). `PlaceReader.get()` and `PlaceRepository.get()` take the trip ID (persistence design 8.1, 8.6, 8.7). `TripRepository.load()` loads places in phase 16, not 15. 4 real Google calls. | Server key not yet in the env schema or `compose.yaml`; added to phase 19's open questions. Review passed on round 2. |

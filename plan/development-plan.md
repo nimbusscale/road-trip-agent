@@ -41,7 +41,7 @@ This document lists the development work, phase by phase, in the order it's done
 | 13 | The first coordinator | |
 | 14 | Chat in the browser | |
 | **The itinerary** | | |
-| 15 | Places | |
+| 15 | Places | 2026-10-15, [PR #30](https://github.com/nimbusscale/road-trip-agent/pull/30) |
 | 16 | The itinerary's objects | |
 | 17 | The calendar and the day's schedule | |
 | 18 | The services | |

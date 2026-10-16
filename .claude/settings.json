@@ -2,7 +2,10 @@
   "permissions": {
     "allow": [
       "Bash(ssh root@projects.jjk3.com:*)",
-      "Bash(gh run view:*)"
+      "Bash(gh run view:*)",
+      "Bash(gh pr checks:*)",
+      "Bash(gh pr merge:*)",
+      "Bash(gh pr create:*)"
     ],
     "ask": [
       "Edit(/tsconfig*.json)",
