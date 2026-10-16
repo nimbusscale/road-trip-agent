@@ -1,4 +1,6 @@
 import { Day, type DayChanges, type DayFields } from "./day.js";
+import type { Place } from "./place.js";
+import { RuleError } from "./rule-error.js";
 import { VIA_SERVICE } from "./via-service.js";
 
 export interface StayDayFields extends DayFields {
@@ -6,7 +8,9 @@ export interface StayDayFields extends DayFields {
 }
 
 export interface StayDayChanges extends DayChanges {
-  // Marking it a rest day removes its leg, with its waypoints. Its approvals stay.
+  // A rest day has no leg. LegsService removes it, with its waypoints, at the end of the
+  // write, so the write hands the removed leg back (domain model 4.7). Its approvals
+  // stay.
   setRestDay(isRestDay: boolean): void;
 }
 
@@ -19,9 +23,6 @@ export class StayDay extends Day {
     ...this.dayChanges(),
     setRestDay: (isRestDay) => {
       this.#isRestDay = isRestDay;
-      if (isRestDay) {
-        this.dayChanges().setLeg(null);
-      }
     },
   };
 
@@ -33,5 +34,17 @@ export class StayDay extends Day {
   // A day with no driving. DaysService.setRestDay() changes it.
   get isRestDay(): boolean {
     return this.#isRestDay;
+  }
+
+  // A rest day keeps its leg until the end of the write that marks it, when
+  // LegsService removes the leg and its waypoints. So it refuses waypoints itself,
+  // rather than take them and drop them.
+  override setWaypoints(waypoints: readonly Place[]): void {
+    if (this.#isRestDay) {
+      throw new RuleError(
+        "A rest day can't have waypoints, since it has no drive.",
+      );
+    }
+    super.setWaypoints(waypoints);
   }
 }

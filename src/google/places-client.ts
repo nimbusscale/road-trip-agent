@@ -1,9 +1,7 @@
 import { Place } from "../domain/place.js";
 import { newId } from "../ids/new-id.js";
-import {
-  googleErrorBodySchema,
-  textSearchResponseSchema,
-} from "./places-text-search.schema.js";
+import { googleErrorBodySchema } from "./google-error.schema.js";
+import { textSearchResponseSchema } from "./places-text-search.schema.js";
 
 const TEXT_SEARCH_URL = "https://places.googleapis.com/v1/places:searchText";
 

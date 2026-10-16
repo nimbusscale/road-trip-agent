@@ -159,7 +159,7 @@ The commands, code standards, and tests are in [DEVELOPMENT.md](../DEVELOPMENT.m
 | Secret | Used by |
 |---|---|
 | Claude plan token, `CLAUDE_CODE_OAUTH_TOKEN` | `app` |
-| Google server key | `app` |
+| Google server key, `GOOGLE_MAPS_SERVER_KEY` | `app` |
 | Postgres password | `app` and `postgres` |
 | Spaces access key | `backup` (section 9) |
 

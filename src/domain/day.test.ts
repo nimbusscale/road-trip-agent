@@ -120,14 +120,29 @@ describe("a day's waypoints", () => {
 });
 
 describe("a rest day", () => {
-  it("removes its own leg and waypoints, and keeps its approvals", () => {
+  it("keeps its leg, waypoints, and approvals until LegsService removes the leg at the end of the write", () => {
     const day = newDay();
-    day[VIA_SERVICE].setLeg(leg());
+    const itsLeg = leg();
+    day[VIA_SERVICE].setLeg(itsLeg);
     day.setWaypoints([BIG_SUR]);
     day[VIA_SERVICE].setApproval(FIVE_HOURS);
     day[VIA_SERVICE].setRestDay(true);
-    expect([day.isRestDay, day.leg, day.waypoints]).toEqual([true, null, []]);
+    expect([day.isRestDay, day.leg, day.waypoints]).toEqual([
+      true,
+      itsLeg,
+      [BIG_SUR],
+    ]);
     expect(day.approvals).toEqual([FIVE_HOURS]);
+  });
+
+  it("refuses waypoints, even while it still has its leg", () => {
+    const day = newDay();
+    day[VIA_SERVICE].setLeg(leg());
+    day[VIA_SERVICE].setRestDay(true);
+    expect(() => {
+      day.setWaypoints([BIG_SUR]);
+    }).toThrow("A rest day can't have waypoints, since it has no drive.");
+    expect(day.waypoints).toEqual([]);
   });
 
   it("is only a stay day: the last day has no rest-day mark", () => {

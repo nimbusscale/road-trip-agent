@@ -6,7 +6,7 @@ import { moabExample } from "./moab-example.fake.js";
 import { sanFranciscoExample } from "./san-francisco-example.fake.js";
 
 describe("DaysService.setRestDay", () => {
-  it("marks a day that stays put, which removes its leg and waypoints and keeps its approvals", () => {
+  it("marks a day that stays put, and keeps its approvals. LegsService removes its leg at the end of the write", () => {
     const { trip, services, moab } = moabExample();
     const day2 = present(moab.days[1]);
     expect(day2.leg).not.toBeNull();
@@ -21,8 +21,7 @@ describe("DaysService.setRestDay", () => {
     services.days.approveRouteType(day2, "fastest", "short hops");
     services.days.setRestDay(trip.itinerary, day2, true);
     expect(day2.isRestDay).toBe(true);
-    expect(day2.leg).toBeNull();
-    expect(day2.waypoints).toEqual([]);
+    expect(day2.leg).not.toBeNull();
     expect(day2.approvals.map((approval) => approval.kind)).toEqual([
       "routeType",
     ]);

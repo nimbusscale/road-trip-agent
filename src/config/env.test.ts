@@ -12,6 +12,7 @@ const GOOD_ENV: readonly (readonly [string, string])[] = [
   ["POSTGRES_DB", "roadtrip"],
   ["SUPABASE_URL", "https://abc.supabase.co"],
   ["CLAUDE_CODE_OAUTH_TOKEN", "plan-token"],
+  ["GOOGLE_MAPS_SERVER_KEY", "server-key"],
 ];
 
 function envWith(name: string, value: string): Record<string, string> {
@@ -32,6 +33,7 @@ describe("parseEnv", () => {
       postgresDb: "roadtrip",
       supabaseUrl: "https://abc.supabase.co",
       claudeCodeOauthToken: "plan-token",
+      googleMapsServerKey: "server-key",
     });
   });
 
@@ -55,6 +57,12 @@ describe("parseEnv", () => {
     const env = envWithout("POSTGRES_PASSWORD");
     expect(() => parseEnv(env)).toThrow(ConfigError);
     expect(() => parseEnv(env)).toThrow("- POSTGRES_PASSWORD is missing");
+  });
+
+  it("stops the app when the Google server key is missing", () => {
+    expect(() => parseEnv(envWithout("GOOGLE_MAPS_SERVER_KEY"))).toThrow(
+      "- GOOGLE_MAPS_SERVER_KEY is missing",
+    );
   });
 
   it("names an empty variable", () => {

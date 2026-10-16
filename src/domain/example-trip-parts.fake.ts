@@ -19,8 +19,8 @@ import type { Weekday } from "./weekday.js";
 
 // The parts the example trips (domain model section 5) are built from, for tests. The
 // trips are built through the services, the way the tools will build them. Only the
-// legs are set directly, with made-up drive times, since LegsService routes them with
-// Google (phase 19).
+// legs are set directly, with made-up drive times, so the schedules come out as the
+// examples show them. LegsService routes legs with Google (domain model 4.7).
 
 export const OWNER = { id: "4f6c1d0e-2a8b-4c3d-9e7f-1a2b3c4d5e6f" };
 
@@ -202,7 +202,7 @@ export function lodgeAt(planning: Planning, stay: Stay, place: Place): void {
 }
 
 // Gives the day a leg through its selected stops, with made-up segment drive times
-// (without the buffer), the way LegsService will (domain model 4.7).
+// (without the buffer), the way LegsService does (domain model 4.7).
 export function routeDay(
   calendar: Calendar,
   itinerary: Itinerary,

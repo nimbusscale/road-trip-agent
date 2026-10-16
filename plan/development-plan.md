@@ -399,6 +399,7 @@ The started-trip lock at save can't be tested yet, since nothing can set a start
 **Open questions:**
 
 - Which model does each agent use, and where is it set? No design doc names one. Left to Claude Code, the model depends on where it runs: in phase 9, the same script got Opus run on Joe's machine and Sonnet in the `app` container. So the app should set the model itself. Raised in phase 9.
+- How does `update_trip_brief` get a `TripWriter`? Since phase 19, `TripWriter` needs a `routeFinder`, because every write updates the legs. Phase 13 makes the `RoutesClient` from `env.googleMapsServerKey` and the global `fetch`, and passes it to `TripWriter` as `routeFinder`. Raised in phase 19.
 - What does the app do when the Agent SDK sends a `mirror_error` message? The SDK sends it when it couldn't save transcript lines to the store after 3 tries, and drops them. The turn goes on, so a database outage can lose lines. At least log it. Also, a batch the SDK retries can land after batches sent later, so a database hiccup can put a few lines out of order. Raised in phase 12.
 
 **Do:**
@@ -548,7 +549,7 @@ By the end of this part, code can build both example trips through the services,
 
 **Open questions:**
 
-- How does the app get the server key? Phase 15's `PlacesClient` takes it as an argument, and nothing in the app makes one yet, so `GOOGLE_MAPS_SERVER_KEY` isn't in the env schema (`src/config/env.schema.ts`) or in the `app` service's environment in `compose.yaml`. The legs run in every write, so this phase is the first whose code the app runs with a Google key. Add it to both, so a missing key stops the app from starting. Raised in phase 15.
+- ~~How does the app get the server key? Phase 15's `PlacesClient` takes it as an argument, and nothing in the app makes one yet, so `GOOGLE_MAPS_SERVER_KEY` isn't in the env schema (`src/config/env.schema.ts`) or in the `app` service's environment in `compose.yaml`. The legs run in every write, so this phase is the first whose code the app runs with a Google key. Add it to both, so a missing key stops the app from starting. Raised in phase 15.~~ **Closed 2026-10-15,** in this phase's PR: `GOOGLE_MAPS_SERVER_KEY` is in the env schema, so a missing or empty key stops the app and the migrations from starting, and in the `app` service's environment in `compose.yaml`. The server's `.env` already has it (phase 2). Written into systems design section 8.
 
 **Do:**
 
