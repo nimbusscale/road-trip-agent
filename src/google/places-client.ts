@@ -1,7 +1,7 @@
 import { Place } from "../domain/place.js";
 import { newId } from "../ids/new-id.js";
 import { googleErrorBodySchema } from "./google-error.schema.js";
-import { jsonBodyOf } from "./json-body.js";
+import { isTimeoutError, jsonBodyOf } from "./json-body.js";
 import { textSearchResponseSchema } from "./places-text-search.schema.js";
 
 const TEXT_SEARCH_URL = "https://places.googleapis.com/v1/places:searchText";
@@ -108,7 +108,7 @@ export class PlacesClient {
 }
 
 function failedCallMessage(error: unknown): string {
-  if (error instanceof DOMException && error.name === "TimeoutError") {
+  if (isTimeoutError(error)) {
     return `Google Places didn't answer within ${String(TIMEOUT_MILLISECONDS / 1000)} seconds. Try again.`;
   }
   return "Google Places couldn't be reached. Try again.";

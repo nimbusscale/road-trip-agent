@@ -17,6 +17,10 @@ export class ItineraryService {
 
   // Today follows the start place's time zone. So a start place further east can make
   // today reach the start date, and the trip would start at once (domain model 3.4).
+  // The place is checked against the start date the itinerary has now. When
+  // update_itinerary gets both in one call, it sets the place first, so a later date in
+  // the same call doesn't help. That rare refusal is accepted, and the error says to set
+  // the later date first (domain model 3.4).
   setStartPlace(itinerary: Itinerary, startPlace: Place): void {
     const startDate = itinerary.startDate;
     const today = this.#calendar.todayAt(startPlace);

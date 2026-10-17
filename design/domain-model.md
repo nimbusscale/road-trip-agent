@@ -963,6 +963,7 @@ It's there because an object can't see the object that holds it, or the ones bes
 | `fromPlaceOf(itinerary, day)` | `Place?` | Where the day starts: the `sleepsAt` of `startStayOf()`, or the itinerary's start place on the first day. The day's leg starts here. Empty while the start place is empty |
 | `toPlaceOf(itinerary, day)` | `Place?` | Where the day ends: the `sleepsAt` of `endStayOf()`, or the itinerary's end place on the last day. The day's leg ends here. Empty while the end place is empty |
 | `isStayingPut(itinerary, day)` | `boolean` | True when `startStayOf()` and `endStayOf()` are the same stay. False on the first and last days, where one of them is empty. See below |
+| `hasLeg(itinerary, day)` | `boolean` | Whether the day should have a leg, by the rule in section 4.7, "Which days have a leg." `LegsService` routes by it, and `scheduleOf()` gives drives only on such a day, so the two can't disagree |
 | `locationOf(itinerary, day)` | `string?` | Where the day is, for the daily itinerary (functional spec 9.5). See below |
 | `startTimeOf(itinerary, day)` | `time` | The day's `ownStartTime`, or the trip brief's `usualStartTime` when it's empty |
 | `scheduleOf(itinerary, day)` | `List<ScheduleEntry>`, in time order | The day's schedule. See below |
@@ -1121,7 +1122,7 @@ It decides which days have a leg, and routes them. It's the one place that calls
 - **`detourTimesOf(itinerary : Itinerary, stop : Stop, places : List<Place>) : List<integer>`** (the tool `add_stop_candidates`, before `StopsService.addCandidates()`). Works out each place's detour time for a stop along the leg, with one call to Google Routes per place, against the day's leg as it is now. The place goes in at the stop's position among the day's selected stops. Example: a pie stop between Goblin Valley and Capitol Gorge is measured there. The waypoints are placed the same way as for the leg, so both routes take the same road. When the stop already has a selected place, each place measured stands in for it. A place's detour time is that route's drive time minus the leg's, and never less than 0. Returns them in the order given. It changes nothing. Nothing from the worker's search is reused, so nothing has to be stored or cleared.
   - **Refused:** when the stop isn't along the leg, or its day has no leg yet. When a call to Google fails, the same way as `updateLegs()`.
 
-**Which days have a leg.** A day has a leg when it isn't a rest day, both its ends are known, and either it moves or it has a selected stop:
+**Which days have a leg.** The calendar's `hasLeg()` holds this rule (section 4.1). A day has a leg when it isn't a rest day, both its ends are known, and either it moves or it has a selected stop:
 
 - **A day that moves** to a new stay, or to the end place, always has one. It has to drive. On the San Francisco trip, every day moves.
 - **A day that stays put** (`isStayingPut()`) has one only while it has a selected stop. Its leg starts and ends at the same stay, and passes through the selected stops. Stops with no selected place have nothing to route through. Example: Moab Day 2 gets its leg when its first stop is selected.

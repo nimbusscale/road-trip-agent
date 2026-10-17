@@ -251,6 +251,9 @@ describe("a day's schedule", () => {
     expect(calendar.drivingInMinutesOf(itinerary, onlyDay)).toBe(0);
     itinerary[VIA_SERVICE].setStartPlace(placeNamed("Grand Junction"));
     expect(calendar.scheduleOf(itinerary, onlyDay)).toEqual([]);
+    expect(calendar.hasLeg(itinerary, onlyDay)).toBe(false);
+    itinerary.endPlace = placeNamed("Salt Lake City");
+    expect(calendar.hasLeg(itinerary, onlyDay)).toBe(true);
   });
 });
 

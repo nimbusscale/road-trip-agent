@@ -9,7 +9,6 @@ import {
   type RouteFinder,
 } from "./route-finder.js";
 import { RuleError } from "./rule-error.js";
-import { StayDay } from "./stay-day.js";
 import type { Stop } from "./stop.js";
 import { VIA_SERVICE } from "./via-service.js";
 import { withWaypoints } from "./waypoint-placement.js";
@@ -136,22 +135,16 @@ export class LegsService {
     };
   }
 
-  // What the day's leg should be routed for now, or null when it shouldn't have one: a
-  // rest day, a day whose ends aren't known yet, or a day that stays put with no
-  // selected stop (domain model 4.7, "Which days have a leg").
+  // What the day's leg should be routed for now, or null when it shouldn't have one
+  // (Calendar.hasLeg(), domain model 4.7, "Which days have a leg").
   #routeFor(itinerary: Itinerary, day: Day): DayRoute | null {
     const { calendar } = this.#given;
     const from = calendar.fromPlaceOf(itinerary, day);
     const to = calendar.toPlaceOf(itinerary, day);
-    const stops = day.stops.filter((stop) => stop.selectedPlace !== null);
-    if (
-      (day instanceof StayDay && day.isRestDay) ||
-      from === null ||
-      to === null ||
-      (calendar.isStayingPut(itinerary, day) && stops.length === 0)
-    ) {
+    if (!calendar.hasLeg(itinerary, day) || from === null || to === null) {
       return null;
     }
+    const stops = day.stops.filter((stop) => stop.selectedPlace !== null);
     return {
       from,
       to,

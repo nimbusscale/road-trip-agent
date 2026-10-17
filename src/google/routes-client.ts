@@ -8,7 +8,7 @@ import type {
   StopsPath,
 } from "../domain/route-finder.js";
 import { googleErrorBodySchema } from "./google-error.schema.js";
-import { jsonBodyOf } from "./json-body.js";
+import { isTimeoutError, jsonBodyOf } from "./json-body.js";
 import { type GoogleRoute, routesResponseSchema } from "./routes.schema.js";
 
 const COMPUTE_ROUTES_URL =
@@ -198,7 +198,7 @@ function nameOf(place: Place): string {
 }
 
 function failedCallMessage(error: unknown): string {
-  if (error instanceof DOMException && error.name === "TimeoutError") {
+  if (isTimeoutError(error)) {
     return `Google Routes didn't answer within ${String(TIMEOUT_MILLISECONDS / 1000)} seconds. Try again.`;
   }
   return "Google Routes couldn't be reached. Try again.";

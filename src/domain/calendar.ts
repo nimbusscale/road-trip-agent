@@ -154,7 +154,7 @@ export class Calendar {
   // warning matches the schedule. 0 on a day with no drives. Null while the leg isn't
   // routed through the day's selected places.
   drivingInMinutesOf(itinerary: Itinerary, day: Day): number | null {
-    if (!this.#hasDrives(itinerary, day)) {
+    if (!this.hasLeg(itinerary, day)) {
       return 0;
     }
     const drives = this.#driveMinutesOf(day);
@@ -216,7 +216,7 @@ export class Calendar {
   }
 
   #timelineOf(itinerary: Itinerary, day: Day): TimelineEntry[] {
-    const hasDrives = this.#hasDrives(itinerary, day);
+    const hasDrives = this.hasLeg(itinerary, day);
     return timelineOf({
       stops: day.stops,
       startMinute: minuteOf(this.startTimeOf(itinerary, day)),
@@ -225,10 +225,11 @@ export class Calendar {
     });
   }
 
-  // A rest day has no drives, and nor does a day whose ends aren't known yet, or a day
-  // that stays put with no selected stop, since it has nothing to drive to (domain
-  // model 4.7, "Which days have a leg").
-  #hasDrives(itinerary: Itinerary, day: Day): boolean {
+  // Whether the day should have a leg, and so drives in its schedule. Not on a rest day,
+  // a day whose ends aren't known yet, or a day that stays put with no selected stop,
+  // since it has nothing to drive to (domain model 4.7, "Which days have a leg").
+  // LegsService routes by it, so the schedule and the legs follow one rule.
+  hasLeg(itinerary: Itinerary, day: Day): boolean {
     if (day instanceof StayDay && day.isRestDay) {
       return false;
     }

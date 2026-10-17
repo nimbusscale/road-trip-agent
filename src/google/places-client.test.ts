@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import type { Place } from "../domain/place.js";
 import { TimeOfDay } from "../domain/time-of-day.js";
+import { bodyThatBreaks, bodyThatTimesOut } from "./failing-body.fake.js";
 import {
   FIELD_MASK,
   GooglePlacesError,
@@ -234,16 +235,25 @@ describe("PlacesClient.searchText", () => {
       "Google Places sent a response the app doesn't understand",
     );
   });
-});
 
-// A body whose stream fails the way fetch's timeout makes it fail.
-function bodyThatTimesOut(): ReadableStream<Uint8Array> {
-  return new ReadableStream({
-    start(controller) {
-      controller.error(new DOMException("timed out", "TimeoutError"));
-    },
+  it("keeps the error status when the error's body breaks off", async () => {
+    const breaks: typeof fetch = () =>
+      Promise.resolve(new Response(bodyThatBreaks(), { status: 403 }));
+    const client = new PlacesClient({ apiKey: API_KEY, fetch: breaks });
+    await expect(client.searchText("x", 1)).rejects.toThrow(
+      "Google Places refused the search with status 403.",
+    );
   });
-}
+
+  it("counts a good reply whose body breaks off as not reached", async () => {
+    const breaks: typeof fetch = () =>
+      Promise.resolve(new Response(bodyThatBreaks()));
+    const client = new PlacesClient({ apiKey: API_KEY, fetch: breaks });
+    await expect(client.searchText("x", 1)).rejects.toThrow(
+      "Google Places couldn't be reached. Try again.",
+    );
+  });
+});
 
 function onlyPlace(places: readonly Place[]): Place {
   const [place] = places;

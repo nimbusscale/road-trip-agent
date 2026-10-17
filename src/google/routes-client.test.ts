@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import type { Place } from "../domain/place.js";
 import { examplePlace } from "../domain/place.fake.js";
+import { bodyThatBreaks, bodyThatTimesOut } from "./failing-body.fake.js";
 import {
   BEST_ORDER_FIELD_MASK,
   FIELD_MASK,
@@ -201,19 +202,21 @@ describe("RoutesClient.route", () => {
   it("refuses a call whose time runs out while the reply is still being read", async () => {
     const stallsInBody = new RoutesClient({
       apiKey: API_KEY,
-      fetch: () =>
-        Promise.resolve(
-          new Response(
-            new ReadableStream({
-              start(controller) {
-                controller.error(new DOMException("timed out", "TimeoutError"));
-              },
-            }),
-          ),
-        ),
+      fetch: () => Promise.resolve(new Response(bodyThatTimesOut())),
     });
     await expect(stallsInBody.route(THROUGH_BIG_SUR)).rejects.toThrow(
       "Google Routes didn't answer within 10 seconds. Try again.",
+    );
+  });
+
+  it("keeps the error status when the error's body breaks off", async () => {
+    const breaks = new RoutesClient({
+      apiKey: API_KEY,
+      fetch: () =>
+        Promise.resolve(new Response(bodyThatBreaks(), { status: 500 })),
+    });
+    await expect(breaks.route(THROUGH_BIG_SUR)).rejects.toThrow(
+      "Google Routes refused the route with status 500.",
     );
   });
 });
