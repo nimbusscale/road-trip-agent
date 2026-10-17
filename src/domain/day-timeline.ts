@@ -19,11 +19,13 @@ export interface TimelineEntry {
 export interface TimelineInput {
   stops: readonly Stop[];
   startMinute: number;
-  // False on a day with no drives: a rest day, or a day that stays put with no
-  // selected stop yet.
+  // False on a day with no drives: a rest day, a day that stays put with no selected
+  // stop yet, or a day whose ends aren't known yet.
   hasDrives: boolean;
   // Each segment's drive time with the buffer, in route order. Null when they aren't
-  // known, such as before the day's leg is routed for its selected stops.
+  // known, such as before the day's leg is routed for its selected stops. On a day with
+  // no drives, an empty list, or null while the day's ends aren't known, since the
+  // drives there aren't known to be 0.
   driveMinutes: readonly number[] | null;
 }
 
@@ -181,10 +183,10 @@ class TimelineBuilder {
     this.#push("drive", start, plus(start, drive));
   }
 
-  // 0 on a day with no drives.
+  // 0 on a day with no drives, or null while its ends aren't known.
   #nextDrive(): number | null {
     if (!this.#input.hasDrives) {
-      return 0;
+      return this.#input.driveMinutes === null ? null : 0;
     }
     const drive = this.#input.driveMinutes?.[this.#segment] ?? null;
     this.#segment += 1;

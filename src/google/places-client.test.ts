@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import type { Place } from "../domain/place.js";
 import { TimeOfDay } from "../domain/time-of-day.js";
+import { bodyThatBreaks, bodyThatTimesOut } from "./failing-body.fake.js";
 import {
   FIELD_MASK,
   GooglePlacesError,
@@ -215,6 +216,41 @@ describe("PlacesClient.searchText", () => {
     const client = new PlacesClient({ apiKey: API_KEY, fetch: timesOut });
     await expect(client.searchText("x", 1)).rejects.toThrow(
       `didn't answer within ${String(TIMEOUT_MILLISECONDS / 1000)} seconds`,
+    );
+  });
+
+  it("gives up when the time runs out while the reply is still being read", async () => {
+    const stallsInBody: typeof fetch = () =>
+      Promise.resolve(new Response(bodyThatTimesOut()));
+    const client = new PlacesClient({ apiKey: API_KEY, fetch: stallsInBody });
+    await expect(client.searchText("x", 1)).rejects.toThrow(
+      `Google Places didn't answer within ${String(TIMEOUT_MILLISECONDS / 1000)} seconds. Try again.`,
+    );
+  });
+
+  it("refuses a reply that isn't JSON as one it doesn't understand", async () => {
+    await expect(
+      clientFor("<html>Oops</html>").client.searchText("x", 1),
+    ).rejects.toThrow(
+      "Google Places sent a response the app doesn't understand",
+    );
+  });
+
+  it("keeps the error status when the error's body breaks off", async () => {
+    const breaks: typeof fetch = () =>
+      Promise.resolve(new Response(bodyThatBreaks(), { status: 403 }));
+    const client = new PlacesClient({ apiKey: API_KEY, fetch: breaks });
+    await expect(client.searchText("x", 1)).rejects.toThrow(
+      "Google Places refused the search with status 403.",
+    );
+  });
+
+  it("counts a good reply whose body breaks off as not reached", async () => {
+    const breaks: typeof fetch = () =>
+      Promise.resolve(new Response(bodyThatBreaks()));
+    const client = new PlacesClient({ apiKey: API_KEY, fetch: breaks });
+    await expect(client.searchText("x", 1)).rejects.toThrow(
+      "Google Places couldn't be reached. Try again.",
     );
   });
 });

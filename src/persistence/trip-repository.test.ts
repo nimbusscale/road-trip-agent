@@ -61,7 +61,9 @@ describe("TripRepository", () => {
     const editable = await new TripRepository(connection).loadForWrite(tripId);
     expect(editable.trip.name).toBe("Pacific Coast Highway");
     expect(connection.queries[0]?.values).toEqual([LOCK_WAIT]);
-    expect(connection.queries[1]?.text).toMatch(/WHERE id = \$1 FOR UPDATE$/);
+    expect(connection.queries[1]?.text).toMatch(
+      /WHERE id = \$1 FOR NO KEY UPDATE$/,
+    );
     expect(connection.queries[1]?.values).toEqual([tripId]);
   });
 

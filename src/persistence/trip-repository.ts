@@ -46,8 +46,10 @@ export class TripRepository implements TripStore {
       LOCK_WAIT,
     ]);
     try {
+      // "For no key update" makes a second write wait, but not a place insert's
+      // foreign-key check, so saving places from a search never waits (section 4).
       const rows = await this.#select(
-        `${SELECT_TRIP} WHERE id = $1 FOR UPDATE`,
+        `${SELECT_TRIP} WHERE id = $1 FOR NO KEY UPDATE`,
         [tripId],
       );
       const places = await this.#places.loadForTrip(tripId);

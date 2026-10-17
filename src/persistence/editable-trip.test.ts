@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { planningFor } from "../domain/example-trip-parts.fake.js";
 import { exampleMoabTrip } from "../domain/itinerary.fake.js";
 import { exampleAddress, examplePlace } from "../domain/place.fake.js";
 import { newTrip } from "../domain/trip.js";
@@ -41,7 +42,10 @@ describe("EditableTrip", () => {
     const { trip, places } = exampleMoabTrip(OWNER);
     const loadedStartPlace = trip.itinerary.startPlace;
     const editable = new EditableTrip(trip, places);
-    trip.itinerary.startPlace = examplePlace();
+    planningFor(trip).services.itinerary.setStartPlace(
+      trip.itinerary,
+      examplePlace(),
+    );
     expect(editable.loadedStartPlace).toBe(loadedStartPlace);
     expect(editable.loadedStartDate?.toText()).toBe("2027-10-10");
     expect(editable.startedToday(new Date("2027-10-09T12:00:00Z"))).toBeNull();

@@ -29,11 +29,10 @@ describe("the itinerary's start and end places", () => {
   it("start empty, change, and can't be emptied", () => {
     const itinerary = newItinerary();
     expect(itinerary.startPlace).toBeNull();
-    itinerary.startPlace = namedPlace("San Francisco");
+    itinerary[VIA_SERVICE].setStartPlace(namedPlace("San Francisco"));
     itinerary.endPlace = namedPlace("Mike's house");
-    itinerary.startPlace = namedPlace("Oakland");
-    expect(itinerary.startPlace.name).toBe("Oakland");
-    expect(() => (itinerary.startPlace = null)).toThrow("can't be empty");
+    itinerary[VIA_SERVICE].setStartPlace(namedPlace("Oakland"));
+    expect(itinerary.startPlace?.name).toBe("Oakland");
     expect(() => (itinerary.endPlace = null)).toThrow(RuleError);
   });
 });
@@ -44,7 +43,7 @@ describe("the itinerary's start date", () => {
     expect(() => {
       itinerary[VIA_SERVICE].setStartDate(START_DATE);
     }).toThrow("start place");
-    itinerary.startPlace = namedPlace("San Francisco");
+    itinerary[VIA_SERVICE].setStartPlace(namedPlace("San Francisco"));
     itinerary[VIA_SERVICE].setStartDate(START_DATE);
     expect(itinerary.startDate).toBe(START_DATE);
   });
@@ -52,7 +51,7 @@ describe("the itinerary's start date", () => {
   it("gives the end date, from the number of days", () => {
     const itinerary = newItinerary();
     expect(itinerary.endDate).toBeNull();
-    itinerary.startPlace = namedPlace("San Francisco");
+    itinerary[VIA_SERVICE].setStartPlace(namedPlace("San Francisco"));
     itinerary[VIA_SERVICE].setStartDate(START_DATE);
     itinerary[VIA_SERVICE].placeStay(stayIn("Monterey"), null);
     expect(itinerary.endDate?.toText()).toBe("2027-05-14");
@@ -177,7 +176,7 @@ describe("Trip", () => {
     expect(trip.name).toBeNull();
     trip.tripBrief.focus = "Pacific Coast Highway";
     expect(trip.name).toBe("Pacific Coast Highway");
-    trip.itinerary.startPlace = namedPlace("San Francisco");
+    trip.itinerary[VIA_SERVICE].setStartPlace(namedPlace("San Francisco"));
     trip.itinerary[VIA_SERVICE].setStartDate(START_DATE);
     expect(trip.name).toBe("Pacific Coast Highway, May 2027");
   });
@@ -185,7 +184,7 @@ describe("Trip", () => {
   it("has started once today reaches the start date", () => {
     const trip = newTrip(OWNER, new Date());
     expect(trip.hasStarted(new Date())).toBe(false);
-    trip.itinerary.startPlace = namedPlace("San Francisco");
+    trip.itinerary[VIA_SERVICE].setStartPlace(namedPlace("San Francisco"));
     trip.itinerary[VIA_SERVICE].setStartDate(new CalendarDate(2020, 1, 1));
     expect(trip.hasStarted(new Date())).toBe(true);
   });

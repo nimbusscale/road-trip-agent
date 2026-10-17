@@ -78,11 +78,13 @@ A write runs the four steps in domain model section 1 inside one database transa
 
 **The problem.** Several workers can write to one trip at once (tool design section 4). So can two sessions of one trip, though having two open at once isn't supported (functional spec 10.1). If two writes each load the plan and save it whole, the second save loses the first one's work. Example: the Moab and Torrey stay researchers run in parallel. Each loads the plan and adds its lodging set. Torrey's save overwrites the plan holding Moab's new set.
 
-**Writes to one trip take turns.** Each write loads the trip's row "for update," which takes a row lock in Postgres. A second write to the same trip waits at its load until the first commits or rolls back. Then it loads the trip with the first write's changes. Writes to other trips don't wait.
+**Writes to one trip take turns.** Each write loads the trip's row "for no key update" (`FOR NO KEY UPDATE`), which takes a row lock in Postgres. A second write to the same trip waits at its load until the first commits or rolls back. Then it loads the trip with the first write's changes. Writes to other trips don't wait.
 
 - **It survives a restart.** When the container dies, Postgres rolls back the write in progress and releases its lock.
 - **It works with more than one copy of the app,** since the lock is in the database, not in the app.
 - **The cost is waiting.** A write holds the lock through its Google calls, such as a re-route at the finish, or a leg scout's detour times (domain model 4.7). That's a few seconds at most. Saving places from a search takes no lock, so workers' searches never wait.
+- **Why not "for update."** Each place row has a foreign key to its trip's row. When a place is added, Postgres checks that the trip's row exists, and holds a light lock on it ("for key share") while it does. "For update" blocks that check, so a place save would wait behind a write's Google calls. "For no key update" doesn't, since a write never changes the trip's ID. Two writes still wait for each other.
+- **Place saves add rows in Google place ID order.** Two searches that find the same new places can each wait on a row the other added. If they added them in opposite order, each would wait on the other, and Postgres would abort one (a deadlock). In the same order, the second save just waits for the first.
 - **A write waits 5 seconds for the lock, and tries 3 times.** When the lock isn't free within 5 seconds, the load gives up, and `TripWriter` tries the whole write again after a 1-second pause. After the third try, the write is refused, and the error says the trip is busy. That's about 17 seconds in all. One write ahead holds the lock a few seconds at most, so 5 seconds covers it, and 3 tries cover a few workers waiting in line. Trying again is safe, since the lock is taken at the load, before anything changes. No agent has to understand the lock. The three numbers are constants in the code, not settings, since they aren't about planning.
 - **Every Google call during a write has a timeout,** so a call that hangs can't hold the lock for long. A call that times out refuses the write, like any failed call (domain model 4.7).
 
@@ -406,7 +408,7 @@ A **repository** is a class that reads and saves one kind of record (section 2).
 
 **TripRepository** reads and saves trip rows, and turns them into `Trip` objects. It uses `PlaceRepository`, on the same connection, to load the trip's places, and turns each place ID in the plan back into a link. Turning the itinerary's IDs back into links is the domain's `itineraryFromStored()`, not the repository's. The links run in a loop: a stay holds its days, a day holds its stops, and a stop near a stay links to a stay, often the one that holds it. So no order of constructors builds the itinerary. The domain builds the stays and days first, then adds the stops and legs to the days with their change methods, which only the domain reaches (domain model section 1).
 
-- **`loadForWrite(tripId)`** loads the trip's row "for update," which takes the row lock (section 4). Then it loads the trip's places, and returns an `EditableTrip`. If the lock isn't free within 5 seconds, it refuses, and the error says the trip is busy. `TripWriter` tries again twice before passing the error on (section 4).
+- **`loadForWrite(tripId)`** loads the trip's row "for no key update," which takes the row lock (section 4). Then it loads the trip's places, and returns an `EditableTrip`. If the lock isn't free within 5 seconds, it refuses, and the error says the trip is busy. `TripWriter` tries again twice before passing the error on (section 4).
 - **`load(tripId)`** does the same without the row lock, and returns the `Trip`.
 - **`listForOwner(owner)`** loads every trip the user owns.
 - **`add(trip)`** adds a new trip's row.
@@ -414,7 +416,7 @@ A **repository** is a class that reads and saves one kind of record (section 2).
 
 **PlaceRepository** reads and saves place rows.
 
-- **`addPlaces(tripId, places)`** adds each place as a row, unless the trip already has one with that Google place ID (section 3). It returns the stored places in the order given, so the caller gets the existing `id` for a place the trip already had.
+- **`addPlaces(tripId, places)`** adds each place as a row, unless the trip already has one with that Google place ID (section 3). It adds them in Google place ID order (section 4). It returns the stored places in the order given, so the caller gets the existing `id` for a place the trip already had.
 - **`loadForTrip(tripId)`** loads every place the trip has.
 - **`get(tripId, placeId)`** loads one of the trip's places, or nothing if the trip has no place with that ID.
 - **`fillNames(places)`** sets each place's name on its row, only where the row has none.

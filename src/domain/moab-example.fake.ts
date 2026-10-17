@@ -50,12 +50,15 @@ export function moabExample(): MoabExample {
   // The brief items the example uses, which the checks compare against.
   services.tripBrief.setTripLength(trip.tripBrief, 5);
   services.tripBrief.setComfortableDriving(trip.tripBrief, 4);
-  itinerary.startPlace = examplePlace({
-    name: "Grand Junction",
-    googlePlaceId: "google-Grand Junction",
-    latitude: 39.0639,
-    longitude: -108.5506,
-  });
+  services.itinerary.setStartPlace(
+    itinerary,
+    examplePlace({
+      name: "Grand Junction",
+      googlePlaceId: "google-Grand Junction",
+      latitude: 39.0639,
+      longitude: -108.5506,
+    }),
+  );
   itinerary.endPlace = placeNamed("Salt Lake City");
   services.itinerary.setStartDate(itinerary, new CalendarDate(2027, 10, 10));
   const moab = addStay(planning, "Moab", 3, null);

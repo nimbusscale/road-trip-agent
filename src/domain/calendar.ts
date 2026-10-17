@@ -72,7 +72,12 @@ export class Calendar {
   // Today's date in the start place's time zone. Empty while there's no start place.
   today(itinerary: Itinerary): CalendarDate | null {
     const startPlace = itinerary.startPlace;
-    return startPlace === null ? null : todayAt(startPlace, this.#given.now());
+    return startPlace === null ? null : this.todayAt(startPlace);
+  }
+
+  // Today's date in the place's time zone, such as a new start place before it's set.
+  todayAt(place: Place): CalendarDate {
+    return todayAt(place, this.#given.now());
   }
 
   dateOf(itinerary: Itinerary, day: Day): CalendarDate | null {
@@ -149,7 +154,7 @@ export class Calendar {
   // warning matches the schedule. 0 on a day with no drives. Null while the leg isn't
   // routed through the day's selected places.
   drivingInMinutesOf(itinerary: Itinerary, day: Day): number | null {
-    if (!this.#hasDrives(itinerary, day)) {
+    if (!this.hasLeg(itinerary, day)) {
       return 0;
     }
     const drives = this.#driveMinutesOf(day);
@@ -210,25 +215,41 @@ export class Calendar {
     });
   }
 
+  // A day whose ends aren't known yet has no drives, but its stops' times aren't known
+  // either. It will drive once both ends are set, so treating its drives as 0 would give
+  // its stops made-up times.
   #timelineOf(itinerary: Itinerary, day: Day): TimelineEntry[] {
-    const hasDrives = this.#hasDrives(itinerary, day);
+    const hasDrives = this.hasLeg(itinerary, day);
+    const noDrives = this.#areEndsKnown(itinerary, day) ? [] : null;
     return timelineOf({
       stops: day.stops,
       startMinute: minuteOf(this.startTimeOf(itinerary, day)),
       hasDrives,
-      driveMinutes: hasDrives ? this.#driveMinutesOf(day) : null,
+      driveMinutes: hasDrives ? this.#driveMinutesOf(day) : noDrives,
     });
   }
 
-  // A rest day has no drives, and nor does a day that stays put with no selected stop,
+  // Whether the day should have a leg, and so drives in its schedule. Not on a rest day,
+  // a day whose ends aren't known yet, or a day that stays put with no selected stop,
   // since it has nothing to drive to (domain model 4.7, "Which days have a leg").
-  #hasDrives(itinerary: Itinerary, day: Day): boolean {
-    if (day instanceof StayDay && day.isRestDay) {
+  // LegsService routes by it, so the schedule and the legs follow one rule.
+  hasLeg(itinerary: Itinerary, day: Day): boolean {
+    if (
+      (day instanceof StayDay && day.isRestDay) ||
+      !this.#areEndsKnown(itinerary, day)
+    ) {
       return false;
     }
     return (
       !this.isStayingPut(itinerary, day) ||
       day.stops.some((stop) => stop.selectedPlace !== null)
+    );
+  }
+
+  #areEndsKnown(itinerary: Itinerary, day: Day): boolean {
+    return (
+      this.fromPlaceOf(itinerary, day) !== null &&
+      this.toPlaceOf(itinerary, day) !== null
     );
   }
 

@@ -1,0 +1,14 @@
+{
+  "routes": [
+    {
+      "legs": [
+        {
+          "duration": "0s"
+        }
+      ],
+      "polyline": {
+        "encodedPolyline": "c|j~Efe_gV"
+      }
+    }
+  ]
+}
