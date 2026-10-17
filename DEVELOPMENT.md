@@ -92,7 +92,7 @@ Worker results aren't on the list. A worker returns text that the coordinator re
 
 **`main` is protected.** Nothing is pushed to it directly. Every change goes on its own branch, and reaches `main` through a pull request. Only Joe decides when a pull request is merged: he merges it himself, or asks Claude Code to merge it. Claude Code never merges one without being asked. A merge to `main` deploys it ([systems design](design/systems.md), section 7).
 
-**A PR description holds the task, and nothing about how it was done.** It starts with the task, word for word: what the implementer was asked to do, such as "Do phase 19 of the development plan," or what Joe asked for. Then it lists each "Done when" item with its result, and what was checked by hand.
+**A PR description holds the task, and nothing about how it was done.** It starts with the task, word for word, though filler words in a spoken request can be dropped: what the implementer was asked to do, such as "Do phase 19 of the development plan," or what Joe asked for. Then it lists each "Done when" item with its result, and what was checked by hand.
 
 **Everything else goes in one PR comment, the decisions comment.** Post it right after the PR is opened. It holds:
 
@@ -102,7 +102,7 @@ Worker results aren't on the list. A worker returns text that the coordinator re
 
 A phase settled in the PR proposes its answers in this comment, and Joe agrees by approving the PR.
 
-**Each PR that changes the app is reviewed in CI.** When such a PR is opened or gets a new commit, the "Code review" workflow runs the stock `/code-review` with Opus at `high`, and posts its findings as inline comments. Opening or pushing to a draft doesn't run it. The reviewer reads the description, so it knows what the change is for. It skips the comment, so the implementer's reasons don't color its review (`research/code-review-evaluation.md`, sections 3 and 8.5). The review doesn't block a merge. Fix each finding, or reply to it saying why not.
+**Each PR that changes the app's code is reviewed in CI.** That's `src/` and `web/`. Other files, such as docs, plans, and the workflows, aren't. When such a PR is opened or gets a new commit, the "Code review" workflow runs the stock `/code-review` with Opus at `high`, and posts its findings as inline comments. Opening or pushing to a draft doesn't run it. The reviewer reads the description, so it knows what the change is for. It skips the comment, so the implementer's reasons don't color its review (`research/code-review-evaluation.md`, sections 3 and 8.5). The review doesn't block a merge. Fix each finding, or say why not in a conversation comment that quotes it. Don't reply on the finding's inline thread. The next review reads inline comments so it doesn't post a finding twice, so it would read the reasons too.
 
 ---
 
