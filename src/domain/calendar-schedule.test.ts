@@ -5,11 +5,13 @@ import { CalendarDate } from "./calendar-date.js";
 import type { Day } from "./day.js";
 import {
   at,
+  attraction,
   calendarFor,
   meal,
   OWNER,
   pick,
   placeNamed,
+  planningFor,
   routeDay,
 } from "./example-trip-parts.fake.js";
 import type { Itinerary } from "./itinerary.js";
@@ -242,7 +244,7 @@ describe("a day's schedule", () => {
     ).toEqual(["stop breakfast: 9:00 a.m. to 9:00 a.m."]);
   });
 
-  it("has no drives on a day whose ends aren't known yet", () => {
+  it("has no drives, and no stop times, on a day whose ends aren't known yet", () => {
     const trip = newTrip(OWNER, new Date());
     const itinerary = trip.itinerary;
     const calendar = calendarFor(trip);
@@ -251,6 +253,19 @@ describe("a day's schedule", () => {
     expect(calendar.drivingInMinutesOf(itinerary, onlyDay)).toBe(0);
     itinerary[VIA_SERVICE].setStartPlace(placeNamed("Grand Junction"));
     expect(calendar.scheduleOf(itinerary, onlyDay)).toEqual([]);
+    // Selected stops don't get made-up times, as if there were no driving.
+    const museum = attraction({
+      purpose: "a museum",
+      searchArea: "nearStartPlace",
+    });
+    const park = attraction({
+      purpose: "a park",
+      searchArea: "nearStartPlace",
+    });
+    onlyDay[VIA_SERVICE].placeStops([museum, park], null);
+    pick(planningFor(trip), museum, placeNamed("Museum of the West"));
+    pick(planningFor(trip), park, placeNamed("Colorado National Monument"));
+    expect(stopTimes(calendar, itinerary, onlyDay)).toEqual([null, null]);
     expect(calendar.hasLeg(itinerary, onlyDay)).toBe(false);
     itinerary.endPlace = placeNamed("Salt Lake City");
     expect(calendar.hasLeg(itinerary, onlyDay)).toBe(true);
