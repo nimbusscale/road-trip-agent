@@ -26,7 +26,7 @@ export const READ_TRIP_BRIEF_DESCRIPTION =
   'Reads the trip brief: what the user wants from the whole trip. Returns every item, one per line, by the name update_trip_brief takes. An item with no value yet shows as "not set".';
 
 export const UPDATE_TRIP_BRIEF_DESCRIPTION =
-  "Changes one or more items in the trip brief, in one save. Items not given are left alone. Each item given replaces its old value. An item can be changed, but never emptied. If any item is refused, nothing is saved, and the error says which item and why, with the limit when there is one. The reply doesn't repeat the items. It gives the feasibility check results that are new or gone, anywhere in the trip. It also gives the ones already known that the change reaches: the trip-wide ones, every day's when comfortableDrivingInHours changes, and those of the days without their own start time when usualStartTime changes.";
+  "Changes one or more items in the trip brief, in one save. Items not given are left alone. Each item given replaces its old value. An item can be changed, but never emptied. If any item is refused, nothing is saved, and the error says which item and why, with the limit when there is one. The reply doesn't repeat the items. It gives the feasibility check results that are new or gone, anywhere in the trip. It also gives the trip-wide ones already known, and every day's when comfortableDrivingInHours changes.";
 
 export const UPDATE_TRIP_BRIEF_INPUT = z.strictObject({
   focus: z
@@ -144,28 +144,18 @@ export function updateTripBriefTool(
 }
 
 // What a brief change touched, for the already-known check results in its reply (tool
-// design, section 2.1): the itinerary, plus what two items reach. Every daily driving
-// warning gives the comfortable driving hours, and a day with no start time of its own
-// starts at the usual start time, which moves its stops' times. A result still there
-// after the change is already known, so without these its new text wouldn't come back.
+// design, section 2.1): the itinerary, and every day when the comfortable driving hours
+// change, since every daily driving warning gives them. A result still there after the
+// change is already known, so without the days its new text wouldn't come back. Phase
+// 22 replaces this with check results whose text changed, which also covers a new usual
+// start time moving a stop's times.
 function touchedBy(
   items: TripBriefItems,
   itinerary: Itinerary,
 ): ReadonlySet<string> {
-  const days = itinerary.days;
-  const drivingDays = items.comfortableDrivingInHours === undefined ? [] : days;
-  const startTimeDays =
-    items.usualStartTime === undefined
-      ? []
-      : days.filter((day) => day.ownStartTime === null);
-  return new Set([
-    itinerary.id,
-    ...drivingDays.map((day) => day.id),
-    ...startTimeDays.flatMap((day) => [
-      day.id,
-      ...day.stops.map((stop) => stop.id),
-    ]),
-  ]);
+  const drivingDays =
+    items.comfortableDrivingInHours === undefined ? [] : itinerary.days;
+  return new Set([itinerary.id, ...drivingDays.map((day) => day.id)]);
 }
 
 // In functional spec 5.2's order.

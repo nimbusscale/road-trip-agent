@@ -53,7 +53,7 @@ The coordinator's tools for the trip brief and itinerary, plus the workers' tool
 - What its change returned as changed, such as the stops and stays a rejection changed (domain model 4.3), or the days `update_stay` added.
 - The days in the leg changes.
 - The itinerary, which stands for the trip as a whole.
-- For a trip brief change, what two of its items reach. Every daily driving warning gives the comfortable driving hours, so changing them touches every day. A day with no start time of its own starts at the usual start time, so changing it touches those days and their stops. Without this, a warning still there after the change would be already known, and its new text, such as the new limit, wouldn't come back.
+- For a trip brief change, every day when the comfortable driving hours change, since every daily driving warning gives them. Without this, a warning still there after the change would be already known, and its new text, the new limit, wouldn't come back.
 
 Example: rejecting the selected Moab hotel names only the hotel. The change returns the Moab stay, and the leg changes hold Days 1, 2, and 4. The reply gives the already-known results for those, and for the itinerary.
 

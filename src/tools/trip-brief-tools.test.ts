@@ -276,19 +276,4 @@ describe("update_trip_brief's check results", () => {
       ].join("\n"),
     );
   });
-
-  it("gives a day's results again when the usual start time changes, and only then", async () => {
-    const { update } = await oneDayTrip();
-    await update({ comfortableDrivingInHours: 0.25 });
-    expect(textOf(await update({ usualStartTime: "9:00 a.m." }))).toBe(
-      [
-        "Saved the trip brief.",
-        "Check results:",
-        "- Already known warning: Day 1 needs about 33 m of driving. Comfortable driving is 0.25 hours a day.",
-      ].join("\n"),
-    );
-    expect(textOf(await update({ focus: "Big Sur" }))).toBe(
-      ["Saved the trip brief.", "No new or gone check results."].join("\n"),
-    );
-  });
 });
