@@ -10,7 +10,7 @@ Claude Code writes the code, Joe reviews the code he cares about, and the tools 
 
 **`npm run check` runs every check, in this order:** `format:check`, `typecheck`, `lint`, then `test`. It stops at the first failure.
 
-**Work is done only when `npm run check` passes.** A pre-commit hook runs it too, so a failing change can't be committed.
+**Work is done only when `npm run check` passes.** A pre-commit hook runs it too, so a failing change can't be committed. The hook skips a commit that changes no file the check reads, such as one that only changes docs. `lefthook.yml` lists the files it watches.
 
 ---
 
