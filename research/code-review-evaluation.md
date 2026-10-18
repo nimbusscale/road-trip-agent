@@ -23,7 +23,7 @@ Sections 2 to 5 record what we found out and decided on 2026-10-16. Section 6 is
 | 2 | Stock `/code-review` on older PRs that were never reviewed (#2 to #29) | Not planned yet. Depends on round 1 |
 
 **Still open:**
-- **The fix loop.** Section 9. When a CI review has findings, another run fixes them. Open item 14. Section 10 is what happened when it was done by hand, with no limits.
+- **The fix loop.** Section 9. When a CI review has findings, another run fixes them. Open item 14. Section 10 is what happened when it was done by hand, with no limits. Since 2026-10-18, the rules for it are in the [code review design](../design/code-review.md).
 - **Our own review prompt.** Left for later. Round 1 tests only the stock `/code-review`.
 - **Model effort on its own.** The `/code-review` level sets the review's model effort, and `--effort` doesn't change it (section 4.1). So the stock command can't run the high recipe at low model effort, or the reverse. Only our own review prompt could test that.
 

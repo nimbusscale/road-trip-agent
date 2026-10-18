@@ -76,6 +76,8 @@ Worker results aren't on the list. A worker returns text that the coordinator re
 
 **Postgres is faked at the repositories,** the only code that sends SQL (section 8). Tests give the writers and readers fake repositories that keep rows in memory. What only the database can show, such as two writes waiting on the row lock, or a query's SQL, is checked by hand against the local Postgres. The PR says what was checked. This is a learning project with no staging server, so the risk that a later change breaks it unnoticed is accepted.
 
+**A fix for a bug comes with a test that fails without the fix, and passes with it.** The test goes through the path where the bug was, not only the part the fix changed. Check it against the code without the fix. This applies to fixes for review findings too ([code review design](design/code-review.md), section 3.4).
+
 **Tests that need the real agent run on their own,** outside `npm run check`. Examples: the acceptance scenarios (functional spec 11) and the memory tests (technical spec 3.1). They cost money and their results vary from run to run. How they run is settled when the first one is written.
 
 ---
@@ -102,7 +104,7 @@ Worker results aren't on the list. A worker returns text that the coordinator re
 
 A phase settled in the PR proposes its answers in this comment, and Joe agrees by approving the PR.
 
-**Each PR that changes the app's code is reviewed in CI.** That's `src/` and `web/`. Other files, such as docs, plans, and the workflows, aren't. When such a PR is opened or gets a new commit, the "Code review" workflow runs the stock `/code-review` with Opus at `high`, and posts its findings as inline comments. Opening or pushing to a draft doesn't run it. The reviewer reads the description, so it knows what the change is for. It skips the comment, so the implementer's reasons don't color its review (`research/code-review-evaluation.md`, sections 3 and 8.5). The review doesn't block a merge. Fix each finding, or say why not in a conversation comment that quotes it. Don't reply on the finding's inline thread. The next review reads inline comments so it doesn't post a finding twice, so it would read the reasons too.
+**Each PR that changes the app's code is reviewed in CI.** That's `src/` and `web/`. Other files, such as docs, plans, and the workflows, aren't. When such a PR is opened or gets a new commit, the "Code review" workflow runs the stock `/code-review` with Opus at `high`, and posts its findings as inline comments. Opening or pushing to a draft doesn't run it. The reviewer reads the description, so it knows what the change is for. It skips the comment, so the implementer's reasons don't color its review. The [code review design](design/code-review.md) covers the review, and which findings get fixed. The review doesn't block a merge. Fix each finding, or say why not in a conversation comment that quotes it. Don't reply on the finding's inline thread. The next review reads inline comments so it doesn't post a finding twice, so it would read the reasons too.
 
 ---
 
