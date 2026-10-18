@@ -685,12 +685,11 @@ By the end of this part, the coordinator can build a trip's skeleton and lay out
 
 ### Phase 22. Build the skeleton
 
-**Design:** [Tool design](../design/tools.md), sections 2.1 (`update_itinerary`, `add_stay`, `update_stay`, `remove_stay`, `update_day`, `set_waypoints`) and 2.4. [Technical spec](../design/technical-spec.md), sections 4.1, 4.2 (discovery, shape, and skeleton), and 5.2. [Domain model](../design/domain-model.md), section 4.8.
+**Design:** [Tool design](../design/tools.md), sections 2.1 (`update_itinerary`, `add_stay`, `update_stay`, `remove_stay`, `update_day`, `set_waypoints`) and 2.4. [Technical spec](../design/technical-spec.md), sections 4.1, 4.2 (discovery, shape, and skeleton), and 5.2.
 
 **Do:**
 
 - Add these tools and `compute_route`. Each write's reply is built from what the write hands back, as tool design section 2.1 says.
-- Report check results whose text changed. Today a result that's still there after a write is "already known", so the reply leaves it out unless the write touched its subject, even when its text changed. Example: the user lowers their driving hours from 6 to 5, and Day 2's warning now gives the new limit, but the reply doesn't show it. Make `FeasibilityChecker.compare()` mark a known result whose text differs from its saved match as "changed". Each write's reply lists changed results anywhere in the trip, like new ones. The coordinator decides whether to raise one. Write it into domain model 4.8 and tool design 2.1. Then take out `touchedBy()` in `src/tools/trip-brief-tools.ts`, which phase 13a added for the driving hours only. Raised in PR #44's third review.
 - Add the coordinator's instructions for anchors and stretches, the shape and skeleton rounds, broken feasibility rules, and changes to stays.
 
 **Done when,** in chat:
