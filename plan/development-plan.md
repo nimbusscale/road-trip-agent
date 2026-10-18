@@ -38,8 +38,13 @@ This document lists the development work, phase by phase, in the order it's done
 | 11 | Store memory | 2026-10-15, [PR #20](https://github.com/nimbusscale/road-trip-agent/pull/20) |
 | 12 | Store sessions and transcripts | 2026-10-15, [PR #23](https://github.com/nimbusscale/road-trip-agent/pull/23) |
 | 12a | Put phases 10 to 12 together | 2026-10-15, [PR #26](https://github.com/nimbusscale/road-trip-agent/pull/26) |
-| 13 | The first coordinator | |
+| 13 | The first coordinator, done in 13a to 13c | |
+| 13a | The trip server | |
+| 13b | The memory server | |
+| 13c | The coordinator in the terminal | |
 | 14 | Chat in the browser | |
+| **Agent evaluations** | | |
+| 14a | Agent evaluations | |
 | **The itinerary** | | |
 | 15 | Places | 2026-10-15, [PR #30](https://github.com/nimbusscale/road-trip-agent/pull/30) |
 | 16 | The itinerary's objects | 2026-10-15, [PR #31](https://github.com/nimbusscale/road-trip-agent/pull/31) |
@@ -394,30 +399,66 @@ The started-trip lock at save can't be tested yet, since nothing can set a start
 
 ### Phase 13. The first coordinator
 
+Phase 13 is done in three parts, each with its own PR: the `trip` server, the `memory` server, and then the coordinator. These are the first tools, so Joe reviews each server on its own: its description, its tools' descriptions, their input schemas, and what they return. Phase 13 is done when 13c is merged. The split was agreed in chat on 2026-10-18.
+
 **Design:** [Technical spec](../design/technical-spec.md), sections 1, 3.1, 5.1, and 5.2. [Tool design](../design/tools.md), sections 1, 2.1 (the trip brief tools), 2.2, and 4.
 
 **Open questions:**
 
-- Which model does each agent use, and where is it set? No design doc names one. Left to Claude Code, the model depends on where it runs: in phase 9, the same script got Opus run on Joe's machine and Sonnet in the `app` container. So the app should set the model itself. Raised in phase 9.
-- How does `update_trip_brief` get a `TripWriter`? Since phase 19, `TripWriter` needs a `routeFinder`, because every write updates the legs. Phase 13 makes the `RoutesClient` from `env.googleMapsServerKey` and the global `fetch`, and passes it to `TripWriter` as `routeFinder`. Raised in phase 19.
-- What does the app do when the Agent SDK sends a `mirror_error` message? The SDK sends it when it couldn't save transcript lines to the store after 3 tries, and drops them. The turn goes on, so a database outage can lose lines. At least log it. Also, a batch the SDK retries can land after batches sent later, so a database hiccup can put a few lines out of order. Raised in phase 12.
+- ~~Which model does each agent use, and where is it set? No design doc names one. Left to Claude Code, the model depends on where it runs: in phase 9, the same script got Opus run on Joe's machine and Sonnet in the `app` container. So the app should set the model itself. Raised in phase 9.~~ **Closed 2026-10-18,** agreed in chat: a `coordinatorModel` setting in `settings.json`, set to the exact model ID `claude-opus-5-5`. A short name such as "opus" would move to newer models on its own, so a later run could use a different model. Each worker phase adds its own model setting. Phase 13c writes it into technical spec section 10.
+- ~~How does `update_trip_brief` get a `TripWriter`? Since phase 19, `TripWriter` needs a `routeFinder`, because every write updates the legs. Phase 13 makes the `RoutesClient` from `env.googleMapsServerKey` and the global `fetch`, and passes it to `TripWriter` as `routeFinder`. Raised in phase 19.~~ **Closed 2026-10-18,** agreed in chat: as the question says. Phase 13a does it.
+- ~~What does the app do when the Agent SDK sends a `mirror_error` message? The SDK sends it when it couldn't save transcript lines to the store after 3 tries, and drops them. The turn goes on, so a database outage can lose lines. At least log it. Also, a batch the SDK retries can land after batches sent later, so a database hiccup can put a few lines out of order. Raised in phase 12.~~ **Closed 2026-10-18,** agreed in chat: log it, with the session's ID and the error, and do nothing more. A few lines out of order after a retry are accepted. Phase 13c does it, since that's where the agent first runs, and writes both into persistence design section 6.
+- ~~How do tests that use the real agent run (DEVELOPMENT.md, section 5)?~~ **Closed 2026-10-18,** agreed in chat: in phase 13, Joe runs the checks by hand in the terminal. Phase 14a sets up evaluations that can be run again after each change.
+
+### Phase 13a. The trip server
 
 **Do:**
 
-- Make each session's `trip` and `memory` MCP servers, with the trip and user already set (tool design, section 4). For now, `trip` holds only `read_trip_brief` and `update_trip_brief`. `memory` holds all four memory tools.
-- Add the coordinator, with only those tools. Its instructions cover conduct, the trip brief items to establish, the memory rules, and comfortable driving hours (technical spec, section 5.2).
-- Add today's date to user messages, and the line after a resume, as technical spec section 5.2 says.
-- Add a dev script to chat with the coordinator in the terminal, against the local database.
-- Settle how tests that use the real agent run (DEVELOPMENT.md, section 5), and write it there once Joe agrees.
+- Make each session's `trip` MCP server, with the trip already set (tool design, section 4). For now, it holds only `read_trip_brief` and `update_trip_brief`. No agent uses it yet.
+- Give `update_trip_brief` a `TripWriter` whose `routeFinder` is a `RoutesClient`, made from `env.googleMapsServerKey` and the global `fetch`.
 
 **Done when:**
 
-- In the terminal, a discovery conversation fills in the trip brief, and `read_trip_brief` shows every item.
+- Tests with fake repositories cover both tools as tool design section 2.1 describes them. Examples: an update of several items saves them all, and a refused update saves nothing, and its error gives the limit.
+- The PR shows the server's description, and each tool's description, input schema, and an example of what it returns, so Joe can review them in one place.
+
+**Ends in:** a PR. **Settled in:** the PR.
+
+### Phase 13b. The memory server
+
+**Starts** once phase 13a is merged, so it follows the pattern Joe agreed there.
+
+**Do:**
+
+- Make each session's `memory` MCP server, with the user and trip already set (tool design, section 4). It holds all four memory tools.
+
+**Done when:**
+
+- Tests with fake repositories cover the four tools as tool design section 2.2 describes them. Examples: one user can't read, update, or forget another user's items through them, and the error is the same as for an ID that doesn't exist. An add over the limits is refused, and the error gives the limit.
+- The PR shows the server's description, and each tool's description, input schema, and an example of what it returns.
+
+**Ends in:** a PR. **Settled in:** the PR.
+
+### Phase 13c. The coordinator in the terminal
+
+**Starts** once phase 13b is merged.
+
+**Do:**
+
+- Add the coordinator, with only the tools from phases 13a and 13b. Its instructions cover conduct, the trip brief items to establish, the memory rules, and comfortable driving hours (technical spec, section 5.2).
+- Add the `coordinatorModel` setting, and give it to the Agent SDK.
+- Add today's date to user messages, and the line after a resume, as technical spec section 5.2 says.
+- Log each `mirror_error` message, with the session's ID and the error.
+- Add a dev script to chat with the coordinator in the terminal, against the local database.
+
+**Done when:** Joe runs these conversations by hand in the terminal. Claude Code runs each one first, to catch problems before Joe's run, and the PR quotes the lines that show it.
+
+- A discovery conversation fills in the trip brief, and `read_trip_brief` shows every item.
 - "We never eat at chains" goes to user memory, and "skip I-35 this time" goes to trip memory.
 - On a second trip, the coordinator confirms the user's usual driving hours instead of asking from scratch (functional spec 11, S9).
 - Asked for 14 hours of driving a day, the coordinator pushes back, and sets no more than the maximum.
 
-**Ends in:** a PR.
+**Ends in:** a PR. Phase 13 is done once it's merged.
 
 ### Phase 14. Chat in the browser
 
@@ -444,6 +485,36 @@ The started-trip lock at save can't be tested yet, since nothing can set a start
 - Closing the tab partway through a reply, then coming back, shows the finished reply.
 
 **Ends in:** a PR. This is the first version Joe can use.
+
+---
+
+## Agent evaluations
+
+By the end of this part, the agent's behavior can be checked again after any change to its instructions, its tools, or its model, by running a set of evaluations. Without them, the only way to tell whether a change made the agent better or worse is Joe testing by hand. Phase 14a was added on 2026-10-18, so the phases after it keep their numbers.
+
+### Phase 14a. Agent evaluations
+
+**Design:** [DEVELOPMENT.md](../DEVELOPMENT.md), section 5. [Technical spec](../design/technical-spec.md), section 3.1 (tests). [Functional spec](../design/functional-spec.md), section 11.
+
+**Open questions:**
+
+- Which framework runs the evaluations? promptfoo is the likely choice. Check its current docs, and that it can run the app's coordinator through the Agent SDK on the Max plan.
+- How is each result scored: by what was saved, such as the trip brief and memory, by a model reading the reply, or both?
+- How much of the Max plan does one run of the evaluations use?
+- How do phase 33's simulated user and phase 36's tests fit with the evaluations?
+
+**Do:**
+
+- Set up the framework, and a command that runs the evaluations against the local stack, outside `npm run check`.
+- Turn phase 13c's checks into evaluations: discovery fills in the trip brief, user or trip memory, confirming the usual driving hours on a second trip, and pushing back on 14 hours of driving.
+- Write how the evaluations run into DEVELOPMENT.md section 5, in place of "How they run is settled when the first one is written."
+
+**Done when:**
+
+- One command runs every evaluation and prints each result.
+- Each evaluation passes against the current coordinator. A change made on purpose to break one, such as taking the driving hours line out of the instructions, makes it fail.
+
+**Ends in:** a PR.
 
 ---
 
@@ -867,7 +938,7 @@ By the end of this part, both example trips have been planned through the live a
 
 **Design:** [Functional spec](../design/functional-spec.md), section 11. [Technical spec](../design/technical-spec.md), section 3.1 (tests).
 
-**Do:** add real-agent tests for acceptance scenarios S1 to S13, and the three memory tests in technical spec section 3.1.
+**Do:** add real-agent tests for acceptance scenarios S1 to S13, and the three memory tests in technical spec section 3.1, as evaluations in phase 14a's setup.
 
 **Done when:** each test passes, and the results are in the PR.
 
