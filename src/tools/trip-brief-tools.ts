@@ -1,4 +1,3 @@
-import { tool } from "@anthropic-ai/claude-agent-sdk";
 import { z } from "zod";
 
 import { ROUTE_TYPES } from "../domain/route-type.js";
@@ -13,6 +12,7 @@ import {
   clockTextOf,
   timeOfDayFromClockText,
 } from "./clock-time.js";
+import { strictTool, type StrictToolDefinition } from "./strict-tool.js";
 import type { TripSession } from "./trip-session.js";
 import { textReply, writeReplyOrReadableError } from "./tool-reply.js";
 
@@ -27,15 +27,18 @@ export const READ_TRIP_BRIEF_DESCRIPTION =
 export const UPDATE_TRIP_BRIEF_DESCRIPTION =
   "Changes one or more items in the trip brief, in one save. Items not given are left alone. Each item given replaces its old value. An item can be changed, but never emptied. If any item is refused, nothing is saved, and the error says which item and why, with the limit when there is one. The reply doesn't repeat the items. It gives the feasibility check results that are new or gone, anywhere in the trip, and the trip-wide ones already known.";
 
-export const UPDATE_TRIP_BRIEF_INPUT = {
+export const UPDATE_TRIP_BRIEF_INPUT = z.strictObject({
   focus: z
     .string()
     .optional()
     .describe(
       'What the trip is about: a region, a route, or a theme, such as "Pacific Coast Highway" or "Texas barbecue".',
     ),
+  // A number, not an integer: Zod gives every integer a maximum of 2^53 - 1, which the
+  // model would read as part of the schema. The brief refuses a fraction itself.
   tripLengthInDays: z
-    .int()
+    .number()
+    .positive()
     .optional()
     .describe("How many days the user wants. A whole number, at least 1."),
   interestsText: z
@@ -50,6 +53,7 @@ export const UPDATE_TRIP_BRIEF_INPUT = {
     ),
   comfortableDrivingInHours: z
     .number()
+    .positive()
     .optional()
     .describe(
       "How many hours of driving a day the user is comfortable with, such as 5 or 6.5. More than 0. A default for the trip: a day can go over it when the user agrees.",
@@ -89,27 +93,29 @@ export const UPDATE_TRIP_BRIEF_INPUT = {
     .describe(
       'Meal preferences, in the user\'s words, such as "local cafés over hotel breakfast".',
     ),
-};
+});
 
-export type TripBriefItems = z.infer<
-  z.ZodObject<typeof UPDATE_TRIP_BRIEF_INPUT>
->;
+export type TripBriefItems = z.infer<typeof UPDATE_TRIP_BRIEF_INPUT>;
 
-export function readTripBriefTool(session: TripSession) {
-  return tool(
-    "read_trip_brief",
-    READ_TRIP_BRIEF_DESCRIPTION,
-    {},
-    async () => {
-      const trip = await session.reader.read(session.tripId);
-      return textReply(briefLines(trip.tripBrief));
-    },
-    { annotations: { readOnlyHint: true } },
-  );
+export function readTripBriefTool(session: TripSession): StrictToolDefinition {
+  return {
+    ...strictTool(
+      "read_trip_brief",
+      READ_TRIP_BRIEF_DESCRIPTION,
+      z.strictObject({}),
+      async () => {
+        const trip = await session.reader.read(session.tripId);
+        return textReply(briefLines(trip.tripBrief));
+      },
+    ),
+    annotations: { readOnlyHint: true },
+  };
 }
 
-export function updateTripBriefTool(session: TripSession) {
-  return tool(
+export function updateTripBriefTool(
+  session: TripSession,
+): StrictToolDefinition {
+  return strictTool(
     "update_trip_brief",
     UPDATE_TRIP_BRIEF_DESCRIPTION,
     UPDATE_TRIP_BRIEF_INPUT,

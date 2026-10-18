@@ -16,9 +16,10 @@ describe("createTripServer", () => {
 
   // The Agent SDK leaves out a tool whose input schema it can't turn into JSON Schema,
   // with only a warning.
-  it("has an input schema that converts to JSON Schema, with no item required", () => {
-    const schema = z.toJSONSchema(z.object(UPDATE_TRIP_BRIEF_INPUT));
+  it("has an input schema that converts to JSON Schema, refuses other keys, and requires no item", () => {
+    const schema = z.toJSONSchema(UPDATE_TRIP_BRIEF_INPUT);
     expect(Object.keys(schema.properties ?? {})).toHaveLength(11);
+    expect(schema.additionalProperties).toBe(false);
     expect(schema.required).toBeUndefined();
   });
 });

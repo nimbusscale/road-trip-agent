@@ -112,7 +112,7 @@ describe("TripBriefService", () => {
     SERVICE.setTripLength(brief, 5);
     expect(() => {
       SERVICE.setTripLength(brief, 15);
-    }).toThrow("A trip is at most 14 days long.");
+    }).toThrow("tripLengthInDays is at most 14");
     expect(brief.tripLengthInDays).toBe(5);
   });
 
@@ -131,7 +131,7 @@ describe("TripBriefService", () => {
   it("refuses comfortable driving over the maximum, and gives the limit", () => {
     expect(() => {
       SERVICE.setComfortableDriving(emptyBrief(), 12.5);
-    }).toThrow("at most 12 hours a day");
+    }).toThrow("comfortableDrivingInHours is at most 12");
   });
 
   it("refuses comfortable driving of 0, by the brief's own rule", () => {

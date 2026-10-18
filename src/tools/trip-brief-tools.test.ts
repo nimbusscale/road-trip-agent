@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { z } from "zod";
 
 import { CalendarDate } from "../domain/calendar-date.js";
 import { exampleMoabTrip } from "../domain/itinerary.fake.js";
@@ -15,22 +14,6 @@ import {
 } from "./trip-brief-tools.js";
 
 const OWNER = { id: "4f6c1d0e-2a8b-4c3d-9e7f-1a2b3c4d5e6f" };
-const updateInput = z.object(UPDATE_TRIP_BRIEF_INPUT);
-
-// The Agent SDK hands the handler every item, with undefined for one not given.
-const NO_ITEMS = {
-  focus: undefined,
-  tripLengthInDays: undefined,
-  interestsText: undefined,
-  mustSeesText: undefined,
-  comfortableDrivingInHours: undefined,
-  routePreference: undefined,
-  restDaysText: undefined,
-  usualStartTime: undefined,
-  defaultTier: undefined,
-  budgetRulesText: undefined,
-  mealPreferencesText: undefined,
-};
 
 // The tools for a new trip, with fakes for Postgres and Google (DEVELOPMENT.md
 // section 5). Each call's input goes through the tool's schema first, as the Agent SDK
@@ -54,9 +37,8 @@ function toolsFor(session: Parameters<typeof readTripBriefTool>[0]): {
   const readTool = readTripBriefTool(session);
   const updateTool = updateTripBriefTool(session);
   return {
-    read: async () => textOf(await readTool.handler({}, {})),
-    update: (input) =>
-      updateTool.handler({ ...NO_ITEMS, ...updateInput.parse(input) }, {}),
+    read: async () => textOf(await readTool.handler({})),
+    update: (input) => updateTool.handler(input),
   };
 }
 
@@ -139,7 +121,7 @@ describe("update_trip_brief", () => {
     });
     expect(reply.isError).toBe(true);
     expect(textOf(reply)).toBe(
-      "Nothing was saved. A trip is at most 14 days long. It was given 20.",
+      "Nothing was saved. The trip brief's tripLengthInDays is at most 14, since a trip is at most 14 days long. It was given 20.",
     );
     expect(await read()).toContain("focus: not set");
   });
@@ -149,7 +131,7 @@ describe("update_trip_brief", () => {
     const reply = await update({ comfortableDrivingInHours: 14 });
     expect(reply.isError).toBe(true);
     expect(textOf(reply)).toBe(
-      "Nothing was saved. Comfortable driving is at most 12 hours a day. It was given 14.",
+      "Nothing was saved. The trip brief's comfortableDrivingInHours is at most 12, the maximum daily driving. It was given 14.",
     );
   });
 
@@ -161,6 +143,16 @@ describe("update_trip_brief", () => {
       "Nothing was saved. The trip brief's focus can't be empty. Once it has a value, it can be changed but not emptied.",
     );
     expect(await read()).toContain("tripLengthInDays: not set");
+  });
+
+  it("refuses an item it doesn't know, and names it", () => {
+    const parsed = UPDATE_TRIP_BRIEF_INPUT.safeParse({
+      focus: "Utah",
+      tripLength: 5,
+    });
+    expect(parsed.error?.issues.map((issue) => issue.message)).toEqual([
+      'Unrecognized key: "tripLength"',
+    ]);
   });
 
   it("refuses an update with no items", async () => {
@@ -176,7 +168,9 @@ describe("update_trip_brief", () => {
     const { read, update } = await newTripTools();
     await update({ usualStartTime: "12:30 p.m." });
     expect(await read()).toContain("usualStartTime: 12:30 p.m.");
-    const parsed = updateInput.safeParse({ usualStartTime: "13:00" });
+    const parsed = UPDATE_TRIP_BRIEF_INPUT.safeParse({
+      usualStartTime: "13:00",
+    });
     expect(parsed.error?.issues.map((issue) => issue.message)).toEqual([
       CLOCK_TIME_ERROR,
     ]);
