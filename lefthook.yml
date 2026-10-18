@@ -1,4 +1,21 @@
+# Standard ** matching: src/**/* covers files at any depth under src.
+glob_matcher: doublestar
+
 pre-commit:
   commands:
     check:
+      # Only when a staged file can change the check's result, so a commit that only
+      # changes docs skips it. The check in GitHub still runs on every PR.
+      glob:
+        - "src/**/*"
+        - "web/**/*"
+        - "package.json"
+        - "package-lock.json"
+        - "tsconfig.json"
+        - "eslint.config.mjs"
+        - ".prettierrc.json"
+        - ".prettierignore"
+        - "vite.config.ts"
+        - "vitest.config.ts"
+        - "settings.json"
       run: npm run check
