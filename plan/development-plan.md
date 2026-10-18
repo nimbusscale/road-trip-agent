@@ -39,7 +39,7 @@ This document lists the development work, phase by phase, in the order it's done
 | 12 | Store sessions and transcripts | 2026-10-15, [PR #23](https://github.com/nimbusscale/road-trip-agent/pull/23) |
 | 12a | Put phases 10 to 12 together | 2026-10-15, [PR #26](https://github.com/nimbusscale/road-trip-agent/pull/26) |
 | 13 | The first coordinator, done in 13a to 13c | |
-| 13a | The trip server | |
+| 13a | The trip server | 2026-10-18, [PR #44](https://github.com/nimbusscale/road-trip-agent/pull/44) |
 | 13b | The memory server | |
 | 13c | The coordinator in the terminal | |
 | 14 | Chat in the browser | |
