@@ -443,6 +443,10 @@ Phase 13 is done in three parts, each with its own PR: the `trip` server, the `m
 
 **Starts** once phase 13b is merged.
 
+**Open questions:**
+
+- How does the coordinator know the maximum trip length? Technical spec 5.2 puts the maximum daily driving in its instructions, but not the maximum trip length, and the `update_trip_brief` input descriptions give neither. So the coordinator learns the limit only when an update is refused, which costs a round trip. Example: the user asks for "about three weeks", and it sends 21 days. Raised in PR #44's fourth review.
+
 **Do:**
 
 - Add the coordinator, with only the tools from phases 13a and 13b. Its instructions cover conduct, the trip brief items to establish, the memory rules, and comfortable driving hours (technical spec, section 5.2).
