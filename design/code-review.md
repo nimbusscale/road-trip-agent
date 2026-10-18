@@ -139,6 +139,7 @@ One row per review. "Above the bar" uses the rule in section 3.1, as it stood on
 | #44 | 1 | 6 | 3 | Every finding was accurate. Section 3.5 comes from this round |
 | #44 | 2 | 5 | 1 | Every finding was accurate again. Sections 3.1 (normal use, missing tests, adding a check) and 3.4 come from this round |
 | #44 | 3 | 5 | 2 | Every finding was accurate. Three were about round 2's fixes. Sections 3.1 (text said twice) and 4.2 come from this round |
+| #44 | 4 | 5 | 0 | The first review the bar counted as clean, so the loop would stop here (section 4.1). Every finding was accurate. A fix agent should fix none, skip 2 as decided in round 3 (section 4.2), and list 3 |
 
 **PR #44, round 1,** the trip MCP server (phase 13a):
 
