@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import type { Itinerary } from "../domain/itinerary.js";
 import { ROUTE_TYPES } from "../domain/route-type.js";
 import { RuleError } from "../domain/rule-error.js";
 import { TIERS } from "../domain/tier.js";
@@ -25,7 +26,7 @@ export const READ_TRIP_BRIEF_DESCRIPTION =
   'Reads the trip brief: what the user wants from the whole trip. Returns every item, one per line, by the name update_trip_brief takes. An item with no value yet shows as "not set".';
 
 export const UPDATE_TRIP_BRIEF_DESCRIPTION =
-  "Changes one or more items in the trip brief, in one save. Items not given are left alone. Each item given replaces its old value. An item can be changed, but never emptied. If any item is refused, nothing is saved, and the error says which item and why, with the limit when there is one. The reply doesn't repeat the items. It gives the feasibility check results that are new or gone, anywhere in the trip, and the trip-wide ones already known.";
+  "Changes one or more items in the trip brief, in one save. Items not given are left alone. Each item given replaces its old value. An item can be changed, but never emptied. If any item is refused, nothing is saved, and the error says which item and why, with the limit when there is one. The reply doesn't repeat the items. It gives the feasibility check results that are new or gone, anywhere in the trip. It also gives the ones already known that the change reaches: the trip-wide ones, every day's when comfortableDrivingInHours changes, and those of the days without their own start time when usualStartTime changes.";
 
 export const UPDATE_TRIP_BRIEF_INPUT = z.strictObject({
   focus: z
@@ -129,20 +130,42 @@ export function updateTripBriefTool(
           "coordinator",
           ({ trip, services }) => {
             applyItems(items, trip.tripBrief, services.tripBrief);
-            return trip.itinerary.id;
+            return touchedBy(items, trip.itinerary);
           },
         );
-        // A brief change touches no stop, day, or stay, so only the trip-wide results
-        // that are already known come back, along with every new and gone one.
-        const touchedIds = new Set([result.changeResult]);
         return textReply([
           "Saved the trip brief.",
           ...(result.checkComparison === null
             ? []
-            : checkResultLines(result.checkComparison, touchedIds)),
+            : checkResultLines(result.checkComparison, result.changeResult)),
         ]);
       }),
   );
+}
+
+// What a brief change touched, for the already-known check results in its reply (tool
+// design, section 2.1): the itinerary, plus what two items reach. Every daily driving
+// warning gives the comfortable driving hours, and a day with no start time of its own
+// starts at the usual start time, which moves its stops' times. A result still there
+// after the change is already known, so without these its new text wouldn't come back.
+function touchedBy(
+  items: TripBriefItems,
+  itinerary: Itinerary,
+): ReadonlySet<string> {
+  const days = itinerary.days;
+  const drivingDays = items.comfortableDrivingInHours === undefined ? [] : days;
+  const startTimeDays =
+    items.usualStartTime === undefined
+      ? []
+      : days.filter((day) => day.ownStartTime === null);
+  return new Set([
+    itinerary.id,
+    ...drivingDays.map((day) => day.id),
+    ...startTimeDays.flatMap((day) => [
+      day.id,
+      ...day.stops.map((stop) => stop.id),
+    ]),
+  ]);
 }
 
 // In functional spec 5.2's order.
