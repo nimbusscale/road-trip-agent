@@ -450,7 +450,10 @@ Phase 13 is done in three parts, each with its own PR: the `trip` server, the `m
 **Do:**
 
 - Add the coordinator, with only the tools from phases 13a and 13b. Its instructions cover conduct, the trip brief items to establish, the memory rules, and comfortable driving hours (technical spec, section 5.2).
-- Give each trip brief item in the coordinator's instructions by the name the tools use, such as `tripLengthInDays`, with what it means. Then trim each `update_trip_brief` input description to how to pass the value: its format, units, and limits. Drop the pointer to `update_trip_brief` from the `read_trip_brief` description, which then says only one item per line, and "not set" for an item with no value. That way the read's lines are explained by the instructions, not by another tool.
+- Give each trip brief item in the coordinator's instructions by the name the tools use, such as `tripLengthInDays`, with what it means (tool design, section 4). The `update_trip_brief` input descriptions say only how to pass each value, so the meanings are in no tool. Functional spec 5.2 gives most of them. It doesn't give these, which the input descriptions said before phase 13a's trim:
+  - Interests and must-sees are in the user's words, with why they matter. A must-see can be one place, an area, a road, or an activity.
+  - The rest days item records what the user asked for. It doesn't mark any day.
+  - The default tier is the budget tier for lodging and meals when no budget rule covers them.
 - Add the `coordinatorModel` setting, and give it to the Agent SDK.
 - Add today's date to user messages, and the line after a resume, as technical spec section 5.2 says.
 - Log each `mirror_error` message, with the session's ID and the error.

@@ -23,17 +23,19 @@ import { textReply, writeReplyOrReadableError } from "./tool-reply.js";
 const NOT_SET = "not set";
 
 export const READ_TRIP_BRIEF_DESCRIPTION =
-  'Reads the trip brief: what the user wants from the whole trip. Returns every item, one per line, by the name update_trip_brief takes. An item with no value yet shows as "not set".';
+  'Reads the trip brief. Returns every item, one per line. An item with no value yet shows as "not set".';
 
 export const UPDATE_TRIP_BRIEF_DESCRIPTION =
   "Changes one or more items in the trip brief. Items not given are not changed. Each item given replaces its old value. An item can be changed, but never emptied. If an item is refused, the error says which item and why, with the limit when there is one. The reply doesn't repeat the items. Its feasibility check results also include the trip-wide ones already known. When comfortableDrivingInHours changes, they also include the results for every day.";
 
+// Each input says only how to pass its value: its format, units, and limits. What
+// each item means is in the coordinator's instructions (tool design, section 4).
 export const UPDATE_TRIP_BRIEF_INPUT = z.strictObject({
   focus: z
     .string()
     .optional()
     .describe(
-      'What the trip is about: a region, a route, or a theme, such as "Pacific Coast Highway" or "Texas barbecue".',
+      'A short phrase, such as "Pacific Coast Highway" or "Texas barbecue".',
     ),
   // A number, not an integer: Zod gives every integer a maximum of 2^53 - 1, which the
   // model would read as part of the schema. The brief refuses a fraction itself.
@@ -41,58 +43,36 @@ export const UPDATE_TRIP_BRIEF_INPUT = z.strictObject({
     .number()
     .positive()
     .optional()
-    .describe("How many days the user wants. A whole number, at least 1."),
-  interestsText: z
-    .string()
-    .optional()
-    .describe("The user's interests, in their words, with why they matter."),
-  mustSeesText: z
-    .string()
-    .optional()
-    .describe(
-      "The user's must-sees, in their words, with why they matter. A must-see can be one place, an area, a road, or an activity.",
-    ),
+    .describe("A whole number, at least 1."),
+  interestsText: z.string().optional().describe("In the user's words."),
+  mustSeesText: z.string().optional().describe("In the user's words."),
   comfortableDrivingInHours: z
     .number()
     .positive()
     .optional()
-    .describe(
-      "How many hours of driving a day the user is comfortable with, such as 5 or 6.5. More than 0. A default for the trip: a day can go over it when the user agrees.",
-    ),
-  routePreference: z
-    .enum(ROUTE_TYPES)
-    .optional()
-    .describe("Scenic or fastest. A default for the trip."),
+    .describe("Hours, such as 5 or 6.5. More than 0."),
+  routePreference: z.enum(ROUTE_TYPES).optional(),
   restDaysText: z
     .string()
     .optional()
-    .describe(
-      "Rest days, in the user's words, such as \"one day off in Moab\". This records what the user asked for. It doesn't mark any day.",
-    ),
+    .describe('In the user\'s words, such as "one day off in Moab".'),
   usualStartTime: z
     .string()
     .regex(CLOCK_TIME_TEXT, { error: CLOCK_TIME_ERROR })
     .optional()
-    .describe(
-      'When the party usually gets going each day, as a clock time, such as "8:00 a.m.". It\'s 8:00 a.m. until changed.',
-    ),
-  defaultTier: z
-    .enum(TIERS)
-    .optional()
-    .describe(
-      "The budget tier for lodging and meals when no budget rule covers them.",
-    ),
+    .describe('A clock time, such as "8:00 a.m.".'),
+  defaultTier: z.enum(TIERS).optional(),
   budgetRulesText: z
     .string()
     .optional()
     .describe(
-      'Budget rules, in the user\'s words, such as "mid-range for stays of 2+ nights".',
+      'In the user\'s words, such as "mid-range for stays of 2+ nights".',
     ),
   mealPreferencesText: z
     .string()
     .optional()
     .describe(
-      'Meal preferences, in the user\'s words, such as "local cafés over hotel breakfast".',
+      'In the user\'s words, such as "local cafés over hotel breakfast".',
     ),
 });
 
