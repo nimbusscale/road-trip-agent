@@ -46,5 +46,5 @@ function isReadable(error: unknown): error is Error {
 function readableText(error: Error): string {
   return error instanceof TripBusyError
     ? error.message
-    : `Nothing was saved. ${error.message}`;
+    : `Nothing was changed. ${error.message}`;
 }

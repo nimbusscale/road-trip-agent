@@ -26,7 +26,7 @@ export const READ_TRIP_BRIEF_DESCRIPTION =
   'Reads the trip brief: what the user wants from the whole trip. Returns every item, one per line, by the name update_trip_brief takes. An item with no value yet shows as "not set".';
 
 export const UPDATE_TRIP_BRIEF_DESCRIPTION =
-  "Changes one or more items in the trip brief, in one save. Items not given are left alone. Each item given replaces its old value. An item can be changed, but never emptied. If any item is refused, nothing is saved, and the error says which item and why, with the limit when there is one. The reply doesn't repeat the items. It gives the feasibility check results that are new or gone, anywhere in the trip. It also gives the trip-wide ones already known, and every day's when comfortableDrivingInHours changes.";
+  "Changes one or more items in the trip brief. Items not given are not changed. Each item given replaces its old value. An item can be changed, but never emptied. If an item is refused, the error says which item and why, with the limit when there is one. The reply doesn't repeat the items. Its feasibility check results also include the trip-wide ones already known. When comfortableDrivingInHours changes, they also include the results for every day.";
 
 export const UPDATE_TRIP_BRIEF_INPUT = z.strictObject({
   focus: z
@@ -134,7 +134,7 @@ export function updateTripBriefTool(
           },
         );
         return textReply([
-          "Saved the trip brief.",
+          "Changed the trip brief.",
           ...(result.checkComparison === null
             ? []
             : checkResultLines(result.checkComparison, result.changeResult)),

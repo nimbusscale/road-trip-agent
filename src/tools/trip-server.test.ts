@@ -74,7 +74,7 @@ describe("writeReplyOrReadableError", () => {
       content: [
         {
           type: "text",
-          text: "Nothing was saved. Google found no way to drive it.",
+          text: "Nothing was changed. Google found no way to drive it.",
         },
       ],
       isError: true,

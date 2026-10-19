@@ -86,7 +86,7 @@ describe("update_trip_brief", () => {
       mealPreferencesText: "local seafood over hotel breakfast",
     });
     expect(reply.isError).toBeUndefined();
-    expect(textOf(reply)).toMatch(/^Saved the trip brief\.\n/);
+    expect(textOf(reply)).toMatch(/^Changed the trip brief\.\n/);
     expect(await read()).toBe(
       [
         "focus: Pacific Coast Highway",
@@ -121,7 +121,7 @@ describe("update_trip_brief", () => {
     });
     expect(reply.isError).toBe(true);
     expect(textOf(reply)).toBe(
-      "Nothing was saved. The trip brief's tripLengthInDays is at most 14, since a trip is at most 14 days long. It was given 20.",
+      "Nothing was changed. The trip brief's tripLengthInDays is at most 14, since a trip is at most 14 days long. It was given 20.",
     );
     expect(await read()).toContain("focus: not set");
   });
@@ -131,7 +131,7 @@ describe("update_trip_brief", () => {
     const reply = await update({ comfortableDrivingInHours: 14 });
     expect(reply.isError).toBe(true);
     expect(textOf(reply)).toBe(
-      "Nothing was saved. The trip brief's comfortableDrivingInHours is at most 12, the maximum daily driving. It was given 14.",
+      "Nothing was changed. The trip brief's comfortableDrivingInHours is at most 12, the maximum daily driving. It was given 14.",
     );
   });
 
@@ -140,7 +140,7 @@ describe("update_trip_brief", () => {
     await update({ focus: "Texas barbecue" });
     const reply = await update({ focus: "  ", tripLengthInDays: 4 });
     expect(textOf(reply)).toBe(
-      "Nothing was saved. The trip brief's focus can't be empty. Once it has a value, it can be changed but not emptied.",
+      "Nothing was changed. The trip brief's focus can't be empty. Once it has a value, it can be changed but not emptied.",
     );
     expect(await read()).toContain("tripLengthInDays: not set");
   });
@@ -160,7 +160,7 @@ describe("update_trip_brief", () => {
     const reply = await update({});
     expect(reply.isError).toBe(true);
     expect(textOf(reply)).toBe(
-      "Nothing was saved. Give at least one trip brief item to change.",
+      "Nothing was changed. Give at least one trip brief item to change.",
     );
   });
 
@@ -188,7 +188,7 @@ describe("update_trip_brief", () => {
     const { update } = toolsFor({ ...fixture, tripId: trip.id });
     const reply = await update({ focus: "Arches and Canyonlands" });
     expect(textOf(reply)).toBe(
-      `Nothing was saved. The trip has started, so it can't be changed. Today is ${new CalendarDate(2027, 10, 10).longText} at its start place, on or after its start date.`,
+      `Nothing was changed. The trip has started, so it can't be changed. Today is ${new CalendarDate(2027, 10, 10).longText} at its start place, on or after its start date.`,
     );
   });
 
@@ -241,27 +241,27 @@ describe("update_trip_brief's check results", () => {
     const { update } = await oneDayTrip();
     expect(textOf(await update({ tripLengthInDays: 3 }))).toBe(
       [
-        "Saved the trip brief.",
+        "Changed the trip brief.",
         "Check results:",
         "- New warning: The trip is 1 day, and the brief asks for 3.",
       ].join("\n"),
     );
     expect(textOf(await update({ focus: "Pacific Coast Highway" }))).toBe(
       [
-        "Saved the trip brief.",
+        "Changed the trip brief.",
         "Check results:",
         "- Already known warning: The trip is 1 day, and the brief asks for 3.",
       ].join("\n"),
     );
     expect(textOf(await update({ tripLengthInDays: 1 }))).toBe(
       [
-        "Saved the trip brief.",
+        "Changed the trip brief.",
         "Check results:",
         "- Gone: The trip is 1 day, and the brief asks for 3.",
       ].join("\n"),
     );
     expect(textOf(await update({ focus: "Big Sur" }))).toBe(
-      ["Saved the trip brief.", "No new or gone check results."].join("\n"),
+      ["Changed the trip brief.", "No new or gone check results."].join("\n"),
     );
   });
 
@@ -270,7 +270,7 @@ describe("update_trip_brief's check results", () => {
     await update({ comfortableDrivingInHours: 0.25 });
     expect(textOf(await update({ comfortableDrivingInHours: 0.2 }))).toBe(
       [
-        "Saved the trip brief.",
+        "Changed the trip brief.",
         "Check results:",
         "- Already known warning: Day 1 needs about 33 m of driving. Comfortable driving is 0.2 hours a day.",
       ].join("\n"),

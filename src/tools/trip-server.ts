@@ -12,7 +12,7 @@ export const TRIP_SERVER_NAME = "trip";
 
 // The server's description, which the model reads as its instructions.
 export const TRIP_SERVER_INSTRUCTIONS =
-  "Reads and changes the trip this session is planning. The trip is already set, so no tool takes a trip ID. A change is saved at once, in one save: when any part of it is refused, nothing is saved, and the error says why. Each change replies with the feasibility check results it made new or gone.";
+  "Every tool that changes the trip makes the whole change or none of it. If any part is refused, nothing is changed, and the error says why. Each of these tools replies with the feasibility check results the change made new or gone, anywhere in the trip.";
 
 // Made for each session, with its trip already set. One server object can't be shared
 // by two sessions running at once (tool design, section 4).
