@@ -2,7 +2,7 @@
 
 Before reading anything in `design/`, read [design/README.md](design/README.md). It says what each design doc covers and when to read it. Read only the docs your task needs.
 
-Work is tracked in GitHub issues, ordered in the [project](https://github.com/users/nimbusscale/projects/1) (DEVELOPMENT.md section 9). When something is set aside, in chat or during a task, write it down right away. If an open issue will deal with it, add it to that issue's open questions. If not, open a new issue in Triage, and tell Joe. The exception is a security problem. Raise it with Joe in chat, and open an issue for it only once he approves.
+Work is tracked in GitHub issues, ordered in the [project](https://github.com/users/nimbusscale/projects/1) (DEVELOPMENT.md section 9). When something is set aside, in chat or during a task, write it down right away. If an open issue will deal with it, add it to that issue's open questions. If not, open a new issue in Triage, and tell Joe. The exception is a security problem that's set aside for later. Don't open an issue for it until Joe approves. The repo is public, so an open issue would describe the hole to anyone who finds it. A security problem found in a PR is fine to raise in the PR, since it gets fixed or accepted before the PR merges.
 
 Don't read `research/`, `reviews/`, or `plan/` unless the prompt tells you to, or you're looking up an old phase or open item. `plan/` is frozen. `research/` holds the evaluations behind design decisions, and `reviews/` holds records of past review sessions. The design docs already carry the decisions, so building or changing the app never needs any of the three.
 
@@ -24,7 +24,8 @@ It is not a product. Joe is the main user, and a family member or friend may try
 
 ### When reviewing
 
-Report bugs, security problems, and anything that would make an agent's behavior hard to trace. Don't report missing production safeguards, version updates, or code-quality points that don't make the code harder to read or change.
+- Report bugs, security problems, and anything that would make an agent's behavior hard to trace. Don't report missing production safeguards, version updates, or code-quality points that don't make the code harder to read or change.
+- When reviewing a PR, start from the task in its description. Don't read the PR's conversation comments, such as with `gh pr view --comments`, or the comments on its issue. They hold the implementer's reasons, which would color the review. Inline review comments are fine to read. Before posting findings, read them, and don't post a finding that an earlier inline comment already makes. The exception is when the lines it points to have changed since, and the problem is still there. Then post it again, and say the change didn't fix it.
 
 ## Writing code
 
@@ -37,4 +38,3 @@ Report bugs, security problems, and anything that would make an agent's behavior
 ## Pull requests
 
 - A PR description holds only the task and the "Done when" results. Decisions, things set aside, and config changes you think are needed go in a PR comment, posted right after the PR is opened (DEVELOPMENT.md section 7).
-- When reviewing a PR, start from the task in its description. Don't read the PR's conversation comments, such as with `gh pr view --comments`, or the comments on its issue. They hold the implementer's reasons, which would color the review. Inline review comments are fine to read. Before posting findings, read them, and don't post a finding that an earlier inline comment already makes. The exception is when the lines it points to have changed since, and the problem is still there. Then post it again, and say the change didn't fix it.

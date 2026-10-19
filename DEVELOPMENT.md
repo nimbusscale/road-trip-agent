@@ -173,6 +173,6 @@ export class MemoryItem {
 
 **"Settled in" says where answers are agreed.** "Chat" means propose each answer to Joe in chat first, and write it in once he agrees. "The PR" means propose each answer in the PR's decisions comment, and Joe agrees by approving the PR.
 
-**Write down anything set aside right away.** If an open issue will deal with it, add it to that issue's open questions. If not, open a new issue in Triage, and tell Joe. The exception is a security problem. Raise it with Joe in chat, and open an issue for it only once he approves.
+**Write down anything set aside right away.** The rule is in CLAUDE.md, since it applies in chat too, not only while writing code.
 
 **Issues have no phase numbers,** since their order changes. Refer to other work by issue number. When an issue can't start until another is merged, link it as "blocked by", and say so in the body's first line, such as "**Starts** once #47 is merged."
