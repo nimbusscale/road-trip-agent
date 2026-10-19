@@ -59,7 +59,7 @@ All three were fixed.
 
 **Text the agent reads that says something twice, but says nothing wrong, is below the bar.** Example: on PR #44, a reply line put "may be too early" in front of a result whose text already ends by saying so. It wasn't fixed.
 
-**When a finding is about a project rule that a tool could check, add the check.** Then the next PR can't break the rule, and no review has to catch it. Example: on PR #44, a tool's input schema wasn't in a `*.schema.ts` file, as DEVELOPMENT.md section 4 asks. A lint rule will check that (open item 22).
+**When a finding is about a project rule that a tool could check, add the check.** Then the next PR can't break the rule, and no review has to catch it. Example: on PR #44, a tool's input schema wasn't in a `*.schema.ts` file, as DEVELOPMENT.md section 4 asks. A lint rule will check that ([#72](https://github.com/nimbusscale/road-trip-agent/issues/72)).
 
 ### 3.2 Findings that come along
 
@@ -152,7 +152,7 @@ One row per review. "Above the bar" uses the rule in section 3.1, as it stood on
 
 - **Fixed, above the bar:** changing the comfortable driving hours or the usual start time left out the day warnings whose text changed. The code followed tool design 2.1, so the design was fixed too.
 - **Fixed, as the test for a fix (section 3.4):** the test for round 1's dropped input didn't go through the server.
-- **Done in its own PR:** a lint rule for schemas outside `*.schema.ts` files (open item 22).
+- **Done in its own PR:** a lint rule for schemas outside `*.schema.ts` files ([#72](https://github.com/nimbusscale/road-trip-agent/issues/72)).
 - **Not fixed:** the line break that could show a fake item, which isn't normal use, and `strictTool()` taking no annotations, a cleanup.
 - **Most of round 2 was about lines round 1 changed or added.** Three of its five findings were, as on PR #39.
 - **Two findings were about code round 1 had already seen.** The reviewer finds different things on each run, so one review doesn't mean the rest of the code is fine.

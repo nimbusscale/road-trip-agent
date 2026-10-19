@@ -163,6 +163,13 @@ export class MemoryItem {
 
 **Work is tracked in GitHub issues,** ordered in the [project](https://github.com/users/nimbusscale/projects/1). Each issue is one piece of work that ends in a PR or a decision. `plan/` is frozen. Read it only to look up an old phase or open item.
 
+**To see the open work in roadmap order,** run this. It lists each item that isn't Done, with its status, issue number, and title, in the board's order. Then read the body of only the issue you need.
+
+```sh
+gh project item-list 1 --owner nimbusscale --format json --limit 200 \
+  | jq -r '.items[] | select(.status != "Done") | [.status, .content.number, .content.title] | @tsv'
+```
+
 **Each item moves through these statuses:**
 
 - **Triage:** new and not ordered yet. Anything Claude Code opens starts here.
