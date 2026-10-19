@@ -17,7 +17,7 @@ export class TripBriefService {
     const maximum = this.settings.maximumTripLengthDays;
     if (tripLengthInDays > maximum) {
       throw new RuleError(
-        `A trip is at most ${String(maximum)} days long. It was given ${String(tripLengthInDays)}.`,
+        `The trip brief's tripLengthInDays is at most ${String(maximum)}, since a trip is at most ${String(maximum)} days long. It was given ${String(tripLengthInDays)}.`,
       );
     }
     brief[VIA_SERVICE].setTripLengthInDays(tripLengthInDays);
@@ -30,7 +30,7 @@ export class TripBriefService {
     const maximum = this.settings.maximumDailyDrivingHours;
     if (comfortableDrivingInHours > maximum) {
       throw new RuleError(
-        `Comfortable driving is at most ${String(maximum)} hours a day. It was given ${String(comfortableDrivingInHours)}.`,
+        `The trip brief's comfortableDrivingInHours is at most ${String(maximum)}, the maximum daily driving. It was given ${String(comfortableDrivingInHours)}.`,
       );
     }
     brief[VIA_SERVICE].setComfortableDrivingInHours(comfortableDrivingInHours);

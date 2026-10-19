@@ -1,6 +1,6 @@
 # Road Trip Planner: Development
 
-This document covers how the code is written, checked, and tested. Read it before writing or changing code. What the app does and how it's built is in [design/](design/README.md). How to run it locally, and how it's deployed, is in the [systems design](design/systems.md). The order of the development work, starting with setting up the tools below, is in the [development plan](plan/development-plan.md).
+This document covers how the code is written, checked, and tested. Read it before writing or changing code. What the app does and how it's built is in [design/](design/README.md). How to run it locally, and how it's deployed, is in the [systems design](design/systems.md). The development work is tracked in GitHub issues (section 9).
 
 Claude Code writes the code, Joe reviews the code he cares about, and the tools enforce the baseline for all of it. The tools catch what they can. This document covers the rest.
 
@@ -94,7 +94,7 @@ Worker results aren't on the list. A worker returns text that the coordinator re
 
 **`main` is protected.** Nothing is pushed to it directly. Every change goes on its own branch, and reaches `main` through a pull request. Only Joe decides when a pull request is merged: he merges it himself, or asks Claude Code to merge it. Claude Code never merges one without being asked. A merge to `main` deploys it ([systems design](design/systems.md), section 7).
 
-**A PR description holds the task, and nothing about how it was done.** It starts with the task, word for word, though filler words in a spoken request can be dropped: what the implementer was asked to do, such as "Do phase 19 of the development plan," or what Joe asked for. Then it lists each "Done when" item with its result, and what was checked by hand.
+**A PR description holds the task, and nothing about how it was done.** It starts with the task, word for word, though filler words in a spoken request can be dropped. For an issue, that's its "Do" and "Done when" items, and `Closes #N`. Otherwise it's what Joe asked for. Then it lists each "Done when" item with its result, and what was checked by hand.
 
 **Everything else goes in one PR comment, the decisions comment.** Post it right after the PR is opened. It holds:
 
@@ -156,3 +156,25 @@ export class MemoryItem {
 
 - **Each is given the pool, and a function that makes its repository for a connection.** Tests pass a fake for both.
 - **A writer runs each change in a transaction** with `inTransaction()` (`src/persistence/transaction.ts`). If anything throws, nothing is saved.
+
+---
+
+## 9. Tracking work
+
+**Work is tracked in GitHub issues,** ordered in the [project](https://github.com/users/nimbusscale/projects/1). Each issue is one piece of work that ends in a PR or a decision. `plan/` is frozen. Read it only to look up an old phase or open item.
+
+**Each item moves through these statuses:**
+
+- **Triage:** new and not ordered yet. Anything Claude Code opens starts here.
+- **Backlog:** Joe moves an item here and sets its place. The order of this column is the roadmap.
+- **In progress:** Claude Code moves an item here when it starts the work.
+- **In review:** Claude Code moves it here when the PR is opened, while the CI review and Joe give feedback.
+- **Done:** the PR is merged and deployed.
+
+**The issue body is the current task.** Its sections are Design, Open questions, Do, Done when, Ends in, and Settled in. Comments are for discussion. When a question is settled, strike it out in the body, add when and how, and write the answer into the design doc it belongs to, in the same PR. A reviewer reads the body, never the comments, for the same reason as with a PR's comments (section 7).
+
+**"Settled in" says where answers are agreed.** "Chat" means propose each answer to Joe in chat first, and write it in once he agrees. "The PR" means propose each answer in the PR's decisions comment, and Joe agrees by approving the PR.
+
+**Write down anything set aside right away.** The rule is in CLAUDE.md, since it applies in chat too, not only while writing code.
+
+**Issues have no phase numbers,** since their order changes. Refer to other work by issue number. When an issue can't start until another is merged, link it as "blocked by", and say so in the body's first line, such as "**Starts** once #47 is merged."

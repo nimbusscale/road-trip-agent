@@ -1,5 +1,7 @@
 # Road Trip Planner: Development Plan
 
+**This plan is frozen as of 2026-10-19.** Work that wasn't done moved to GitHub issues, and its order is set in the [project](https://github.com/users/nimbusscale/projects/1). The table below gives the issue for each phase that moved. The phase sections stay as a record of what each phase was asked to do. Don't add to this file.
+
 This document lists the development work, phase by phase, in the order it's done. How code is written and checked is in [DEVELOPMENT.md](../DEVELOPMENT.md). What the app does and how it's built is in [design/](../design/README.md). What's still open with no phase to settle it is in the [open items](open-items.md).
 
 **The goal.** At the end of this plan, the app can plan the two example trips in the [domain model](../design/domain-model.md), section 5: San Francisco to Los Angeles, and Grand Junction to Salt Lake City through Moab. A simulated user and Joe each walk both trips through the live app, the way the design walk-throughs did on paper.
@@ -16,12 +18,12 @@ This document lists the development work, phase by phase, in the order it's done
 - **Some steps need Joe,** such as creating keys in a console. The phase says so.
 - **Some phases list open questions,** after the design sections. Answering them is part of the phase. Each answer is written into the design doc it belongs to, in the same PR.
 - **A phase settles its questions and choices in chat or in the PR.** A phase that says "Settled in: the PR" proposes each answer in the PR's decisions comment ([DEVELOPMENT.md](../DEVELOPMENT.md), section 7), and Joe agrees by approving the PR. Otherwise, propose each answer to Joe in chat first, and write it in once he agrees.
-- **Some phases run in parallel,** in batches. Claude Code coordinates, and a worker agent does each phase on its own branch. Batch 1 is phases 4 and 5. Batch 2 is phases 6 and 7, and starts once phase 4 is merged. Batch 3 is phases 10, 11, and 12, and starts once phase 10a is merged. Its PRs are merged in that order, since the migrations have to run in order (phase 10a). Batch 4 is phases 15 to 20, done one at a time overnight, before phase 13, on a `development` branch. [Batch 4](batch-4.md) says how.
+- **Some phases run in parallel,** in batches. Claude Code coordinates, and a worker agent does each phase on its own branch. Batch 1 is phases 4 and 5. Batch 2 is phases 6 and 7, and starts once phase 4 is merged. Batch 3 is phases 10, 11, and 12, and starts once phase 10a is merged. Its PRs are merged in that order, since the migrations have to run in order (phase 10a). Batch 4 is phases 15 to 20, done one at a time overnight, before phase 13, on a `development` branch. [Batch 4](https://github.com/nimbusscale/road-trip-agent/blob/dc019f2/plan/batch-4.md) said how. It was deleted on 2026-10-19.
 - **When something new comes up,** such as an idea, a test, or a question, write it down right away. If a phase will deal with it, add it to that phase's open questions. If not, add it to the [open items](open-items.md).
 - **Tests in `npm run check` use fakes** for Google, Open-Meteo, Supabase, Claude, and Postgres ([DEVELOPMENT.md](../DEVELOPMENT.md), section 5). Some phases also make a few real calls, or check the database by hand. Those are listed in "Done when."
 - **The thin slice comes early.** Phases 10 to 14 build a small app that works end to end: Joe signs in on the live site and talks with the coordinator about the trip brief and memory. The riskiest parts get tested early: the Max plan on the server, streaming replies, and saved transcripts. The rest of the tools come after. The itinerary code, phases 15 to 20, was moved ahead of phase 13 on 2026-10-15, so work on the agents can start with the domain finished.
 
-| Phase | What it builds | Done |
+| Phase | What it builds | Done, or moved to |
 |---|---|---|
 | **Running the app** | | |
 | 2 | Create the Google keys | 2026-10-15, [PR #2](https://github.com/nimbusscale/road-trip-agent/pull/2) |
@@ -38,13 +40,13 @@ This document lists the development work, phase by phase, in the order it's done
 | 11 | Store memory | 2026-10-15, [PR #20](https://github.com/nimbusscale/road-trip-agent/pull/20) |
 | 12 | Store sessions and transcripts | 2026-10-15, [PR #23](https://github.com/nimbusscale/road-trip-agent/pull/23) |
 | 12a | Put phases 10 to 12 together | 2026-10-15, [PR #26](https://github.com/nimbusscale/road-trip-agent/pull/26) |
-| 13 | The first coordinator, done in 13a to 13c | |
-| 13a | The trip server | |
-| 13b | The memory server | |
-| 13c | The coordinator in the terminal | |
-| 14 | Chat in the browser | |
+| 13 | The first coordinator, done in 13a to 13c | 13b and 13c moved to [#47](https://github.com/nimbusscale/road-trip-agent/issues/47) and [#48](https://github.com/nimbusscale/road-trip-agent/issues/48) |
+| 13a | The trip server | 2026-10-18, [PR #44](https://github.com/nimbusscale/road-trip-agent/pull/44) |
+| 13b | The memory server | Moved to [#47](https://github.com/nimbusscale/road-trip-agent/issues/47) |
+| 13c | The coordinator in the terminal | Moved to [#48](https://github.com/nimbusscale/road-trip-agent/issues/48) |
+| 14 | Chat in the browser | Moved to [#52](https://github.com/nimbusscale/road-trip-agent/issues/52) |
 | **Agent evaluations** | | |
-| 14a | Agent evaluations | |
+| 14a | Agent evaluations | Moved to [#53](https://github.com/nimbusscale/road-trip-agent/issues/53) |
 | **The itinerary** | | |
 | 15 | Places | 2026-10-15, [PR #30](https://github.com/nimbusscale/road-trip-agent/pull/30) |
 | 16 | The itinerary's objects | 2026-10-15, [PR #31](https://github.com/nimbusscale/road-trip-agent/pull/31) |
@@ -53,24 +55,24 @@ This document lists the development work, phase by phase, in the order it's done
 | 19 | Legs | 2026-10-15, [PR #34](https://github.com/nimbusscale/road-trip-agent/pull/34) |
 | 20 | Feasibility checks | 2026-10-15, [PR #35](https://github.com/nimbusscale/road-trip-agent/pull/35) |
 | **Planning in chat** | | |
-| 21 | Read the itinerary | |
-| 22 | Build the skeleton | |
-| 23 | Lay out days | |
-| 24 | The itinerary view | |
-| 25 | The map | |
+| 21 | Read the itinerary | Moved to [#54](https://github.com/nimbusscale/road-trip-agent/issues/54) |
+| 22 | Build the skeleton | Moved to [#55](https://github.com/nimbusscale/road-trip-agent/issues/55) |
+| 23 | Lay out days | Moved to [#56](https://github.com/nimbusscale/road-trip-agent/issues/56) |
+| 24 | The itinerary view | Moved to [#57](https://github.com/nimbusscale/road-trip-agent/issues/57) |
+| 25 | The map | Moved to [#58](https://github.com/nimbusscale/road-trip-agent/issues/58) |
 | **Workers** | | |
-| 26 | Place searches | |
-| 27 | The stay researcher | |
-| 28 | The leg scout | |
-| 29 | Option cards | |
-| 30 | Weather data | |
-| 31 | The weather worker | |
-| 32 | Finish the coordinator's instructions | |
+| 26 | Place searches | Moved to [#59](https://github.com/nimbusscale/road-trip-agent/issues/59) |
+| 27 | The stay researcher | Moved to [#60](https://github.com/nimbusscale/road-trip-agent/issues/60) |
+| 28 | The leg scout | Moved to [#61](https://github.com/nimbusscale/road-trip-agent/issues/61) |
+| 29 | Option cards | Moved to [#62](https://github.com/nimbusscale/road-trip-agent/issues/62) |
+| 30 | Weather data | Moved to [#63](https://github.com/nimbusscale/road-trip-agent/issues/63) |
+| 31 | The weather worker | Moved to [#64](https://github.com/nimbusscale/road-trip-agent/issues/64) |
+| 32 | Finish the coordinator's instructions | Moved to [#65](https://github.com/nimbusscale/road-trip-agent/issues/65) |
 | **Walk-throughs** | | |
-| 33 | The simulated user | |
-| 34 | Walk the San Francisco trip | |
-| 35 | Walk the Moab trip | |
-| 36 | Acceptance scenarios and memory tests | |
+| 33 | The simulated user | Moved to [#66](https://github.com/nimbusscale/road-trip-agent/issues/66) |
+| 34 | Walk the San Francisco trip | Moved to [#67](https://github.com/nimbusscale/road-trip-agent/issues/67) |
+| 35 | Walk the Moab trip | Moved to [#68](https://github.com/nimbusscale/road-trip-agent/issues/68) |
+| 36 | Acceptance scenarios and memory tests | Moved to [#69](https://github.com/nimbusscale/road-trip-agent/issues/69) |
 
 ---
 
@@ -426,6 +428,8 @@ Phase 13 is done in three parts, each with its own PR: the `trip` server, the `m
 
 ### Phase 13b. The memory server
 
+**Moved to [#47](https://github.com/nimbusscale/road-trip-agent/issues/47)** on 2026-10-19. The issue is the current version, and this section is kept as a record.
+
 **Starts** once phase 13a is merged, so it follows the pattern Joe agreed there.
 
 **Do:**
@@ -441,11 +445,21 @@ Phase 13 is done in three parts, each with its own PR: the `trip` server, the `m
 
 ### Phase 13c. The coordinator in the terminal
 
+**Moved to [#48](https://github.com/nimbusscale/road-trip-agent/issues/48)** on 2026-10-19. The issue is the current version, and this section is kept as a record.
+
 **Starts** once phase 13b is merged.
+
+**Open questions:**
+
+- How does the coordinator know the maximum trip length? Technical spec 5.2 puts the maximum daily driving in its instructions, but not the maximum trip length, and the `update_trip_brief` input descriptions give neither. So the coordinator learns the limit only when an update is refused, which costs a round trip. Example: the user asks for "about three weeks", and it sends 21 days. Raised in PR #44's fourth review.
 
 **Do:**
 
 - Add the coordinator, with only the tools from phases 13a and 13b. Its instructions cover conduct, the trip brief items to establish, the memory rules, and comfortable driving hours (technical spec, section 5.2).
+- Give each trip brief item in the coordinator's instructions by the name the tools use, such as `tripLengthInDays`, with what it means (tool design, section 4). The `update_trip_brief` input descriptions say only how to pass each value, so the meanings are in no tool. Functional spec 5.2 gives most of them. It doesn't give these, which the input descriptions said before phase 13a's trim:
+  - Interests and must-sees are in the user's words, with why they matter. A must-see can be one place, an area, a road, or an activity.
+  - The rest days item records what the user asked for. It doesn't mark any day.
+  - The default tier is the budget tier for lodging and meals when no budget rule covers them.
 - Add the `coordinatorModel` setting, and give it to the Agent SDK.
 - Add today's date to user messages, and the line after a resume, as technical spec section 5.2 says.
 - Log each `mirror_error` message, with the session's ID and the error.
@@ -461,6 +475,8 @@ Phase 13 is done in three parts, each with its own PR: the `trip` server, the `m
 **Ends in:** a PR. Phase 13 is done once it's merged.
 
 ### Phase 14. Chat in the browser
+
+**Moved to [#52](https://github.com/nimbusscale/road-trip-agent/issues/52)** on 2026-10-19. The issue is the current version, and this section is kept as a record.
 
 **Design:** [Systems design](../design/systems.md), sections 3 and 4. [Persistence design](../design/persistence.md), sections 8.2 and 8.5. [Functional spec](../design/functional-spec.md), sections 2, 3, and 10.1.
 
@@ -494,6 +510,8 @@ By the end of this part, the agent's behavior can be checked again after any cha
 
 ### Phase 14a. Agent evaluations
 
+**Moved to [#53](https://github.com/nimbusscale/road-trip-agent/issues/53)** on 2026-10-19. The issue is the current version, and this section is kept as a record.
+
 **Design:** [DEVELOPMENT.md](../DEVELOPMENT.md), section 5. [Technical spec](../design/technical-spec.md), section 3.1 (tests). [Functional spec](../design/functional-spec.md), section 11.
 
 **Open questions:**
@@ -502,6 +520,10 @@ By the end of this part, the agent's behavior can be checked again after any cha
 - How is each result scored: by what was saved, such as the trip brief and memory, by a model reading the reply, or both?
 - How much of the Max plan does one run of the evaluations use?
 - How do phase 33's simulated user and phase 36's tests fit with the evaluations?
+- Which evaluations watch for these `update_trip_brief` mistakes? Tool descriptions start lean, with no example of a whole call. One is added only when an evaluation shows a mistake it would fix. The mistakes:
+  - Sending every item on every call, when only one changed.
+  - Splitting one change into a call per item.
+  - Summarizing the user in a text item, such as `mustSeesText`, instead of using their words.
 
 **Do:**
 
@@ -526,7 +548,7 @@ By the end of this part, code can build both example trips through the services,
 
 **Design:** [Domain model](../design/domain-model.md), section 3.10. [Persistence design](../design/persistence.md), section 8.6. [Google design](../design/data-sources/google.md), sections 1 and 2.1 to 2.3. [Technical spec](../design/technical-spec.md), section 7.2.
 
-**2026-10-15:** this phase now runs before phase 13, in [batch 4](batch-4.md). The tools `find_place` and `read_place` moved to phase 21, since they need the coordinator.
+**2026-10-15:** this phase now runs before phase 13, in [batch 4](https://github.com/nimbusscale/road-trip-agent/blob/dc019f2/plan/batch-4.md). The tools `find_place` and `read_place` moved to phase 21, since they need the coordinator.
 
 **Open questions:**
 
@@ -662,6 +684,8 @@ By the end of this part, the coordinator can build a trip's skeleton and lay out
 
 ### Phase 21. Read the itinerary
 
+**Moved to [#54](https://github.com/nimbusscale/road-trip-agent/issues/54)** on 2026-10-19. The issue is the current version, and this section is kept as a record.
+
 **Design:** [Tool design](../design/tools.md), sections 2.1 (`read_itinerary`), 2.3 (`find_place` and `read_place`), and 4. [Technical spec](../design/technical-spec.md), section 7.2.
 
 **Open questions:**
@@ -685,11 +709,14 @@ By the end of this part, the coordinator can build a trip's skeleton and lay out
 
 ### Phase 22. Build the skeleton
 
-**Design:** [Tool design](../design/tools.md), sections 2.1 (`update_itinerary`, `add_stay`, `update_stay`, `remove_stay`, `update_day`, `set_waypoints`) and 2.4. [Technical spec](../design/technical-spec.md), sections 4.1, 4.2 (discovery, shape, and skeleton), and 5.2.
+**Moved to [#55](https://github.com/nimbusscale/road-trip-agent/issues/55)** on 2026-10-19. The issue is the current version, and this section is kept as a record.
+
+**Design:** [Tool design](../design/tools.md), sections 2.1 (`update_itinerary`, `add_stay`, `update_stay`, `remove_stay`, `update_day`, `set_waypoints`) and 2.4. [Technical spec](../design/technical-spec.md), sections 4.1, 4.2 (discovery, shape, and skeleton), and 5.2. [Domain model](../design/domain-model.md), section 4.8.
 
 **Do:**
 
 - Add these tools and `compute_route`. Each write's reply is built from what the write hands back, as tool design section 2.1 says.
+- Report check results whose text changed. Today a result that's still there after a write is "already known", so the reply leaves it out unless the write touched its subject, even when its text changed. Example: the user lowers their driving hours from 6 to 5, and Day 2's warning now gives the new limit, but the reply doesn't show it. Make `FeasibilityChecker.compare()` mark a known result whose text differs from its saved match as "changed". Each write's reply lists changed results anywhere in the trip, like new ones. The coordinator decides whether to raise one. Write it into domain model 4.8 and tool design 2.1. Then take out `touchedBy()` in `src/tools/trip-brief-tools.ts`, which phase 13a added for the driving hours only. Raised in PR #44's third review.
 - Add the coordinator's instructions for anchors and stretches, the shape and skeleton rounds, broken feasibility rules, and changes to stays.
 
 **Done when,** in chat:
@@ -700,6 +727,8 @@ By the end of this part, the coordinator can build a trip's skeleton and lay out
 **Ends in:** a PR.
 
 ### Phase 23. Lay out days
+
+**Moved to [#56](https://github.com/nimbusscale/road-trip-agent/issues/56)** on 2026-10-19. The issue is the current version, and this section is kept as a record.
 
 **Design:** [Tool design](../design/tools.md), section 2.1 (`add_stops`, `update_stop`, `move_stop`, `remove_stops`, `select_candidate`, `select_user_place`, `reject_places`). [Technical spec](../design/technical-spec.md), sections 4.2 (must-sees) and 5.2.
 
@@ -718,6 +747,8 @@ By the end of this part, the coordinator can build a trip's skeleton and lay out
 
 ### Phase 24. The itinerary view
 
+**Moved to [#57](https://github.com/nimbusscale/road-trip-agent/issues/57)** on 2026-10-19. The issue is the current version, and this section is kept as a record.
+
 **Design:** [Functional spec](../design/functional-spec.md), sections 7.6 and 9.1 to 9.7.
 
 **Do:**
@@ -730,6 +761,8 @@ By the end of this part, the coordinator can build a trip's skeleton and lay out
 **Ends in:** a PR.
 
 ### Phase 25. The map
+
+**Moved to [#58](https://github.com/nimbusscale/road-trip-agent/issues/58)** on 2026-10-19. The issue is the current version, and this section is kept as a record.
 
 **Design:** [Functional spec](../design/functional-spec.md), section 9.2. [Google design](../design/data-sources/google.md), section 4.
 
@@ -754,6 +787,8 @@ By the end of this part, the full planning flow works: workers fill stops and lo
 
 ### Phase 26. Place searches
 
+**Moved to [#59](https://github.com/nimbusscale/road-trip-agent/issues/59)** on 2026-10-19. The issue is the current version, and this section is kept as a record.
+
 **Design:** [Tool design](../design/tools.md), section 2.3 (`search_near` and `search_along_leg`). [Google design](../design/data-sources/google.md), sections 2.1, 2.3, and 2.4. [Technical spec](../design/technical-spec.md), section 10.
 
 **Do:** add `search_near` and `search_along_leg`. They leave out the trip's rejected places.
@@ -767,6 +802,8 @@ By the end of this part, the full planning flow works: workers fill stops and lo
 **Ends in:** a PR.
 
 ### Phase 27. The stay researcher
+
+**Moved to [#60](https://github.com/nimbusscale/road-trip-agent/issues/60)** on 2026-10-19. The issue is the current version, and this section is kept as a record.
 
 **Design:** [Technical spec](../design/technical-spec.md), sections 4.2 (fill), 5.3, 6.1, and 6.4. [Tool design](../design/tools.md), sections 2.1 (the candidate tools) and 3. [Web search design](../design/data-sources/web-search.md).
 
@@ -792,6 +829,8 @@ By the end of this part, the full planning flow works: workers fill stops and lo
 
 ### Phase 28. The leg scout
 
+**Moved to [#61](https://github.com/nimbusscale/road-trip-agent/issues/61)** on 2026-10-19. The issue is the current version, and this section is kept as a record.
+
 **Design:** [Technical spec](../design/technical-spec.md), section 6.2. [Tool design](../design/tools.md), sections 2.1 (detour times) and 4. [Domain model](../design/domain-model.md), section 4.7.
 
 **Open questions:**
@@ -812,6 +851,8 @@ By the end of this part, the full planning flow works: workers fill stops and lo
 **Ends in:** a PR.
 
 ### Phase 29. Option cards
+
+**Moved to [#62](https://github.com/nimbusscale/road-trip-agent/issues/62)** on 2026-10-19. The issue is the current version, and this section is kept as a record.
 
 **Design:** [Functional spec](../design/functional-spec.md), sections 7.1, 7.5, and 7.6. [Technical spec](../design/technical-spec.md), sections 4.2 (refine), 7.2, and 9. [Domain model](../design/domain-model.md), section 3.9.
 
@@ -834,6 +875,8 @@ By the end of this part, the full planning flow works: workers fill stops and lo
 
 ### Phase 30. Weather data
 
+**Moved to [#63](https://github.com/nimbusscale/road-trip-agent/issues/63)** on 2026-10-19. The issue is the current version, and this section is kept as a record.
+
 **Design:** [Google design](../design/data-sources/google.md), section 3. [Open-Meteo design](../design/data-sources/open-meteo.md). [Tool design](../design/tools.md), section 2.5.
 
 **Open questions:**
@@ -853,6 +896,8 @@ By the end of this part, the full planning flow works: workers fill stops and lo
 
 ### Phase 31. The weather worker
 
+**Moved to [#64](https://github.com/nimbusscale/road-trip-agent/issues/64)** on 2026-10-19. The issue is the current version, and this section is kept as a record.
+
 **Design:** [Technical spec](../design/technical-spec.md), sections 4.2 (weather and clothing), 5.2, and 6.3. [Tool design](../design/tools.md), section 2.1 (`set_stay_weather`). [Functional spec](../design/functional-spec.md), sections 8 and 9.6.
 
 **Do:**
@@ -870,6 +915,8 @@ By the end of this part, the full planning flow works: workers fill stops and lo
 **Ends in:** a PR.
 
 ### Phase 32. Finish the coordinator's instructions
+
+**Moved to [#65](https://github.com/nimbusscale/road-trip-agent/issues/65)** on 2026-10-19. The issue is the current version, and this section is kept as a record.
 
 **Design:** [Technical spec](../design/technical-spec.md), sections 5.2 and 9.
 
@@ -896,6 +943,8 @@ By the end of this part, both example trips have been planned through the live a
 
 ### Phase 33. The simulated user
 
+**Moved to [#66](https://github.com/nimbusscale/road-trip-agent/issues/66)** on 2026-10-19. The issue is the current version, and this section is kept as a record.
+
 **Do:**
 
 - Add a script that runs Claude as the user, talking to the app through its API, signed in as the test user. It follows a trip script: the trip, the user's replies, and changes to make along the way, like the design walk-throughs.
@@ -907,6 +956,8 @@ By the end of this part, both example trips have been planned through the live a
 **Ends in:** a PR.
 
 ### Phase 34. Walk the San Francisco trip
+
+**Moved to [#67](https://github.com/nimbusscale/road-trip-agent/issues/67)** on 2026-10-19. The issue is the current version, and this section is kept as a record.
 
 **Open questions:**
 
@@ -928,6 +979,8 @@ By the end of this part, both example trips have been planned through the live a
 
 ### Phase 35. Walk the Moab trip
 
+**Moved to [#68](https://github.com/nimbusscale/road-trip-agent/issues/68)** on 2026-10-19. The issue is the current version, and this section is kept as a record.
+
 **Do:** the same as phase 34, for the Moab trip in domain model section 5.2.
 
 **Done when:** the same as phase 34, against domain model section 5.2.
@@ -935,6 +988,8 @@ By the end of this part, both example trips have been planned through the live a
 **Ends in:** a PR.
 
 ### Phase 36. Acceptance scenarios and memory tests
+
+**Moved to [#69](https://github.com/nimbusscale/road-trip-agent/issues/69)** on 2026-10-19. The issue is the current version, and this section is kept as a record.
 
 **Design:** [Functional spec](../design/functional-spec.md), section 11. [Technical spec](../design/technical-spec.md), section 3.1 (tests).
 
