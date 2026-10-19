@@ -510,6 +510,10 @@ By the end of this part, the agent's behavior can be checked again after any cha
 - How is each result scored: by what was saved, such as the trip brief and memory, by a model reading the reply, or both?
 - How much of the Max plan does one run of the evaluations use?
 - How do phase 33's simulated user and phase 36's tests fit with the evaluations?
+- Which evaluations watch for these `update_trip_brief` mistakes? Tool descriptions start lean, with no example of a whole call. One is added only when an evaluation shows a mistake it would fix. The mistakes:
+  - Sending every item on every call, when only one changed.
+  - Splitting one change into a call per item.
+  - Summarizing the user in a text item, such as `mustSeesText`, instead of using their words.
 
 **Do:**
 
