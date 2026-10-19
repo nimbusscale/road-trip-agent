@@ -1,10 +1,10 @@
 # Road Trip Planner: Code Review
 
-> **This design is in progress.** It changes as we learn how the review agent behaves. Each review we handle by hand adds to section 5, and what it teaches us goes into sections 3 and 4. Last updated 2026-10-18.
+> **This design is in progress.** It changes as we learn how the review agent behaves. Each review we handle by hand adds to section 5, and what it teaches us goes into sections 3 and 4. Last updated 2026-10-19.
 
 This document covers how a pull request's code is reviewed: the review that runs in CI on each PR, how its findings are handled, and the fix loop we plan to build on top of it. Unlike the other design docs, it's about how the app is built, not what it does.
 
-The evidence behind it is in `research/code-review-evaluation.md`. That doc records how Opus at `high` was picked (section 8), and the first CI runs (section 10). This doc holds the decisions.
+The evidence behind it is in `research/code-review-evaluation.md`. That doc records how Opus at `high` was picked (section 8), and the first CI runs (section 10). What others have published about review and fix loops is in `research/agent-review-fix-loop.md`. This doc holds the decisions.
 
 ---
 
@@ -12,16 +12,17 @@ The evidence behind it is in `research/code-review-evaluation.md`. That doc reco
 
 | Part | Status |
 |---|---|
-| The review in CI | Running since 2026-10-16 (section 2) |
+| The review in CI | Running since 2026-10-16, with the stock `/code-review` (section 2) |
 | Rules for which findings get fixed | Agreed 2026-10-16 and 2026-10-18. Applied by hand for now (section 3) |
-| The fix loop | Not built. The rules for it are in section 4, and its open questions in section 4.5 |
+| Our own review prompt | Not written. It replaces the stock one once it passes the test in section 4.8 |
+| The fix loop | Not built. Planned 2026-10-19 (section 4). The work to build it is #75, #76, and #77 |
 | The CI reviewer can read the Claude token | Open item 21 |
 
 ---
 
 ## 2. The review in CI
 
-**The "Code review" workflow runs the stock `/code-review` with Opus at `high`,** and posts its findings as inline comments on the PR. Opus at `high` found the key bugs in testing, and was wrong less often than Sonnet (research doc, section 8.5). The workflow is `.github/workflows/code-review.yml`.
+**The "Code review" workflow runs the stock `/code-review` with Opus at `high`,** and posts its findings as inline comments on the PR. Opus at `high` found the key bugs in testing, and was wrong less often than Sonnet (research doc, section 8.5). The workflow is `.github/workflows/code-review.yml`. The fix loop will replace the stock `/code-review` with a prompt of our own (section 4.1).
 
 - **It runs when a PR is opened or gets a new commit,** if the PR changes `src/` or `web/`. Drafts and PRs from forks aren't reviewed. A new commit cancels the review of the one before it.
 - **It pins the Claude Code version,** 2.1.301, since the review's recipe changes between versions.
@@ -35,11 +36,13 @@ The evidence behind it is in `research/code-review-evaluation.md`. That doc reco
 
 ## 3. Handling findings
 
-These rules apply now, when findings are handled by hand, and later to the fix loop. Each rule has an example from a real review, so the fixer can tell how it applies. "The fixer" here means whoever handles the findings: Claude Code by hand for now, and the fix loop later.
+These rules apply now, when findings are handled by hand, and later to the fix loop. Each rule has an example from a real review, so the fixer can tell how it applies. "The fixer" here means whoever handles the findings: Claude Code by hand for now, and the fix loop later. In the fix loop, the reviewer applies section 3.1 when it marks each finding (section 4.2), and the fixer applies the rest.
 
 ### 3.1 What gets fixed
 
 **A finding is fixed when it causes wrong behavior, lost data, or a security hole.** That's "the bar." Everything else is below it: cleanups, missing tests, wording, and advice about code that isn't written yet.
+
+**A PR that doesn't do what its task says is above the bar too.** The task is the issue's "Do" and "Done when" items, which the PR description copies (DEVELOPMENT.md section 7). Something the task asks for that's missing, or done another way, is fixed, even when nothing breaks yet. Agreed 2026-10-19. No review has given an example yet.
 
 **Tool descriptions, input schemas, what tools return, and error messages count as behavior.** The agent reads them and acts on them, so text that's wrong there leads to wrong actions. Examples from PR #44:
 
@@ -71,6 +74,8 @@ Example: on PR #44, the schema's false maximum was in the same schema that the f
 
 **The fixer reads each one, and takes no action on it.** It lists it for Joe in the PR comment, quoting the finding, with a short reason. Joe can still ask for it to be fixed.
 
+In the fix loop, the reviewer marks most of these as notes, and Joe reads them on the PR (section 4.2). The fixer doesn't list notes again. A finding marked "fix" that the fixer finds below the bar goes on the set-aside list (section 4.4).
+
 ### 3.4 A fix comes with a test
 
 **A fix for a bug comes with a test that fails without the fix, and passes with it.** The test goes through the path where the bug was, not only the part the fix changed. This applies to the coding agent's own fixes too (DEVELOPMENT.md section 5). It doesn't have to be written before the fix, but it has to be checked against the code without the fix.
@@ -84,47 +89,136 @@ Example: on PR #44, the schema's false maximum was in the same schema that the f
 
 ### 3.6 Where replies go
 
-**Replies go in one conversation comment on the PR, which quotes each finding.** It says what was fixed, and why the rest weren't. Never reply on a finding's inline thread. The next review reads inline threads so it doesn't repeat a finding, so it would read the reasons too (DEVELOPMENT.md section 7). When findings are handled by hand in chat, the comment is skipped, since Joe has already heard each one. In the fix loop it's required, since it's how the next round knows what was decided (section 4.2).
+**Replies go in one conversation comment on the PR, which quotes each finding.** It says what was fixed, and why the rest weren't. Never reply on a finding's inline thread. The next review reads inline threads so it doesn't repeat a finding, so it would read the reasons too (DEVELOPMENT.md section 7). When findings are handled by hand in chat, the comment is skipped, since Joe has already heard each one. In the fix loop it's required, since it's how the next round's fixer knows what was decided (section 4.5). The findings it sets aside also go on the list in the PR description (section 4.4).
 
 ---
 
 ## 4. The fix loop
 
-Not built yet. When a review has findings, another Claude Code run in CI reads them, fixes the ones above the bar (section 3), and pushes. The push starts the next review.
+Not built yet. Planned on 2026-10-19. The work to build it is #75, #76, and #77.
 
-### 4.1 When it stops
+**Each push to a PR starts one round: a review, then a fix if the review found anything above the bar.** The fixer's push starts the next round. After three fix rounds, a fourth review runs, and the PR goes to Joe. Every agent in the loop starts fresh, and none runs longer than its own job.
 
-The loop stops at whichever comes first:
+### 4.1 Our own review prompt
 
-- **A clean review:** one whose findings are all below the bar. The review never says "done" on its own. Its recipe aims for at least 5 findings, and every round of PR #39 found 5 or more. So "no findings left" can't be the signal to stop, and "nothing above the bar" is used instead.
-- **Two fix rounds,** whatever the last review found.
+**The loop uses a review prompt of our own, not the stock `/code-review`.** The stock prompt is built to always find something. It aims for at least 5 findings, and only 3 of its 8 angles look for bugs. The other 5 look for reuse, simplification, efficiency, project rules, and fixes that treat a symptom instead of the cause. Every review of PRs #39 and #44 found 5 or more, including PR #44 round 4, where none was above the bar. The stock prompt has no file we could edit (research doc, section 4.1).
 
-Then the PR goes to Joe, with the findings below the bar listed in its comment.
+**Our prompt starts from the stock prompt, and trims it.** The stock prompt at `high`, as Claude Code 2.1.301 gave it, is copied in `research/code-review-prompt-high.md`. With Opus at `high`, it found the code bugs in PRs #30 and #32 in every run, and the one in PR #35 in one run of two (research doc, section 8). Starting from it keeps our results comparable with those runs.
 
-### 4.2 Findings decided in an earlier round
+Compared with the stock prompt, ours:
 
-**The fixer reads the earlier rounds' replies before it starts.** When a finding it already turned down comes back, it skips it, and says so in its reply. It acts on one only when the finding says something new, such as that the earlier fix didn't work.
+- **Reads the bar in section 3 before it reviews.**
+- **Reads the design docs that cover the changed files, as a step of its own.** The stock prompt leaves that to the model. In round 1 of the evaluation, Opus at `medium` opened no design doc in any of its 4 runs. At `high`, it opened one or two in 10 of its 12 runs.
+- **Keeps the stock prompt's 3 bug angles:** a line-by-line read of each changed function, what removed code used to do, and tracing callers and callees.
+- **Gives each finding a file, a line, what goes wrong, and a case where it goes wrong.** A finding that can only say the code is harder to maintain isn't a bug.
+- **Has no minimum.** A review with no findings is a normal result.
+- **Writes its findings as JSON,** so the workflow can read them.
+- **Runs with Opus at `high`,** as the stock review does (section 2).
 
-**The reviewer never reads those replies,** so its review isn't colored by the fixer's reasons (section 2). So the reviewer posts a finding again whenever the lines it points to change and the problem is still there, as CLAUDE.md tells it to. That costs a finding each time, and it's accepted. The decision lives with the fixer, not in a code comment for the reviewer. Example: on PR #44, the finding that write replies leave out leg changes came back in round 3, after round 1 had left it for phase 22.
+It gets its own name. A project skill named `code-review` would replace the stock one, and the stock one stays available to compare against.
 
-### 4.3 A check that the review ran
+### 4.2 Findings to fix, and notes
+
+**The reviewer marks each finding as one of two kinds:**
+
+- **Fix:** it's above the bar. The finding names the rule in section 3.1 that it meets.
+- **Note:** it's below the bar. A review posts at most 3 notes.
+
+Both are posted as inline comments. Joe sees the notes there. The next review sees them too, so it doesn't post them again.
+
+**The fixer gets only the findings marked "fix".** It still checks each one against the code first (section 3.5), and it can find that one is below the bar after all. It can also fix a note on lines it's already changing (section 3.2).
+
+**The reviewer marks them, so a fix agent doesn't start just to turn findings down.** Example: PR #44 round 4 had 5 findings, and none was above the bar. If the fixer judged the bar, a fix agent would have read all 5, replied to each, and pushed nothing. With the reviewer marking them, the loop stops after the review.
+
+### 4.3 What the reviewer reads
+
+| It reads | It never reads |
+|---|---|
+| The code | The PR's conversation comments: the fixer's replies and the implementer's decisions |
+| The PR description: the task, the "Done when" results, and the set-aside list (section 4.4) | The comments on the PR's issue |
+| The earlier inline comments. These are only the reviewer's own findings, since the fixer never replies on them (section 3.6) | |
+
+What it never reads holds the reasons the code was written the way it was. Those would color its review (section 2).
+
+**Each review reads the whole PR,** not only the commits since the last review. Example: on PR #44, round 2's one finding above the bar was in code that round 1 had read, and that round 1's fixes hadn't touched. A review of only the new commits would have missed it. This may change once we've seen some loops run.
+
+### 4.4 Findings set aside
+
+**The PR description gets a "Set aside" list.** The fixer adds a line for each finding marked "fix" that it doesn't fix. Each line names the finding in a few words, and where it went: below the bar, wrong, or an issue. It never gives a reason. Example:
+
+> - Write replies leave out leg changes: #80
+> - `strictTool()` takes no annotations: below the bar
+
+**The reviewer doesn't report a finding that's on the list.** Without the list, the reviewer posts a finding again whenever the lines it points to change and the problem is still there. Example: on PR #44, the finding that write replies leave out leg changes came back in round 3, after round 1 had left it for phase 22. The loop is meant to run without Joe, so it can't keep raising what's already been decided.
+
+**The list is about scope, so the reviewer may read it.** "Leg changes are handled in #80" says what the PR covers. It doesn't say why the code was written the way it was, which is what colors a review (research doc, section 3).
+
+**The risk is that the fixer sets aside a real bug, and the reviewer never raises it again.** That's accepted for this project. Joe reads the list first when the PR comes to him. The number of set-aside findings per PR is also measured (section 4.8), so a fixer that sets aside too much shows up.
+
+The list changes the rule in CLAUDE.md and DEVELOPMENT.md section 7 that a PR description holds only the task and the "Done when" results. Those change when the loop is built.
+
+### 4.5 The fixer
+
+- **It runs with Opus 5.5 at `high`,** the same as Joe's coding sessions.
+- **It reads the bar, the PR description, the findings marked "fix", and the earlier rounds' replies.** It reads the design docs the findings touch, and it can search the issues.
+- **It follows section 3:** it checks each finding first, and a fix comes with a test.
+- **When the right fix is bigger than the PR, it makes the smallest fix that works for now.** It writes the bigger change into an open issue's open questions, or opens a Triage issue, as CLAUDE.md says. Then it puts the finding on the set-aside list with that issue. Example: on PR #44 round 3, round 2's fix for the start time was taken out, and the general change to replies was left for phase 22.
+- **It replies in one conversation comment, which quotes each finding** (section 3.6). It says what was fixed and in which commit, and what was set aside and why. The next round's fixer reads these replies.
+- **It runs `npm run check` before it pushes.**
+- **It makes one commit per round,** with the app's bot as the author (section 4.6). When it fixed nothing, it pushes nothing.
+- **It doesn't need the project board.** It can read and open issues in this repo. The project's auto-add setting puts each new issue on the board, in Triage.
+
+### 4.6 The workflow
+
+**Each push to a PR starts one workflow run, with two jobs:**
+
+1. **The review job** runs our reviewer, posts its findings, and outputs how many are marked "fix".
+2. **The fix job** runs only when that number is above zero, and the branch has fewer than 3 commits by the fixer. The fixer pushes, and the push starts the next run.
+
+| Run | Review job | Fix job |
+|---|---|---|
+| 1, when the PR is opened | Review 1 | Fix 1, pushes |
+| 2 | Review 2 | Fix 2, pushes |
+| 3 | Review 3 | Fix 3, pushes |
+| 4 | Review 4 | Skipped, since the branch has 3 fixer commits |
+
+**The loop goes on only because the fixer pushes.** No push means no new run. So it stops in one of three ways:
+
+- The review marks nothing "fix", so the fix job is skipped.
+- The fixer pushes nothing, since it set aside every finding.
+- The branch already has 3 fixer commits, so the fix job is skipped.
+
+Then the workflow adds a "ready for Joe" label to the PR.
+
+**A push by Joe doesn't reset the count.** Only the fixer's commits count, so the cap holds however many times Joe pushes. When the loop stops at the cap, the last thing that ran is a review of the code Joe is about to read.
+
+**The fixer pushes as a GitHub App, so it has its own identity.** A push made with the workflow's own token doesn't start another run, so that token can't be used.
+
+- The app is installed on this repo only. It can write code, pull requests, and issues, but not workflow files.
+- Each run makes a token from the app's ID and private key, with `actions/create-github-app-token`. The token lasts an hour, and works only on this repo.
+- Its pushes and comments show as `<app-name>[bot]`, and its commits use the bot as the author. The cap counts those commits.
+
+A personal token was the other choice. It would push as Joe, and a classic one would cover every repo he owns.
+
+### 4.7 A check that the review ran
 
 **A review that couldn't run must not look like a clean one.** On PR #39, two rounds looked like they passed. One failed to start, and the other had every command blocked. The workflow now fails the step when the run itself fails. A review whose commands are all blocked still passes.
 
-### 4.4 The corpus
+### 4.8 Testing the reviewer
+
+**Our reviewer is tested on the corpus before it replaces the stock one.** That's the six batch 4 commit ranges and their answer key (research doc, section 6), and the four reviews of PR #44, where each finding is marked above or below the bar (section 5). It runs with Opus at `high`, twice on each. Its results are compared with the stock review's Opus-at-`high` results in research doc section 8, so the stock review doesn't need to run again.
+
+- **Does it still find the code bugs in the answer key?** Dropping the cleanup angles mustn't cost real bugs.
+- **On PR #44, does it mark the findings above the bar as "fix", and the rest as notes?**
+- **Does it find any of the doc and plan gaps?** The stock review found none of them. Batch 4's reviewer found them when it was given the phase's design sections.
+
+**Once the loop runs, each finding's outcome is recorded:** fixed, below the bar after all, wrong, or moved to an issue. Each PR records its rounds, how many findings were set aside, and its cost.
+
+### 4.9 The corpus
 
 **Each review is also a test case** for judging the reviewer, and later the fixer. The round 1 corpus is six commit ranges from the phase 15 to 20 PRs (research doc, section 6). Reviews since then add to it: section 5 lists each one.
 
 **PRs are merged with merge commits, never squashed or rebased,** and `main`'s history is never rewritten. Otherwise the commit ranges break.
-
-### 4.5 Open questions
-
-- How does a PR show that it's ready for Joe: a label, or a check result?
-- How can the workflow tell that a review ran, when all its commands were blocked?
-- Is a design doc that doesn't match the code above the bar? Agents build from the design docs, so a wrong one leads to wrong code later. The stock review rarely finds these (research doc, section 8.3).
-- Does the fixer decide whether a finding is above the bar, or does a separate step decide it?
-- Does the fixer read the decisions comment? It's doing the implementer's job, so the implementer's reasons may help it, unlike the reviewer.
-- Are the cleanups saved up for a separate pass now and then, so they're fixed without feeding the next review?
 
 ---
 
@@ -134,12 +228,12 @@ One row per review. "Above the bar" uses the rule in section 3.1, as it stood on
 
 | PR | Round | Findings | Above the bar | What it taught us |
 |---|---|---|---|---|
-| #39 | 1 to 7 | 36 | About 10 | With no bar and no cap on rounds, almost every finding was fixed, and each fix gave the next review new lines. Sections 3.2 and 4.1 come from this (research doc, section 10) |
+| #39 | 1 to 7 | 36 | About 10 | With no bar and no cap on rounds, almost every finding was fixed, and each fix gave the next review new lines. Sections 3.2 and 4.6 come from this (research doc, section 10) |
 | #40 | 1 | 7 | Not judged | Fixes were stopped before any were pushed |
 | #44 | 1 | 6 | 3 | Every finding was accurate. Section 3.5 comes from this round |
 | #44 | 2 | 5 | 1 | Every finding was accurate again. Sections 3.1 (normal use, missing tests, adding a check) and 3.4 come from this round |
-| #44 | 3 | 5 | 2 | Every finding was accurate. Three were about round 2's fixes. Sections 3.1 (text said twice) and 4.2 come from this round |
-| #44 | 4 | 5 | 0 | The first review the bar counted as clean, so the loop would stop here (section 4.1). Every finding was accurate. A fix agent should fix none, skip 2 as decided in round 3 (section 4.2), and list 3 |
+| #44 | 3 | 5 | 2 | Every finding was accurate. Three were about round 2's fixes. Sections 3.1 (text said twice) and 4.4 come from this round |
+| #44 | 4 | 5 | 0 | The first review the bar counted as clean. Every finding was accurate. With our own reviewer marking findings, none would be marked "fix", so no fix agent would run (section 4.2) |
 
 **PR #44, round 1,** the trip MCP server (phase 13a):
 
@@ -163,4 +257,4 @@ One row per review. "Above the bar" uses the rule in section 3.1, as it stood on
 - **Moved to phase 22, above the bar:** a check result whose text changes, but is still there, should come back in the reply. Round 2's fix counted every day as touched when the usual start time changed, and no day check uses it, so the reply repeated a warning that hadn't changed. Its test checked for that repeat. The start time half was taken out, and phase 22 makes the general change.
 - **Not fixed:** a branch that can never run, "may be too early" said twice, and the leg changes again.
 - **The tests' fake data hid two problems.** Round 1's dropped input got past tests that used the same lenient schema as the tool. In this round, a reply's made-up check result text left out a sentence the real text has, so the test couldn't show it said "may be too early" twice.
-- **This was the third round.** With the cap of two fix rounds (section 4.1), the loop would have stopped here, and the PR would have gone to Joe.
+- **This was the third round.** Under the cap agreed on 2026-10-18, two fix rounds, the loop would have stopped here. The cap is now three fix rounds (section 4.6).
