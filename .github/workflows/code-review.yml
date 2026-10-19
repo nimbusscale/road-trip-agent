@@ -74,11 +74,11 @@ jobs:
         # Grep could read /proc/self/environ, and Read could reach it through a symlink.
         # Claude Code already refuses Bash commands that name /proc/*/environ. What's left
         # is the job's GitHub token. It can read code and comment on, edit, or close the
-        # PR. It can't push or merge, and the repo doesn't let Actions approve PRs. The
-        # allow rules in .claude/settings.json apply here too. Its ssh rule fails, since the
-        # runner has no key, and its merge rule fails for lack of the token's write access.
+        # PR. It can't push or merge, and the repo doesn't let Actions approve PRs.
         # That's accepted, since only this repo's own PRs are reviewed, and a PR can change
-        # this workflow anyway.
+        # this workflow anyway. The allow rules in .claude/settings.json don't apply here.
+        # Claude Code ignores them, since the CI workspace isn't trusted. The CI log for
+        # PR #51 shows this.
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: 1
