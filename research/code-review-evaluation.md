@@ -2,7 +2,7 @@
 
 > **This is a research document, not a design document.** It records what we learned about having Claude review code, and how we test which model and effort to use. It does not change how the app is built.
 
-During the overnight run in [batch 4](../plan/batch-4.md), a separate Opus agent reviewed each phase's PR before it was merged. It found real problems in every PR, though the same model wrote the code. That made automated review look worth adding to how this project works. Before building it into CI, we want to know which model and effort level give useful reviews.
+During the overnight run in [batch 4](https://github.com/nimbusscale/road-trip-agent/blob/dc019f2/plan/batch-4.md), a separate Opus agent reviewed each phase's PR before it was merged. It found real problems in every PR, though the same model wrote the code. That made automated review look worth adding to how this project works. Before building it into CI, we want to know which model and effort level give useful reviews.
 
 Sections 2 to 5 record what we found out and decided on 2026-10-16. Section 6 is the set of past PRs we test against, and section 7 is how the first round runs. Results go in section 8 after the runs.
 
