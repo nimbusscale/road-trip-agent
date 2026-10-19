@@ -13,7 +13,7 @@ The evidence behind it is in `research/code-review-evaluation.md`. That doc reco
 | Part | Status |
 |---|---|
 | The review in CI | Running since 2026-10-16, with the stock `/code-review` (section 2) |
-| Rules for which findings get fixed | Agreed 2026-10-16 and 2026-10-18. Applied by hand for now (section 3) |
+| Rules for which findings get fixed | Agreed 2026-10-16 and 2026-10-18. Rewritten as a rubric with labels 2026-10-19. Applied by hand for now (section 3) |
 | Our own review prompt | Not written. It replaces the stock one once it passes the test in section 4.8 |
 | The fix loop | Not built. Planned 2026-10-19 (section 4). The work to build it is #75, #76, and #77 |
 | The CI reviewer can read the Claude token | Open item 21 |
@@ -36,33 +36,72 @@ The evidence behind it is in `research/code-review-evaluation.md`. That doc reco
 
 ## 3. Handling findings
 
-These rules apply now, when findings are handled by hand, and later to the fix loop. Each rule has an example from a real review, so the fixer can tell how it applies. "The fixer" here means whoever handles the findings: Claude Code by hand for now, and the fix loop later. In the fix loop, the reviewer applies section 3.1 when it marks each finding (section 4.2), and the fixer applies the rest.
+These rules apply now, when findings are handled by hand, and later to the fix loop. Section 3.1 is the rubric, and gives no real cases, so findings can be labeled with it without pointing to them. The other sections each have an example from a real review, so the fixer can tell how they apply. "The fixer" here means whoever handles the findings: Claude Code by hand for now, and the fix loop later. In the fix loop, the reviewer applies section 3.1 when it marks each finding (section 4.2), and the fixer applies the rest.
 
 ### 3.1 What gets fixed
 
-**A finding is fixed when it causes wrong behavior, lost data, or a security hole.** That's "the bar." Everything else is below it: cleanups, missing tests, wording, and advice about code that isn't written yet.
+**This section is the rubric.** The reviewer uses it to label each finding (section 4.2), and the labelers use it to build the answer key for testing the reviewer (section 4.8). It describes kinds of findings, not real cases.
 
-**A PR that doesn't do what its task says is above the bar too.** The task is the issue's "Do" and "Done when" items, which the PR description copies (DEVELOPMENT.md section 7). Something the task asks for that's missing, or done another way, is fixed, even when nothing breaks yet. Agreed 2026-10-19. No review has given an example yet.
+**Each finding gets one label: the first one in the table that fits.** A finding whose claim is false, or that only disagrees with the design, gets a D label, and isn't posted. A finding is fixed when its label is F1 to F6. That's "the bar." A finding that would meet a fix rule, but doesn't meet its condition, gets the matching NF label, and is a note. Other findings below the bar get an N label, and are notes too.
 
-**Tool descriptions, input schemas, what tools return, and error messages count as behavior.** The agent reads them and acts on them, so text that's wrong there leads to wrong actions. Examples from PR #44:
+| Label | Kind | Rule |
+|---|---|---|
+| D1 | Not posted | The claim about the code is false |
+| D2 | Not posted | The code does what the design asks, and the finding would have it done another way |
+| F1 | Fix | The PR doesn't do what its task says |
+| F2 | Fix | The app does the wrong thing, crashes, or hangs, in normal use |
+| F3 | Fix | Text an agent reads says something false, in normal use |
+| F4 | Fix | Data is lost or corrupted, in normal use |
+| F5 | Fix | A security hole within the project's threat model |
+| F6 | Fix | A design doc is wrong, so an agent building from it would build the wrong thing |
+| NF2 | Note | Like F2, but not in normal use |
+| NF3 | Note | Like F3, but not in normal use |
+| NF4 | Note | Like F4, but not in normal use |
+| NF5 | Note | A security hole outside the threat model |
+| N1 | Note | Cleaner code |
+| N2 | Note | A missing test |
+| N3 | Note | Text an agent reads is unclear, or says something twice, but says nothing false |
+| N4 | Note | Advice about code that isn't written yet |
+| N5 | Note | A code comment is wrong |
 
-- The tool description said the error names the refused item, and the error didn't.
-- The schema showed a maximum trip length of 9,007,199,254,740,991.
-- After the user lowered their driving hours, the reply left out a day's warning whose text now gave the new limit. The coordinator kept the old text.
+F1 and F6 have no NF label. Normal use doesn't apply to them.
 
-All three were fixed.
+#### Not posted
 
-**A finding counts only if it can happen in normal use.** One that needs an unlikely input is below the bar. Example: on PR #44, a text item holding a line break, followed by another item's name, would make `read_trip_brief` show a fake item. Only the coordinator writes those items, so it's unlikely. It wasn't fixed.
+- **D1: the claim about the code is false.** For example, the finding describes a failure that the code's own checks make impossible.
+- **D2: the code does what the design asks, and the finding would have it done another way.** The design was agreed when the doc was written, so the finding is about the design, not the PR. When the design's choice causes wrong behavior in normal use, the label is F6 instead.
 
-**Missing tests and cleaner code are below the bar.** This is a learning project. The fixes are there to make the code do what it should, not to tidy it. The exception is the test that comes with a fix (section 3.4). Examples from PR #44, none of them fixed:
+#### Normal use
 
-- `strictTool()` took no annotations, so the one read tool added them afterwards.
-- A branch handled a missing check comparison, which a coordinator write never has, so the branch can never run.
-- Constants were defined in two files.
+**Normal use is a trip a real user could plan, or a failure the code is meant to handle.** An outside service that doesn't answer in time is a failure the code is meant to handle. Normal use doesn't cover an unlikely input, a setting no one would choose, or timing so narrow that two things running at once have to line up in a particular order.
 
-**Text the agent reads that says something twice, but says nothing wrong, is below the bar.** Example: on PR #44, a reply line put "may be too early" in front of a result whose text already ends by saying so. It wasn't fixed.
+**Code that's written but not called yet is judged as if it were called** the way the design says it will be.
 
-**When a finding is about a project rule that a tool could check, add the check.** Then the next PR can't break the rule, and no review has to catch it. Example: on PR #44, a tool's input schema wasn't in a `*.schema.ts` file, as DEVELOPMENT.md section 4 asks. A lint rule will check that ([#72](https://github.com/nimbusscale/road-trip-agent/issues/72)).
+#### Fix rules
+
+**F1: the PR doesn't do what its task says.** The task is the issue's "Do" and "Done when" items, which the PR description copies (DEVELOPMENT.md section 7). When a "Do" item points to a design section, what that section asks for is part of the task. Something the task asks for that's missing, or done another way, meets F1, even when nothing breaks yet.
+
+**F2: the app does the wrong thing, crashes, or hangs, in normal use.** "Wrong" means different from what the design docs and the task say. Where they say nothing, it means different from what a user would plainly expect.
+
+**F3: text an agent reads says something false, in normal use.** That's tool descriptions, input schemas, what tools return, and error messages. An agent acts on them, so false text leads to wrong actions. The test is whether an agent that believes the text would do the wrong thing. For example, a tool description promises something the tool doesn't do.
+
+**F4: data is lost or corrupted, in normal use.** Data the app saves, such as a trip or a memory, is lost, changed when it shouldn't be, or saved in a form that can't be loaded again.
+
+**F5: a security hole within the project's threat model.** CLAUDE.md sets it: scanning bots and worms, not a targeted attack. It also covers the real secrets, such as the Claude token and the Google keys.
+
+**F6: a design doc is wrong, so an agent building from it would build the wrong thing.** The doc contradicts itself, doesn't match the code, or leaves a gap a builder would have to guess at. Agents build later work from the design docs, so a wrong doc leads to wrong code later. A design choice that causes wrong behavior in normal use meets F6 too.
+
+#### Notes
+
+**Notes are below the bar.** This is a learning project. The fixes are there to make the code do what it should, not to tidy it.
+
+- **NF2 to NF4: like F2 to F4, but not in normal use.**
+- **NF5: a security hole outside the threat model.** It's a note, so Joe sees it and decides (CLAUDE.md).
+- **N1: cleaner code.** That covers duplication, structure, speed, and code that can never run.
+- **N2: a missing test.** The exception is the test that comes with a fix (section 3.4).
+- **N3: text an agent reads is unclear, or says something twice, but says nothing false.**
+- **N4: advice about code that isn't written yet.**
+- **N5: a code comment is wrong.** The code is right next to it, so it misleads less than a wrong design doc does.
 
 ### 3.2 Findings that come along
 
@@ -90,6 +129,10 @@ In the fix loop, the reviewer marks most of these as notes, and Joe reads them o
 ### 3.6 Where replies go
 
 **Replies go in one conversation comment on the PR, which quotes each finding.** It says what was fixed, and why the rest weren't. Never reply on a finding's inline thread. The next review reads inline threads so it doesn't repeat a finding, so it would read the reasons too (DEVELOPMENT.md section 7). When findings are handled by hand in chat, the comment is skipped, since Joe has already heard each one. In the fix loop it's required, since it's how the next round's fixer knows what was decided (section 4.5). The findings it sets aside also go on the list in the PR description (section 4.4).
+
+### 3.7 When a tool could check the rule
+
+**When a finding is about a project rule that a tool could check, add the check.** Then the next PR can't break the rule, and no review has to catch it. This says how to fix a finding, not whether it's above the bar. Example: on PR #44, a tool's input schema wasn't in a `*.schema.ts` file, as DEVELOPMENT.md section 4 asks. A lint rule will check that ([#72](https://github.com/nimbusscale/road-trip-agent/issues/72)).
 
 ---
 
@@ -121,8 +164,10 @@ It gets its own name. A project skill named `code-review` would replace the stoc
 
 **The reviewer marks each finding as one of two kinds:**
 
-- **Fix:** it's above the bar. The finding names the rule in section 3.1 that it meets.
-- **Note:** it's below the bar. A review posts at most 3 notes.
+- **Fix:** it's above the bar. The finding gives its label from section 3.1, such as F2.
+- **Note:** it's below the bar. The finding gives its label, such as NF2 or N1.
+
+A finding labeled D1 or D2 isn't posted.
 
 Both are posted as inline comments. Joe sees the notes there. The next review sees them too, so it doesn't post them again.
 
@@ -231,7 +276,7 @@ One row per review. "Above the bar" uses the rule in section 3.1, as it stood on
 | #39 | 1 to 7 | 36 | About 10 | With no bar and no cap on rounds, almost every finding was fixed, and each fix gave the next review new lines. Sections 3.2 and 4.6 come from this (research doc, section 10) |
 | #40 | 1 | 7 | Not judged | Fixes were stopped before any were pushed |
 | #44 | 1 | 6 | 3 | Every finding was accurate. Section 3.5 comes from this round |
-| #44 | 2 | 5 | 1 | Every finding was accurate again. Sections 3.1 (normal use, missing tests, adding a check) and 3.4 come from this round |
+| #44 | 2 | 5 | 1 | Every finding was accurate again. Sections 3.1 (normal use, missing tests), 3.4, and 3.7 come from this round |
 | #44 | 3 | 5 | 2 | Every finding was accurate. Three were about round 2's fixes. Sections 3.1 (text said twice) and 4.4 come from this round |
 | #44 | 4 | 5 | 0 | The first review the bar counted as clean. Every finding was accurate. With our own reviewer marking findings, none would be marked "fix", so no fix agent would run (section 4.2) |
 
@@ -253,7 +298,7 @@ One row per review. "Above the bar" uses the rule in section 3.1, as it stood on
 
 **PR #44, round 3,** after the fixes for round 2:
 
-- **Fixed:** the MCP SDK was listed as a dev dependency, though the app needs it when it runs. A test now checks that every peer of a production dependency is listed as one (section 3.1, adding a check).
+- **Fixed:** the MCP SDK was listed as a dev dependency, though the app needs it when it runs. A test now checks that every peer of a production dependency is listed as one (section 3.7).
 - **Moved to phase 22, above the bar:** a check result whose text changes, but is still there, should come back in the reply. Round 2's fix counted every day as touched when the usual start time changed, and no day check uses it, so the reply repeated a warning that hadn't changed. Its test checked for that repeat. The start time half was taken out, and phase 22 makes the general change.
 - **Not fixed:** a branch that can never run, "may be too early" said twice, and the leg changes again.
 - **The tests' fake data hid two problems.** Round 1's dropped input got past tests that used the same lenient schema as the tool. In this round, a reply's made-up check result text left out a sentence the real text has, so the test couldn't show it said "may be too early" twice.
