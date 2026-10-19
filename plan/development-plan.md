@@ -450,6 +450,7 @@ Phase 13 is done in three parts, each with its own PR: the `trip` server, the `m
 **Do:**
 
 - Add the coordinator, with only the tools from phases 13a and 13b. Its instructions cover conduct, the trip brief items to establish, the memory rules, and comfortable driving hours (technical spec, section 5.2).
+- Give each trip brief item in the coordinator's instructions by the name the tools use, such as `tripLengthInDays`, with what it means. Then trim each `update_trip_brief` input description to how to pass the value: its format, units, and limits. Drop the pointer to `update_trip_brief` from the `read_trip_brief` description, which then says only one item per line, and "not set" for an item with no value. That way the read's lines are explained by the instructions, not by another tool.
 - Add the `coordinatorModel` setting, and give it to the Agent SDK.
 - Add today's date to user messages, and the line after a resume, as technical spec section 5.2 says.
 - Log each `mirror_error` message, with the session's ID and the error.
