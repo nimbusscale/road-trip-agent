@@ -8,7 +8,7 @@ export class TripBusyError extends Error {
 
   constructor() {
     super(
-      "The trip is busy with another change. Nothing was saved. Try again in a moment.",
+      "The trip is busy with another change. Nothing was changed. Try again in a moment.",
     );
   }
 }

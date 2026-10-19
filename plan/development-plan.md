@@ -39,7 +39,7 @@ This document lists the development work, phase by phase, in the order it's done
 | 12 | Store sessions and transcripts | 2026-10-15, [PR #23](https://github.com/nimbusscale/road-trip-agent/pull/23) |
 | 12a | Put phases 10 to 12 together | 2026-10-15, [PR #26](https://github.com/nimbusscale/road-trip-agent/pull/26) |
 | 13 | The first coordinator, done in 13a to 13c | |
-| 13a | The trip server | |
+| 13a | The trip server | 2026-10-18, [PR #44](https://github.com/nimbusscale/road-trip-agent/pull/44) |
 | 13b | The memory server | |
 | 13c | The coordinator in the terminal | |
 | 14 | Chat in the browser | |
@@ -443,9 +443,17 @@ Phase 13 is done in three parts, each with its own PR: the `trip` server, the `m
 
 **Starts** once phase 13b is merged.
 
+**Open questions:**
+
+- How does the coordinator know the maximum trip length? Technical spec 5.2 puts the maximum daily driving in its instructions, but not the maximum trip length, and the `update_trip_brief` input descriptions give neither. So the coordinator learns the limit only when an update is refused, which costs a round trip. Example: the user asks for "about three weeks", and it sends 21 days. Raised in PR #44's fourth review.
+
 **Do:**
 
 - Add the coordinator, with only the tools from phases 13a and 13b. Its instructions cover conduct, the trip brief items to establish, the memory rules, and comfortable driving hours (technical spec, section 5.2).
+- Give each trip brief item in the coordinator's instructions by the name the tools use, such as `tripLengthInDays`, with what it means (tool design, section 4). The `update_trip_brief` input descriptions say only how to pass each value, so the meanings are in no tool. Functional spec 5.2 gives most of them. It doesn't give these, which the input descriptions said before phase 13a's trim:
+  - Interests and must-sees are in the user's words, with why they matter. A must-see can be one place, an area, a road, or an activity.
+  - The rest days item records what the user asked for. It doesn't mark any day.
+  - The default tier is the budget tier for lodging and meals when no budget rule covers them.
 - Add the `coordinatorModel` setting, and give it to the Agent SDK.
 - Add today's date to user messages, and the line after a resume, as technical spec section 5.2 says.
 - Log each `mirror_error` message, with the session's ID and the error.
@@ -502,6 +510,10 @@ By the end of this part, the agent's behavior can be checked again after any cha
 - How is each result scored: by what was saved, such as the trip brief and memory, by a model reading the reply, or both?
 - How much of the Max plan does one run of the evaluations use?
 - How do phase 33's simulated user and phase 36's tests fit with the evaluations?
+- Which evaluations watch for these `update_trip_brief` mistakes? Tool descriptions start lean, with no example of a whole call. One is added only when an evaluation shows a mistake it would fix. The mistakes:
+  - Sending every item on every call, when only one changed.
+  - Splitting one change into a call per item.
+  - Summarizing the user in a text item, such as `mustSeesText`, instead of using their words.
 
 **Do:**
 
@@ -685,11 +697,12 @@ By the end of this part, the coordinator can build a trip's skeleton and lay out
 
 ### Phase 22. Build the skeleton
 
-**Design:** [Tool design](../design/tools.md), sections 2.1 (`update_itinerary`, `add_stay`, `update_stay`, `remove_stay`, `update_day`, `set_waypoints`) and 2.4. [Technical spec](../design/technical-spec.md), sections 4.1, 4.2 (discovery, shape, and skeleton), and 5.2.
+**Design:** [Tool design](../design/tools.md), sections 2.1 (`update_itinerary`, `add_stay`, `update_stay`, `remove_stay`, `update_day`, `set_waypoints`) and 2.4. [Technical spec](../design/technical-spec.md), sections 4.1, 4.2 (discovery, shape, and skeleton), and 5.2. [Domain model](../design/domain-model.md), section 4.8.
 
 **Do:**
 
 - Add these tools and `compute_route`. Each write's reply is built from what the write hands back, as tool design section 2.1 says.
+- Report check results whose text changed. Today a result that's still there after a write is "already known", so the reply leaves it out unless the write touched its subject, even when its text changed. Example: the user lowers their driving hours from 6 to 5, and Day 2's warning now gives the new limit, but the reply doesn't show it. Make `FeasibilityChecker.compare()` mark a known result whose text differs from its saved match as "changed". Each write's reply lists changed results anywhere in the trip, like new ones. The coordinator decides whether to raise one. Write it into domain model 4.8 and tool design 2.1. Then take out `touchedBy()` in `src/tools/trip-brief-tools.ts`, which phase 13a added for the driving hours only. Raised in PR #44's third review.
 - Add the coordinator's instructions for anchors and stretches, the shape and skeleton rounds, broken feasibility rules, and changes to stays.
 
 **Done when,** in chat:
