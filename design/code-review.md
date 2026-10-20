@@ -49,7 +49,7 @@ These rules apply now, when findings are handled by hand, and later to the fix l
 | V1 | Check | The label depends on a fact the reviewer can't check from the repo, and that fact decides whether it's a fix |
 | D1 | Not posted | The claim about the code is false |
 | D2 | Not posted | The code does what the design asks, and the finding would have it done another way |
-| D3 | Not posted | The PR puts off work its task asks for, and hands it to another issue |
+| D3 | Not posted | The PR puts off work, and hands it to another issue that names the work |
 | F1 | Fix | The PR doesn't do what its task says |
 | F2 | Fix | The app does the wrong thing, crashes, or hangs, in normal use |
 | F3 | Fix | Text a road trip agent reads says something false, in normal use |
@@ -84,7 +84,9 @@ F1, F6, and F7 have no NF label. Normal use doesn't apply to them.
 - **D2: the code does what the design asks, and the finding would have it done another way.** The design was agreed when the doc was written, so the finding is about the design, not the PR. Two things rule D2 out:
   - **The design has to be settled on the point.** When another issue covers it, such as with an open question, D2 doesn't fit, and the finding gets the next label that fits.
   - **The design's choice has to work for the user.** Before labeling a finding D2, say what the user would see if the code ran as designed. If that's wrong behavior in normal use, the label is F6 instead.
-- **D3: the PR puts off work its task asks for, and hands it to another issue.** A code comment where the work belongs names the issue, such as "#123". The issue is open, isn't the PR's own issue, and its description says what the work is. Nothing that works now breaks without the work. The reviewer reads that issue to check. If any of this is missing, the PR doesn't do what its task asks, so the label is F1. A test the task's "Done when" asks for is task work. Work the task doesn't ask for, such as a test or a cleanup, gets its usual label, whether or not a comment puts it off.
+- **D3: the PR puts off work, and hands it to another issue that names the work.** A code comment where the work belongs names the issue, such as "#123". The issue is open, and isn't the PR's own issue. Its description names this work, not just work near it. Nothing that works now breaks without the work. The reviewer reads that issue to check. D3 applies whether or not the task asked for the work, since the issue tracks it either way.
+
+  **When no issue tracks the work,** task work is F1, since the PR doesn't do what its task asks. A test the task's "Done when" asks for is task work. Other work, such as a cleanup, gets its usual label. A code comment that puts it off doesn't change that.
 
 #### Normal use
 
