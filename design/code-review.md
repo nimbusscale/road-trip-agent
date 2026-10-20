@@ -12,9 +12,9 @@ The evidence behind it is in `research/code-review-evaluation.md`. That doc reco
 
 | Part | Status |
 |---|---|
-| The review in CI | Running since 2026-10-16, with the stock `/code-review` (section 2) |
+| The review in CI | Running since 2026-10-16. The stock `/code-review` ran until #75, and our own reviewer runs since (section 2) |
 | Rules for which findings get fixed | Agreed 2026-10-16 and 2026-10-18. Rewritten as a rubric with labels 2026-10-19. Revised 2026-10-20 after four labeling runs, and then called done. It's tuned as it's used. Applied by hand for now (section 3) |
-| Our own review prompt | Not written. It replaces the stock one in the PR that adds it (#75), and is judged on new PRs (section 4.8) |
+| Our own review prompt | Written 2026-10-20, as the `review-pr` skill (section 4.1). It replaced the stock one in CI in the PR that added it (#75), and is judged on new PRs (section 4.8) |
 | The fix loop | Not built. Planned 2026-10-19 (section 4). The work to build it is #75, #76, and #77 |
 | The CI reviewer can read the Claude token | Open item 21 |
 
@@ -22,21 +22,22 @@ The evidence behind it is in `research/code-review-evaluation.md`. That doc reco
 
 ## 2. The review in CI
 
-**The "Code review" workflow runs the stock `/code-review` with Opus at `high`,** and posts its findings as inline comments on the PR. Opus at `high` found the key bugs in testing, and was wrong less often than Sonnet (research doc, section 8.5). The workflow is `.github/workflows/code-review.yml`. The fix loop will replace the stock `/code-review` with a prompt of our own (section 4.1).
+**The "Code review" workflow runs our own reviewer, the `review-pr` skill, with Opus,** and posts its findings as inline comments on the PR. Each is marked "fix", "note", or "check" (section 4.2). The skill is `.claude/skills/review-pr/SKILL.md`, and section 4.1 says how it differs from the stock `/code-review`, which ran here from 2026-10-16 until #75. Opus at `high` found the key bugs in testing, and was wrong less often than Sonnet (research doc, section 8.5). The workflow is `.github/workflows/code-review.yml`.
 
 - **It runs when a PR is opened or gets a new commit,** if the PR changes `src/` or `web/`. Drafts and PRs from forks aren't reviewed. A new commit cancels the review of the one before it.
-- **It pins the Claude Code version,** 2.1.301, since the review's recipe changes between versions.
+- **It pins the Claude Code version,** 2.1.301, since Claude Code's behavior changes between versions.
 - **The reviewer starts from the PR description,** which holds the task and the "Done when" results. It doesn't read the PR's conversation comments, where the implementer's reasons are, since those would color its review (DEVELOPMENT.md section 7, and CLAUDE.md).
 - **It reads the earlier inline comments first,** and doesn't post a finding twice. When a fix didn't cover a finding, it posts it again and says so.
-- **It can read code and post comments, but not change anything.** Its tools are read-only, plus `gh`. The Claude token is kept out of the commands it runs. The job's GitHub token can't push or merge.
-- **Each run saves its transcript** for 30 days, so we can check what the reviewer read.
+- **It can read code and run `node`, but not change anything or post.** Its tools are read-only, plus `node` and the `gh` commands that read the PR and its issues. Its commands run in Claude Code's sandbox, which lets them reach only GitHub (section 4.6). The Claude token is kept out of the commands it runs. The job's GitHub token can't push or merge.
+- **The workflow posts the findings, not the reviewer.** The reviewer returns them as JSON, which `claude -p` checks against a schema. The next step posts each one on its line. When the line isn't in the diff, it goes on the file, and when the file isn't in the diff either, into one review body. The code for this is in `src/code-review/`.
+- **Each run saves its transcript, the reviewer's answer, and `not-posted.md`** for 30 days, so we can check what the reviewer read, and the D labels (section 4.2).
 - **The review doesn't block a merge.**
 
 ---
 
 ## 3. Handling findings
 
-These rules apply now, when findings are handled by hand, and later to the fix loop. Section 3.1 is the rubric, and gives no real cases, so findings can be labeled with it without pointing to them. The other sections each have an example from a real review, so the fixer can tell how they apply. "The fixer" here means whoever handles the findings: Claude Code by hand for now, and the fix loop later. In the fix loop, the reviewer applies section 3.1 when it marks each finding (section 4.2), and the fixer applies the rest.
+These rules apply now, when findings are handled by hand, and later to the fix loop. Section 3.1 is the rubric, and gives no real cases, so findings can be labeled with it without pointing to them. The other sections each have an example from a real review, so the fixer can tell how they apply. "The fixer" here means whoever handles the findings: Claude Code by hand for now, and the fix loop later. The reviewer applies section 3.1 when it marks each finding (section 4.2), and the fixer applies the rest.
 
 ### 3.1 What gets fixed
 
@@ -174,13 +175,17 @@ Compared with the stock prompt, ours:
 - **Reads the bar in section 3 before it reviews.**
 - **Reads the design docs that cover the changed files, as a step of its own.** The stock prompt leaves that to the model. In round 1 of the evaluation, Opus at `medium` opened no design doc in any of its 4 runs. At `high`, it opened one or two in 10 of its 12 runs.
 - **Keeps the stock prompt's 3 bug angles:** a line-by-line read of each changed function, what removed code used to do, and tracing callers and callees.
+- **Drops the other 5 angles,** for reuse, simplification, efficiency, project rules, and fixes at the wrong depth.
+- **Adds a fourth angle, for the task, the docs, and the tests.** It checks each "Do" and "Done when" item, the text a road trip agent reads, the design docs that cover the changed code, and whether each new test would fail if the thing it targets broke. The 3 bug angles read code, so without this one nothing looks for F1, F3, F6, or F7 on purpose. The stock review rarely found a design doc that didn't match the code (research doc, section 8.3).
+- **Checks each finding against the code, then labels it** with section 3.1. The stock prompt passes every finding through unchecked. A finding whose claim turns out false is still returned, labeled D1, so Joe can check it.
 - **Gives each finding a file, a line, what goes wrong, and a case where it goes wrong.** A finding that can only say the code is harder to maintain isn't a bug.
 - **Has no minimum.** A review with no findings is a normal result.
-- **Writes its findings as JSON,** so the workflow can read them.
-- **Runs with Opus at `high`,** as the stock review does (section 2).
+- **Keeps the stock prompt's cap of 10 findings,** counting only the ones that are posted. Fixes and checks are kept first. Findings with a D label don't count toward it.
+- **Writes its findings as JSON,** so the workflow can read them. `claude -p` checks the answer against a schema, and the workflow posts it (section 2). The reviewer gives only the label. The code works out the kind from it, such as "fix" for F2.
+- **Runs with Opus,** as the stock review did (section 2). The `high` in "Opus at `high`" was the stock review's level, and its recipe is what our prompt starts from. The model's own effort setting is left at its default, as it was for the stock review.
 - **Can run node, to test a claim that needs no outside access,** such as a timeout or a rounding case. Its commands can reach only GitHub (section 4.6). A claim that only an outside service can settle gets V1 (section 3.1).
 
-It gets its own name. A project skill named `code-review` would replace the stock one, and the stock one stays available to compare against.
+It gets its own name, `review-pr`. A project skill named `code-review` would replace the stock one, and the stock one stays available to compare against. Joe can run ours locally with `/review-pr <number>`. It returns the findings, and posts nothing.
 
 ### 4.2 Findings to fix, and notes
 
@@ -190,11 +195,12 @@ It gets its own name. A project skill named `code-review` would replace the stoc
 - **Note:** it's below the bar. The finding gives its label, such as NF2 or N1.
 - **Check:** its label is V1. It says what to check and how. The fix loop leaves it alone, and Joe has it checked and relabeled.
 
-All three kinds are posted as inline comments. Joe sees the notes there. The next review sees them too, so it doesn't post them again.
+All three kinds are posted as inline comments. Each starts with its kind and label, such as "Fix (F2)", and ends with the reviewer's reason for the label. Joe sees the notes there. The next review sees them too, so it doesn't post them again. A finding on a line outside the diff goes on its file, and one on a file outside the diff goes in a review body (section 2). The next review reads those too.
 
-**A finding labeled D1, D2, or D3 isn't posted.** The reviewer ends its run with a list of them instead: where each one is, its D label, and a sentence on why, such as which issue a D3 hands the work to. The workflow adds the list to the job summary, and saves it as `not-posted.md` in the run's artifact, so Joe can check the D labels. Example:
+**A finding labeled D1, D2, or D3 isn't posted.** The reviewer ends its run with a list of them instead: where each one is, its D label, and a sentence on why, such as which issue a D3 hands the work to. The workflow adds the list to the job summary, and saves it as `not-posted.md` in the run's artifact, so Joe can check the D labels. Under each one, the list quotes the finding, so Joe can tell what was dropped. Example:
 
 > - `src/tools/trip-brief-tools.ts:157`, D3: phase 22 takes out `touchedBy()`.
+>   - The finding: `touchedBy()` counts every day as touched when the usual start time changes.
 
 **The fixer gets only the findings marked "fix".** It still checks each one against the code first (section 3.5), and it can find that one is below the bar after all. It can also fix a note on lines it's already changing (section 3.2).
 
