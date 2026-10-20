@@ -175,7 +175,7 @@ Compared with the stock prompt, ours:
 - **Has no minimum.** A review with no findings is a normal result.
 - **Writes its findings as JSON,** so the workflow can read them.
 - **Runs with Opus at `high`,** as the stock review does (section 2).
-- **Can run node, to test a claim,** such as a timeout or a rounding case (section 3.1, V1).
+- **Can run node, to test a claim that needs no outside access,** such as a timeout or a rounding case. Its commands can reach only GitHub (section 4.6). A claim that only an outside service can settle gets V1 (section 3.1).
 
 It gets its own name. A project skill named `code-review` would replace the stock one, and the stock one stays available to compare against.
 
@@ -241,6 +241,21 @@ The list changes the rule in CLAUDE.md and DEVELOPMENT.md section 7 that a PR de
 2. **The fix job** runs only when that number is above zero, and the branch has fewer than 3 commits by the fixer. The fixer pushes, and the push starts the next run.
 
 **Neither the reviewer nor the fixer gets WebFetch or WebSearch.** They work from the repo. A finding whose label hangs on an outside fact gets V1, not a guess from the web.
+
+**Each agent's commands run in Claude Code's sandbox, which lets them reach only GitHub.** Taking the web tools away doesn't stop a program, such as `node` or `git`, from reaching the web, so the limit is on the network. The job passes the sandbox settings with `--settings`, since Claude Code ignores `.claude/settings.json` in CI:
+
+```json
+{"sandbox": {"enabled": true, "failIfUnavailable": true, "allowUnsandboxedCommands": false,
+  "network": {"allowedDomains": ["github.com", "api.github.com"], "strictAllowlist": true}}}
+```
+
+- `git` and `gh` reach GitHub through the sandbox's proxy. Any other site is refused, and so is a command that tries to go around the proxy.
+- The token scrub alone doesn't limit the network. It only keeps secrets out of the commands' environment.
+- `npm run check` needs no network, since the job installs the packages before the agent starts.
+- Claude Code's own calls to the model aren't sandboxed, so the limit doesn't touch them.
+- `allowUnsandboxedCommands: false` keeps the model from running a command outside the sandbox. That's from Claude Code's docs, and wasn't tested.
+
+Checked in CI on 2026-10-20 (#82). Only `gh api` was tested. If another `gh` command needs more GitHub domains, add them then.
 
 | Run | Review job | Fix job |
 |---|---|---|
