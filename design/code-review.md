@@ -42,7 +42,7 @@ These rules apply now, when findings are handled by hand, and later to the fix l
 
 **This section is the rubric.** The reviewer uses it to label each finding (section 4.2), and the labelers use it to build the answer key for testing the reviewer (section 4.8). It describes kinds of findings, not real cases.
 
-**Each finding gets one label: the first one in the table that fits.** A finding whose label hangs on a fact no one can check from the repo gets V1, and waits for that check. A finding whose claim is false, that only disagrees with the design, or whose work is handed to another issue gets a D label, and isn't posted. A finding is fixed when its label is F1 to F7. That's "the bar." A finding that would meet a fix rule, but doesn't meet its condition, gets the matching NF label, and is a note. Other findings below the bar get an N label, and are notes too.
+**Each finding gets one label: the first one in the table that fits.** A finding whose label hangs on a fact no one can check from the repo gets V1, and waits for that check. A finding whose claim is false, that only disagrees with the design, or whose work is handed to another issue gets a D label, and isn't posted. A D label fits only when it clearly fits, since no one sees the finding again. When you're unsure, treat it as not fitting, and keep going down the table. A finding is fixed when its label is F1 to F7. That's "the bar." A finding that would meet a fix rule, but doesn't meet its condition, gets the matching NF label, and is a note. Other findings below the bar get an N label, and are notes too.
 
 | Label | Kind | Rule |
 |---|---|---|
@@ -80,10 +80,11 @@ F1, F6, and F7 have no NF label. Normal use doesn't apply to them.
 
 #### Not posted
 
-- **D1: the claim about the code is false.** For example, the finding describes a failure that the code's own checks make impossible.
+- **D1: the claim about the code is false.** For example, the finding describes a failure that the code's own checks make impossible. The failure has to be impossible with the code as it stands. A claim that's true only for an unlikely input, such as a setting no one would choose, isn't false, and gets an NF label. Neither is one that only code not yet written would prevent.
 - **D2: the code does what the design asks, and the finding would have it done another way.** The design was agreed when the doc was written, so the finding is about the design, not the PR. Two things rule D2 out:
   - **The design has to be settled on the point.** When another issue covers it, such as with an open question, D2 doesn't fit, and the finding gets the next label that fits.
   - **The design's choice has to work for the user.** Before labeling a finding D2, say what the user would see if the code ran as designed. If that's wrong behavior in normal use, the label is F6 instead.
+  - **The design has to speak to the point itself.** A general rule, such as a coding rule for all outside data, doesn't settle the specific case the finding raises. When the design does speak to the point, D2 comes before the NF labels, even when the harm is outside normal use.
 - **D3: the PR puts off work, and hands it to another issue that names the work.** A code comment where the work belongs names the issue, such as "#123". The issue is open, and isn't the PR's own issue. Its description names this work, not just work near it. Nothing that works now breaks without the work. The reviewer reads that issue to check. D3 applies whether or not the task asked for the work, since the issue tracks it either way.
 
   **When no issue tracks the work,** task work is F1, since the PR doesn't do what its task asks. A test the task's "Done when" asks for is task work. Other work, such as a cleanup, gets its usual label. A code comment that puts it off doesn't change that.
@@ -100,7 +101,7 @@ F1, F6, and F7 have no NF label. Normal use doesn't apply to them.
 
 **F2: the app does the wrong thing, crashes, or hangs, in normal use.** "Wrong" means different from what the design docs and the task say. Where they say nothing, it means different from what a user would plainly expect.
 
-**F3: text a road trip agent reads says something false, in normal use.** The road trip agents are the app's own agents, such as the coordinator and its workers, not the agents that build or review the code. The text is tool descriptions, input schemas, what tools return, and error messages. An agent acts on them, so false text leads to wrong actions. The test is whether an agent that believes the text would do the wrong thing. For example, a tool description promises something the tool doesn't do.
+**F3: text a road trip agent reads says something false, in normal use.** The road trip agents are the app's own agents, such as the coordinator and its workers, not the agents that build or review the code. The text is tool descriptions, input schemas, what tools return, and error messages. An agent acts on them, so false text leads to wrong actions. The test is whether an agent that believes the text would do the wrong thing. For example, a tool description promises something the tool doesn't do. False text is a specific claim an agent could act on. That covers a wrong time, day, or place, and also a wrong reason for an error, such as "access denied" when the input was the problem. An error that's vague, but not wrong about what happened, is N3. For example, "An unexpected error occurred" for that same bad input. It leaves the agent to judge what to do next, such as trying again or asking the user, but doesn't point it the wrong way.
 
 **F4: data is lost or corrupted, in normal use.** Data the app saves, such as a trip or a memory, is lost, changed when it shouldn't be, or saved in a form that can't be loaded again. Lost means the information is gone, such as deleted, overwritten, or dropped on save. Corrupted means what's saved is wrong, such as a link to a stop that no longer exists, so the app can't use it until the stored data is repaired. A load that fails on stored data that's fine is F2, not F4.
 
@@ -108,7 +109,7 @@ F1, F6, and F7 have no NF label. Normal use doesn't apply to them.
 
 **F6: a design doc is wrong, so an agent building from it would build the wrong thing.** The doc contradicts itself, doesn't match the code, or leaves a gap a builder would have to guess at. Agents build later work from the design docs, so a wrong doc leads to wrong code later. A design choice that causes wrong behavior in normal use meets F6 too. A doc problem that no builder would act on is N6.
 
-**F7: a test is wrong.** It doesn't check what it says it checks, so it would pass with the code broken. Or it fails when the code is right, such as a test that reads the real clock and breaks on a set date. A wrong test gives false confidence, which is worse than having no test.
+**F7: a test is wrong.** It can't catch a break in the very thing it targets. For example, it checks only that a list isn't empty, so a list with the wrong items passes. Or it fails when the code is right, such as a test that reads the real clock and breaks on a set date. A test that checks the real thing but misses a case or a path is N2, a missing test. A wrong test gives false confidence, which is worse than having no test.
 
 #### Notes
 
