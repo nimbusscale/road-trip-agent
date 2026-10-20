@@ -94,7 +94,7 @@ A finding whose claim turns out to be false still gets returned, labeled D1. Don
 Your final answer is a JSON object with one key, `findings`, holding an array. Return `{"findings": []}` when there's nothing to report. Each finding has these keys, and all of them are required:
 
 - `file`: the file's path from the repo root, such as `src/tools/trip-brief-tools.ts`.
-- `line`: a line number in the PR's version of the file. When the finding is about a removed line, use the nearest line that's still there.
+- `line`: a line number in the PR's version of the file. Take it from the file itself, with Read or `grep -n`. A line number in the diff's output, or in a saved copy of it, is a different number. When the finding is about a removed line, use the nearest line that's still there.
 - `label`: its label from the rubric, such as `F2`, `N1`, `V1`, or `D3`.
 - `finding`: what goes wrong, and a concrete case where it does. For V1, also say what to check and how, such as the call to make. This is posted as the comment, so it has to make sense on its own.
 - `labelReason`: one or two sentences on why the label fits, and why the labels above it in the table don't. For a D label, this is the reason it isn't posted, such as which issue a D3 hands the work to.
