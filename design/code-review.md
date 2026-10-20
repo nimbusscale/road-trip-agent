@@ -13,8 +13,8 @@ The evidence behind it is in `research/code-review-evaluation.md`. That doc reco
 | Part | Status |
 |---|---|
 | The review in CI | Running since 2026-10-16, with the stock `/code-review` (section 2) |
-| Rules for which findings get fixed | Agreed 2026-10-16 and 2026-10-18. Rewritten as a rubric with labels 2026-10-19, and revised 2026-10-20 after the first labeling run. Applied by hand for now (section 3) |
-| Our own review prompt | Not written. It replaces the stock one once it passes the test in section 4.8 |
+| Rules for which findings get fixed | Agreed 2026-10-16 and 2026-10-18. Rewritten as a rubric with labels 2026-10-19. Revised 2026-10-20 after four labeling runs, and then called done. It's tuned as it's used. Applied by hand for now (section 3) |
+| Our own review prompt | Not written. It replaces the stock one in the PR that adds it (#75), and is judged on new PRs (section 4.8) |
 | The fix loop | Not built. Planned 2026-10-19 (section 4). The work to build it is #75, #76, and #77 |
 | The CI reviewer can read the Claude token | Open item 21 |
 
@@ -40,7 +40,7 @@ These rules apply now, when findings are handled by hand, and later to the fix l
 
 ### 3.1 What gets fixed
 
-**This section is the rubric.** The reviewer uses it to label each finding (section 4.2), and the labelers use it to build the answer key for testing the reviewer (section 4.8). It describes kinds of findings, not real cases.
+**This section is the rubric.** The reviewer uses it to label each finding (section 4.2). It describes kinds of findings, not real cases.
 
 **Each finding gets one label: the first one in the table that fits.** A finding whose label hangs on a fact no one can check from the repo gets V1, and waits for that check. A finding whose claim is false, that only disagrees with the design, or whose work is handed to another issue gets a D label, and isn't posted. A D label fits only when it clearly fits, since no one sees the finding again. When you're unsure, treat it as not fitting, and keep going down the table. A finding is fixed when its label is F1 to F7. That's "the bar." A finding that would meet a fix rule, but doesn't meet its condition, gets the matching NF label, and is a note. Other findings below the bar get an N label, and are notes too.
 
@@ -293,17 +293,13 @@ A personal token was the other choice. It would push as Joe, and a classic one w
 
 ### 4.8 Testing the reviewer
 
-**Our reviewer is tested on the corpus before it replaces the stock one.** That's the six batch 4 commit ranges and their answer key (research doc, section 6), and the four reviews of PR #44, where each finding is marked above or below the bar (section 5). It runs with Opus at `high`, twice on each. Its results are compared with the stock review's Opus-at-`high` results in research doc section 8, so the stock review doesn't need to run again.
+**Our reviewer is judged on new PRs, not on the old corpus.** It replaces the stock review in the PR that adds it (#75). The batch 4 commit ranges (research doc, section 6) and PR #44's four reviews were labeled to tune the rubric in section 3.1. They aren't used to test the reviewer.
 
-- **Does it still find the code bugs in the answer key?** Dropping the cleanup angles mustn't cost real bugs.
-- **On PR #44, does it mark the findings above the bar as "fix", and the rest as notes?**
-- **Does it find any of the doc and plan gaps?** The stock review found none of them. Batch 4's reviewer found them when it was given the phase's design sections.
-
-**Once the loop runs, each finding's outcome is recorded:** fixed, below the bar after all, wrong, or moved to an issue. Each PR records its rounds, how many findings were set aside, and its cost.
+**Each finding's outcome is recorded,** from the first PR our reviewer reviews: fixed, below the bar after all, wrong, or moved to an issue. Each PR records its rounds, how many findings were set aside, and its cost. These records are the new corpus (section 4.9).
 
 ### 4.9 The corpus
 
-**Each review is also a test case** for judging the reviewer, and later the fixer. The round 1 corpus is six commit ranges from the phase 15 to 20 PRs (research doc, section 6). Reviews since then add to it: section 5 lists each one.
+**Each review is also a test case** for judging the reviewer, and later the fixer. The corpus starts with the first PR our reviewer reviews, and each review after it adds to it. Section 5 lists each one. The reviews before that were used to tune the rubric, and aren't part of it.
 
 **PRs are merged with merge commits, never squashed or rebased,** and `main`'s history is never rewritten. Otherwise the commit ranges break.
 
