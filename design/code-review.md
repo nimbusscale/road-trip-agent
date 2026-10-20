@@ -1,6 +1,6 @@
 # Road Trip Planner: Code Review
 
-> **This design is in progress.** It changes as we learn how the review agent behaves. Each review we handle by hand adds to section 5, and what it teaches us goes into sections 3 and 4. Last updated 2026-10-19.
+> **This design is in progress.** It changes as we learn how the review agent behaves. Each review we handle by hand adds to section 5, and what it teaches us goes into sections 3 and 4. Last updated 2026-10-20.
 
 This document covers how a pull request's code is reviewed: the review that runs in CI on each PR, how its findings are handled, and the fix loop we plan to build on top of it. Unlike the other design docs, it's about how the app is built, not what it does.
 
@@ -13,7 +13,7 @@ The evidence behind it is in `research/code-review-evaluation.md`. That doc reco
 | Part | Status |
 |---|---|
 | The review in CI | Running since 2026-10-16, with the stock `/code-review` (section 2) |
-| Rules for which findings get fixed | Agreed 2026-10-16 and 2026-10-18. Rewritten as a rubric with labels 2026-10-19. Applied by hand for now (section 3) |
+| Rules for which findings get fixed | Agreed 2026-10-16 and 2026-10-18. Rewritten as a rubric with labels 2026-10-19, and revised 2026-10-20 after the first labeling run. Applied by hand for now (section 3) |
 | Our own review prompt | Not written. It replaces the stock one once it passes the test in section 4.8 |
 | The fix loop | Not built. Planned 2026-10-19 (section 4). The work to build it is #75, #76, and #77 |
 | The CI reviewer can read the Claude token | Open item 21 |
@@ -42,54 +42,71 @@ These rules apply now, when findings are handled by hand, and later to the fix l
 
 **This section is the rubric.** The reviewer uses it to label each finding (section 4.2), and the labelers use it to build the answer key for testing the reviewer (section 4.8). It describes kinds of findings, not real cases.
 
-**Each finding gets one label: the first one in the table that fits.** A finding whose claim is false, or that only disagrees with the design, gets a D label, and isn't posted. A finding is fixed when its label is F1 to F6. That's "the bar." A finding that would meet a fix rule, but doesn't meet its condition, gets the matching NF label, and is a note. Other findings below the bar get an N label, and are notes too.
+**Each finding gets one label: the first one in the table that fits.** A finding whose label hangs on a fact no one can check from the repo gets V1, and waits for that check. A finding whose claim is false, that only disagrees with the design, or whose work is handed to another issue gets a D label, and isn't posted. A finding is fixed when its label is F1 to F7. That's "the bar." A finding that would meet a fix rule, but doesn't meet its condition, gets the matching NF label, and is a note. Other findings below the bar get an N label, and are notes too.
 
 | Label | Kind | Rule |
 |---|---|---|
+| V1 | Check | The label depends on a fact the reviewer can't check from the repo, and that fact decides whether it's a fix |
 | D1 | Not posted | The claim about the code is false |
 | D2 | Not posted | The code does what the design asks, and the finding would have it done another way |
+| D3 | Not posted | The PR puts off work its task asks for, and hands it to another issue |
 | F1 | Fix | The PR doesn't do what its task says |
 | F2 | Fix | The app does the wrong thing, crashes, or hangs, in normal use |
-| F3 | Fix | Text an agent reads says something false, in normal use |
+| F3 | Fix | Text a road trip agent reads says something false, in normal use |
 | F4 | Fix | Data is lost or corrupted, in normal use |
 | F5 | Fix | A security hole within the project's threat model |
 | F6 | Fix | A design doc is wrong, so an agent building from it would build the wrong thing |
+| F7 | Fix | A test is wrong |
 | NF2 | Note | Like F2, but not in normal use |
 | NF3 | Note | Like F3, but not in normal use |
 | NF4 | Note | Like F4, but not in normal use |
 | NF5 | Note | A security hole outside the threat model |
 | N1 | Note | Cleaner code |
 | N2 | Note | A missing test |
-| N3 | Note | Text an agent reads is unclear, or says something twice, but says nothing false |
+| N3 | Note | Text a road trip agent reads is unclear, or says something twice, but says nothing false |
 | N4 | Note | Advice about code that isn't written yet |
 | N5 | Note | A code comment is wrong |
+| N6 | Note | A design doc is unclear, or doesn't match the code, in a way no builder would act on |
 
-F1 and F6 have no NF label. Normal use doesn't apply to them.
+F1, F6, and F7 have no NF label. Normal use doesn't apply to them.
+
+#### Check first
+
+**V1: the label depends on a fact the reviewer can't check from the repo, and that fact decides whether the finding is a fix.** For example, how an outside service answers a request the code hasn't sent before. The finding says what to check and how, such as the call to make. It's posted, and the fix loop leaves it alone until Joe has it checked and relabeled (section 4.2). V1 applies only when all of these hold:
+
+- The fact is outside the repo, and nothing in the repo shows it.
+- Settling it takes a real call or run that the reviewer can't make. If running code locally would settle it, the reviewer runs it.
+- The answer decides whether it's a fix. A finding that's a note either way gets its note label.
 
 #### Not posted
 
 - **D1: the claim about the code is false.** For example, the finding describes a failure that the code's own checks make impossible.
-- **D2: the code does what the design asks, and the finding would have it done another way.** The design was agreed when the doc was written, so the finding is about the design, not the PR. When the design's choice causes wrong behavior in normal use, the label is F6 instead.
+- **D2: the code does what the design asks, and the finding would have it done another way.** The design was agreed when the doc was written, so the finding is about the design, not the PR. Two things rule D2 out:
+  - **The design has to be settled on the point.** When another issue covers it, such as with an open question, D2 doesn't fit, and the finding gets the next label that fits.
+  - **The design's choice has to work for the user.** Before labeling a finding D2, say what the user would see if the code ran as designed. If that's wrong behavior in normal use, the label is F6 instead.
+- **D3: the PR puts off work its task asks for, and hands it to another issue.** A code comment where the work belongs names the issue, such as "#123". The issue is open, isn't the PR's own issue, and its description says what the work is. Nothing that works now breaks without the work. The reviewer reads that issue to check. If any of this is missing, the PR doesn't do what its task asks, so the label is F1. A test the task's "Done when" asks for is task work. Work the task doesn't ask for, such as a test or a cleanup, gets its usual label, whether or not a comment puts it off.
 
 #### Normal use
 
-**Normal use is a trip a real user could plan, or a failure the code is meant to handle.** An outside service that doesn't answer in time is a failure the code is meant to handle. Normal use doesn't cover an unlikely input, a setting no one would choose, or timing so narrow that two things running at once have to line up in a particular order.
+**Normal use is a trip a real user could plan, or a failure the code is meant to handle.** An outside service that doesn't answer in time is a failure the code is meant to handle. So is a plausible mistake by a road trip agent: a slip models make in practice, such as a wrong input name or the same ID twice. Normal use doesn't cover an unlikely input, such as one the model has no reason to produce, a setting no one would choose, or timing so narrow that two things running at once have to line up in a particular order.
 
 **Code that's written but not called yet is judged as if it were called** the way the design says it will be.
 
 #### Fix rules
 
-**F1: the PR doesn't do what its task says.** The task is the issue's "Do" and "Done when" items, which the PR description copies (DEVELOPMENT.md section 7). When a "Do" item points to a design section, what that section asks for is part of the task. Something the task asks for that's missing, or done another way, meets F1, even when nothing breaks yet.
+**F1: the PR doesn't do what its task says.** The task is the issue's "Do" and "Done when" items, which the PR description copies (DEVELOPMENT.md section 7). When a "Do" item points to a design section, what that section asks for is part of the task. Something the task asks for that's missing, or done another way, meets F1, even when nothing breaks yet. Work handed to another issue is D3 instead.
 
 **F2: the app does the wrong thing, crashes, or hangs, in normal use.** "Wrong" means different from what the design docs and the task say. Where they say nothing, it means different from what a user would plainly expect.
 
-**F3: text an agent reads says something false, in normal use.** That's tool descriptions, input schemas, what tools return, and error messages. An agent acts on them, so false text leads to wrong actions. The test is whether an agent that believes the text would do the wrong thing. For example, a tool description promises something the tool doesn't do.
+**F3: text a road trip agent reads says something false, in normal use.** The road trip agents are the app's own agents, such as the coordinator and its workers, not the agents that build or review the code. The text is tool descriptions, input schemas, what tools return, and error messages. An agent acts on them, so false text leads to wrong actions. The test is whether an agent that believes the text would do the wrong thing. For example, a tool description promises something the tool doesn't do.
 
-**F4: data is lost or corrupted, in normal use.** Data the app saves, such as a trip or a memory, is lost, changed when it shouldn't be, or saved in a form that can't be loaded again.
+**F4: data is lost or corrupted, in normal use.** Data the app saves, such as a trip or a memory, is lost, changed when it shouldn't be, or saved in a form that can't be loaded again. Lost means the information is gone, such as deleted, overwritten, or dropped on save. Corrupted means what's saved is wrong, such as a link to a stop that no longer exists, so the app can't use it until the stored data is repaired. A load that fails on stored data that's fine is F2, not F4.
 
 **F5: a security hole within the project's threat model.** CLAUDE.md sets it: scanning bots and worms, not a targeted attack. It also covers the real secrets, such as the Claude token and the Google keys.
 
-**F6: a design doc is wrong, so an agent building from it would build the wrong thing.** The doc contradicts itself, doesn't match the code, or leaves a gap a builder would have to guess at. Agents build later work from the design docs, so a wrong doc leads to wrong code later. A design choice that causes wrong behavior in normal use meets F6 too.
+**F6: a design doc is wrong, so an agent building from it would build the wrong thing.** The doc contradicts itself, doesn't match the code, or leaves a gap a builder would have to guess at. Agents build later work from the design docs, so a wrong doc leads to wrong code later. A design choice that causes wrong behavior in normal use meets F6 too. A doc problem that no builder would act on is N6.
+
+**F7: a test is wrong.** It doesn't check what it says it checks, so it would pass with the code broken. Or it fails when the code is right, such as a test that reads the real clock and breaks on a set date. A wrong test gives false confidence, which is worse than having no test.
 
 #### Notes
 
@@ -98,10 +115,11 @@ F1 and F6 have no NF label. Normal use doesn't apply to them.
 - **NF2 to NF4: like F2 to F4, but not in normal use.**
 - **NF5: a security hole outside the threat model.** It's a note, so Joe sees it and decides (CLAUDE.md).
 - **N1: cleaner code.** That covers duplication, structure, speed, and code that can never run.
-- **N2: a missing test.** The exception is the test that comes with a fix (section 3.4).
-- **N3: text an agent reads is unclear, or says something twice, but says nothing false.**
+- **N2: a missing test.** The exception is the test that comes with a fix (section 3.4). A test that exists but is wrong is F7.
+- **N3: text a road trip agent reads is unclear, or says something twice, but says nothing false.**
 - **N4: advice about code that isn't written yet.**
 - **N5: a code comment is wrong.** The code is right next to it, so it misleads less than a wrong design doc does.
+- **N6: a design doc is unclear, or doesn't match the code, in a way no builder would act on.** For example, another doc, or the task, already says how to build it.
 
 ### 3.2 Findings that come along
 
@@ -162,12 +180,13 @@ It gets its own name. A project skill named `code-review` would replace the stoc
 
 ### 4.2 Findings to fix, and notes
 
-**The reviewer marks each finding as one of two kinds:**
+**The reviewer marks each finding as one of three kinds:**
 
 - **Fix:** it's above the bar. The finding gives its label from section 3.1, such as F2.
 - **Note:** it's below the bar. The finding gives its label, such as NF2 or N1.
+- **Check:** its label is V1. It says what to check and how. The fix loop leaves it alone, and Joe has it checked and relabeled.
 
-A finding labeled D1 or D2 isn't posted.
+A finding labeled D1, D2, or D3 isn't posted.
 
 Both are posted as inline comments. Joe sees the notes there. The next review sees them too, so it doesn't post them again.
 
