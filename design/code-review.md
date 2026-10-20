@@ -266,7 +266,7 @@ The list changes the rule in CLAUDE.md and DEVELOPMENT.md section 7 that a PR de
 - Claude Code's own calls to the model aren't sandboxed, so the limit doesn't touch them.
 - `allowUnsandboxedCommands: false` keeps the model from running a command outside the sandbox. That's from Claude Code's docs, and wasn't tested.
 
-Checked in CI on 2026-10-20 (#82). Only `gh api` was tested. If another `gh` command needs more GitHub domains, add them then.
+Checked in CI on 2026-10-20 (#82), with `gh api`. `gh pr view` and `gh issue view` worked too, in our reviewer's first run, on #83. If another `gh` command needs more GitHub domains, add them then.
 
 | Run | Review job | Fix job |
 |---|---|---|
