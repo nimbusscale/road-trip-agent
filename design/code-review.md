@@ -175,6 +175,7 @@ Compared with the stock prompt, ours:
 - **Has no minimum.** A review with no findings is a normal result.
 - **Writes its findings as JSON,** so the workflow can read them.
 - **Runs with Opus at `high`,** as the stock review does (section 2).
+- **Can run node, to test a claim,** such as a timeout or a rounding case (section 3.1, V1).
 
 It gets its own name. A project skill named `code-review` would replace the stock one, and the stock one stays available to compare against.
 
@@ -238,6 +239,8 @@ The list changes the rule in CLAUDE.md and DEVELOPMENT.md section 7 that a PR de
 
 1. **The review job** runs our reviewer, posts its findings, and outputs how many are marked "fix".
 2. **The fix job** runs only when that number is above zero, and the branch has fewer than 3 commits by the fixer. The fixer pushes, and the push starts the next run.
+
+**Neither the reviewer nor the fixer gets WebFetch or WebSearch.** They work from the repo. A finding whose label hangs on an outside fact gets V1, not a guess from the web.
 
 | Run | Review job | Fix job |
 |---|---|---|
