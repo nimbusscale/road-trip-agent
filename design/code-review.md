@@ -1,6 +1,6 @@
 # Road Trip Planner: Code Review
 
-> **This design is in progress.** It changes as we learn how the review agent behaves. Each review we handle by hand adds to section 5, and what it teaches us goes into sections 3 and 4. Last updated 2026-10-19.
+> **This design is in progress.** It changes as we learn how the review agent behaves. Each review we handle by hand adds to section 5, and what it teaches us goes into sections 3 and 4. Last updated 2026-10-20.
 
 This document covers how a pull request's code is reviewed: the review that runs in CI on each PR, how its findings are handled, and the fix loop we plan to build on top of it. Unlike the other design docs, it's about how the app is built, not what it does.
 
@@ -13,8 +13,8 @@ The evidence behind it is in `research/code-review-evaluation.md`. That doc reco
 | Part | Status |
 |---|---|
 | The review in CI | Running since 2026-10-16, with the stock `/code-review` (section 2) |
-| Rules for which findings get fixed | Agreed 2026-10-16 and 2026-10-18. Rewritten as a rubric with labels 2026-10-19. Applied by hand for now (section 3) |
-| Our own review prompt | Not written. It replaces the stock one once it passes the test in section 4.8 |
+| Rules for which findings get fixed | Agreed 2026-10-16 and 2026-10-18. Rewritten as a rubric with labels 2026-10-19. Revised 2026-10-20 after four labeling runs, and then called done. It's tuned as it's used. Applied by hand for now (section 3) |
+| Our own review prompt | Not written. It replaces the stock one in the PR that adds it (#75), and is judged on new PRs (section 4.8) |
 | The fix loop | Not built. Planned 2026-10-19 (section 4). The work to build it is #75, #76, and #77 |
 | The CI reviewer can read the Claude token | Open item 21 |
 
@@ -40,56 +40,76 @@ These rules apply now, when findings are handled by hand, and later to the fix l
 
 ### 3.1 What gets fixed
 
-**This section is the rubric.** The reviewer uses it to label each finding (section 4.2), and the labelers use it to build the answer key for testing the reviewer (section 4.8). It describes kinds of findings, not real cases.
+**This section is the rubric.** The reviewer uses it to label each finding (section 4.2). It describes kinds of findings, not real cases.
 
-**Each finding gets one label: the first one in the table that fits.** A finding whose claim is false, or that only disagrees with the design, gets a D label, and isn't posted. A finding is fixed when its label is F1 to F6. That's "the bar." A finding that would meet a fix rule, but doesn't meet its condition, gets the matching NF label, and is a note. Other findings below the bar get an N label, and are notes too.
+**Each finding gets one label: the first one in the table that fits.** A finding whose label hangs on a fact no one can check from the repo gets V1, and waits for that check. A finding whose claim is false, that only disagrees with the design, or whose work is handed to another issue gets a D label, and isn't posted. A D label fits only when it clearly fits, since no one sees the finding again. When you're unsure, treat it as not fitting, and keep going down the table. A finding is fixed when its label is F1 to F7. That's "the bar." A finding that would meet a fix rule, but doesn't meet its condition, gets the matching NF label, and is a note. Other findings below the bar get an N label, and are notes too.
 
 | Label | Kind | Rule |
 |---|---|---|
+| V1 | Check | The label depends on a fact the reviewer can't check from the repo, and that fact decides whether it's a fix |
 | D1 | Not posted | The claim about the code is false |
 | D2 | Not posted | The code does what the design asks, and the finding would have it done another way |
+| D3 | Not posted | The PR puts off work, and hands it to another issue that names the work |
 | F1 | Fix | The PR doesn't do what its task says |
 | F2 | Fix | The app does the wrong thing, crashes, or hangs, in normal use |
-| F3 | Fix | Text an agent reads says something false, in normal use |
+| F3 | Fix | Text a road trip agent reads says something false, in normal use |
 | F4 | Fix | Data is lost or corrupted, in normal use |
 | F5 | Fix | A security hole within the project's threat model |
 | F6 | Fix | A design doc is wrong, so an agent building from it would build the wrong thing |
+| F7 | Fix | A test is wrong |
 | NF2 | Note | Like F2, but not in normal use |
 | NF3 | Note | Like F3, but not in normal use |
 | NF4 | Note | Like F4, but not in normal use |
 | NF5 | Note | A security hole outside the threat model |
 | N1 | Note | Cleaner code |
 | N2 | Note | A missing test |
-| N3 | Note | Text an agent reads is unclear, or says something twice, but says nothing false |
+| N3 | Note | Text a road trip agent reads is unclear, or says something twice, or is an error message with the wrong reason for a failure |
 | N4 | Note | Advice about code that isn't written yet |
 | N5 | Note | A code comment is wrong |
+| N6 | Note | A design doc is unclear, or doesn't match the code, in a way no builder would act on |
 
-F1 and F6 have no NF label. Normal use doesn't apply to them.
+F1, F6, and F7 have no NF label. Normal use doesn't apply to them.
+
+#### Check first
+
+**V1: the label depends on a fact the reviewer can't check from the repo, and that fact decides whether the finding is a fix.** For example, how an outside service answers a request the code hasn't sent before. The finding says what to check and how, such as the call to make. It's posted, and the fix loop leaves it alone until Joe has it checked and relabeled (section 4.2). V1 applies only when all of these hold:
+
+- The fact is outside the repo, and nothing in the repo shows it.
+- Settling it takes a real call or run that the reviewer can't make. If running code locally would settle it, the reviewer runs it.
+- The answer decides whether it's a fix. A finding that's a note either way gets its note label.
 
 #### Not posted
 
-- **D1: the claim about the code is false.** For example, the finding describes a failure that the code's own checks make impossible.
-- **D2: the code does what the design asks, and the finding would have it done another way.** The design was agreed when the doc was written, so the finding is about the design, not the PR. When the design's choice causes wrong behavior in normal use, the label is F6 instead.
+- **D1: the claim about the code is false.** For example, the finding describes a failure that the code's own checks make impossible. The failure has to be impossible with the code as it stands. A claim that's true only for an unlikely input, such as a setting no one would choose, isn't false, and gets an NF label. Neither is one that only code not yet written would prevent.
+- **D2: the code does what the design asks, and the finding would have it done another way.** The design was agreed when the doc was written, so the finding is about the design, not the PR. Two things rule D2 out:
+  - **The design has to be settled on the point.** When another issue covers it, such as with an open question, D2 doesn't fit, and the finding gets the next label that fits.
+  - **The design's choice has to work for the user.** Before labeling a finding D2, say what the user would see if the code ran as designed. If that's wrong behavior in normal use, the label is F6 instead.
+  - **The design has to speak to the point itself.** A general rule, such as a coding rule for all outside data, doesn't settle the specific case the finding raises. When the design does speak to the point, D2 comes before the NF labels, even when the harm is outside normal use.
+- **D3: the PR puts off work, and hands it to another issue that names the work.** A code comment where the work belongs names the issue, such as "#123". The issue is open, and isn't the PR's own issue. Its description names this work, not just work near it. Nothing that works now breaks without the work. The reviewer reads that issue to check. D3 applies whether or not the task asked for the work, since the issue tracks it either way.
+
+  **When no issue tracks the work,** task work is F1, since the PR doesn't do what its task asks. A test the task's "Done when" asks for is task work. Other work, such as a cleanup, gets its usual label. A code comment that puts it off doesn't change that.
 
 #### Normal use
 
-**Normal use is a trip a real user could plan, or a failure the code is meant to handle.** An outside service that doesn't answer in time is a failure the code is meant to handle. Normal use doesn't cover an unlikely input, a setting no one would choose, or timing so narrow that two things running at once have to line up in a particular order.
+**Normal use is a trip a real user could plan, or a failure the code is meant to handle.** An outside service that doesn't answer in time is a failure the code is meant to handle. So is a plausible mistake by a road trip agent: a slip models make in practice, such as a wrong input name or the same ID twice. Normal use doesn't cover an unlikely input, such as one the model has no reason to produce, a setting no one would choose, or timing so narrow that two things running at once have to line up in a particular order.
 
 **Code that's written but not called yet is judged as if it were called** the way the design says it will be.
 
 #### Fix rules
 
-**F1: the PR doesn't do what its task says.** The task is the issue's "Do" and "Done when" items, which the PR description copies (DEVELOPMENT.md section 7). When a "Do" item points to a design section, what that section asks for is part of the task. Something the task asks for that's missing, or done another way, meets F1, even when nothing breaks yet.
+**F1: the PR doesn't do what its task says.** The task is the issue's "Do" and "Done when" items, which the PR description copies (DEVELOPMENT.md section 7). When a "Do" item points to a design section, what that section asks for is part of the task. Something the task asks for that's missing, or done another way, meets F1, even when nothing breaks yet. Work handed to another issue is D3 instead.
 
 **F2: the app does the wrong thing, crashes, or hangs, in normal use.** "Wrong" means different from what the design docs and the task say. Where they say nothing, it means different from what a user would plainly expect.
 
-**F3: text an agent reads says something false, in normal use.** That's tool descriptions, input schemas, what tools return, and error messages. An agent acts on them, so false text leads to wrong actions. The test is whether an agent that believes the text would do the wrong thing. For example, a tool description promises something the tool doesn't do.
+**F3: text a road trip agent reads says something false, in normal use.** The road trip agents are the app's own agents, such as the coordinator and its workers, not the agents that build or review the code. The text is tool descriptions, input schemas, what tools return, and error messages. An agent acts on them, so false text leads to wrong actions. The test is whether an agent that believes the text would do the wrong thing. For example, a tool description promises something the tool doesn't do. False text is a specific claim an agent could act on as a real answer. That covers a wrong time, day, or place. An error message that gives the wrong reason for a failure is N3, not F3. For example, "access denied" when the input was the problem, or "a response the app doesn't understand" when the service timed out. The agent knows the call failed, so it judges what to do next, such as trying again or asking the user.
 
-**F4: data is lost or corrupted, in normal use.** Data the app saves, such as a trip or a memory, is lost, changed when it shouldn't be, or saved in a form that can't be loaded again.
+**F4: data is lost or corrupted, in normal use.** Data the app saves, such as a trip or a memory, is lost, changed when it shouldn't be, or saved in a form that can't be loaded again. Lost means the information is gone, such as deleted, overwritten, or dropped on save. Corrupted means what's saved is wrong, such as a link to a stop that no longer exists, so the app can't use it until the stored data is repaired. A load that fails on stored data that's fine is F2, not F4.
 
 **F5: a security hole within the project's threat model.** CLAUDE.md sets it: scanning bots and worms, not a targeted attack. It also covers the real secrets, such as the Claude token and the Google keys.
 
-**F6: a design doc is wrong, so an agent building from it would build the wrong thing.** The doc contradicts itself, doesn't match the code, or leaves a gap a builder would have to guess at. Agents build later work from the design docs, so a wrong doc leads to wrong code later. A design choice that causes wrong behavior in normal use meets F6 too.
+**F6: a design doc is wrong, so an agent building from it would build the wrong thing.** The doc contradicts itself, doesn't match the code, or leaves a gap a builder would have to guess at. Agents build later work from the design docs, so a wrong doc leads to wrong code later. A design choice that causes wrong behavior in normal use meets F6 too. A doc problem that no builder would act on is N6.
+
+**F7: a test is wrong.** It can't catch a break in the very thing it targets. For example, it checks only that a list isn't empty, so a list with the wrong items passes. Or it fails when the code is right, such as a test that reads the real clock and breaks on a set date. A test that checks the real thing but misses a case or a path is N2, a missing test. So is one that checks the result but leaves one piece of it out, such as a check that compares every field of a loaded object except its name. It still fails when any other field is wrong. A wrong test gives false confidence, which is worse than having no test.
 
 #### Notes
 
@@ -98,10 +118,11 @@ F1 and F6 have no NF label. Normal use doesn't apply to them.
 - **NF2 to NF4: like F2 to F4, but not in normal use.**
 - **NF5: a security hole outside the threat model.** It's a note, so Joe sees it and decides (CLAUDE.md).
 - **N1: cleaner code.** That covers duplication, structure, speed, and code that can never run.
-- **N2: a missing test.** The exception is the test that comes with a fix (section 3.4).
-- **N3: text an agent reads is unclear, or says something twice, but says nothing false.**
+- **N2: a missing test.** The exception is the test that comes with a fix (section 3.4). A test that exists but is wrong is F7.
+- **N3: text a road trip agent reads is unclear, or says something twice, or is an error message with the wrong reason for a failure.**
 - **N4: advice about code that isn't written yet.**
 - **N5: a code comment is wrong.** The code is right next to it, so it misleads less than a wrong design doc does.
+- **N6: a design doc is unclear, or doesn't match the code, in a way no builder would act on.** For example, another doc, or the task, already says how to build it.
 
 ### 3.2 Findings that come along
 
@@ -157,19 +178,23 @@ Compared with the stock prompt, ours:
 - **Has no minimum.** A review with no findings is a normal result.
 - **Writes its findings as JSON,** so the workflow can read them.
 - **Runs with Opus at `high`,** as the stock review does (section 2).
+- **Can run node, to test a claim that needs no outside access,** such as a timeout or a rounding case. Its commands can reach only GitHub (section 4.6). A claim that only an outside service can settle gets V1 (section 3.1).
 
 It gets its own name. A project skill named `code-review` would replace the stock one, and the stock one stays available to compare against.
 
 ### 4.2 Findings to fix, and notes
 
-**The reviewer marks each finding as one of two kinds:**
+**The reviewer marks each finding as one of three kinds:**
 
 - **Fix:** it's above the bar. The finding gives its label from section 3.1, such as F2.
 - **Note:** it's below the bar. The finding gives its label, such as NF2 or N1.
+- **Check:** its label is V1. It says what to check and how. The fix loop leaves it alone, and Joe has it checked and relabeled.
 
-A finding labeled D1 or D2 isn't posted.
+All three kinds are posted as inline comments. Joe sees the notes there. The next review sees them too, so it doesn't post them again.
 
-Both are posted as inline comments. Joe sees the notes there. The next review sees them too, so it doesn't post them again.
+**A finding labeled D1, D2, or D3 isn't posted.** The reviewer ends its run with a list of them instead: where each one is, its D label, and a sentence on why, such as which issue a D3 hands the work to. The workflow adds the list to the job summary, and saves it as `not-posted.md` in the run's artifact, so Joe can check the D labels. Example:
+
+> - `src/tools/trip-brief-tools.ts:157`, D3: phase 22 takes out `touchedBy()`.
 
 **The fixer gets only the findings marked "fix".** It still checks each one against the code first (section 3.5), and it can find that one is below the bar after all. It can also fix a note on lines it's already changing (section 3.2).
 
@@ -220,6 +245,23 @@ The list changes the rule in CLAUDE.md and DEVELOPMENT.md section 7 that a PR de
 1. **The review job** runs our reviewer, posts its findings, and outputs how many are marked "fix".
 2. **The fix job** runs only when that number is above zero, and the branch has fewer than 3 commits by the fixer. The fixer pushes, and the push starts the next run.
 
+**Neither the reviewer nor the fixer gets WebFetch or WebSearch.** They work from the repo. A finding whose label hangs on an outside fact gets V1, not a guess from the web.
+
+**Each agent's commands run in Claude Code's sandbox, which lets them reach only GitHub.** Taking the web tools away doesn't stop a program, such as `node` or `git`, from reaching the web, so the limit is on the network. The job passes the sandbox settings with `--settings`, since Claude Code ignores `.claude/settings.json` in CI:
+
+```json
+{"sandbox": {"enabled": true, "failIfUnavailable": true, "allowUnsandboxedCommands": false,
+  "network": {"allowedDomains": ["github.com", "api.github.com"], "strictAllowlist": true}}}
+```
+
+- `git` and `gh` reach GitHub through the sandbox's proxy. Any other site is refused, and so is a command that tries to go around the proxy.
+- The token scrub alone doesn't limit the network. It only keeps secrets out of the commands' environment.
+- `npm run check` needs no network, since the job installs the packages before the agent starts.
+- Claude Code's own calls to the model aren't sandboxed, so the limit doesn't touch them.
+- `allowUnsandboxedCommands: false` keeps the model from running a command outside the sandbox. That's from Claude Code's docs, and wasn't tested.
+
+Checked in CI on 2026-10-20 (#82). Only `gh api` was tested. If another `gh` command needs more GitHub domains, add them then.
+
 | Run | Review job | Fix job |
 |---|---|---|
 | 1, when the PR is opened | Review 1 | Fix 1, pushes |
@@ -251,17 +293,13 @@ A personal token was the other choice. It would push as Joe, and a classic one w
 
 ### 4.8 Testing the reviewer
 
-**Our reviewer is tested on the corpus before it replaces the stock one.** That's the six batch 4 commit ranges and their answer key (research doc, section 6), and the four reviews of PR #44, where each finding is marked above or below the bar (section 5). It runs with Opus at `high`, twice on each. Its results are compared with the stock review's Opus-at-`high` results in research doc section 8, so the stock review doesn't need to run again.
+**Our reviewer is judged on new PRs, not on the old corpus.** It replaces the stock review in the PR that adds it (#75). The batch 4 commit ranges (research doc, section 6) and PR #44's four reviews were labeled to tune the rubric in section 3.1. They aren't used to test the reviewer.
 
-- **Does it still find the code bugs in the answer key?** Dropping the cleanup angles mustn't cost real bugs.
-- **On PR #44, does it mark the findings above the bar as "fix", and the rest as notes?**
-- **Does it find any of the doc and plan gaps?** The stock review found none of them. Batch 4's reviewer found them when it was given the phase's design sections.
-
-**Once the loop runs, each finding's outcome is recorded:** fixed, below the bar after all, wrong, or moved to an issue. Each PR records its rounds, how many findings were set aside, and its cost.
+**Each finding's outcome is recorded,** from the first PR our reviewer reviews: fixed, below the bar after all, wrong, or moved to an issue. Each PR records its rounds, how many findings were set aside, and its cost. These records are the new corpus (section 4.9).
 
 ### 4.9 The corpus
 
-**Each review is also a test case** for judging the reviewer, and later the fixer. The round 1 corpus is six commit ranges from the phase 15 to 20 PRs (research doc, section 6). Reviews since then add to it: section 5 lists each one.
+**Each review is also a test case** for judging the reviewer, and later the fixer. The corpus starts with the first PR our reviewer reviews, and each review after it adds to it. Section 5 lists each one. The reviews before that were used to tune the rubric, and aren't part of it.
 
 **PRs are merged with merge commits, never squashed or rebased,** and `main`'s history is never rewritten. Otherwise the commit ranges break.
 
