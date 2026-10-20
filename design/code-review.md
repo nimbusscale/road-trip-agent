@@ -63,7 +63,7 @@ These rules apply now, when findings are handled by hand, and later to the fix l
 | NF5 | Note | A security hole outside the threat model |
 | N1 | Note | Cleaner code |
 | N2 | Note | A missing test |
-| N3 | Note | Text a road trip agent reads is unclear, or says something twice, but says nothing false |
+| N3 | Note | Text a road trip agent reads is unclear, or says something twice, or is an error message with the wrong reason for a failure |
 | N4 | Note | Advice about code that isn't written yet |
 | N5 | Note | A code comment is wrong |
 | N6 | Note | A design doc is unclear, or doesn't match the code, in a way no builder would act on |
@@ -101,7 +101,7 @@ F1, F6, and F7 have no NF label. Normal use doesn't apply to them.
 
 **F2: the app does the wrong thing, crashes, or hangs, in normal use.** "Wrong" means different from what the design docs and the task say. Where they say nothing, it means different from what a user would plainly expect.
 
-**F3: text a road trip agent reads says something false, in normal use.** The road trip agents are the app's own agents, such as the coordinator and its workers, not the agents that build or review the code. The text is tool descriptions, input schemas, what tools return, and error messages. An agent acts on them, so false text leads to wrong actions. The test is whether an agent that believes the text would do the wrong thing. For example, a tool description promises something the tool doesn't do. False text is a specific claim an agent could act on. That covers a wrong time, day, or place, and also a wrong reason for an error, such as "access denied" when the input was the problem. An error that's vague, but not wrong about what happened, is N3. For example, "An unexpected error occurred" for that same bad input. It leaves the agent to judge what to do next, such as trying again or asking the user, but doesn't point it the wrong way.
+**F3: text a road trip agent reads says something false, in normal use.** The road trip agents are the app's own agents, such as the coordinator and its workers, not the agents that build or review the code. The text is tool descriptions, input schemas, what tools return, and error messages. An agent acts on them, so false text leads to wrong actions. The test is whether an agent that believes the text would do the wrong thing. For example, a tool description promises something the tool doesn't do. False text is a specific claim an agent could act on as a real answer. That covers a wrong time, day, or place. An error message that gives the wrong reason for a failure is N3, not F3. For example, "access denied" when the input was the problem, or "a response the app doesn't understand" when the service timed out. The agent knows the call failed, so it judges what to do next, such as trying again or asking the user.
 
 **F4: data is lost or corrupted, in normal use.** Data the app saves, such as a trip or a memory, is lost, changed when it shouldn't be, or saved in a form that can't be loaded again. Lost means the information is gone, such as deleted, overwritten, or dropped on save. Corrupted means what's saved is wrong, such as a link to a stop that no longer exists, so the app can't use it until the stored data is repaired. A load that fails on stored data that's fine is F2, not F4.
 
@@ -109,7 +109,7 @@ F1, F6, and F7 have no NF label. Normal use doesn't apply to them.
 
 **F6: a design doc is wrong, so an agent building from it would build the wrong thing.** The doc contradicts itself, doesn't match the code, or leaves a gap a builder would have to guess at. Agents build later work from the design docs, so a wrong doc leads to wrong code later. A design choice that causes wrong behavior in normal use meets F6 too. A doc problem that no builder would act on is N6.
 
-**F7: a test is wrong.** It can't catch a break in the very thing it targets. For example, it checks only that a list isn't empty, so a list with the wrong items passes. Or it fails when the code is right, such as a test that reads the real clock and breaks on a set date. A test that checks the real thing but misses a case or a path is N2, a missing test. A wrong test gives false confidence, which is worse than having no test.
+**F7: a test is wrong.** It can't catch a break in the very thing it targets. For example, it checks only that a list isn't empty, so a list with the wrong items passes. Or it fails when the code is right, such as a test that reads the real clock and breaks on a set date. A test that checks the real thing but misses a case or a path is N2, a missing test. So is one that checks the result but leaves one piece of it out, such as a check that compares every field of a loaded object except its name. It still fails when any other field is wrong. A wrong test gives false confidence, which is worse than having no test.
 
 #### Notes
 
@@ -119,7 +119,7 @@ F1, F6, and F7 have no NF label. Normal use doesn't apply to them.
 - **NF5: a security hole outside the threat model.** It's a note, so Joe sees it and decides (CLAUDE.md).
 - **N1: cleaner code.** That covers duplication, structure, speed, and code that can never run.
 - **N2: a missing test.** The exception is the test that comes with a fix (section 3.4). A test that exists but is wrong is F7.
-- **N3: text a road trip agent reads is unclear, or says something twice, but says nothing false.**
+- **N3: text a road trip agent reads is unclear, or says something twice, or is an error message with the wrong reason for a failure.**
 - **N4: advice about code that isn't written yet.**
 - **N5: a code comment is wrong.** The code is right next to it, so it misleads less than a wrong design doc does.
 - **N6: a design doc is unclear, or doesn't match the code, in a way no builder would act on.** For example, another doc, or the task, already says how to build it.
