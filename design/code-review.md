@@ -190,9 +190,11 @@ It gets its own name. A project skill named `code-review` would replace the stoc
 - **Note:** it's below the bar. The finding gives its label, such as NF2 or N1.
 - **Check:** its label is V1. It says what to check and how. The fix loop leaves it alone, and Joe has it checked and relabeled.
 
-A finding labeled D1, D2, or D3 isn't posted.
+All three kinds are posted as inline comments. Joe sees the notes there. The next review sees them too, so it doesn't post them again.
 
-Both are posted as inline comments. Joe sees the notes there. The next review sees them too, so it doesn't post them again.
+**A finding labeled D1, D2, or D3 isn't posted.** The reviewer ends its run with a list of them instead: where each one is, its D label, and a sentence on why, such as which issue a D3 hands the work to. The workflow adds the list to the job summary, and saves it as `not-posted.md` in the run's artifact, so Joe can check the D labels. Example:
+
+> - `src/tools/trip-brief-tools.ts:157`, D3: phase 22 takes out `touchedBy()`.
 
 **The fixer gets only the findings marked "fix".** It still checks each one against the code first (section 3.5), and it can find that one is below the bar after all. It can also fix a note on lines it's already changing (section 3.2).
 
