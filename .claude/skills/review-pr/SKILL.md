@@ -46,9 +46,9 @@ git diff <base>...HEAD
 
 Treat this diff as the review scope. Review the whole PR, not only the commits since the last review.
 
-## Step 4: Read the design docs
+## Step 4: Read DEVELOPMENT.md and the design docs
 
-Read `design/README.md`. Then read the design docs that cover the changed files, and the sections the task points to. Read `DEVELOPMENT.md` when the PR changes code. The design docs say what the code should do, so you can't tell a wrong result from a right one without them. Read only what the PR touches.
+Read `DEVELOPMENT.md`. It says how code in this repo is written and tested. Then read `design/README.md`, and the design docs that cover the changed files, and the sections the task points to. The design docs say what the code should do, so you can't tell a wrong result from a right one without them. Read only the design docs the PR touches.
 
 ## Step 5: Find candidates
 
