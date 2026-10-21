@@ -71,9 +71,9 @@ In the fix loop, the reviewer marks most of these as notes, and Joe reads them o
 **Each finding the fixer handles gets a reply on its own thread.** Code posts it from the fixer's answer (section 4.5). The reply's first line is a marker that says what was done with the finding:
 
 - `**Fixed** in <commit>.`
-- `**Set aside:** #<issue>.` The work is planned for later, in that issue (section 4.4).
+- `**Deferred:** #<issue>.` The fix belongs in later work that's already planned, in that issue (section 3.8).
 - `**Not fixed:** below the bar.` or `**Not fixed:** wrong.`
-- `**Needs attention.**` Joe has to decide. This is for a fix that would undo a decision in the decisions comment, or change a config file. It's also for a security hole that's set aside, since that can't go in a public issue.
+- `**Needs attention.**` Joe has to decide. This is for a fix that would undo a decision in the decisions comment, or change a config file. It's also for a fix too big for the PR, when no open issue plans it, and for a security hole the fixer can't fix in the PR, since that can't go in a public issue.
 
 The fixer's reason follows on the next lines. A finding in a review body has no thread, so its reply is a conversation comment of its own. It starts with the marker, and quotes the finding with a link to it.
 
@@ -84,6 +84,20 @@ When findings are handled by hand in chat, no replies are posted, since Joe has 
 ### 3.7 When a tool could check the rule
 
 **When a finding is about a project rule that a tool could check, add the check.** Then the next PR can't break the rule, and no review has to catch it. This says how to fix a finding, not whether it's above the bar. Example: on PR #44, a tool's input schema wasn't in a `*.schema.ts` file, as DEVELOPMENT.md section 4 asks. A lint rule will check that ([#72](https://github.com/nimbusscale/road-trip-agent/issues/72)).
+
+### 3.8 Deferring a finding
+
+**A finding is deferred when its fix belongs in later work that's already planned.** All three of these hold:
+
+- **The finding holds up, and is above the bar.**
+- **An open issue already plans work on the same code, and the fix fits that work better.** It isn't the PR's own issue. For example, the issue will rewrite the code the finding is in, or adds the caller or the feature the fix depends on, or plans a general change that covers the finding.
+- **Nothing breaks in normal use while it waits.** When something does, the part that breaks is fixed now, and only the rest is deferred.
+
+**The work is added to that issue's open questions,** so it isn't lost. The fixer never opens an issue to defer a finding to. When no open issue fits, the finding is fixed in the PR. When the fix is too big for the PR, the finding needs attention, and Joe decides whether it gets an issue (section 3.6).
+
+Example: on PR #44 round 3, a check result whose text changes, but is still there, should have come back in the reply to a write. Round 2's fix for the start time was taken out, and the general change to replies was left for phase 22, which already planned the replies.
+
+"Deferred" is the fix loop's word. The "set aside" in CLAUDE.md is wider: work Joe and Claude Code put off in chat, which may get a new issue. Decided 2026-10-21 in #76.
 
 ---
 
@@ -152,17 +166,17 @@ What it never reads holds the reasons the code was written the way it was. Those
 
 **Each review reads the whole PR,** not only the commits since the last review. Example: on PR #44, round 2's one finding above the bar was in code that round 1 had read, and that round 1's fixes hadn't touched. A review of only the new commits would have missed it. This may change once we've seen some loops run.
 
-### 4.4 Set aside, and the summary
+### 4.4 Deferred findings, and the summary
 
-**"Set aside" means work planned for later.** The finding is real, but its fix belongs in an open issue, such as one whose code isn't written yet. The fixer writes the work into that issue, as CLAUDE.md says, and its reply names the issue. A finding the fixer won't fix at all is "not fixed", not set aside (section 3.6).
+**A finding is deferred only under the rules in section 3.8.** A finding the fixer won't fix at all is "not fixed", not deferred (section 3.6).
 
-**The reviewer doesn't post a finding again once it's set aside, not fixed, or needs attention.** Code gives it that, without the reasons (section 4.3). For a finding set aside, it also gives the issue, since that's about scope: "leg changes are handled in #80" says what the PR covers, not why the code was written the way it was. Without this, the reviewer posts a finding again whenever the lines it points to change and the problem is still there. Example: on PR #44, the finding that write replies leave out leg changes came back in round 3, after round 1 had left it for phase 22. The loop is meant to run without Joe, so it can't keep raising what's already been decided.
+**The reviewer doesn't post a finding again once it's deferred, not fixed, or needs attention.** Code gives it that, without the reasons (section 4.3). For a finding deferred, it also gives the issue, since that's about scope: "leg changes are handled in #80" says what the PR covers, not why the code was written the way it was. Without this, the reviewer posts a finding again whenever the lines it points to change and the problem is still there. Example: on PR #44, the finding that write replies leave out leg changes came back in round 3, after round 1 had left it for phase 22. The loop is meant to run without Joe, so it can't keep raising what's already been decided.
 
-**A summary comment lists what Joe has to look at:** the findings set aside, and the ones that need attention. Fixed and not-fixed findings stay only in their threads. Code keeps the summary, as one conversation comment on the PR, and updates it after each fix round. Each line names the finding in a few words, and links the finding and the fixer's reply. A line for a finding set aside also gives the issue. Example:
+**A summary comment lists what Joe has to look at:** the findings deferred, and the ones that need attention. Fixed and not-fixed findings stay only in their threads. Code keeps the summary, as one conversation comment on the PR, and updates it after each fix round. Each line names the finding in a few words, and links the finding and the fixer's reply. A line for a finding deferred also gives the issue. Example:
 
 > - Write replies leave out leg changes: [finding](…), [reply](…), #80
 
-**An item leaves the summary when its thread is resolved.** After each fix round, code resolves the threads whose reply is "Fixed" or "Not fixed". Threads set aside or needing attention stay open until Joe resolves them. Code never resolves a note's or a check's thread. A finding in a review body has no thread, so its line in the summary has a checkbox, which Joe ticks. Code keeps the ticks when it updates the summary, and drops ticked lines.
+**An item leaves the summary when its thread is resolved.** After each fix round, code resolves the threads whose reply is "Fixed" or "Not fixed". Threads deferred or needing attention stay open until Joe resolves them. Code never resolves a note's or a check's thread. A finding in a review body has no thread, so its line in the summary has a checkbox, which Joe ticks. Code keeps the ticks when it updates the summary, and drops ticked lines.
 
 **The risk is that the fixer drops a real bug, and the reviewer never raises it again.** That's accepted for this project. Joe can reopen a resolved thread. The number of findings per PR that weren't fixed is also measured (section 4.8), so a fixer that drops too much shows up.
 
@@ -175,9 +189,9 @@ Decided 2026-10-21 in #76. It replaced a "Set aside" list in the PR description.
 - **It reads the bar, the PR description, the decisions comment, the findings marked "fix", and the earlier rounds' replies.** Code prints them for it, with an ID for each finding. The decisions comment is the first conversation comment by the PR's author. It reads the design docs the findings touch, and it can search the issues.
 - **It reads the decisions comment, unlike the reviewer** (section 4.3). The fixer is doing the implementer's job, so the implementer's reasons help it. They keep it from undoing a decision, such as renaming a tool back. Decided 2026-10-21 in #76.
 - **It follows section 3:** it checks each finding first, and a fix comes with a test.
-- **When the right fix is bigger than the PR, it makes the smallest fix that works for now.** It writes the bigger change into an open issue's open questions, or opens a Triage issue, as CLAUDE.md says. Then its reply marks the finding set aside, with that issue. Example: on PR #44 round 3, round 2's fix for the start time was taken out, and the general change to replies was left for phase 22.
-- **It returns JSON, and code does the writes on the PR,** as with the reviewer (section 2). The fixer checks and fixes the findings, and commits. Its answer has one entry per finding: the finding's ID, its outcome, the issue for a finding set aside, and the reply. Then code pushes the commit, posts each reply with its marker (section 3.6), resolves the threads, and updates the summary (section 4.4). The fixer's only writes to GitHub are to issues, for findings it sets aside. Decided 2026-10-21 in #76.
-- **Its answer is checked before anything is posted.** In CI, `claude -p --json-schema` refuses an answer that doesn't fit the schema, such as an outcome that isn't on the list. Then code checks that it fits the round: each finding marked "fix" gets exactly one entry, no ID is made up, "fixed" comes with a commit, and "set aside" comes with an open issue. When anything fails, nothing is posted. A run by hand has no `--json-schema`, so the fixer runs the same check on its own answer before it returns it. Code can't catch an answer that fits but is wrong, such as "fixed" for a change that doesn't fix the finding. The next review catches that, when it checks whether the fix worked.
+- **It defers a finding only under the rules in section 3.8.** It never opens an issue. When a fix is too big for the PR, and no open issue plans it, the finding needs attention.
+- **It returns JSON, and code does the writes on the PR,** as with the reviewer (section 2). The fixer checks and fixes the findings, and commits. Its answer has one entry per finding: the finding's ID, its outcome, the issue for a finding deferred, and the reply. Then code pushes the commit, posts each reply with its marker (section 3.6), resolves the threads, and updates the summary (section 4.4). The fixer's only writes to GitHub are to issues' open questions, for findings it defers. Decided 2026-10-21 in #76.
+- **Its answer is checked before anything is posted.** In CI, `claude -p --json-schema` refuses an answer that doesn't fit the schema, such as an outcome that isn't on the list. Then code checks that it fits the round: each finding marked "fix" gets exactly one entry, no ID is made up, "fixed" comes with a commit, and "deferred" comes with an open issue. When anything fails, nothing is posted. A run by hand has no `--json-schema`, so the fixer runs the same check on its own answer before it returns it. Code can't catch an answer that fits but is wrong, such as "fixed" for a change that doesn't fix the finding. The next review catches that, when it checks whether the fix worked.
 - **When it stops early, its answer says so, with the reason.** It stops when the checked-out commit isn't the PR's head, when there's no finding marked "fix", or when `npm run check` already failed on the code the review saw. The job reads that from the answer too.
 - **It reads Joe's replies too.** When Joe replies on an earlier thread that needs attention, and says to fix it, the next fixer fixes it.
 - **It runs `npm run check` before it commits.**
@@ -218,7 +232,7 @@ Checked in CI on 2026-10-20 (#82), with `gh api`. `gh pr view` and `gh issue vie
 **The loop goes on only because the fixer pushes.** No push means no new run. So it stops in one of three ways:
 
 - The review marks nothing "fix", so the fix job is skipped.
-- The fixer pushes nothing, since it set aside every finding.
+- The fixer pushes nothing, since it fixed none of the findings.
 - The branch already has 3 fixer commits, so the fix job is skipped.
 
 Then the workflow adds a "ready for Joe" label to the PR.
@@ -241,7 +255,7 @@ A personal token was the other choice. It would push as Joe, and a classic one w
 
 **Our reviewer is judged on new PRs, not on the old corpus.** It replaces the stock review in the PR that adds it (#75). The batch 4 commit ranges (research doc, section 6) and PR #44's four reviews were labeled to tune the review rubric. They aren't used to test the reviewer.
 
-**Each finding's outcome is recorded,** from the first PR our reviewer reviews: fixed, not fixed (below the bar after all, or wrong), set aside to an issue, or needs attention. Each PR records its rounds, how many findings weren't fixed, and its cost. These records are the new corpus (section 4.9).
+**Each finding's outcome is recorded,** from the first PR our reviewer reviews: fixed, not fixed (below the bar after all, or wrong), deferred to an issue, or needs attention. Each PR records its rounds, how many findings weren't fixed, and its cost. These records are the new corpus (section 4.9).
 
 ### 4.9 The corpus
 

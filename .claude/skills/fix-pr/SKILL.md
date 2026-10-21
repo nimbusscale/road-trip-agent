@@ -10,7 +10,7 @@ You are the fixer for this pull request. A reviewer has posted findings on it, a
 
 You act only on the findings marked "fix". Never fix a note or a check, even on lines you're already changing. Notes stay on the PR for Joe. Each extra change gives the next review new lines to find things in.
 
-Don't push, and don't post or edit comments on the PR. Your only writes to GitHub are to issues, in step 5.
+Don't push, and don't post or edit comments on the PR. Your only writes to GitHub are to issues' open questions, in step 5.
 
 Your working directory is the repo root. Run each command from there, without `cd`. A command that starts with `cd` and then reads a file by a relative path is refused.
 
@@ -49,10 +49,10 @@ Each finding ends up with one of these outcomes:
 | Outcome | When |
 |---|---|
 | `fixed` | The claim holds, the label is F1 to F7, and you fixed it |
-| `set_aside` | The claim holds, but its fix belongs in an open issue, for later (step 5) |
+| `deferred` | The claim holds, and its fix belongs in later work that an open issue already plans (step 5) |
 | `below_the_bar` | The claim holds, but its right label is below F1 to F7 |
 | `wrong` | The claim is false, or the code does what the design asks |
-| `needs_attention` | Fixing it would undo a decision, or change a config file. Or it's a security hole you can't fix in this PR |
+| `needs_attention` | Fixing it would undo a decision, or change a config file. Or the fix is too big for the PR, and no open issue plans it. Or it's a security hole you can't fix in this PR |
 
 ## Step 4: Fix
 
@@ -61,16 +61,24 @@ Fix each finding that holds up. Follow DEVELOPMENT.md.
 - **When you fix code that does the wrong thing, write a test for the bug.** The test fails without your fix, and passes with it. It goes through the path where the bug was, not only the part the fix changed. For example, if an input was dropped on its way to a tool, the test calls the tool the way an agent does, not just the schema. Write the test first, and run it with `npx vitest run <file>` to see it fail for the bug's reason. Then fix the code, and see it pass.
 - **When the finding is about a wrong test (F7),** fix the test. Then break the thing it targets for a moment, see the fixed test fail, and undo the break.
 - **When the finding is about text, such as a tool description or a design doc (F3, F6),** fix the text. If the text was right and the code was wrong, fix the code instead, with a test.
-- **When the finding breaks a project rule that a tool could check, such as a lint rule, add the check too,** so the next PR can't break it. If the check needs a change to a config file in DEVELOPMENT.md section 6, don't make it. Write it down as step 5 says.
-- **When the right fix is bigger than the PR, make the smallest fix that works for now.** Then write down the bigger change, as step 5 says. Its outcome is `set_aside`, even if the smallest fix covers it for now.
+- **When the finding breaks a project rule that a tool could check, such as a lint rule, add the check too,** so the next PR can't break it. If the check needs a change to a config file in DEVELOPMENT.md section 6, don't make it. Say in your reply what the check would be.
+- **When the right fix is bigger than the PR,** see step 5. It's deferred only when an open issue already plans the work.
 
 Don't change config files, and don't add a disable comment or `@ts-expect-error`, to make a check pass. When a fix needs one, the finding needs attention.
 
-## Step 5: Write down what's set aside
+## Step 5: Defer what belongs in planned work
 
-A finding set aside is work planned for later, so it goes in the issue where it will be done. CLAUDE.md says how. When an open issue will deal with it, add it to that issue's open questions, with `gh issue edit`. When none will, open a new issue with `gh issue create`. Name the PR in what you write. Read an issue's body with `gh issue view <number> --json number,title,state,body`.
+A finding is deferred when its fix belongs in later work that's already planned. Defer it only when all three of these hold:
 
-A security hole is the exception. Never put one in an issue, since the repo is public. Its outcome is `needs_attention`.
+- **The finding holds up, and is above the bar** (step 3).
+- **An open issue already plans work on the same code, and the fix fits that work better.** It can't be the PR's own issue. For example, the issue will rewrite the code the finding is in. Or it adds the caller or the feature the fix depends on. Or it plans a general change that covers the finding. Search the issues with `gh issue list --state open --search "<words>"`, and read one's body with `gh issue view <number> --json number,title,state,body`.
+- **Nothing breaks in normal use while it waits.** When something does, fix the part that breaks now, and defer only the rest.
+
+When you defer a finding, add the work to that issue's open questions, with `gh issue edit`, so it isn't lost. Say what the work is, and name the PR and the finding. Change nothing else in the issue. Never open a new issue.
+
+When no open issue fits, don't defer it. Fix it in this PR. If the fix is too big for the PR, the finding needs attention.
+
+A security hole is never written into an issue, since the repo is public. If you can't fix it in this PR, it needs attention.
 
 ## Step 6: Check and commit
 
@@ -101,8 +109,8 @@ Your final answer is a JSON object. When you handled the findings, it's:
 
 - **`replies` has one entry for each finding marked "fix",** and one for each earlier finding Joe asked you to fix.
 - **`outcome`** is one of the five in step 3.
-- **`issue`** is the issue's number for `set_aside`, and `null` for the rest.
-- **`reply`** is posted on the finding's thread. Code starts it with a line that says the outcome, so don't repeat it. For `fixed`, say what changed, in a sentence or two, and name the test. For `set_aside`, say what the smallest fix did, if you made one, and what's left for the issue. For the rest, say why. For `needs_attention`, say what has to be decided. The next round's fixer reads this reply, so say enough that it won't undo what you did. Write in plain words, with one idea per sentence. Name the function or value you mean.
+- **`issue`** is the issue's number for `deferred`, and `null` for the rest.
+- **`reply`** is posted on the finding's thread. Code starts it with a line that says the outcome, so don't repeat it. For `fixed`, say what changed, in a sentence or two, and name the test. For `deferred`, say why the fix fits the issue's work, and what you fixed now, if anything broke in normal use. For the rest, say why. For `needs_attention`, say what has to be decided. The next round's fixer reads this reply, so say enough that it won't undo what you did. Write in plain words, with one idea per sentence. Name the function or value you mean.
 
 When you stopped early, it's:
 
@@ -118,4 +126,4 @@ npx tsx src/code-review/check-fix.ts $ARGUMENTS <<'EOF'
 EOF
 ```
 
-It says what's wrong, such as a finding with no entry, or `set_aside` with no open issue. Fix what it reports, and check again.
+It says what's wrong, such as a finding with no entry, or `deferred` with no open issue. Fix what it reports, and check again.
