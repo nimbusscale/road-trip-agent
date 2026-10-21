@@ -10,6 +10,17 @@ const degreesSchema = z
 
 const percentSchema = z.number().min(0).max(100).default(0);
 
+// Such as "snow" for SNOW or "rain and snow" for RAIN_AND_SNOW. A chance with no type
+// is named "precipitation".
+const precipitationTypeSchema = z
+  .string()
+  .optional()
+  .transform((type) =>
+    type === undefined || type === "NONE" || type.endsWith("_UNSPECIFIED")
+      ? "precipitation"
+      : type.toLowerCase().replaceAll("_", " "),
+  );
+
 const forecastDaySchema = z
   .object({
     displayDate: z.object({
@@ -26,10 +37,10 @@ const forecastDaySchema = z
       precipitation: z
         .object({
           probability: z
-            .object({ percent: percentSchema })
-            .default({ percent: 0 }),
+            .object({ type: precipitationTypeSchema, percent: percentSchema })
+            .default({ type: "precipitation", percent: 0 }),
         })
-        .default({ probability: { percent: 0 } }),
+        .default({ probability: { type: "precipitation", percent: 0 } }),
       thunderstormProbability: percentSchema,
     }),
   })
@@ -38,7 +49,9 @@ const forecastDaySchema = z
     highInFahrenheit: day.maxTemperature,
     lowInFahrenheit: day.minTemperature,
     conditions: day.daytimeForecast.weatherCondition.description.text,
-    rainChancePercent: day.daytimeForecast.precipitation.probability.percent,
+    precipitation: day.daytimeForecast.precipitation.probability.type,
+    precipitationChancePercent:
+      day.daytimeForecast.precipitation.probability.percent,
     thunderstormChancePercent: day.daytimeForecast.thunderstormProbability,
   }));
 

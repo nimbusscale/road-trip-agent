@@ -28,7 +28,7 @@ import type { WeatherSession } from "./weather-session.js";
 // The weather tool (tool design, section 2.5).
 
 export const LOOK_UP_STAY_WEATHER_DESCRIPTION =
-  "Looks up the weather at a place for a stay's dates. When every one of the stay's dates is within 7 days of today, it returns Google's daily forecast. Otherwise it returns seasonal averages from the last 10 years. The tool picks which from the stay's dates, and the reply says which it is. The reply also lists the stay's activities: each attraction stop, with its place or its purpose, and its date and time. When the forecast leaves out any of the stay's dates, the reply is an error, not seasonal averages.";
+  "Looks up the weather at a place for a stay's dates. When every one of the stay's dates is within 7 days of today, it returns Google's daily forecast. Otherwise it returns seasonal averages from the last 10 years. The reply also lists the stay's activities: each attraction stop, with its place or its purpose, and its date and time. When the forecast leaves out any of the stay's dates, the reply is an error, not seasonal averages.";
 
 export function lookUpStayWeatherTool(
   session: WeatherSession,
@@ -103,7 +103,7 @@ function forecastLines(days: readonly ForecastDay[]): string[] {
     "Forecast, from Google Weather. Conditions and chances are for the daytime.",
     ...days.map(
       (day) =>
-        `- ${day.date.longText}: high ${degrees(day.highInFahrenheit)}, low ${degrees(day.lowInFahrenheit)}. ${day.conditions}. ${String(day.rainChancePercent)}% chance of rain, ${String(day.thunderstormChancePercent)}% chance of thunderstorms.`,
+        `- ${day.date.longText}: high ${degrees(day.highInFahrenheit)}, low ${degrees(day.lowInFahrenheit)}. ${day.conditions}. ${String(day.precipitationChancePercent)}% chance of ${day.precipitation}, ${String(day.thunderstormChancePercent)}% chance of thunderstorms.`,
     ),
   ];
 }

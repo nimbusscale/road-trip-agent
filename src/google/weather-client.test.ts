@@ -15,7 +15,8 @@ const API_KEY = "test-server-key";
 
 // Responses Google gave on 2026-10-21 at 15:37 UTC. Moab's starts on today, October 21.
 // Honolulu's was asked for at 5:37 a.m. there, before Google's forecast day starts at
-// 7 a.m., so it starts on yesterday, October 20 (Google design section 3).
+// 7 a.m., so it starts on yesterday, October 20 (Google design section 3). Leadville's,
+// from later that day, gives chances of snow.
 function savedResponse(name: string): string {
   return readFileSync(
     new URL(`saved-responses/${name}.json`, import.meta.url),
@@ -79,7 +80,8 @@ describe("WeatherClient.forecastFor", () => {
         highInFahrenheit: 58.4,
         lowInFahrenheit: 52.3,
         conditions: "Heavy rain",
-        rainChancePercent: 75,
+        precipitation: "rain",
+        precipitationChancePercent: 75,
         thunderstormChancePercent: 30,
       },
       {
@@ -87,7 +89,8 @@ describe("WeatherClient.forecastFor", () => {
         highInFahrenheit: 66.1,
         lowInFahrenheit: 43.8,
         conditions: "Sunny",
-        rainChancePercent: 15,
+        precipitation: "rain",
+        precipitationChancePercent: 15,
         thunderstormChancePercent: 10,
       },
     ]);
@@ -109,6 +112,36 @@ describe("WeatherClient.forecastFor", () => {
     );
   });
 
+  it("names what the chance is of, even when the conditions say otherwise", async () => {
+    const { client } = clientFor(savedResponse("forecast-leadville"));
+    const [day] = await client.forecastFor(MOAB, [october(22)]);
+    expect(day?.conditions).toBe("Light rain");
+    expect(day?.precipitation).toBe("snow");
+    expect(day?.precipitationChancePercent).toBe(45);
+  });
+
+  it("names a mix of rain and snow", async () => {
+    const { client } = clientFor(
+      JSON.stringify({
+        forecastDays: [
+          {
+            displayDate: { year: 2026, month: 10, day: 22 },
+            maxTemperature: { degrees: 36 },
+            minTemperature: { degrees: 28 },
+            daytimeForecast: {
+              weatherCondition: { description: { text: "Rain and snow" } },
+              precipitation: {
+                probability: { type: "RAIN_AND_SNOW", percent: 60 },
+              },
+            },
+          },
+        ],
+      }),
+    );
+    const [day] = await client.forecastFor(MOAB, [october(22)]);
+    expect(day?.precipitation).toBe("rain and snow");
+  });
+
   it("counts a chance Google leaves out as 0%", async () => {
     const { client } = clientFor(
       JSON.stringify({
@@ -125,7 +158,8 @@ describe("WeatherClient.forecastFor", () => {
       }),
     );
     const [day] = await client.forecastFor(MOAB, [october(22)]);
-    expect(day?.rainChancePercent).toBe(0);
+    expect(day?.precipitation).toBe("precipitation");
+    expect(day?.precipitationChancePercent).toBe(0);
     expect(day?.thunderstormChancePercent).toBe(0);
   });
 

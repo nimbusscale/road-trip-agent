@@ -29,7 +29,9 @@ export interface ForecastDay {
   highInFahrenheit: number;
   lowInFahrenheit: number;
   conditions: string;
-  rainChancePercent: number;
+  // What the chance is of, such as "rain" or "snow".
+  precipitation: string;
+  precipitationChancePercent: number;
   thunderstormChancePercent: number;
 }
 
@@ -117,7 +119,8 @@ function forecastDayOf(day: GoogleForecastDay): ForecastDay {
     highInFahrenheit: day.highInFahrenheit,
     lowInFahrenheit: day.lowInFahrenheit,
     conditions: day.conditions,
-    rainChancePercent: day.rainChancePercent,
+    precipitation: day.precipitation,
+    precipitationChancePercent: day.precipitationChancePercent,
     thunderstormChancePercent: day.thunderstormChancePercent,
   };
 }

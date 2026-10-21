@@ -27,7 +27,7 @@ const OWNER = { id: "4f6c1d0e-2a8b-4c3d-9e7f-1a2b3c4d5e6f" };
 
 // Saved responses (DEVELOPMENT.md section 5). Google's Moab forecast runs from October
 // 21 to 30, 2026. Honolulu's was asked for before 7 a.m. there, so it runs from October
-// 20 to 29. Open-Meteo's are Moab's for October 3 to 20 of 2016 to 2025, by year.
+// 20 to 29. Leadville's runs from October 21 to 30, with chances of snow. Open-Meteo's are Moab's for October 3 to 20 of 2016 to 2025, by year.
 function saved(path: string): string {
   return readFileSync(new URL(path, import.meta.url), "utf8");
 }
@@ -35,6 +35,9 @@ function saved(path: string): string {
 const MOAB_FORECAST = saved("../google/saved-responses/forecast-moab.json");
 const HONOLULU_FORECAST = saved(
   "../google/saved-responses/forecast-honolulu-before-7am.json",
+);
+const LEADVILLE_FORECAST = saved(
+  "../google/saved-responses/forecast-leadville.json",
 );
 const MOAB_OCTOBER_BY_YEAR: unknown = JSON.parse(
   saved("../open-meteo/saved-responses/moab-october-10-to-13.json"),
@@ -175,6 +178,20 @@ describe("look_up_stay_weather", () => {
       "- Monday, October 26, 2026: high 62°F, low 39°F. Sunny. 5% chance of rain, 0% chance of thunderstorms.",
     ]);
     expect(hosts).toEqual(["weather.googleapis.com"]);
+  });
+
+  it("says when the chance is of snow", async () => {
+    // Leadville's forecast, given for Moab, since only what the line says matters here.
+    const { moab, call } = await moabTrip(OCTOBER_21, {
+      startDate: new CalendarDate(2026, 10, 23),
+      answers: { forecast: LEADVILLE_FORECAST },
+    });
+    const text = textOf(
+      await call({ stayId: moab.id, placeId: moab.place.id }),
+    );
+    expect(text).toContain(
+      "- Saturday, October 24, 2026: high 39°F, low 30°F. Snow. 40% chance of snow, 20% chance of thunderstorms.",
+    );
   });
 
   it("gives seasonal averages when any date is 8 days away, counting today as day 0", async () => {

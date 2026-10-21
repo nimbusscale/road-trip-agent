@@ -93,10 +93,12 @@ GET https://weather.googleapis.com/v1/forecast/days:lookup
 - **Ask for 10 days, the most Google allows, and pick each of the stay's dates by its `displayDate`.** A stay's dates can run to day 7, counting today as day 0 (technical spec section 8). The first day returned isn't always today. Google's forecast day starts at 7 a.m. local time, so before then the first day is yesterday. On October 21, 2026 at 5:37 a.m. in Honolulu, the first day was October 20 (checked 2026-10-21). Ten days still reach day 8.
 - **Set `pageSize` as well as `days`.** The default page is 5 days. Without `pageSize=10`, a 10-day request returns 5 days and a page token.
 - **`unitsSystem=IMPERIAL`** gives Fahrenheit, inches, and miles per hour (spec 9.7).
-- **Asking for more than 10 days fails** with HTTP 400 and only "Request contains an invalid argument." The tool checks the dates before calling.
+- **Asking for more than 10 days fails** with HTTP 400 and only "Request contains an invalid argument." The tool always asks for 10.
 - **Dates are local to the location.** The response includes the place's time zone (`timeZone.id`).
 
-**What the tool returns per day:** `displayDate`, `maxTemperature`, `minTemperature`, the daytime `weatherCondition.description.text`, the daytime `precipitation.probability.percent`, and `thunderstormProbability`. Drop the rest, such as moon events and ice thickness. The raw response is about 3,600 characters per day.
+**What the tool returns per day:** `displayDate`, `maxTemperature`, `minTemperature`, the daytime `weatherCondition.description.text`, the daytime `precipitation.probability` `percent` and `type`, and `thunderstormProbability`. Drop the rest, such as moon events and ice thickness. The raw response is about 3,600 characters per day.
+
+- **The chance's `type` says what would fall.** It's `RAIN`, `SNOW`, or `RAIN_AND_SNOW`, and the tool names it, such as "40% chance of snow." The type can differ from the conditions text. In Leadville on October 22, 2026, the text was "Light rain" and the type was `SNOW` (checked 2026-10-21).
 
 ---
 
