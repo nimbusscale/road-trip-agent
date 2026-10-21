@@ -37,4 +37,4 @@ It is not a product. Joe is the main user, and a family member or friend may try
 
 ## Pull requests
 
-- A PR description holds only the task, the "Done when" results, and the "Set aside" list of review findings marked "fix" that weren't fixed (code review design section 4.4). Decisions, other things set aside, and config changes you think are needed go in a PR comment, posted right after the PR is opened (DEVELOPMENT.md section 7).
+- A PR description holds only the task and the "Done when" results. Decisions, things set aside, and config changes you think are needed go in a PR comment, posted right after the PR is opened (DEVELOPMENT.md section 7).

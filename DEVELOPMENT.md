@@ -96,8 +96,6 @@ Worker results aren't on the list. A worker returns text that the coordinator re
 
 **A PR description holds the task, and nothing about how it was done.** It starts with the task, word for word, though filler words in a spoken request can be dropped. For an issue, that's its "Do" and "Done when" items, and `Closes #N`. Otherwise it's what Joe asked for. Then it lists each "Done when" item with its result, and what was checked by hand.
 
-**A review finding marked "fix" that isn't fixed goes on a "Set aside" list at the end of the description.** Each line names the finding in a few words, and where it went: below the bar, wrong, or an issue. It never says why, since the reviewer reads the description. The reason goes in the conversation comment that quotes the finding. The list keeps the next review from posting the finding again ([code review design](design/code-review.md), section 4.4).
-
 **Everything else goes in one PR comment, the decisions comment.** Post it right after the PR is opened. It holds:
 
 - each decision made, and the design doc it was written into
