@@ -56,7 +56,7 @@ Look at the PR from each of these four angles, one after another. For each candi
 
 ### Angle A: line by line
 
-Read every hunk in the diff, line by line. Then read the whole function around each hunk. A bug in an unchanged line of a changed function is in scope, since the PR exposes it again or fails to fix it. For every line, ask what input, state, timing, or platform makes it wrong. Look for wrong or inverted conditions, off-by-one errors, null or undefined reads, a missing `await`, checks that treat 0 or "" as missing, a copied line with the wrong variable, an error swallowed in a catch, and regex characters that aren't escaped.
+Read every hunk in the diff, line by line. Then read the whole function around each hunk. A bug in an unchanged line of a changed function is in scope, since the PR exposes it again or fails to fix it. For every line, ask what input, state, timing, or platform makes it wrong. Common examples are wrong or inverted conditions, off-by-one errors, null or undefined reads, a missing `await`, checks that treat 0 or "" as missing, a copied line with the wrong variable, an error swallowed in a catch, and regex characters that aren't escaped. A bug of any other kind counts the same.
 
 ### Angle B: removed behavior
 
