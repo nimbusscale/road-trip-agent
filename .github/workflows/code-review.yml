@@ -30,8 +30,7 @@ jobs:
     timeout-minutes: 30
     permissions:
       contents: read
-      # To read an issue a code comment hands work to (D3 in code review design
-      # section 3.1).
+      # To read an issue a code comment hands work to (D3 in the review rubric).
       issues: read
       pull-requests: write
     env:

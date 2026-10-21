@@ -1,6 +1,6 @@
 ---
 name: review-pr
-description: Reviews a pull request against the project's bar, labels each finding with the rubric in code review design section 3.1, and returns the findings as JSON. The "Code review" workflow runs it, and posts what it returns. Takes the PR number.
+description: Reviews a pull request against the project's bar, labels each finding with the review rubric in `design/review-rubric.md`, and returns the findings as JSON. The "Code review" workflow runs it, and posts what it returns. Takes the PR number.
 disable-model-invocation: true
 ---
 
@@ -14,7 +14,7 @@ Your working directory is the repo root. Run each command from there, without `c
 
 ## Step 1: Read the rubric
 
-Read `design/code-review.md` section 3.1, all of it. It's the only rule for choosing a label. It also defines "normal use" and each label's limits. F5 points to the threat model in `CLAUDE.md`, under "What this project is".
+Read `design/review-rubric.md`, all of it. It's the only rule for choosing a label. It also defines "normal use" and each label's limits. F5 points to the threat model in `CLAUDE.md`, under "What this project is".
 
 ## Step 2: Read the task and the earlier findings
 
@@ -24,7 +24,7 @@ Read the PR description:
 gh pr view $ARGUMENTS --json title,body,baseRefName,headRefOid
 ```
 
-The description holds the task: the issue's "Do" and "Done when" items, and what was checked by hand. It may also have a "Set aside" list (code review design section 4.4).
+The description holds the task: the issue's "Do" and "Done when" items, and what was checked by hand. It may also have a "Set aside" list.
 
 Then read the findings earlier reviews posted. These are inline comments, plus the body of any review that has one:
 

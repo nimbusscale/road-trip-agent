@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-// The labels in the rubric, code review design section 3.1, in the table's order.
+// The labels in the review rubric, design/review-rubric.md, in the table's order.
 export const LABELS = [
   "V1",
   "D1",
