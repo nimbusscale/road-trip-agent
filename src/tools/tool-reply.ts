@@ -2,6 +2,8 @@ import type { SdkMcpToolDefinition } from "@anthropic-ai/claude-agent-sdk";
 
 import { RuleError } from "../domain/rule-error.js";
 import { GoogleRoutesError } from "../google/routes-client.js";
+import { GoogleWeatherError } from "../google/weather-client.js";
+import { OpenMeteoError } from "../open-meteo/archive-client.js";
 import { TripBusyError } from "../persistence/trip-errors.js";
 
 // The MCP result a tool's handler returns. Taken from the Agent SDK, which doesn't
@@ -17,8 +19,23 @@ export function textReply(lines: readonly string[]): ToolReply {
 // can read (tool design, section 4): a broken rule, a busy trip, or a failed Google
 // call. Any other error is a bug, so it's thrown, and the Agent SDK reports it as a
 // failed call.
-export async function writeReplyOrReadableError(
+export function writeReplyOrReadableError(
   work: () => Promise<ToolReply>,
+): Promise<ToolReply> {
+  return replyOrReadableError(work, writeErrorText);
+}
+
+// The same for a tool that only reads, so nothing could have changed: a broken rule,
+// such as a bad ID, or a failed call to Google or Open-Meteo.
+export function readReplyOrReadableError(
+  work: () => Promise<ToolReply>,
+): Promise<ToolReply> {
+  return replyOrReadableError(work, (error) => error.message);
+}
+
+async function replyOrReadableError(
+  work: () => Promise<ToolReply>,
+  textOf: (error: Error) => string,
 ): Promise<ToolReply> {
   try {
     return await work();
@@ -27,7 +44,7 @@ export async function writeReplyOrReadableError(
       throw error;
     }
     return {
-      content: [{ type: "text", text: readableText(error) }],
+      content: [{ type: "text", text: textOf(error) }],
       isError: true,
     };
   }
@@ -37,13 +54,15 @@ function isReadable(error: unknown): error is Error {
   return (
     error instanceof RuleError ||
     error instanceof TripBusyError ||
-    error instanceof GoogleRoutesError
+    error instanceof GoogleRoutesError ||
+    error instanceof GoogleWeatherError ||
+    error instanceof OpenMeteoError
   );
 }
 
 // A write runs in one transaction, so any refusal saved nothing (technical spec 5.2).
 // The busy error already says so.
-function readableText(error: Error): string {
+function writeErrorText(error: Error): string {
   return error instanceof TripBusyError
     ? error.message
     : `Nothing was changed. ${error.message}`;

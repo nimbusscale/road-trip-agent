@@ -1,5 +1,6 @@
 import type { Settings } from "../config/settings.schema.js";
 import type { Calendar } from "./calendar.js";
+import type { CalendarDate } from "./calendar-date.js";
 import type { CandidateOffer } from "./candidate.js";
 import { describeStopAndPlace } from "./day.js";
 import type { Itinerary } from "./itinerary.js";
@@ -108,20 +109,7 @@ export class StaysService {
     stay: Stay,
     guidance: string,
   ): WeatherText {
-    const today = this.#calendar.today(itinerary);
-    const dates = this.#calendar.datesOf(itinerary, stay);
-    // A stay can't be added before the start place and start date, so this is only for
-    // the type checker.
-    if (today === null || dates.length === 0) {
-      throw new RuleError(
-        "Weather text needs the trip's start place and start date.",
-      );
-    }
-    const label: WeatherLabel = dates.every(
-      (date) => date.compareTo(today) <= FORECAST_DAYS,
-    )
-      ? "forecast"
-      : "seasonalAverages";
+    const { today, dates, label } = this.weatherFor(itinerary, stay);
     const weatherText = new WeatherText({
       guidance,
       label,
@@ -138,6 +126,31 @@ export class StaysService {
     });
     stay[VIA_SERVICE].setWeatherText(weatherText);
     return weatherText;
+  }
+
+  // Which weather the stay gets: a forecast when every one of its dates is within 7
+  // days of today, and seasonal averages otherwise. The weather tool picks its source by
+  // it, and the saved text is labeled by it, so the two always match (technical spec
+  // 6.3).
+  weatherFor(
+    itinerary: Itinerary,
+    stay: Stay,
+  ): { today: CalendarDate; dates: CalendarDate[]; label: WeatherLabel } {
+    const today = this.#calendar.today(itinerary);
+    const dates = this.#calendar.datesOf(itinerary, stay);
+    // A stay can't be added before the start place and start date, so this is only for
+    // the type checker.
+    if (today === null || dates.length === 0) {
+      throw new RuleError(
+        "Weather text needs the trip's start place and start date.",
+      );
+    }
+    const label: WeatherLabel = dates.every(
+      (date) => date.compareTo(today) <= FORECAST_DAYS,
+    )
+      ? "forecast"
+      : "seasonalAverages";
+    return { today, dates, label };
   }
 
   #refuseOverLength(dayCount: number): void {
