@@ -44,6 +44,12 @@ export const findingsSchema = z.strictObject({
   findings: z.array(findingSchema),
 });
 
+// Draft 07, since claude -p refuses Zod's default, draft 2020-12, as "not a valid JSON
+// Schema" (Claude Code 2.1.304, tried 2026-10-20).
+export function findingsJsonSchema(): string {
+  return JSON.stringify(z.toJSONSchema(findingsSchema, { target: "draft-07" }));
+}
+
 // The parts of claude -p --output-format json that the posting step reads. With
 // --json-schema, the answer is in structured_output.
 export const reviewResultSchema = z

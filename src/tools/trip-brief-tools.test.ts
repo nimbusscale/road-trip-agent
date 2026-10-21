@@ -7,11 +7,8 @@ import { TripBusyError } from "../persistence/trip-errors.js";
 import { setUp } from "../persistence/trip-writer.fake.js";
 import { CLOCK_TIME_ERROR } from "./clock-time.js";
 import type { ToolReply } from "./tool-reply.js";
-import {
-  readTripBriefTool,
-  UPDATE_TRIP_BRIEF_INPUT,
-  updateTripBriefTool,
-} from "./trip-brief-tools.js";
+import { UPDATE_TRIP_BRIEF_INPUT } from "./trip-brief-input.schema.js";
+import { readTripBriefTool, updateTripBriefTool } from "./trip-brief-tools.js";
 
 const OWNER = { id: "4f6c1d0e-2a8b-4c3d-9e7f-1a2b3c4d5e6f" };
 
