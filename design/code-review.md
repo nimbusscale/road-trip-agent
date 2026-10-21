@@ -15,7 +15,7 @@ The evidence behind it is in `research/code-review-evaluation.md`. That doc reco
 | The review in CI | Running since 2026-10-16. The stock `/code-review` ran until #75, and our own reviewer runs since (section 2) |
 | Rules for which findings get fixed | Agreed 2026-10-16 and 2026-10-18. Rewritten as a rubric with labels 2026-10-19. Revised 2026-10-20 after four labeling runs, and then called done. It's tuned as it's used. Applied by hand for now (section 3) |
 | Our own review prompt | Written 2026-10-20, as the `review-pr` skill (section 4.1). It replaced the stock one in CI in the PR that added it (#75), and is judged on new PRs (section 4.8) |
-| The fix loop | Not built. Planned 2026-10-19 (section 4). The work to build it is #75, #76, and #77 |
+| The fix loop | Not built. Planned 2026-10-19 (section 4). The fixer is written as the `fix-pr` skill, and tested by hand in #76 (section 4.5). The fix job is #77 |
 | The CI reviewer can read the Claude token | Open item 21 |
 
 ---
@@ -43,11 +43,11 @@ These rules apply now, when findings are handled by hand, and later to the fix l
 
 **The rubric is its own doc, [the review rubric](review-rubric.md).** Each finding gets one label from it. A finding is fixed when its label is F1 to F7. That's "the bar." It's kept apart from this doc so the reviewer can read it without the real cases in the rest of this doc (section 4.1).
 
-### 3.2 Findings that come along
+### 3.2 Notes aren't fixed
 
-**A finding below the bar is fixed only when it's on lines the round already changes.** Once those lines are being changed, the fix costs almost nothing, and the next review will look at them anyway. A finding below the bar anywhere else waits. Each fix gives the next review new lines to find things in. That's how PR #39 went seven rounds (research doc, section 10).
+**A finding below the bar isn't fixed, even when it's on lines the round already changes.** Each fix gives the next review new lines to find things in. That's how PR #39 went seven rounds (research doc, section 10). "Lines the round already changes" is also too loose a rule for an agent to apply the same way twice. The notes stay on the PR, and Joe decides on them when the PR comes to him. Decided 2026-10-21 in #76.
 
-Example: on PR #44, the schema's false maximum was in the same schema that the fix for unknown keys rewrote.
+Example: on PR #44 round 1, the schema's false maximum, an N3, was fixed by hand, since it was in the same schema that the fix for unknown keys rewrote. Under this rule, it would have stayed a note.
 
 ### 3.3 Findings below the bar
 
@@ -125,7 +125,7 @@ The cost is small:
 - **D1 depends on the reviewer's own check of the code.** That's where a second look helps most. If a later review finds the claim is true after all, the finding is posted.
 - **A finding could flip between a D label and a fix from one round to the next.** Then the loop spends a fix round on it. The cap on rounds limits that (section 4.6), and each flip is a labeling disagreement worth counting (#86).
 
-**The fixer gets only the findings marked "fix".** It still checks each one against the code first (section 3.5), and it can find that one is below the bar after all. It can also fix a note on lines it's already changing (section 3.2).
+**The fixer gets only the findings marked "fix".** It still checks each one against the code first (section 3.5), and it can find that one is below the bar after all. It never fixes a note, even on lines it's already changing (section 3.2). The notes stay on the PR for Joe.
 
 **The reviewer marks them, so a fix agent doesn't start just to turn findings down.** Example: PR #44 round 4 had 5 findings, and none was above the bar. If the fixer judged the bar, a fix agent would have read all 5, replied to each, and pushed nothing. With the reviewer marking them, the loop stops after the review.
 
@@ -154,12 +154,14 @@ What it never reads holds the reasons the code was written the way it was. Those
 
 **The risk is that the fixer sets aside a real bug, and the reviewer never raises it again.** That's accepted for this project. Joe reads the list first when the PR comes to him. The number of set-aside findings per PR is also measured (section 4.8), so a fixer that sets aside too much shows up.
 
-The list changes the rule in CLAUDE.md and DEVELOPMENT.md section 7 that a PR description holds only the task and the "Done when" results. Those change when the loop is built.
+CLAUDE.md and DEVELOPMENT.md section 7 allow the list in the PR description, next to the task and the "Done when" results.
 
 ### 4.5 The fixer
 
 - **It runs with Opus 5.5 at `high`,** the same as Joe's coding sessions.
-- **It reads the bar, the PR description, the findings marked "fix", and the earlier rounds' replies.** It reads the design docs the findings touch, and it can search the issues.
+- **It's the `fix-pr` skill,** in `.claude/skills/fix-pr/SKILL.md`. It takes the PR number.
+- **It reads the bar, the PR description, the decisions comment, the findings marked "fix", and the earlier rounds' replies.** It reads the design docs the findings touch, and it can search the issues.
+- **It reads the decisions comment, unlike the reviewer** (section 4.3). The fixer is doing the implementer's job, so the implementer's reasons help it. They keep it from undoing a decision, such as renaming a tool back. Decided 2026-10-21 in #76.
 - **It follows section 3:** it checks each finding first, and a fix comes with a test.
 - **When the right fix is bigger than the PR, it makes the smallest fix that works for now.** It writes the bigger change into an open issue's open questions, or opens a Triage issue, as CLAUDE.md says. Then it puts the finding on the set-aside list with that issue. Example: on PR #44 round 3, round 2's fix for the start time was taken out, and the general change to replies was left for phase 22.
 - **It replies in one conversation comment, which quotes each finding** (section 3.6). It says what was fixed and in which commit, and what was set aside and why. The next round's fixer reads these replies.
