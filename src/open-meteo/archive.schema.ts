@@ -2,7 +2,7 @@ import { z } from "zod";
 
 // An Open-Meteo Historical Weather API response, with the daily values the client asks
 // for (Open-Meteo design 2.2). Each value is null for a day with no data yet, such as a
-// day in the last week. A spent limit is normal JSON with "error": true and a reason,
+// day in the last week. `rain_sum` leaves out snow, unlike `precipitation_sum`. A spent limit is normal JSON with "error": true and a reason,
 // and no daily values (section 2.4).
 
 const valuesSchema = z.array(z.number().nullable());
@@ -17,7 +17,7 @@ export const archiveResponseSchema = z.union([
         time: z.array(z.string()),
         temperature_2m_max: valuesSchema,
         temperature_2m_min: valuesSchema,
-        precipitation_sum: valuesSchema,
+        rain_sum: valuesSchema,
         snowfall_sum: valuesSchema,
       }),
     })
@@ -39,13 +39,13 @@ function daysOf(daily: {
   time: string[];
   temperature_2m_max: (number | null)[];
   temperature_2m_min: (number | null)[];
-  precipitation_sum: (number | null)[];
+  rain_sum: (number | null)[];
   snowfall_sum: (number | null)[];
 }): PastDay[] {
   return daily.time.flatMap((date, index) => {
     const high = daily.temperature_2m_max[index];
     const low = daily.temperature_2m_min[index];
-    const rain = daily.precipitation_sum[index];
+    const rain = daily.rain_sum[index];
     const snow = daily.snowfall_sum[index];
     if (high == null || low == null || rain == null || snow == null) {
       return [];

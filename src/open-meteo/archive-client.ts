@@ -113,7 +113,7 @@ export class ArchiveClient {
     url.searchParams.set("end_date", end.toText());
     url.searchParams.set(
       "daily",
-      "temperature_2m_max,temperature_2m_min,precipitation_sum,snowfall_sum",
+      "temperature_2m_max,temperature_2m_min,rain_sum,snowfall_sum",
     );
     url.searchParams.set("temperature_unit", "fahrenheit");
     url.searchParams.set("precipitation_unit", "inch");

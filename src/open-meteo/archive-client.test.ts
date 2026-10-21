@@ -23,6 +23,12 @@ const SPENT_LIMIT = readFileSync(
   "utf8",
 );
 
+// Leadville's response for January 3 to 20, 2025, when every wet day was snow.
+const LEADVILLE_JANUARY = readFileSync(
+  new URL("saved-responses/leadville-january-2025.json", import.meta.url),
+  "utf8",
+);
+
 const MOAB = examplePlace({
   name: "Moab",
   latitude: 38.5733,
@@ -70,7 +76,7 @@ describe("ArchiveClient.seasonalAverages", () => {
         ["longitude", "-109.5498"],
         [
           "daily",
-          "temperature_2m_max,temperature_2m_min,precipitation_sum,snowfall_sum",
+          "temperature_2m_max,temperature_2m_min,rain_sum,snowfall_sum",
         ],
         ["temperature_unit", "fahrenheit"],
         ["precipitation_unit", "inch"],
@@ -111,6 +117,25 @@ describe("ArchiveClient.seasonalAverages", () => {
     });
   });
 
+  it("doesn't count snow as rain", async () => {
+    // The same January answers every year. Only what's counted as rain matters here.
+    const client = new ArchiveClient({
+      fetch: () => Promise.resolve(new Response(LEADVILLE_JANUARY)),
+    });
+    const averages = await client.seasonalAverages(
+      examplePlace({
+        name: "Leadville",
+        latitude: 39.2508,
+        longitude: -106.2925,
+      }),
+      [10, 11, 12, 13].map((day) => new CalendarDate(2027, 1, day)),
+      TODAY,
+    );
+    expect(averages.rainDaysPercent).toBe(0);
+    // 5 of the 18 days had at least 1 cm of snow.
+    expect(averages.snowDaysPercent).toBe(28);
+  });
+
   it("refuses with Open-Meteo's reason when a limit is spent", async () => {
     const client = new ArchiveClient({
       fetch: () => Promise.resolve(new Response(SPENT_LIMIT, { status: 429 })),
@@ -134,7 +159,7 @@ describe("ArchiveClient.seasonalAverages", () => {
   it("leaves out days with no data yet, and refuses when no day has any", async () => {
     // Open-Meteo's names, so it's written as JSON.
     const empty =
-      '{"daily":{"time":["2025-10-03"],"temperature_2m_max":[null],"temperature_2m_min":[null],"precipitation_sum":[null],"snowfall_sum":[null]}}';
+      '{"daily":{"time":["2025-10-03"],"temperature_2m_max":[null],"temperature_2m_min":[null],"rain_sum":[null],"snowfall_sum":[null]}}';
     const client = new ArchiveClient({
       fetch: () => Promise.resolve(new Response(empty)),
     });

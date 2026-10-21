@@ -30,7 +30,7 @@ This document covers the Open-Meteo Historical Weather API. The app uses it for 
   ```
   latitude=38.5733&longitude=-109.5498
   &start_date=2025-10-03&end_date=2025-10-19
-  &daily=temperature_2m_max,temperature_2m_min,precipitation_sum,snowfall_sum
+  &daily=temperature_2m_max,temperature_2m_min,rain_sum,snowfall_sum
   &temperature_unit=fahrenheit&precipitation_unit=inch&timezone=auto
   ```
 - **Don't set `models`.** Use the default. The `era5_land` model returns no precipitation or snowfall.
@@ -44,11 +44,13 @@ The tool combines all the days from all 10 years and returns one small summary p
 |---|---|
 | Label | "Typical for this time of year, based on <first year>–<last year>". The itinerary shows this so averages are never mistaken for a forecast (spec 8). It names no dates: the stay's dates show beside it, and moving the trip a day or two keeps the same averages (domain model 4.1) |
 | Average high and low, °F | Mean of the daily highs and lows |
-| Chance of rain on a given day | Share of days with at least 0.04 in (1 mm) of precipitation |
+| Chance of rain on a given day | Share of days with at least 0.04 in (1 mm) of rain, from `rain_sum` |
 | Chance of snow on a given day | Share of days with at least 0.4 in (1 cm) of snowfall |
 | Hot days | Share of days at or above 90 °F, and at or above 100 °F |
 | Freezing nights | Share of nights at or below 32 °F |
 | Warmest and coldest seen | Highest high and lowest low in the data |
+
+**Count rain from `rain_sum`, not `precipitation_sum`.** `precipitation_sum` includes snow, as its water. In Leadville, CO from January 3 to 20, 2025, it had 1 mm or more on 7 days, while `rain_sum` was 0 on every day (checked 2026-10-21). `showers_sum` is always 0 here, so `rain_sum` holds all the rain.
 
 **Don't return rain or snow totals.** In testing, monthly rain totals ran up to twice NOAA's and snow totals ran at about half. Shares of days held up better.
 
