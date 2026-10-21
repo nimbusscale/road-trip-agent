@@ -12,11 +12,11 @@ import { PlaceRepository } from "../persistence/place-repository.js";
 import type { Queryable } from "../persistence/queryable.js";
 import { TripReader } from "../persistence/trip-reader.js";
 import { TripRepository } from "../persistence/trip-repository.js";
-import { stayWeatherTool } from "./weather-tools.js";
+import { lookUpStayWeatherTool } from "./weather-tools.js";
 import type { WeatherSession } from "./weather-session.js";
 
-// Part of every tool name the model sees, such as mcp__weather__stay_weather (tool
-// design, section 1).
+// Part of every tool name the model sees, such as
+// mcp__weather__look_up_stay_weather (tool design, section 1).
 export const WEATHER_SERVER_NAME = "weather";
 
 export interface WeatherAccessGiven {
@@ -58,6 +58,6 @@ export function createWeatherServer(
     name: WEATHER_SERVER_NAME,
     // The weather worker calls it for every stay, so it's never left for a tool search.
     alwaysLoad: true,
-    tools: [stayWeatherTool(session)],
+    tools: [lookUpStayWeatherTool(session)],
   });
 }

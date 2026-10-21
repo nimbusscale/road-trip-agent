@@ -21,7 +21,7 @@ import { ArchiveClient } from "../open-meteo/archive-client.js";
 import { PlaceReader } from "../persistence/place-reader.js";
 import { setUp } from "../persistence/trip-writer.fake.js";
 import type { ToolReply } from "./tool-reply.js";
-import { stayWeatherTool } from "./weather-tools.js";
+import { lookUpStayWeatherTool } from "./weather-tools.js";
 
 const OWNER = { id: "4f6c1d0e-2a8b-4c3d-9e7f-1a2b3c4d5e6f" };
 
@@ -110,7 +110,7 @@ async function moabTrip(
   );
   const hosts: string[] = [];
   const fetchFake = fetchFor(options.answers ?? {}, hosts);
-  const tool = stayWeatherTool({
+  const tool = lookUpStayWeatherTool({
     tripId: trip.id,
     reader: fixture.reader,
     places: new PlaceReader({
@@ -137,7 +137,7 @@ function textOf(reply: ToolReply): string {
 // On October 21, 2026 at 10 a.m. in Grand Junction.
 const OCTOBER_21 = new Date("2026-10-21T16:00:00Z");
 
-describe("stay_weather", () => {
+describe("look_up_stay_weather", () => {
   it("gives seasonal averages for a stay in October 2027, labeled with the years they come from", async () => {
     const { moab, hosts, call } = await moabTrip(OCTOBER_21);
     const reply = await call({ stayId: moab.id, placeId: moab.place.id });

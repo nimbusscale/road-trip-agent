@@ -20,22 +20,24 @@ import { calendarAndServicesFor } from "../domain/trip-services.js";
 import type { ForecastDay } from "../google/weather-client.js";
 import type { SeasonalAverages } from "../open-meteo/seasonal-averages.js";
 import { refuseWrongKind } from "./id-kind.js";
-import { STAY_WEATHER_INPUT } from "./stay-weather-input.schema.js";
+import { LOOK_UP_STAY_WEATHER_INPUT } from "./look-up-stay-weather-input.schema.js";
 import { strictTool, type StrictToolDefinition } from "./strict-tool.js";
 import { readReplyOrReadableError, textReply } from "./tool-reply.js";
 import type { WeatherSession } from "./weather-session.js";
 
 // The weather tool (tool design, section 2.5).
 
-export const STAY_WEATHER_DESCRIPTION =
-  "Gets the weather at a place for a stay's dates. When every one of the stay's dates is within 7 days of today, it returns Google's daily forecast. Otherwise it returns seasonal averages from the last 10 years. The tool picks which from the stay's dates, and the reply says which it is. The reply also lists the stay's activities: each attraction stop, with its place or its purpose, and its date and time. When the forecast leaves out any of the stay's dates, the reply is an error, not seasonal averages.";
+export const LOOK_UP_STAY_WEATHER_DESCRIPTION =
+  "Looks up the weather at a place for a stay's dates. When every one of the stay's dates is within 7 days of today, it returns Google's daily forecast. Otherwise it returns seasonal averages from the last 10 years. The tool picks which from the stay's dates, and the reply says which it is. The reply also lists the stay's activities: each attraction stop, with its place or its purpose, and its date and time. When the forecast leaves out any of the stay's dates, the reply is an error, not seasonal averages.";
 
-export function stayWeatherTool(session: WeatherSession): StrictToolDefinition {
+export function lookUpStayWeatherTool(
+  session: WeatherSession,
+): StrictToolDefinition {
   return {
     ...strictTool(
-      "stay_weather",
-      STAY_WEATHER_DESCRIPTION,
-      STAY_WEATHER_INPUT,
+      "look_up_stay_weather",
+      LOOK_UP_STAY_WEATHER_DESCRIPTION,
+      LOOK_UP_STAY_WEATHER_INPUT,
       ({ stayId, placeId }) =>
         readReplyOrReadableError(async () => {
           refuseWrongKind(stayId, "stay");
