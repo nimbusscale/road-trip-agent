@@ -1,6 +1,7 @@
-# Reviews each pull request with the stock /code-review, and posts the findings as
-# inline comments. Opus at the high level was picked by testing it on past PRs
-# (research/code-review-evaluation.md, section 8.5).
+# Reviews each pull request with our own reviewer, the review-pr skill in
+# .claude/skills/, and posts its findings as inline comments, each marked "fix", "note",
+# or "check" (code review design sections 2 and 4.2). Opus was picked by testing the
+# stock /code-review on past PRs (research/code-review-evaluation.md, section 8.5).
 name: Code review
 
 # Runs when a PR is opened or gets a new commit. A push to a branch with no PR doesn't
@@ -29,9 +30,11 @@ jobs:
     timeout-minutes: 30
     permissions:
       contents: read
+      # To read an issue a code comment hands work to (D3 in the review rubric).
+      issues: read
       pull-requests: write
     env:
-      # The version round 1 tested. The review's recipe changes between versions.
+      # The version round 1 tested. Claude Code's behavior changes between versions.
       CLAUDE_CODE_VERSION: 2.1.301
       DISABLE_AUTOUPDATER: 1
     steps:
@@ -49,53 +52,81 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 24
+          cache: npm
+      # Before the reviewer starts, since its commands can't reach npm. It needs the
+      # packages to test a claim with node or tsx, and the posting step needs tsx.
+      - run: npm ci
       - run: npm install --global "@anthropic-ai/claude-code@$CLAUDE_CODE_VERSION"
       - name: Install the sandbox tools
-        # The token scrub below runs each command in a sandbox, which needs bubblewrap and
-        # socat. Ubuntu 24.04 blocks the namespaces bubblewrap needs, so allow them on
-        # this runner.
+        # The sandbox needs bubblewrap and socat. Ubuntu 24.04 blocks the namespaces
+        # bubblewrap needs, so allow them on this runner.
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq --no-install-recommends bubblewrap socat
           sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
 
+      - name: Write the shape of the reviewer's answer
+        # In its own step, since it runs the PR's code, and this step's environment has
+        # no Claude token. The posting step reads the answer with the same schema.
+        run: npx tsx src/code-review/print-findings-schema.ts > "$RUNNER_TEMP/findings-schema.json"
+
       - name: Review the PR
         # A timeout here fails only this step, so the transcript is still saved.
         timeout-minutes: 25
         # The token is the Max subscription (research doc section 4.2). The reviewer
-        # gets read-only tools, plus gh to read the PR and post comments. The Edit and
-        # Write tools and the web tools are blocked. Calling node directly is blocked too,
-        # though git, awk, sed, and find could still start a program. The scrub keeps the
-        # Claude token out of every command the reviewer runs, since the code under review
-        # holds Google text that could carry instructions. The scrub doesn't cover the file
-        # tools, which run inside Claude Code's own process, whose environment holds the
-        # token. So reads of /proc are blocked for Read, Grep, and Glob, and for cat, head,
-        # tail, and sed. The // means the path is from the filesystem root. Without it,
-        # Grep could read /proc/self/environ, and Read could reach it through a symlink.
-        # Claude Code already refuses Bash commands that name /proc/*/environ. What's left
-        # is the job's GitHub token. It can read code and comment on, edit, or close the
-        # PR. It can't push or merge, and the repo doesn't let Actions approve PRs.
-        # That's accepted, since only this repo's own PRs are reviewed, and a PR can change
-        # this workflow anyway. The allow rules in .claude/settings.json don't apply here.
-        # Claude Code ignores them, since the CI workspace isn't trusted. The CI log for
-        # PR #51 shows this.
+        # gets read-only tools, plus node, npx tsx, and the gh commands that read the PR
+        # and its issues. It doesn't post anything. The next step does, from the JSON it returns.
+        # The Edit and Write tools, the web tools, and the Agent tool, which starts
+        # subagents, are blocked.
+        #
+        # Each command runs in Claude Code's sandbox, which lets it reach only GitHub
+        # (code review design section 4.6, tested in #82). The settings go in with
+        # --settings, since Claude Code ignores .claude/settings.json in CI, where the
+        # workspace isn't trusted. The CI log for PR #51 shows this.
+        #
+        # The scrub keeps the Claude token out of every command the reviewer runs, since
+        # the code under review holds Google text that could carry instructions. The
+        # scrub doesn't cover the file tools, which run inside Claude Code's own process,
+        # whose environment holds the token. So reads of /proc are blocked for Read, Grep,
+        # and Glob, and for cat, head, tail, and sed. The // means the path is from the
+        # filesystem root. Without it, Grep could read /proc/self/environ, and Read could
+        # reach it through a symlink. Claude Code already refuses Bash commands that name
+        # /proc/*/environ. What's left is the job's GitHub token. It can read code and
+        # comment on, edit, or close the PR. It can't push or merge, and the repo doesn't
+        # let Actions approve PRs. That's accepted, since only this repo's own PRs are
+        # reviewed, and a PR can change this workflow anyway.
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: 1
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          SANDBOX_SETTINGS: '{"sandbox": {"enabled": true, "failIfUnavailable": true, "allowUnsandboxedCommands": false, "network": {"allowedDomains": ["github.com", "api.github.com"], "strictAllowlist": true}}}'
         run: |
           # Keeps going when claude fails, so the summary still shows why.
           status=0
           claude -p --model claude-opus-5-5 --output-format json \
-            --allowedTools "Bash(git:*)" "Bash(gh:*)" "Bash(cd:*)" "Bash(cat:*)" "Bash(ls:*)" "Bash(grep:*)" "Bash(rg:*)" "Bash(find:*)" "Bash(head:*)" "Bash(tail:*)" "Bash(wc:*)" "Bash(sed:*)" "Bash(awk:*)" "Bash(sort:*)" "Bash(uniq:*)" "Bash(cut:*)" "Bash(tr:*)" "Bash(diff:*)" "Bash(jq:*)" "Bash(echo:*)" "Bash(printf:*)" Read Grep Glob \
-            --disallowedTools Edit Write NotebookEdit WebFetch WebSearch "Bash(node:*)" "Read(//proc/**)" \
-            -- "/code-review high --comment $PR_NUMBER" > "$RUNNER_TEMP/review.json" || status=$?
-          jq -r '.result' "$RUNNER_TEMP/review.json" >> "$GITHUB_STEP_SUMMARY"
-          jq -r '"\nCost at API prices: $\(.total_cost_usd)"' "$RUNNER_TEMP/review.json" >> "$GITHUB_STEP_SUMMARY"
-          # Fails the step when the run itself failed, such as a bad token or a usage limit.
-          jq -e '.is_error == false' "$RUNNER_TEMP/review.json" > /dev/null
+            --settings "$SANDBOX_SETTINGS" --json-schema "$(cat "$RUNNER_TEMP/findings-schema.json")" \
+            --allowedTools "Bash(git:*)" "Bash(gh pr view:*)" "Bash(gh pr diff:*)" "Bash(gh issue view:*)" "Bash(gh api:*)" "Bash(node:*)" "Bash(npx tsx:*)" "Bash(cd:*)" "Bash(cat:*)" "Bash(ls:*)" "Bash(grep:*)" "Bash(rg:*)" "Bash(find:*)" "Bash(head:*)" "Bash(tail:*)" "Bash(wc:*)" "Bash(sed:*)" "Bash(awk:*)" "Bash(sort:*)" "Bash(uniq:*)" "Bash(cut:*)" "Bash(tr:*)" "Bash(diff:*)" "Bash(jq:*)" "Bash(echo:*)" "Bash(printf:*)" Read Grep Glob \
+            --disallowedTools Edit Write NotebookEdit WebFetch WebSearch Agent "Read(//proc/**)" \
+            -- "/review-pr $PR_NUMBER" > "$RUNNER_TEMP/review.json" || status=$?
+          jq -r '"Cost at API prices: $\(.total_cost_usd)\n"' "$RUNNER_TEMP/review.json" >> "$GITHUB_STEP_SUMMARY"
+          # Fails the step when the run itself failed, such as a bad token or a usage
+          # limit, and shows the error.
+          if ! jq -e '.is_error == false' "$RUNNER_TEMP/review.json" > /dev/null; then
+            jq -r '.result' "$RUNNER_TEMP/review.json" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
           exit "$status"
+
+      - name: Post the findings
+        # Posts each finding the reviewer returned, except the D labels, which go in
+        # not-posted.md (code review design section 4.2).
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          npx tsx src/code-review/post-findings.ts "$RUNNER_TEMP/review.json" "$RUNNER_TEMP/not-posted.md" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Save the transcript
         # Shows what the reviewer read, such as whether it opened the PR's comments.
@@ -107,5 +138,6 @@ jobs:
           path: |
             ~/.claude/projects/
             ${{ runner.temp }}/review.json
+            ${{ runner.temp }}/not-posted.md
           include-hidden-files: true
           retention-days: 30
