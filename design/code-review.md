@@ -1,6 +1,6 @@
 # Road Trip Planner: Code Review
 
-> **This design is in progress.** It changes as we learn how the review agent behaves. Each review we handle by hand adds to section 5, and what it teaches us goes into sections 3 and 4. Last updated 2026-10-20.
+> **This design is in progress.** It changes as we learn how the review agent behaves. Each review we handle by hand adds to section 5, and what it teaches us goes into sections 3 and 4. Last updated 2026-10-21.
 
 This document covers how a pull request's code is reviewed: the review that runs in CI on each PR, how its findings are handled, and the fix loop we plan to build on top of it. Unlike the other design docs, it's about how the app is built, not what it does.
 
@@ -22,7 +22,7 @@ The evidence behind it is in `research/code-review-evaluation.md`. That doc reco
 
 ## 2. The review in CI
 
-**The "Code review" workflow runs our own reviewer, the `review-pr` skill, with Opus,** and posts its findings as inline comments on the PR. Each is marked "fix", "note", or "check" (section 4.2). The skill is `.claude/skills/review-pr/SKILL.md`, and section 4.1 says how it differs from the stock `/code-review`, which ran here from 2026-10-16 until #75. Opus at `high` found the key bugs in testing, and was wrong less often than Sonnet (research doc, section 8.5). The workflow is `.github/workflows/code-review.yml`.
+**The "Code review" workflow runs our own reviewer, the `review-pr` skill, with Opus,** and posts its findings as inline comments on the PR. Each is marked "fix", "note", or "check" (section 4.2). The skill is `.claude/skills/review-pr/SKILL.md`, and section 4.1 says what it does. It replaced the stock `/code-review`, which ran here from 2026-10-16 until #75. Opus at `high` found the key bugs in testing, and was wrong less often than Sonnet (research doc, section 8.5). The workflow is `.github/workflows/code-review.yml`.
 
 - **It runs when a PR is opened or gets a new commit,** if the PR changes `src/` or `web/`. Drafts and PRs from forks aren't reviewed. A new commit cancels the review of the one before it.
 - **It pins the Claude Code version,** 2.1.301, since Claude Code's behavior changes between versions.
@@ -166,24 +166,21 @@ Not built yet. Planned on 2026-10-19. The work to build it is #75, #76, and #77.
 
 ### 4.1 Our own review prompt
 
-**The loop uses a review prompt of our own, not the stock `/code-review`.** The stock prompt is built to always find something. It aims for at least 5 findings, and only 3 of its 8 angles look for bugs. The other 5 look for reuse, simplification, efficiency, project rules, and fixes that treat a symptom instead of the cause. Every review of PRs #39 and #44 found 5 or more, including PR #44 round 4, where none was above the bar. The stock prompt has no file we could edit (research doc, section 4.1).
+**The reviewer is our own prompt, the `review-pr` skill, not the stock `/code-review`.** The stock prompt aims for at least 5 findings, and most of its angles look for cleanups, not bugs. Every review of PRs #39 and #44 found 5 or more, even when none was above the bar (research doc, section 4.1). Ours was built from the stock prompt at `high`, copied in `research/code-review-prompt-high.md`, so its results can be compared with the evaluation's runs (research doc, section 8).
 
-**Our prompt starts from the stock prompt, and trims it.** The stock prompt at `high`, as Claude Code 2.1.301 gave it, is copied in `research/code-review-prompt-high.md`. With Opus at `high`, it found the code bugs in PRs #30 and #32 in every run, and the one in PR #35 in one run of two (research doc, section 8). Starting from it keeps our results comparable with those runs.
+The prompt:
 
-Compared with the stock prompt, ours:
-
-- **Reads the bar in section 3 before it reviews.**
-- **Reads the design docs that cover the changed files, as a step of its own.** The stock prompt leaves that to the model. In round 1 of the evaluation, Opus at `medium` opened no design doc in any of its 4 runs. At `high`, it opened one or two in 10 of its 12 runs.
-- **Keeps the stock prompt's 3 bug angles:** a line-by-line read of each changed function, what removed code used to do, and tracing callers and callees.
-- **Drops the other 5 angles,** for reuse, simplification, efficiency, project rules, and fixes at the wrong depth.
-- **Adds a fourth angle, for the task, the docs, and the tests.** It checks each "Do" and "Done when" item, the text a road trip agent reads, the design docs that cover the changed code, and whether each new test would fail if the thing it targets broke. The 3 bug angles read code, so without this one nothing looks for F1, F3, F6, or F7 on purpose. The stock review rarely found a design doc that didn't match the code (research doc, section 8.3).
-- **Checks each finding against the code, then labels it** with section 3.1. The stock prompt passes every finding through unchecked. A finding whose claim turns out false is still returned, labeled D1, so Joe can check it.
+- **Reads the rubric in section 3.1 first,** since it labels each finding with it.
+- **Reads the design docs that cover the changed files, as a step of its own.** Without that step, the model may not open them. In the evaluation, Opus at `medium` opened no design doc in any of its 4 runs.
+- **Looks from four angles:** a line-by-line read of each changed function, what removed code used to do, callers and callees, and the task, the docs, and the tests. The first three read code. The fourth is what looks for F1, F3, F6, and F7, such as a design doc that doesn't match the code, or a test that would pass with the bug. The stock review rarely found a design doc that didn't match the code (research doc, section 8.3).
+- **Doesn't look for cleanups, reuse, speed, or style.** Those are notes at best.
+- **Checks each finding against the code, then labels it** with section 3.1. A finding whose claim is false is still returned, labeled D1, so Joe can check it.
 - **Gives each finding a file, a line, what goes wrong, and a case where it goes wrong.** A finding that can only say the code is harder to maintain isn't a bug.
-- **Has no minimum.** A review with no findings is a normal result.
-- **Keeps the stock prompt's cap of 10 findings,** counting only the ones that are posted. Fixes and checks are kept first. Findings with a D label don't count toward it.
+- **Has no cap on the number of findings.** A finding cut by a cap isn't posted or listed anywhere, so we'd never know it existed. Decided 2026-10-21 in #83. Look at it again after a few PRs.
 - **Writes its findings as JSON,** so the workflow can read them. `claude -p` checks the answer against a schema, and the workflow posts it (section 2). The reviewer gives only the label. The code works out the kind from it, such as "fix" for F2.
-- **Runs with Opus,** as the stock review did (section 2). The `high` in "Opus at `high`" was the stock review's level, and its recipe is what our prompt starts from. The model's own effort setting is left at its default, as it was for the stock review.
-- **Can run node, to test a claim that needs no outside access,** such as a timeout or a rounding case. It can also run `npx tsx`, to run TypeScript. Allowed 2026-10-21 in #83. It adds nothing `node` can't already do, and only it is allowed, not all of `npx`. `npx vitest` was allowed too, and then taken out the same day: the "Check and deploy" workflow already runs the tests, so running them again only spends tokens. Its commands can reach only GitHub (section 4.6), so `npx` can't download a package. A claim that only an outside service can settle gets V1 (section 3.1).
+- **Runs with Opus** at the model's default effort, as the stock review did (section 2).
+- **Can run `node` and `npx tsx`, to test a claim that needs no outside access,** such as a timeout or a rounding case. Its commands can reach only GitHub (section 4.6), so `npx` can't download a package. A claim that only an outside service can settle gets V1 (section 3.1). It doesn't run the tests, since the "Check and deploy" workflow already does.
+- **Can't start subagents.** The workflow blocks the Agent tool, since the reviewer has no use for one.
 
 It gets its own name, `review-pr`. A project skill named `code-review` would replace the stock one, and the stock one stays available to compare against. Joe can run ours locally with `/review-pr <number>`. It returns the findings, and posts nothing.
 

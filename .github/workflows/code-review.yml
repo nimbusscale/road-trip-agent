@@ -77,7 +77,8 @@ jobs:
         # The token is the Max subscription (research doc section 4.2). The reviewer
         # gets read-only tools, plus node, npx tsx, and the gh commands that read the PR
         # and its issues. It doesn't post anything. The next step does, from the JSON it returns.
-        # The Edit and Write tools and the web tools are blocked.
+        # The Edit and Write tools, the web tools, and the Agent tool, which starts
+        # subagents, are blocked.
         #
         # Each command runs in Claude Code's sandbox, which lets it reach only GitHub
         # (code review design section 4.6, tested in #82). The settings go in with
@@ -107,7 +108,7 @@ jobs:
           claude -p --model claude-opus-5-5 --output-format json \
             --settings "$SANDBOX_SETTINGS" --json-schema "$(cat "$RUNNER_TEMP/findings-schema.json")" \
             --allowedTools "Bash(git:*)" "Bash(gh pr view:*)" "Bash(gh pr diff:*)" "Bash(gh issue view:*)" "Bash(gh api:*)" "Bash(node:*)" "Bash(npx tsx:*)" "Bash(cd:*)" "Bash(cat:*)" "Bash(ls:*)" "Bash(grep:*)" "Bash(rg:*)" "Bash(find:*)" "Bash(head:*)" "Bash(tail:*)" "Bash(wc:*)" "Bash(sed:*)" "Bash(awk:*)" "Bash(sort:*)" "Bash(uniq:*)" "Bash(cut:*)" "Bash(tr:*)" "Bash(diff:*)" "Bash(jq:*)" "Bash(echo:*)" "Bash(printf:*)" Read Grep Glob \
-            --disallowedTools Edit Write NotebookEdit WebFetch WebSearch "Read(//proc/**)" \
+            --disallowedTools Edit Write NotebookEdit WebFetch WebSearch Agent "Read(//proc/**)" \
             -- "/review-pr $PR_NUMBER" > "$RUNNER_TEMP/review.json" || status=$?
           jq -r '"Cost at API prices: $\(.total_cost_usd)\n"' "$RUNNER_TEMP/review.json" >> "$GITHUB_STEP_SUMMARY"
           # Fails the step when the run itself failed, such as a bad token or a usage

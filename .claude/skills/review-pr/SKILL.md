@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 Review target: pull request #$ARGUMENTS
 
-You are reviewing this pull request for the bugs a careful reviewer would catch in one sitting. You then label each finding with the project's rubric, so the fix loop knows which ones to fix. Catching real bugs matters more than avoiding a wrong guess, since every finding is checked and labeled before it's returned. A review with no findings is a normal result. There's no minimum.
+You are reviewing this pull request for the bugs a careful reviewer would catch in one sitting. You then label each finding with the project's rubric, so the fix loop knows which ones to fix. Catching real bugs matters more than avoiding a wrong guess, since every finding is checked and labeled before it's returned.
 
 You only read and report. Don't post or edit comments, and don't change any file in the repo. The workflow posts the findings you return.
 
@@ -52,7 +52,7 @@ Read `design/README.md`. Then read the design docs that cover the changed files,
 
 ## Step 5: Find candidates
 
-Look at the PR from each of these four angles, one after another, yourself. Don't start subagents for them. For each candidate, note its file and line, what goes wrong, and a concrete case where it goes wrong.
+Look at the PR from each of these four angles, one after another. For each candidate, note its file and line, what goes wrong, and a concrete case where it goes wrong.
 
 ### Angle A: line by line
 
@@ -73,7 +73,7 @@ For each function the diff changes, find its callers with Grep. Check whether th
 - **The design docs.** For each design doc the PR changes, and each one that covers the changed code, check that it matches the code and doesn't contradict itself.
 - **The tests.** For each test the PR adds or changes, ask whether it would fail if the thing it targets broke.
 
-Don't look for cleanups, reuse, speed, or style. Those are notes at best, and each one gives the next review new lines to find things in.
+Don't look for cleanups, reuse, speed, or style. Those are notes at best.
 
 Keep every candidate that has a concrete case where it goes wrong. Step 6 checks them. Dropping a half-believed candidate here is the most common way a real bug is missed.
 
@@ -83,7 +83,7 @@ First, merge candidates that are the same problem at the same place.
 
 Then, for each candidate:
 
-1. **Check the claim against the code.** Read as much as you need. When running code locally would settle it, run it with `node`, such as a rounding case, a timeout, or how a Zod schema handles an input. `node -e` runs a short script. To import the repo's TypeScript, use `node --import tsx --input-type=module -e "..."`, or run a TypeScript file with `npx tsx <file>`. Don't run the tests. CI already runs them in a separate job. Run each check inline, with `-e`, and don't write files. The repo must not change, and a command that sends output into a file, such as `> "$TMPDIR/out.txt"`, is refused. So is a command with a variable in braces, such as `${PIPESTATUS[0]}`. Your commands can reach only GitHub, so a check that needs any other service can't run. That's what V1 is for.
+1. **Check the claim against the code.** Read as much as you need. When running code locally would settle it, run it with `node`, such as a rounding case, a timeout, or how a Zod schema handles an input. `node -e` runs a short script. To import the repo's TypeScript, use `node --import tsx --input-type=module -e "..."`, or run a TypeScript file with `npx tsx <file>`. Don't run the tests. CI already runs them in a separate job. Run each check inline, with `-e`, and don't write files. A command with a variable in braces, such as `${PIPESTATUS[0]}`, is refused. Your commands can reach only GitHub, so a check that needs any other service can't run. That's what V1 is for.
 2. **Drop it if it's already handled.** Drop a finding that's on the description's "Set aside" list. Drop one that an earlier finding already makes. The exception is when the lines it points to have changed since, and the problem is still there. Then keep it, and say in the finding that the change didn't fix it.
 3. **Label it.** Go down the rubric's table, and give it the first label that fits. A D label fits only when it clearly fits. When you're unsure, keep going down the table. When a code comment hands the work to an issue, read that issue's body before you choose D3, as the rubric says.
 
@@ -94,11 +94,9 @@ A finding whose claim turns out to be false still gets returned, labeled D1. Don
 Your final answer is a JSON object with one key, `findings`, holding an array. Return `{"findings": []}` when there's nothing to report. Each finding has these keys, and all of them are required:
 
 - `file`: the file's path from the repo root, such as `src/tools/trip-brief-tools.ts`.
-- `line`: a line number in the PR's version of the file. Take it from the file itself, with Read or `grep -n`. A line number in the diff's output, or in a saved copy of it, is a different number. When the finding is about a removed line, use the nearest line that's still there.
+- `line`: a line number in the PR's version of the file. Take it from the file itself, with Read or `grep -n`. Don't take it from the diff. When the diff is long, Claude Code saves it to a file, and a line number in that file is a line of the diff, not of the source file. When the finding is about a removed line, use the nearest line that's still there.
 - `label`: its label from the rubric, such as `F2`, `N1`, `V1`, or `D3`.
 - `finding`: what goes wrong, and a concrete case where it does. For V1, also say what to check and how, such as the call to make. This is posted as the comment, so it has to make sense on its own.
 - `labelReason`: one or two sentences on why the label fits, and why the labels above it in the table don't. For a D label, this is the reason it isn't posted, such as which issue a D3 hands the work to.
-
-Return at most 10 findings that aren't D labels. When there are more, keep every finding labeled F1 to F7 or V1 first, then the notes that matter most. Findings with a D label don't count toward the 10.
 
 Write `finding` and `labelReason` in plain words, with one idea per sentence. Name the function or value you mean. Give the concrete case, such as "a trip of 15 days saves without an error", instead of a general statement such as "edge cases aren't handled."
