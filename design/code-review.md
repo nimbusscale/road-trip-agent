@@ -117,6 +117,14 @@ All three kinds are posted as inline comments. Each starts with its kind and lab
 > - `src/tools/trip-brief-tools.ts:157`, D3: phase 22 takes out `touchedBy()`.
 >   - The finding: `touchedBy()` counts every day as touched when the usual start time changes.
 
+**The next review doesn't see the D labels, on purpose.** It reads only what's posted on the PR, so it labels a dropped finding again on its own, if it finds it again. A D label is a reason not to report something. That's the same kind of text the reviewer is kept from (section 4.3), and a reviewer that read it would likely agree without checking again. Joe is the only other one who sees a D label, so a later review that reaches its own label is the second check.
+
+The cost is small:
+
+- **D2 and D3 depend on facts that don't change between rounds:** what the design says, and which issue names the work. A later review will likely give the same label, and nothing is posted.
+- **D1 depends on the reviewer's own check of the code.** That's where a second look helps most. If a later review finds the claim is true after all, the finding is posted.
+- **A finding could flip between a D label and a fix from one round to the next.** Then the loop spends a fix round on it. The cap on rounds limits that (section 4.6), and each flip is a labeling disagreement worth counting (#86).
+
 **The fixer gets only the findings marked "fix".** It still checks each one against the code first (section 3.5), and it can find that one is below the bar after all. It can also fix a note on lines it's already changing (section 3.2).
 
 **The reviewer marks them, so a fix agent doesn't start just to turn findings down.** Example: PR #44 round 4 had 5 findings, and none was above the bar. If the fixer judged the bar, a fix agent would have read all 5, replied to each, and pushed nothing. With the reviewer marking them, the loop stops after the review.
