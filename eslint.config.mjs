@@ -58,6 +58,20 @@ const ESCAPE_HATCH_BANS = {
   "@eslint-community/eslint-comments/no-unlimited-disable": "error",
 };
 
+// Schemas for outside data go in *.schema.ts files (DEVELOPMENT.md section 4). Other
+// files may import Zod's types, but not Zod itself. Turned off for schema files and tests.
+const ZOD_MESSAGE =
+  "Put the schema in a *.schema.ts file (DEVELOPMENT.md section 4). Other files may import only Zod's types.";
+const ZOD_ONLY_IN_SCHEMA_FILES = [
+  "error",
+  {
+    paths: [{ name: "zod", allowTypeImports: true, message: ZOD_MESSAGE }],
+    patterns: [
+      { group: ["zod/*"], allowTypeImports: true, message: ZOD_MESSAGE },
+    ],
+  },
+];
+
 export default defineConfig(
   // Build output, not source.
   globalIgnores(["dist/", "coverage/"]),
@@ -99,6 +113,7 @@ export default defineConfig(
         "error",
         { assertionStyle: "never" },
       ],
+      "@typescript-eslint/no-restricted-imports": ZOD_ONLY_IN_SCHEMA_FILES,
       ...READABILITY_LIMITS,
       ...ESCAPE_HATCH_BANS,
     },
@@ -115,6 +130,7 @@ export default defineConfig(
     // `temperature_2m_max`. Each schema converts them to camelCase after parsing.
     files: ["**/*.schema.ts"],
     rules: {
+      "@typescript-eslint/no-restricted-imports": "off",
       "@typescript-eslint/naming-convention": [
         ...NAMING_CONVENTION,
         {
@@ -152,6 +168,8 @@ export default defineConfig(
     files: ["**/*.test.ts"],
     rules: {
       "max-lines-per-function": "off",
+      // Tests check parse failures, such as with ZodError.
+      "@typescript-eslint/no-restricted-imports": "off",
     },
   },
   // Last, so ESLint doesn't fight Prettier.

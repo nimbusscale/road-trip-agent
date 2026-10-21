@@ -1,10 +1,9 @@
-import { z } from "zod";
-
 import type { Trip } from "../domain/trip.js";
 import type { User } from "../domain/user.js";
 import { EditableTrip } from "./editable-trip.js";
 import { PlaceRepository } from "./place-repository.js";
 import { planDocumentOf, tripFromRow } from "./plan-document.js";
+import { lockNotAvailableSchema } from "./postgres-error.schema.js";
 import type { Queryable } from "./queryable.js";
 import { TripBusyError, TripNotFoundError } from "./trip-errors.js";
 import { type TripRow, tripRowSchema } from "./trip-row.schema.js";
@@ -12,12 +11,6 @@ import { type TripRow, tripRowSchema } from "./trip-row.schema.js";
 // How long a write waits for the row lock before the trip counts as busy. A write
 // holds the lock a few seconds at most (persistence design, section 4).
 export const LOCK_WAIT = "5s";
-
-// Postgres's error code for a lock wait that ran out of time.
-const LOCK_NOT_AVAILABLE = "55P03";
-const lockNotAvailableSchema = z.object({
-  code: z.literal(LOCK_NOT_AVAILABLE),
-});
 
 const SELECT_TRIP = "SELECT id, owner_id, plan FROM trips";
 

@@ -1,24 +1,19 @@
-import { z } from "zod";
-
 import type { Itinerary } from "../domain/itinerary.js";
-import { ROUTE_TYPES } from "../domain/route-type.js";
 import { RuleError } from "../domain/rule-error.js";
-import { TIERS } from "../domain/tier.js";
 import type { TripBrief } from "../domain/trip-brief.js";
 import type { TripBriefService } from "../domain/trip-brief-service.js";
 import { checkResultLines } from "./check-results-reply.js";
-import {
-  CLOCK_TIME_ERROR,
-  CLOCK_TIME_TEXT,
-  clockTextOf,
-  timeOfDayFromClockText,
-} from "./clock-time.js";
+import { clockTextOf, timeOfDayFromClockText } from "./clock-time.js";
 import { strictTool, type StrictToolDefinition } from "./strict-tool.js";
+import {
+  READ_TRIP_BRIEF_INPUT,
+  type TripBriefItems,
+  UPDATE_TRIP_BRIEF_INPUT,
+} from "./trip-brief-input.schema.js";
 import type { TripSession } from "./trip-session.js";
 import { textReply, writeReplyOrReadableError } from "./tool-reply.js";
 
-// The trip brief tools (tool design, section 2.1). Each item goes by its name in the
-// domain model (section 3.2), so the rule errors, which name the item, match the input.
+// The trip brief tools (tool design, section 2.1).
 
 const NOT_SET = "not set";
 
@@ -28,62 +23,12 @@ export const READ_TRIP_BRIEF_DESCRIPTION =
 export const UPDATE_TRIP_BRIEF_DESCRIPTION =
   "Changes one or more items in the trip brief. Items not given are not changed. Each item given replaces its old value. An item can be changed, but never emptied. If an item is refused, the error says which item and why, with the limit when there is one. The reply doesn't repeat the items. Its feasibility check results also include the trip-wide ones already known. When comfortableDrivingInHours changes, they also include the results for every day.";
 
-// Each input says only how to pass its value: its format, units, and limits. What
-// each item means is in the coordinator's instructions (tool design, section 4).
-export const UPDATE_TRIP_BRIEF_INPUT = z.strictObject({
-  focus: z
-    .string()
-    .optional()
-    .describe(
-      'A short phrase, such as "Pacific Coast Highway" or "Texas barbecue".',
-    ),
-  // A number, not an integer: Zod gives every integer a maximum of 2^53 - 1, which the
-  // model would read as part of the schema. The brief refuses a fraction itself.
-  tripLengthInDays: z
-    .number()
-    .positive()
-    .optional()
-    .describe("A whole number, at least 1."),
-  interestsText: z.string().optional().describe("In the user's words."),
-  mustSeesText: z.string().optional().describe("In the user's words."),
-  comfortableDrivingInHours: z
-    .number()
-    .positive()
-    .optional()
-    .describe("Hours, such as 5 or 6.5. More than 0."),
-  routePreference: z.enum(ROUTE_TYPES).optional(),
-  restDaysText: z
-    .string()
-    .optional()
-    .describe('In the user\'s words, such as "one day off in Moab".'),
-  usualStartTime: z
-    .string()
-    .regex(CLOCK_TIME_TEXT, { error: CLOCK_TIME_ERROR })
-    .optional()
-    .describe('A clock time, such as "8:00 a.m.".'),
-  defaultTier: z.enum(TIERS).optional(),
-  budgetRulesText: z
-    .string()
-    .optional()
-    .describe(
-      'In the user\'s words, such as "mid-range for stays of 2+ nights".',
-    ),
-  mealPreferencesText: z
-    .string()
-    .optional()
-    .describe(
-      'In the user\'s words, such as "local cafés over hotel breakfast".',
-    ),
-});
-
-export type TripBriefItems = z.infer<typeof UPDATE_TRIP_BRIEF_INPUT>;
-
 export function readTripBriefTool(session: TripSession): StrictToolDefinition {
   return {
     ...strictTool(
       "read_trip_brief",
       READ_TRIP_BRIEF_DESCRIPTION,
-      z.strictObject({}),
+      READ_TRIP_BRIEF_INPUT,
       async () => {
         const trip = await session.reader.read(session.tripId);
         return textReply(briefLines(trip.tripBrief));
