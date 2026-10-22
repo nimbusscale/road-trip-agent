@@ -438,4 +438,4 @@ jobs:
             echo "## Left now, after the command ended"
             echo
             git status --porcelain --ignored --untracked-files=all | grep -v -e 'node_modules/' -e 'sandbox-status.txt' | sed 's/^/    /'
-          } >> "$GITHUB_STEP_SUMMARY"
+          } | tee -a "$GITHUB_STEP_SUMMARY"
