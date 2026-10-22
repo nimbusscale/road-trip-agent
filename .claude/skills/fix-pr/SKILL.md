@@ -23,7 +23,7 @@ Read `design/review-rubric.md`, all of it. It's the bar: a finding is fixed when
 ## Step 2: Read the PR and its findings
 
 ```sh
-npx tsx src/code-review/fix-input.ts $ARGUMENTS
+node --import tsx src/code-review/fix-input.ts $ARGUMENTS
 ```
 
 It prints:
@@ -41,7 +41,7 @@ If it starts with "Stop:", such as when the checked-out commit isn't the PR's he
 
 Read the design docs that cover each finding's code. Start from `design/README.md`. Then, for each finding:
 
-1. **Confirm the claim against the code.** Read as much as you need. When running code would settle it, run it, such as a short script with `node --import tsx --input-type=module -e "..."`, or a test.
+1. **Confirm the claim against the code.** Read as much as you need. When running code would settle it, run it, such as a short script with `node --import tsx --input-type=module -e "..."`, or a test. Don't use `npx tsx`, since the sandbox refuses the socket it opens, and it fails before it runs anything.
 2. **Check the label.** Read the rubric's rule for the label the reviewer gave. If the claim is true but meets none of the rules from F1 to F7, it's below the bar. If the claim is false, or the code does what a design doc asks, it's wrong.
 3. **Check it against the decisions comment and the earlier replies.** If fixing it would undo a decision there, don't fix it. It needs attention.
 4. **Don't take a suggested fix as written.** Work out the fix yourself, and check that it solves the problem.
@@ -130,7 +130,7 @@ When you stopped early, it's:
 Before you answer, write it to `scratch/fix-answer.json` with the Write tool, and check it:
 
 ```sh
-npx tsx src/code-review/check-fix.ts $ARGUMENTS < scratch/fix-answer.json
+node --import tsx src/code-review/check-fix.ts $ARGUMENTS < scratch/fix-answer.json
 ```
 
 It says what's wrong, such as a finding with no entry, or `deferred` with no open issue. Fix what it reports, and check again.
