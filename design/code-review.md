@@ -79,7 +79,7 @@ In the fix loop, the reviewer marks most of these as notes, and Joe reads them o
 
 The fixer's reason follows on the next lines. A finding in a review body has no thread, so its reply is a conversation comment of its own. It starts with the marker, and quotes the finding with a link to it. It also shows the finding's ID, such as `review-5615011373-1`, since Joe replies to it in a comment that names the ID.
 
-**The reviewer never reads the replies.** Code reads the threads, and gives the reviewer only what each marker means for the review (section 4.3). That's built in #93. Code also reads the markers to resolve threads and keep the summary (section 4.4).
+**The reviewer never reads the replies.** Code reads the threads, and gives the reviewer only what each marker means for the review (section 4.3). `src/code-review/review-input.ts` builds that list. Code also reads the markers to resolve threads and keep the summary (section 4.4).
 
 **A finding handled by hand gets a reply too, from Joe's account.** It starts with the marker, and a line on why is enough. Joe posts it in the UI, or Claude Code posts it with Joe's `gh` login. Without it, the next review sees no reply, and posts the finding again when its lines change. Decided 2026-10-22 in chat, for #93. It replaced the rule that a finding handled in chat gets no reply.
 
@@ -278,7 +278,7 @@ Then the workflow adds a "ready for Joe" label to the PR.
 - Each app is installed on this repo only. Neither can change workflow files.
 - Each run makes a token from the app's ID and private key, with `actions/create-github-app-token`. The token lasts an hour, and works only on this repo. On Joe's machine, `src/code-review/app-token.ts` makes one the same way ([systems design](systems.md) section 8).
 - The fixer's commits use its bot as the author. The cap counts those commits.
-- The review job's posting step uses the reviewer's app token. The step that runs the reviewer keeps the job's own token, which can only read the PR, so the reviewer can't post (section 2). Until #93 is merged, the review posts as `github-actions[bot]`.
+- The review job's posting step uses the reviewer's app token. The step that runs the reviewer keeps the job's own token, which can only read the PR, so the reviewer can't post (section 2).
 
 Checked 2026-10-22 on a throwaway draft PR, #94. A comment posted with each app's token showed under that app. A commit pushed with the fixer's token showed its bot as the author and the pusher, and its push started a workflow run.
 
