@@ -127,12 +127,19 @@ export function lastFixerReply(finding: PostedFinding): Reply | null {
   );
 }
 
+// Joe's reply asks for a fix only when it has no marker. One with a marker says he
+// handled the finding himself (code review design section 3.6).
 function isAskable(finding: PostedFinding): boolean {
-  const fixerReply = lastFixerReply(finding);
-  if (fixerReply === null || outcomeOf(fixerReply.body) !== "needs_attention") {
+  const lastMarked = finding.replies.findLast(
+    (r) => outcomeOf(r.body) !== null,
+  );
+  if (
+    lastMarked?.author !== FIXER_BOT ||
+    outcomeOf(lastMarked.body) !== "needs_attention"
+  ) {
     return false;
   }
-  const after = finding.replies.slice(finding.replies.indexOf(fixerReply) + 1);
+  const after = finding.replies.slice(finding.replies.indexOf(lastMarked) + 1);
   return after.some((r) => r.author === JOE);
 }
 

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { fixInputText, stopReason } from "./fix-input-text.js";
 import { markerLine } from "./fix-markers.js";
-import { FIXER_BOT, fixRound, lastOutcome } from "./fix-round.js";
+import { FIXER_BOT, fixRound, JOE, lastOutcome } from "./fix-round.js";
 import {
   conversationComment,
   finding,
@@ -51,5 +51,24 @@ describe("a reply from someone other than the fixer or Joe", () => {
     expect(fixInputText(state.pull, "None.", round)).not.toContain(
       "a-stranger",
     );
+  });
+});
+
+// Joe answers a finding he handled by hand with a marker (code review design section
+// 3.6). That closes it, so it isn't a request for a fix.
+describe("a reply from Joe with a marker", () => {
+  it("doesn't ask for a fix on a finding Joe handled by hand", () => {
+    const needsAttention = `${markerLine("needs_attention", null, null)}\n\nIt would undo a decision.`;
+    const state = prState({
+      comments: [
+        inlineComment(1, finding("F2"), OLD_SHA),
+        replyComment(2, 1, FIXER_BOT, needsAttention),
+        replyComment(3, 1, JOE, "**Fixed** in 419ffcd.\n\nFixed by hand."),
+      ],
+    });
+    const round = fixRound(state);
+
+    expect(round.askable).toEqual([]);
+    expect(stopReason(round, HEAD_SHA)).not.toBeNull();
   });
 });
