@@ -2,9 +2,7 @@
 // Output section). It prints what's wrong, or "The answer fits.", and exits with 1
 // when something's wrong.
 //
-// npx tsx src/code-review/check-fix.ts <pr-number> <<'EOF'
-// <the answer>
-// EOF
+// npx tsx src/code-review/check-fix.ts <pr-number> < scratch/fix-answer.json
 import { readFileSync } from "node:fs";
 
 import { checkAnswer } from "./fix-check.js";

@@ -87,7 +87,11 @@ When findings are handled by hand in chat, no replies are posted, since Joe has 
 
 ### 3.8 Deferring a finding
 
-**A finding is deferred when its fix belongs in later work that's already planned.** All three of these hold:
+**A finding is deferred when its fix belongs in later work that's already planned.**
+
+**The label is settled first.** When the code does what a design doc asks, the finding is wrong, even when an open issue plans to change that design later. When the label rests on harm in normal use, as F2, F3, F4, and F6 for a design choice do, the finding can't wait. The part that goes wrong is fixed now, and only the rest is deferred. When nothing goes wrong in normal use after all, the label doesn't hold, so the finding is below the bar or wrong. The findings that can wait are ones like these: a part of the task that waits on a caller a later issue adds (F1), a design doc gap that a planned rewrite covers (F6), or a fix to tests or checks that planned work replaces (F5, F7). Decided 2026-10-22 in #76, after #44 round 2's replay deferred an F6 that the design accepts.
+
+A deferred finding meets all three of these:
 
 - **The finding holds up, and is above the bar.**
 - **An open issue already plans work on the same code, and the fix fits that work better.** It isn't the PR's own issue. For example, the issue will rewrite the code the finding is in, or adds the caller or the feature the fix depends on, or plans a general change that covers the finding.
@@ -95,7 +99,7 @@ When findings are handled by hand in chat, no replies are posted, since Joe has 
 
 **The work is added to that issue's open questions,** so it isn't lost. The fixer never opens an issue to defer a finding to. When no open issue fits, the finding is fixed in the PR. When the fix is too big for the PR, the finding needs attention, and Joe decides whether it gets an issue (section 3.6).
 
-Example: on PR #44 round 3, a check result whose text changes, but is still there, should have come back in the reply to a write. Round 2's fix for the start time was taken out, and the general change to replies was left for phase 22, which already planned the replies.
+Example of a finding that isn't deferred: on #44 round 2, a check result whose text changed was left out of the reply to a brief change. Technical spec section 8 accepts that for the MVP, so the finding is wrong, even though #55 plans a general change to replies.
 
 "Deferred" is the fix loop's word. The "set aside" in CLAUDE.md is wider: work Joe and Claude Code put off in chat, which may get a new issue. Decided 2026-10-21 in #76.
 
