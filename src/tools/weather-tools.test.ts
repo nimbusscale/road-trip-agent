@@ -149,7 +149,7 @@ describe("look_up_stay_weather", () => {
       `Weather at Moab (${moab.place.id}) for the Moab stay (${moab.id}), Sunday, October 10, 2027 to Wednesday, October 13, 2027.`,
       "Typical for this time of year, based on 2016–2025. Seasonal averages from Open-Meteo, not a forecast. Each share is of the days within a week of the stay's dates in those years.",
       "- Average high: 71°F. Average low: 47°F.",
-      "- Days with rain: 14%. Days with snow: 0%.",
+      "- Days with precipitation: 14%. Days with snow: 0%.",
       "- Days at or above 90°F: 1%. At or above 100°F: 0%.",
       "- Nights at or below 32°F: 2%.",
       "- Warmest seen: 90°F. Coldest seen: 27°F.",
