@@ -59,7 +59,10 @@ describe("postFindings", () => {
       ["path", "src/a.ts"],
       ["line", 12],
       ["side", "RIGHT"],
-      ["body", "**Fix (F2)**\n\nIt breaks.\n\n**Why F2:** Why."],
+      [
+        "body",
+        "**Fix (F2 - The app does the wrong thing, crashes, or hangs, in normal use)**\n\nIt breaks.\n\n**Why F2:** Why.",
+      ],
     ]);
   });
 
@@ -75,7 +78,10 @@ describe("postFindings", () => {
       ["commit_id", TARGET.commitId],
       ["path", "src/a.ts"],
       ["subject_type", "file"],
-      ["body", "Line 12.\n\n**Fix (F2)**\n\nIt breaks.\n\n**Why F2:** Why."],
+      [
+        "body",
+        "Line 12.\n\n**Fix (F2 - The app does the wrong thing, crashes, or hangs, in normal use)**\n\nIt breaks.\n\n**Why F2:** Why.",
+      ],
     ]);
   });
 

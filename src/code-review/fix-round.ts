@@ -55,8 +55,9 @@ export interface FixRound {
   readonly askable: readonly PostedFinding[];
 }
 
+// The rule after the label came in on 2026-10-22, so earlier findings have only the label.
 const FINDING_PATTERN =
-  /^\*\*(Fix|Check|Note) \(([A-Z0-9]+)\)\*\*\n\n([\s\S]+?)\n\n\*\*Why \2:\*\* ([\s\S]+)$/;
+  /^\*\*(Fix|Check|Note) \(([A-Z0-9]+)(?: - [^\n]+?)?\)\*\*\n\n([\s\S]+?)\n\n\*\*Why \2:\*\* ([\s\S]+)$/;
 
 interface ParsedBody {
   kind: string;

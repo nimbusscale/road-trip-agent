@@ -17,6 +17,65 @@ export function kindOf(label: Label): Kind {
   return label.startsWith("F") ? "Fix" : "Note";
 }
 
+// Each label's rule, as the review rubric's table gives it. A posted finding names its
+// rule after its label, so Joe doesn't have to look it up. A test checks these against
+// the table.
+const RULES: ReadonlyMap<Label, string> = new Map<Label, string>([
+  [
+    "V1",
+    "The label depends on a fact the reviewer can't check from the repo, and that fact decides whether it's a fix",
+  ],
+  ["D1", "The claim about the code is false"],
+  [
+    "D2",
+    "The code does what the design asks, and the finding would have it done another way",
+  ],
+  [
+    "D3",
+    "The PR puts off work, and hands it to another issue that names the work",
+  ],
+  ["F1", "The PR doesn't do what its task says"],
+  ["F2", "The app does the wrong thing, crashes, or hangs, in normal use"],
+  ["F3", "Text a road trip agent reads says something false, in normal use"],
+  ["F4", "Data is lost or corrupted, in normal use"],
+  ["F5", "A security hole within the project's threat model"],
+  [
+    "F6",
+    "A design doc is wrong, so an agent building from it would build the wrong thing",
+  ],
+  ["F7", "A test is wrong"],
+  [
+    "NF2",
+    "The app does the wrong thing, crashes, or hangs, but not in normal use",
+  ],
+  [
+    "NF3",
+    "Text a road trip agent reads says something false, but not in normal use",
+  ],
+  ["NF4", "Data is lost or corrupted, but not in normal use"],
+  ["NF5", "A security hole outside the threat model"],
+  ["N1", "Cleaner code"],
+  ["N2", "A missing test"],
+  [
+    "N3",
+    "Text a road trip agent reads is unclear, or says something twice, or is an error message with the wrong reason for a failure",
+  ],
+  ["N4", "Advice about code that isn't written yet"],
+  ["N5", "A code comment is wrong"],
+  [
+    "N6",
+    "A design doc is unclear, or doesn't match the code, in a way no builder would act on",
+  ],
+]);
+
+export function ruleOf(label: Label): string {
+  const rule = RULES.get(label);
+  if (rule === undefined) {
+    throw new Error(`The label ${label} has no rule.`);
+  }
+  return rule;
+}
+
 // The posted findings, fixes first, then checks, then notes.
 export function postedFindings(findings: readonly Finding[]): Finding[] {
   return findings
@@ -31,7 +90,7 @@ export function postedFindings(findings: readonly Finding[]): Finding[] {
 // The text of an inline comment.
 export function commentBody(finding: Finding): string {
   return [
-    `**${kindOf(finding.label)} (${finding.label})**`,
+    `**${kindOf(finding.label)} (${finding.label} - ${ruleOf(finding.label)})**`,
     finding.finding,
     `**Why ${finding.label}:** ${finding.labelReason}`,
   ].join("\n\n");

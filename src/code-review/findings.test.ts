@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import { describe, expect, it } from "vitest";
 
 import {
@@ -6,6 +8,7 @@ import {
   kindOf,
   notPostedList,
   postedFindings,
+  ruleOf,
 } from "./findings.js";
 import { type Finding, LABELS } from "./review-result.schema.js";
 
@@ -54,10 +57,20 @@ describe("postedFindings", () => {
 });
 
 describe("commentBody", () => {
-  it("starts with the kind and label, then gives the finding and the reason", () => {
+  it("starts with the kind, the label, and its rule, then gives the finding and the reason", () => {
     expect(commentBody(finding("NF2"))).toBe(
-      "**Note (NF2)**\n\nFinding NF2.\n\n**Why NF2:** Reason NF2.",
+      "**Note (NF2 - The app does the wrong thing, crashes, or hangs, but not in normal use)**\n\nFinding NF2.\n\n**Why NF2:** Reason NF2.",
     );
+  });
+});
+
+describe("ruleOf", () => {
+  it("gives each label the rule in the review rubric's table", () => {
+    const rubric = readFileSync("design/review-rubric.md", "utf8");
+    const table = [...rubric.matchAll(/^\| (\w+) \| \w[\w ]* \| (.+) \|$/gm)]
+      .filter(([, label]) => label !== "Label")
+      .map(([, label, rule]) => [label, rule]);
+    expect(LABELS.map((label) => [label, ruleOf(label)])).toEqual(table);
   });
 });
 

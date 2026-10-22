@@ -19,9 +19,9 @@ This is the rubric for code review findings. The reviewer labels each finding wi
 | F5 | Fix | A security hole within the project's threat model |
 | F6 | Fix | A design doc is wrong, so an agent building from it would build the wrong thing |
 | F7 | Fix | A test is wrong |
-| NF2 | Note | Like F2, but not in normal use |
-| NF3 | Note | Like F3, but not in normal use |
-| NF4 | Note | Like F4, but not in normal use |
+| NF2 | Note | The app does the wrong thing, crashes, or hangs, but not in normal use |
+| NF3 | Note | Text a road trip agent reads says something false, but not in normal use |
+| NF4 | Note | Data is lost or corrupted, but not in normal use |
 | NF5 | Note | A security hole outside the threat model |
 | N1 | Note | Cleaner code |
 | N2 | Note | A missing test |

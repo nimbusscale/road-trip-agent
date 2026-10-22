@@ -139,7 +139,7 @@ It gets its own name, `review-pr`. A project skill named `code-review` would rep
 - **Note:** it's below the bar. The finding gives its label, such as NF2 or N1.
 - **Check:** its label is V1. It says what to check and how. The fix loop leaves it alone, and Joe has it checked and relabeled.
 
-All three kinds are posted as inline comments. Each starts with its kind and label, such as "Fix (F2)", and ends with the reviewer's reason for the label. Joe sees the notes there. The next review sees them too, so it doesn't post them again. A finding on a line outside the diff goes on its file, and one on a file outside the diff goes in a review body (section 2). The next review reads those too.
+All three kinds are posted as inline comments. Each starts with its kind, its label, and the label's rule from the review rubric's table, such as "Fix (F2 - The app does the wrong thing, crashes, or hangs, in normal use)", so Joe doesn't have to look the label up. It ends with the reviewer's reason for the label. Joe sees the notes there. The next review sees them too, so it doesn't post them again. A finding on a line outside the diff goes on its file, and one on a file outside the diff goes in a review body (section 2). The next review reads those too.
 
 **A finding labeled D1, D2, or D3 isn't posted.** The reviewer ends its run with a list of them instead: where each one is, its D label, and a sentence on why, such as which issue a D3 hands the work to. The workflow adds the list to the job summary, and saves it as `not-posted.md` in the run's artifact, so Joe can check the D labels. Under each one, the list quotes the finding, so Joe can tell what was dropped. Example:
 
