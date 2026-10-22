@@ -14,7 +14,11 @@ import {
   timeOfDayFromClockText,
 } from "./clock-time.js";
 import type { TripSession } from "./trip-session.js";
-import { textReply, writeReplyOrReadableError } from "./tool-reply.js";
+import {
+  textReply,
+  type ToolReply,
+  writeReplyOrReadableError,
+} from "./tool-reply.js";
 
 // The trip brief tools (tool design, section 2.1). Each item goes by its name in the
 // domain model (section 3.2), so the rule errors, which name the item, match the input.
@@ -27,7 +31,7 @@ export const READ_TRIP_BRIEF_DESCRIPTION =
 export const UPDATE_TRIP_BRIEF_DESCRIPTION =
   "Changes one or more items in the trip brief, in one save. Items not given are left alone. Each item given replaces its old value. An item can be changed, but never emptied. If any item is refused, nothing is saved, and the error says which item and why, with the limit when there is one. The reply doesn't repeat the items. It gives the feasibility check results that are new or gone, anywhere in the trip, and the trip-wide ones already known.";
 
-export const UPDATE_TRIP_BRIEF_INPUT = {
+const UPDATE_TRIP_BRIEF_INPUT = {
   focus: z
     .string()
     .optional()
@@ -91,9 +95,9 @@ export const UPDATE_TRIP_BRIEF_INPUT = {
     ),
 };
 
-export type TripBriefItems = z.infer<
-  z.ZodObject<typeof UPDATE_TRIP_BRIEF_INPUT>
->;
+export const UPDATE_TRIP_BRIEF_SCHEMA = z.strictObject(UPDATE_TRIP_BRIEF_INPUT);
+
+export type TripBriefItems = z.infer<typeof UPDATE_TRIP_BRIEF_SCHEMA>;
 
 export function readTripBriefTool(session: TripSession) {
   return tool(
@@ -108,35 +112,48 @@ export function readTripBriefTool(session: TripSession) {
   );
 }
 
+// Not made with tool(), which takes only a shape. The server makes a plain object of a
+// shape, and that drops any key it doesn't know, so a misnamed item would be left out
+// with no word, and the reply would still say the brief was saved. A strict object
+// refuses the call instead, and names the key (tool design, section 4).
 export function updateTripBriefTool(session: TripSession) {
-  return tool(
-    "update_trip_brief",
-    UPDATE_TRIP_BRIEF_DESCRIPTION,
-    UPDATE_TRIP_BRIEF_INPUT,
-    (items) =>
-      writeReplyOrReadableError(async () => {
-        if (Object.values(items).every((value) => value === undefined)) {
-          throw new RuleError("Give at least one trip brief item to change.");
-        }
-        const result = await session.writer.write(
-          session.tripId,
-          "coordinator",
-          ({ trip, services }) => {
-            applyItems(items, trip.tripBrief, services.tripBrief);
-            return trip.itinerary.id;
-          },
-        );
-        // A brief change touches no stop, day, or stay, so only the trip-wide results
-        // that are already known come back, along with every new and gone one.
-        const touchedIds = new Set([result.changeResult]);
-        return textReply([
-          "Saved the trip brief.",
-          ...(result.checkComparison === null
-            ? []
-            : checkResultLines(result.checkComparison, touchedIds)),
-        ]);
-      }),
-  );
+  return {
+    name: "update_trip_brief",
+    description: UPDATE_TRIP_BRIEF_DESCRIPTION,
+    inputSchema: UPDATE_TRIP_BRIEF_SCHEMA,
+    // The server has already checked the input against the schema. Parsing it again
+    // gives the items their types.
+    handler: (args: Record<string, unknown>) =>
+      updateTripBrief(session, UPDATE_TRIP_BRIEF_SCHEMA.parse(args)),
+  };
+}
+
+function updateTripBrief(
+  session: TripSession,
+  items: TripBriefItems,
+): Promise<ToolReply> {
+  return writeReplyOrReadableError(async () => {
+    if (Object.values(items).every((value) => value === undefined)) {
+      throw new RuleError("Give at least one trip brief item to change.");
+    }
+    const result = await session.writer.write(
+      session.tripId,
+      "coordinator",
+      ({ trip, services }) => {
+        applyItems(items, trip.tripBrief, services.tripBrief);
+        return trip.itinerary.id;
+      },
+    );
+    // A brief change touches no stop, day, or stay, so only the trip-wide results
+    // that are already known come back, along with every new and gone one.
+    const touchedIds = new Set([result.changeResult]);
+    return textReply([
+      "Saved the trip brief.",
+      ...(result.checkComparison === null
+        ? []
+        : checkResultLines(result.checkComparison, touchedIds)),
+    ]);
+  });
 }
 
 // In functional spec 5.2's order.

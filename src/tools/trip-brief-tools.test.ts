@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { z } from "zod";
 
 import { CalendarDate } from "../domain/calendar-date.js";
 import { exampleMoabTrip } from "../domain/itinerary.fake.js";
@@ -10,12 +9,11 @@ import { CLOCK_TIME_ERROR } from "./clock-time.js";
 import type { ToolReply } from "./tool-reply.js";
 import {
   readTripBriefTool,
-  UPDATE_TRIP_BRIEF_INPUT,
+  UPDATE_TRIP_BRIEF_SCHEMA,
   updateTripBriefTool,
 } from "./trip-brief-tools.js";
 
 const OWNER = { id: "4f6c1d0e-2a8b-4c3d-9e7f-1a2b3c4d5e6f" };
-const updateInput = z.object(UPDATE_TRIP_BRIEF_INPUT);
 
 // The Agent SDK hands the handler every item, with undefined for one not given.
 const NO_ITEMS = {
@@ -56,7 +54,10 @@ function toolsFor(session: Parameters<typeof readTripBriefTool>[0]): {
   return {
     read: async () => textOf(await readTool.handler({}, {})),
     update: (input) =>
-      updateTool.handler({ ...NO_ITEMS, ...updateInput.parse(input) }, {}),
+      updateTool.handler({
+        ...NO_ITEMS,
+        ...UPDATE_TRIP_BRIEF_SCHEMA.parse(input),
+      }),
   };
 }
 
@@ -176,7 +177,9 @@ describe("update_trip_brief", () => {
     const { read, update } = await newTripTools();
     await update({ usualStartTime: "12:30 p.m." });
     expect(await read()).toContain("usualStartTime: 12:30 p.m.");
-    const parsed = updateInput.safeParse({ usualStartTime: "13:00" });
+    const parsed = UPDATE_TRIP_BRIEF_SCHEMA.safeParse({
+      usualStartTime: "13:00",
+    });
     expect(parsed.error?.issues.map((issue) => issue.message)).toEqual([
       CLOCK_TIME_ERROR,
     ]);
