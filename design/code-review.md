@@ -65,6 +65,7 @@ In the fix loop, the reviewer marks most of these as notes, and Joe reads them o
 
 - **Confirm the finding against the code first.** Example: on PR #44, the dropped item was confirmed by calling the real server before it was fixed.
 - **Don't apply a suggested fix as written.** Check that it solves the problem. Example: on PR #44, the review suggested `.min(1)` for the false maximum. That would have set the lower bound, but Zod adds the maximum to every integer, so it would have stayed.
+- **Don't fill in an outside fact from memory.** An outside fact is one the repo doesn't show, such as how an API answers or what one of its fields means. When the fix can be made correct without it, it's made that way, and the reply says what was left out. When it can't, the finding needs attention, and the reply says what to check and how, as a V1 finding does. Joe has it checked, and the result is saved in the repo, such as a real response under `saved-responses/`, so the next round fixes from real data. Example: on #90 round 2's replay, the fixer took what Open-Meteo's `precipitation_sum` counts from memory, and its reply said "Open-Meteo documents" it. Decided 2026-10-22 in #76.
 
 ### 3.6 Where replies go
 
@@ -73,7 +74,7 @@ In the fix loop, the reviewer marks most of these as notes, and Joe reads them o
 - `**Fixed** in <commit>.`
 - `**Deferred:** #<issue>.` The fix belongs in later work that's already planned, in that issue (section 3.8).
 - `**Not fixed:** below the bar.` or `**Not fixed:** wrong.`
-- `**Needs attention.**` Joe has to decide. This is for a fix that would undo a decision in the decisions comment, or change a config file. It's also for a fix too big for the PR, when no open issue plans it, and for a security hole the fixer can't fix in the PR, since that can't go in a public issue.
+- `**Needs attention.**` Joe has to decide. This is for a fix that would undo a decision in the decisions comment, or change a config file. It's also for a fix too big for the PR, when no open issue plans it, and for a security hole the fixer can't fix in the PR, since that can't go in a public issue. It's also for a fix that rests on an outside fact the repo doesn't show (section 3.5).
 
 The fixer's reason follows on the next lines. A finding in a review body has no thread, so its reply is a conversation comment of its own. It starts with the marker, and quotes the finding with a link to it. It also shows the finding's ID, such as `review-5615011373-1`, since Joe replies to it in a comment that names the ID.
 

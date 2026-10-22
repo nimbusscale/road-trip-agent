@@ -45,6 +45,7 @@ Read the design docs that cover each finding's code. Start from `design/README.m
 2. **Check the label.** Read the rubric's rule for the label the reviewer gave. If the claim is true but meets none of the rules from F1 to F7, it's below the bar. If the claim is false, or the code does what a design doc asks, it's wrong.
 3. **Check it against the decisions comment and the earlier replies.** If fixing it would undo a decision there, don't fix it. It needs attention.
 4. **Don't take a suggested fix as written.** Work out the fix yourself, and check that it solves the problem.
+5. **Don't fill in an outside fact from what you know.** An outside fact is one the repo doesn't show, such as how an API answers or what one of its fields means. You can't check it from here, and a fact you remember may be wrong. If the fix can be made correct without it, make it that way, and say in your reply what you left out. For example, call a type you can't confirm "precipitation". If it can't be made correct without the fact, the finding needs attention. Say what to check and how, such as the call to make, the way a V1 finding does. Joe has it checked, and the result is saved in the repo for the next round.
 
 Each finding ends up with one of these outcomes:
 
@@ -54,7 +55,7 @@ Each finding ends up with one of these outcomes:
 | `deferred` | The claim holds, and its fix belongs in later work that an open issue already plans (step 5) |
 | `below_the_bar` | The claim holds, but its right label is below F1 to F7 |
 | `wrong` | The claim is false, or the code does what the design asks |
-| `needs_attention` | Fixing it would undo a decision, or change a config file. Or the fix is too big for the PR, and no open issue plans it. Or it's a security hole you can't fix in this PR |
+| `needs_attention` | Fixing it would undo a decision, or change a config file. Or the fix is too big for the PR, and no open issue plans it. Or it's a security hole you can't fix in this PR. Or the claim or the fix rests on an outside fact the repo doesn't show (item 5) |
 
 ## Step 4: Fix
 
