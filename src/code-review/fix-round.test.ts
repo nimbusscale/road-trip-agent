@@ -151,18 +151,18 @@ describe("fixRound", () => {
       answerProblems(
         {
           status: "done",
-          commit: null,
+          reason: "The round.",
           replies: [
             {
               findingId: "comment-1",
               outcome: "wrong",
-              issue: null,
+              deferredTo: null,
               reply: "Why.",
             },
             {
               findingId: "review-9-1",
               outcome: "wrong",
-              issue: null,
+              deferredTo: null,
               reply: "Why.",
             },
           ],
@@ -236,12 +236,12 @@ describe("a finding from this round that needs attention", () => {
       answerProblems(
         {
           status: "done",
-          commit: null,
+          reason: "The round.",
           replies: [
             {
               findingId: "comment-1",
               outcome: "wrong",
-              issue: null,
+              deferredTo: null,
               reply: "Why.",
             },
           ],

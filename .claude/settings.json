@@ -9,6 +9,7 @@
     ],
     "ask": [
       "Edit(/tsconfig*.json)",
+      "Edit(/web/tsconfig.json)",
       "Edit(/eslint.config.*)",
       "Edit(/.prettierrc.json)",
       "Edit(/.prettierignore)",

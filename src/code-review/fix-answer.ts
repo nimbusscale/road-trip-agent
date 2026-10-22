@@ -18,13 +18,24 @@ export function answerProblems(
   facts: AnswerFacts,
 ): string[] {
   if (answer.status === "stopped") {
-    return [];
+    return answer.replies.length === 0
+      ? []
+      : ['A "stopped" answer has no replies.'];
+  }
+  if (answer.replies.length === 0) {
+    return ['A "done" answer has at least one reply.'];
   }
   return [
     ...coverageProblems(answer.replies, round),
     ...answer.replies.flatMap((reply) => issueProblems(reply, facts)),
-    ...commitProblems(answer, round.headSha, facts.local),
+    ...commitProblems(answer.replies, round.headSha, facts.local),
   ];
+}
+
+// The fixer's commit, when it made one on top of the PR's head. The answer doesn't name
+// it, so code reads it from git.
+export function newCommit(local: LocalCommits, headSha: string): string | null {
+  return local.head === headSha ? null : local.head;
 }
 
 // Each finding marked "fix" in this round, and not yet replied on, gets exactly one
@@ -59,7 +70,7 @@ function coverageProblems(
 }
 
 function issueProblems(reply: FixReply, facts: AnswerFacts): string[] {
-  const { findingId, outcome, issue } = reply;
+  const { findingId, outcome, deferredTo: issue } = reply;
   if (outcome !== "deferred") {
     return issue === null
       ? []
@@ -80,35 +91,30 @@ function issueProblems(reply: FixReply, facts: AnswerFacts): string[] {
       ];
 }
 
-// A commit comes with a finding fixed, and the other way around. It's one commit on
+// A new commit comes with a finding fixed, and the other way around. It's one commit on
 // top of the PR's head, checked out, with nothing left uncommitted.
 function commitProblems(
-  answer: Extract<FixAnswer, { status: "done" }>,
+  replies: readonly FixReply[],
   headSha: string,
   local: LocalCommits,
 ): string[] {
-  const anyFixed = answer.replies.some((r) => r.outcome === "fixed");
+  const anyFixed = replies.some((r) => r.outcome === "fixed");
+  const commit = newCommit(local, headSha);
   const problems: string[] = [];
   if (!local.clean) {
     problems.push("Some changes aren't committed. Commit them, or undo them.");
   }
-  if (answer.commit === null) {
+  if (commit === null) {
     if (anyFixed) {
-      problems.push('A finding is "fixed", but the answer gives no commit.');
-    }
-    if (local.head !== headSha) {
       problems.push(
-        `The answer gives no commit, but the checked-out commit ${local.head} isn't the PR's head, ${headSha}.`,
+        `A finding is "fixed", but there's no new commit on top of the PR's head, ${headSha}.`,
       );
     }
     return problems;
   }
   if (!anyFixed) {
-    problems.push('The answer gives a commit, but no finding is "fixed".');
-  }
-  if (answer.commit !== local.head) {
     problems.push(
-      `The commit ${answer.commit} isn't the checked-out commit, ${local.head}.`,
+      `The checked-out commit ${commit} isn't the PR's head, ${headSha}, but no finding is "fixed".`,
     );
   }
   if (local.parent !== headSha) {

@@ -1,11 +1,14 @@
-// Posts the fixer's answer on the PR, as the fixer's app: pushes its commit, replies
-// on each finding, resolves the threads that are fixed or not fixed, and updates the
-// summary (code review design section 4.5). It checks the answer first, the way
+// Posts the fixer's answer on the PR, as the fixer's app: replies on each finding,
+// resolves the threads that are fixed or not fixed, updates the summary, and pushes its
+// commit (code review design section 4.5). It checks the answer first, the way
 // check-fix.ts does, and posts nothing when something's wrong. Run it in the checkout
 // the fixer committed in.
 //
 // eval "$(npx tsx --env-file=.env src/code-review/app-token.ts fixer)"
 // npx tsx src/code-review/post-fix.ts <pr-number> <answer.json>
+//
+// The answer is the fixer's JSON, as check-fix.ts reads it. In CI, that's the
+// structured_output of claude -p.
 import { readFileSync } from "node:fs";
 
 import { checkAnswer } from "./fix-check.js";
@@ -34,14 +37,15 @@ if (!checked.ok) {
   process.exit(1);
 }
 
-const { answer, round, state } = checked;
+const { answer, round, state, commit } = checked;
 if (answer.status === "stopped") {
   console.log(`The fixer stopped, so nothing is posted: ${answer.reason}`);
 } else {
+  console.log(answer.reason);
   const log = await postFix(
     ghApi,
     pullNumber,
-    { answer, round, headRef: state.pull.headRef },
+    { answer, round, headRef: state.pull.headRef, commit },
     async (headRef) => {
       await git(["push", "origin", `HEAD:refs/heads/${headRef}`]);
     },

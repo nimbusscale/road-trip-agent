@@ -12,6 +12,8 @@ You only read and report. Don't post or edit comments, and don't change any file
 
 Your working directory is the repo root. Run each command from there, without `cd`. A command that starts with `cd` and then reads a file by a relative path is refused.
 
+**Stop when you can't do a step you need.** That's reading the PR description or the earlier findings in step 2, or the diff in step 3. A review without one of them would look clean when it isn't. Answer "stopped", and say which step failed and what the command printed (see Output). Don't stop for a command that only helps, such as a check in step 6. Find another way, or label the finding with what you know.
+
 ## Step 1: Read the rules
 
 Read these three files with the Read tool, each one in full, before anything else. Don't search them with `grep` instead, and don't count the PR's diff of one as reading it. A rule you didn't search for still applies, and the diff shows only the lines that changed.
@@ -99,7 +101,13 @@ A finding whose claim turns out to be false still gets returned, labeled D1. Don
 
 ## Output
 
-Your final answer is a JSON object with one key, `findings`, holding an array. Return `{"findings": []}` when there's nothing to report. Each finding has these keys, and all of them are required:
+Your final answer is a JSON object with three keys, all of them always filled in:
+
+- `status`: `"done"` when you reviewed the PR, and `"stopped"` when you couldn't do a step you need (see the start of this skill).
+- `reason`: always a sentence. When you stopped, say which step failed and what the command printed. When you're done, say how many findings you kept, such as "2 findings, 1 of them F2."
+- `findings`: an array, empty when there's nothing to report, and when you stopped.
+
+Each finding has these keys, and all of them are required:
 
 - `file`: the file's path from the repo root, such as `src/tools/trip-brief-tools.ts`.
 - `line`: a line number in the PR's version of the file. Take it from the file itself, with Read or `grep -n`. Don't take it from the diff. When the diff is long, Claude Code saves it to a file, and a line number in that file is a line of the diff, not of the source file. When the finding is about a removed line, use the nearest line that's still there.
