@@ -14,6 +14,8 @@ Don't push, and don't post or edit comments on the PR. Your only writes to GitHu
 
 Your working directory is the repo root. Run each command from there, without `cd`. A command that starts with `cd` and then reads a file by a relative path is refused.
 
+Put a file you make only to try something out, such as a script, in `scratch/`. Git ignores that folder. If you add a throwaway test somewhere else so the test runner finds it, delete it before you commit.
+
 ## Step 1: Read the rules
 
 Read `design/review-rubric.md`, all of it. It's the bar: a finding is fixed when its label is F1 to F7. You use it to check the reviewer's label. Then read `DEVELOPMENT.md`, since you're changing code. It says how code in this repo is written and tested.
@@ -43,6 +45,7 @@ Read the design docs that cover each finding's code. Start from `design/README.m
 2. **Check the label.** Read the rubric's rule for the label the reviewer gave. If the claim is true but meets none of the rules from F1 to F7, it's below the bar. If the claim is false, or the code does what a design doc asks, it's wrong.
 3. **Check it against the decisions comment and the earlier replies.** If fixing it would undo a decision there, don't fix it. It needs attention.
 4. **Don't take a suggested fix as written.** Work out the fix yourself, and check that it solves the problem.
+5. **Don't fill in an outside fact from what you know.** An outside fact is one the repo doesn't show, such as how an API answers or what one of its fields means. You can't check it from here, and a fact you remember may be wrong. If the fix can be made correct without it, make it that way, and say in your reply what you left out. For example, if no saved response shows which error codes an API sends, treat any code you haven't seen as a failure, instead of listing codes you remember. If it can't be made correct without the fact, the finding needs attention. Say what to check and how, such as the call to make, the way a V1 finding does. Joe has it checked, and the result is saved in the repo for the next round.
 
 Each finding ends up with one of these outcomes:
 
@@ -52,7 +55,7 @@ Each finding ends up with one of these outcomes:
 | `deferred` | The claim holds, and its fix belongs in later work that an open issue already plans (step 5) |
 | `below_the_bar` | The claim holds, but its right label is below F1 to F7 |
 | `wrong` | The claim is false, or the code does what the design asks |
-| `needs_attention` | Fixing it would undo a decision, or change a config file. Or the fix is too big for the PR, and no open issue plans it. Or it's a security hole you can't fix in this PR |
+| `needs_attention` | Fixing it would undo a decision, or change a config file. Or the fix is too big for the PR, and no open issue plans it. Or it's a security hole you can't fix in this PR. Or the claim or the fix rests on an outside fact the repo doesn't show (item 5) |
 
 ## Step 4: Fix
 
@@ -68,7 +71,13 @@ Don't change config files, and don't add a disable comment or `@ts-expect-error`
 
 ## Step 5: Defer what belongs in planned work
 
-A finding is deferred when its fix belongs in later work that's already planned. Defer it only when all three of these hold:
+A finding is deferred when its fix belongs in later work that's already planned.
+
+**Settle the label before you think about deferring.** If the code does what a design doc asks, the outcome is `wrong`, even when an open issue plans to change that design later. You can name that issue in your reply. If the finding's label rests on harm in normal use, as F2, F3, F4, and F6 for a design choice do, it can't wait. Fix the part that goes wrong now, and defer only the rest. If you find that nothing goes wrong in normal use after all, the label doesn't hold, so the outcome is `below_the_bar` or `wrong`, not `deferred`.
+
+The findings that can wait are ones like these: a part of the task that waits on a caller a later issue adds (F1), a design doc gap that a planned rewrite covers (F6), or a fix to tests or checks that planned work replaces (F5, F7).
+
+Defer a finding only when all three of these hold:
 
 - **The finding holds up, and is above the bar** (step 3).
 - **An open issue already plans work on the same code, and the fix fits that work better.** It can't be the PR's own issue. For example, the issue will rewrite the code the finding is in. Or it adds the caller or the feature the fix depends on. Or it plans a general change that covers the finding. Search the issues with `gh issue list --state open --search "<words>"`, and read one's body with `gh issue view <number> --json number,title,state,body`.
@@ -118,12 +127,10 @@ When you stopped early, it's:
 { "status": "stopped", "reason": "<why you stopped>" }
 ```
 
-Before you answer, check it:
+Before you answer, write it to `scratch/fix-answer.json` with the Write tool, and check it:
 
 ```sh
-npx tsx src/code-review/check-fix.ts $ARGUMENTS <<'EOF'
-<your JSON>
-EOF
+npx tsx src/code-review/check-fix.ts $ARGUMENTS < scratch/fix-answer.json
 ```
 
 It says what's wrong, such as a finding with no entry, or `deferred` with no open issue. Fix what it reports, and check again.

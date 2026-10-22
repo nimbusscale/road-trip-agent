@@ -8,7 +8,12 @@ import {
 } from "./fix-input-text.js";
 import { markerLine, outcomeOf } from "./fix-markers.js";
 import { reviewBodyReply } from "./fix-post.js";
-import { FIXER_BOT, fixRound, lastOutcome } from "./fix-round.js";
+import {
+  FIXER_BOT,
+  fixRound,
+  lastOutcome,
+  parseFindingBody,
+} from "./fix-round.js";
 import {
   conversationComment,
   fileComment,
@@ -170,6 +175,32 @@ describe("fixRound", () => {
         },
       ),
     ).toEqual([]);
+  });
+});
+
+describe("parseFindingBody", () => {
+  it("reads a finding with its label's rule", () => {
+    expect(
+      parseFindingBody(
+        "**Fix (F2 - The app does the wrong thing, crashes, or hangs, in normal use)**\n\nIt breaks.\n\n**Why F2:** Why.",
+      ),
+    ).toEqual({
+      kind: "Fix",
+      label: "F2",
+      text: "It breaks.",
+      labelReason: "Why.",
+    });
+  });
+
+  it("reads a finding posted before the rule came in, with only its label", () => {
+    expect(
+      parseFindingBody("**Note (N1)**\n\nIt repeats.\n\n**Why N1:** Why."),
+    ).toEqual({
+      kind: "Note",
+      label: "N1",
+      text: "It repeats.",
+      labelReason: "Why.",
+    });
   });
 });
 

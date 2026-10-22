@@ -65,6 +65,7 @@ In the fix loop, the reviewer marks most of these as notes, and Joe reads them o
 
 - **Confirm the finding against the code first.** Example: on PR #44, the dropped item was confirmed by calling the real server before it was fixed.
 - **Don't apply a suggested fix as written.** Check that it solves the problem. Example: on PR #44, the review suggested `.min(1)` for the false maximum. That would have set the lower bound, but Zod adds the maximum to every integer, so it would have stayed.
+- **Don't fill in an outside fact from memory.** An outside fact is one the repo doesn't show, such as how an API answers or what one of its fields means. When the fix can be made correct without it, it's made that way, and the reply says what was left out. When it can't, the finding needs attention, and the reply says what to check and how, as a V1 finding does. Joe has it checked, and the result is saved in the repo, such as a real response under `saved-responses/`, so the next round fixes from real data. Example: on #90 round 2's replay, the fixer took what Open-Meteo's `precipitation_sum` counts from memory, and its reply said "Open-Meteo documents" it. Decided 2026-10-22 in #76.
 
 ### 3.6 Where replies go
 
@@ -73,7 +74,7 @@ In the fix loop, the reviewer marks most of these as notes, and Joe reads them o
 - `**Fixed** in <commit>.`
 - `**Deferred:** #<issue>.` The fix belongs in later work that's already planned, in that issue (section 3.8).
 - `**Not fixed:** below the bar.` or `**Not fixed:** wrong.`
-- `**Needs attention.**` Joe has to decide. This is for a fix that would undo a decision in the decisions comment, or change a config file. It's also for a fix too big for the PR, when no open issue plans it, and for a security hole the fixer can't fix in the PR, since that can't go in a public issue.
+- `**Needs attention.**` Joe has to decide. This is for a fix that would undo a decision in the decisions comment, or change a config file. It's also for a fix too big for the PR, when no open issue plans it, and for a security hole the fixer can't fix in the PR, since that can't go in a public issue. It's also for a fix that rests on an outside fact the repo doesn't show (section 3.5).
 
 The fixer's reason follows on the next lines. A finding in a review body has no thread, so its reply is a conversation comment of its own. It starts with the marker, and quotes the finding with a link to it. It also shows the finding's ID, such as `review-5615011373-1`, since Joe replies to it in a comment that names the ID.
 
@@ -87,7 +88,11 @@ When findings are handled by hand in chat, no replies are posted, since Joe has 
 
 ### 3.8 Deferring a finding
 
-**A finding is deferred when its fix belongs in later work that's already planned.** All three of these hold:
+**A finding is deferred when its fix belongs in later work that's already planned.**
+
+**The label is settled first.** When the code does what a design doc asks, the finding is wrong, even when an open issue plans to change that design later. When the label rests on harm in normal use, as F2, F3, F4, and F6 for a design choice do, the finding can't wait. The part that goes wrong is fixed now, and only the rest is deferred. When nothing goes wrong in normal use after all, the label doesn't hold, so the finding is below the bar or wrong. The findings that can wait are ones like these: a part of the task that waits on a caller a later issue adds (F1), a design doc gap that a planned rewrite covers (F6), or a fix to tests or checks that planned work replaces (F5, F7). Decided 2026-10-22 in #76, after #44 round 2's replay deferred an F6 that the design accepts.
+
+A deferred finding meets all three of these:
 
 - **The finding holds up, and is above the bar.**
 - **An open issue already plans work on the same code, and the fix fits that work better.** It isn't the PR's own issue. For example, the issue will rewrite the code the finding is in, or adds the caller or the feature the fix depends on, or plans a general change that covers the finding.
@@ -95,7 +100,7 @@ When findings are handled by hand in chat, no replies are posted, since Joe has 
 
 **The work is added to that issue's open questions,** so it isn't lost. The fixer never opens an issue to defer a finding to. When no open issue fits, the finding is fixed in the PR. When the fix is too big for the PR, the finding needs attention, and Joe decides whether it gets an issue (section 3.6).
 
-Example: on PR #44 round 3, a check result whose text changes, but is still there, should have come back in the reply to a write. Round 2's fix for the start time was taken out, and the general change to replies was left for phase 22, which already planned the replies.
+Example of a finding that isn't deferred: on #44 round 2, a check result whose text changed was left out of the reply to a brief change. Technical spec section 8 accepts that for the MVP, so the finding is wrong, even though #55 plans a general change to replies.
 
 "Deferred" is the fix loop's word. The "set aside" in CLAUDE.md is wider: work Joe and Claude Code put off in chat, which may get a new issue. Decided 2026-10-21 in #76.
 
@@ -135,7 +140,7 @@ It gets its own name, `review-pr`. A project skill named `code-review` would rep
 - **Note:** it's below the bar. The finding gives its label, such as NF2 or N1.
 - **Check:** its label is V1. It says what to check and how. The fix loop leaves it alone, and Joe has it checked and relabeled.
 
-All three kinds are posted as inline comments. Each starts with its kind and label, such as "Fix (F2)", and ends with the reviewer's reason for the label. Joe sees the notes there. The next review sees them too, so it doesn't post them again. A finding on a line outside the diff goes on its file, and one on a file outside the diff goes in a review body (section 2). The next review reads those too.
+All three kinds are posted as inline comments. Each starts with its kind, its label, and the label's rule from the review rubric's table, such as "Fix (F2 - The app does the wrong thing, crashes, or hangs, in normal use)", so Joe doesn't have to look the label up. It ends with the reviewer's reason for the label. Joe sees the notes there. The next review sees them too, so it doesn't post them again. A finding on a line outside the diff goes on its file, and one on a file outside the diff goes in a review body (section 2). The next review reads those too.
 
 **A finding labeled D1, D2, or D3 isn't posted.** The reviewer ends its run with a list of them instead: where each one is, its D label, and a sentence on why, such as which issue a D3 hands the work to. The workflow adds the list to the job summary, and saves it as `not-posted.md` in the run's artifact, so Joe can check the D labels. Under each one, the list quotes the finding, so Joe can tell what was dropped. Example:
 
