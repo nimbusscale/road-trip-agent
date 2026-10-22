@@ -324,6 +324,8 @@ One row per review. "Above the bar" uses the rubric's rule, as it stood on 2026-
 | #109 | 2 | 2 | 1 | The first review whose threads had fixer replies. It didn't post round 1's fixed finding again |
 | #109 | 3 | 2 | 1 | Found that a "Fixed" marker from Joe still asked the fixer for a fix. The fixer was asked to handle that finding again, saw why, and left it alone |
 | #109 | 4 | 1 | 0 | Nothing marked "fix" after three fix rounds. One V1, which code can't settle: whether #87 got the results |
+| #109 | 5 | 0 | 0 | After a commit that only recorded rounds 3 and 4. No findings |
+| #109 | 6 | 1 | 1 | The first review to read `DEVELOPMENT.md` and `design/README.md` in full, after the skill's step 1 named them. Its F6 was deferred to #77 |
 
 **PR #44, round 1,** the trip MCP server (phase 13a):
 
@@ -373,3 +375,10 @@ One row per review. "Above the bar" uses the rubric's rule, as it stood on 2026-
 - **Check, V1:** whether #87 had the results of which files each review read. Only the issue's comments show it, and the reviewer doesn't read those. Claude Code posted them after this review.
 - **No review read a reply.** None of the replies' text is in the transcripts of reviews 2 to 4. Review 1 ran before any reply.
 - **The four reviews cost $0.66 to $0.86 each, at API prices. The three fixer runs cost $0.60 to $0.78 each.** Round 1's fixer ran twice. The second run added an allow rule for `.claude/skills/**`, which didn't help, since `claude -p` refuses an edit under `.claude/` unless permissions are bypassed. Both answered "needs attention", and only the second answer was posted.
+
+**PR #109, rounds 5 and 6,** after the cap, on commits Claude Code made by hand. No fixer ran:
+
+- **Round 5,** at c489e0b, which only recorded rounds 3 and 4, found nothing.
+- **Round 6,** at 92cbf09, ran after the skill's step 1 changed to name `DEVELOPMENT.md` and `design/README.md`, and to say a `grep` doesn't count. It read both in full with the Read tool, for the first time in six reviews (#87).
+- **Marked "fix", F6, deferred to #77:** a "Fixed" marker tells every later review to check the fix again. If a later finding says the fix didn't work, and that finding gets "Not fixed: wrong", the list still tells the reviewer to check the first finding's fix. So it could post the same problem a third time. Joe left it unfixed, since it needs a disputed fix and then a "wrong" on the dispute.
+- **Round 1 could have found it,** since the rule was in `review-input-text.ts` from the first commit. With round 3's F2, that's two misses in this PR in code round 1 read (#110).
