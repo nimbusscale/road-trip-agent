@@ -75,8 +75,9 @@ const ZOD_ONLY_IN_SCHEMA_FILES = [
 ];
 
 export default defineConfig(
-  // Build output, not source.
-  globalIgnores(["dist/", "coverage/"]),
+  // Build output, not source. scratch/ holds throwaway files that git ignores, such as
+  // the fixer's test scripts (the fix-pr skill), so they mustn't fail the check.
+  globalIgnores(["dist/", "coverage/", "scratch/"]),
   eslint.configs.recommended,
   tseslint.configs.strictTypeChecked,
   tseslint.configs.stylisticTypeChecked,
