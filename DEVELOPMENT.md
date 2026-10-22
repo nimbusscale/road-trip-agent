@@ -178,7 +178,16 @@ gh project item-list 1 --owner nimbusscale --format json --limit 200 \
 - **In review:** Claude Code moves it here when the PR is opened, while the CI review and Joe give feedback.
 - **Done:** the PR is merged and deployed.
 
-**The issue body is the current task.** Its sections are Design, Open questions, Do, Done when, Ends in, and Settled in. Comments are for discussion. When a question is settled, strike it out in the body, add when and how, and write the answer into the design doc it belongs to, in the same PR. A reviewer reads the body, never the comments, for the same reason as with a PR's comments (section 7).
+**The issue body is the current task.** Its sections are Why, Design, Open questions, Do, Done when, Ends in, and Settled in. Why says, in a few sentences, what the work is for. Comments are for discussion. When a question is settled, strike it out in the body, add when and how, and write the answer into the design doc it belongs to, in the same PR. A reviewer reads the body, never the comments, for the same reason as with a PR's comments (section 7).
+
+**An issue stands on its own.** Its reader may have only the repo and the issue, such as a Claude Code session with no chat history or memory. So the body:
+
+- says why the work matters, in its Why section.
+- defines any term that isn't defined in a design doc. Example: "act", if it's used for the findings that need something done.
+- points only to things in the repo or on GitHub. It never points to chat, memory, or files on Joe's machine, such as files in the gitignored `scratch/`.
+- says what's been decided, and where it's written down, such as a design doc section or a struck-out open question. Not "as discussed".
+
+**The test:** could a new Claude Code session, with only the repo and the issue, build it the way it's meant? Check an issue against it when writing the issue, and when changing its body.
 
 **"Settled in" says where answers are agreed.** "Chat" means propose each answer to Joe in chat first, and write it in once he agrees. "The PR" means propose each answer in the PR's decisions comment, and Joe agrees by approving the PR.
 
