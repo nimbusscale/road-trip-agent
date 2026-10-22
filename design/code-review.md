@@ -4,7 +4,7 @@
 
 This document covers how a pull request's code is reviewed: the review that runs in CI on each PR, how its findings are handled, and the fix loop we plan to build on top of it. Unlike the other design docs, it's about how the app is built, not what it does.
 
-The evidence behind it is in `research/code-review-evaluation.md`. That doc records how Opus at `high` was picked (section 8), and the first CI runs (section 10). What others have published about review and fix loops is in `research/agent-review-fix-loop.md`. This doc holds the decisions.
+The evidence behind it is in `research/code-review/code-review-evaluation.md`. That doc records how Opus at `high` was picked (section 8), and the first CI runs (section 10). What others have published about review and fix loops is in `research/code-review/agent-review-fix-loop.md`. This doc holds the decisions.
 
 ---
 
@@ -109,7 +109,7 @@ Not built yet. Planned on 2026-10-19. The work to build it is #75, #76, and #77.
 
 ### 4.1 Our own review prompt
 
-**The reviewer is our own prompt, the `review-pr` skill, not the stock `/code-review`.** The stock prompt aims for at least 5 findings, and most of its angles look for cleanups, not bugs. Every review of PRs #39 and #44 found 5 or more, even when none was above the bar (research doc, section 4.1). Ours was built from the stock prompt at `high`, copied in `research/code-review-prompt-high.md`, so its results can be compared with the evaluation's runs (research doc, section 8).
+**The reviewer is our own prompt, the `review-pr` skill, not the stock `/code-review`.** The stock prompt aims for at least 5 findings, and most of its angles look for cleanups, not bugs. Every review of PRs #39 and #44 found 5 or more, even when none was above the bar (research doc, section 4.1). Ours was built from the stock prompt at `high`, copied in `research/code-review/code-review-prompt-high.md`, so its results can be compared with the evaluation's runs (research doc, section 8).
 
 The prompt:
 

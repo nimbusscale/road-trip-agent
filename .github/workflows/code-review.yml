@@ -1,7 +1,7 @@
 # Reviews each pull request with our own reviewer, the review-pr skill in
 # .claude/skills/, and posts its findings as inline comments, each marked "fix", "note",
 # or "check" (code review design sections 2 and 4.2). Opus was picked by testing the
-# stock /code-review on past PRs (research/code-review-evaluation.md, section 8.5).
+# stock /code-review on past PRs (research/code-review/code-review-evaluation.md, section 8.5).
 name: Code review
 
 # Runs when a PR is opened or gets a new commit. A push to a branch with no PR doesn't
