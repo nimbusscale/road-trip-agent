@@ -61,7 +61,7 @@ describe("answerProblems", () => {
 
     expect(answerProblems(answer, round, committed)).toEqual([
       "comment-1 has more than one entry.",
-      "comment-99 isn't a finding marked \"fix\" in this round, or an earlier one that needs attention with a reply after the fixer's.",
+      "comment-99 isn't a finding marked \"fix\" in this round, or one that needs attention with a reply after the fixer's.",
       "comment-2 has no entry.",
     ]);
   });

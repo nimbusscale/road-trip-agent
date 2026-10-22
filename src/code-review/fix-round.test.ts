@@ -36,15 +36,15 @@ describe("fixRound", () => {
       }),
     );
 
-    expect(round.current.map((f) => [f.id, f.label, f.file, f.line])).toEqual([
+    expect(round.pending.map((f) => [f.id, f.label, f.file, f.line])).toEqual([
       ["comment-1", "F2", "src/a.ts", 10],
       ["comment-4", "F4", "src/b.ts", 42],
     ]);
     expect(round.earlier.map((f) => f.id)).toEqual(["comment-5"]);
-    expect(round.current[0]?.text).toBe(
+    expect(round.pending[0]?.text).toBe(
       "The F2 problem in src/a.ts. More detail.",
     );
-    expect(round.current[0]?.labelReason).toBe("Reason for F2.");
+    expect(round.pending[0]?.labelReason).toBe("Reason for F2.");
   });
 
   it("splits a review body into its findings, each with its file and line", () => {
@@ -60,8 +60,8 @@ describe("fixRound", () => {
       }),
     );
 
-    expect(round.current).toHaveLength(1);
-    expect(round.current[0]).toMatchObject({
+    expect(round.pending).toHaveLength(1);
+    expect(round.pending[0]).toMatchObject({
       id: "review-9-1",
       file: "design/x.md",
       line: 47,
@@ -76,7 +76,7 @@ describe("fixRound", () => {
       prState({ comments: [{ ...byJoe, author: "nimbusscale" }] }),
     );
 
-    expect(round.current).toEqual([]);
+    expect(round.pending).toEqual([]);
   });
 
   it("lets the fixer take an earlier finding that needs attention, once Joe replies", () => {
@@ -156,6 +156,59 @@ describe("fixRound", () => {
             },
             {
               findingId: "review-9-1",
+              outcome: "wrong",
+              issue: null,
+              reply: "Why.",
+            },
+          ],
+        },
+        round,
+        {
+          local: { head: HEAD_SHA, parent: OLD_SHA, clean: true },
+          openIssues: new Set(),
+          ownIssues: new Set(),
+        },
+      ),
+    ).toEqual([]);
+  });
+});
+
+describe("a finding from this round that needs attention", () => {
+  // The fixer marked this round's only finding "needs attention", so it pushed nothing,
+  // and the head didn't change. Then Joe replied.
+  const needsAttention = `${markerLine("needs_attention", null, null)}\n\nIt would undo a decision.`;
+  const state = (joeReplies: boolean) =>
+    prState({
+      comments: [
+        inlineComment(1, finding("F5"), HEAD_SHA),
+        replyComment(2, 1, FIXER_BOT, needsAttention),
+        ...(joeReplies
+          ? [replyComment(3, 1, "nimbusscale", "Fix it here.")]
+          : []),
+      ],
+    });
+
+  it("stops the fixer until Joe replies", () => {
+    expect(stopReason(fixRound(state(false)), HEAD_SHA)).toContain(
+      "already replied",
+    );
+  });
+
+  it("lets the fixer take it up once Joe replies", () => {
+    const round = fixRound(state(true));
+
+    expect(stopReason(round, HEAD_SHA)).toBeNull();
+    expect(fixInputText(state(true).pull, "None.", round)).toContain(
+      "Fix it here.",
+    );
+    expect(
+      answerProblems(
+        {
+          status: "done",
+          commit: null,
+          replies: [
+            {
+              findingId: "comment-1",
               outcome: "wrong",
               issue: null,
               reply: "Why.",

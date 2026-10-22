@@ -37,7 +37,7 @@ export async function postFix(
     log.push(`Pushed ${answer.commit} to ${headRef}.`);
   }
   const findings = new Map(
-    [...round.current, ...round.askable].map((f) => [f.id, f]),
+    [...round.pending, ...round.askable].map((f) => [f.id, f]),
   );
   for (const reply of answer.replies) {
     const finding = findings.get(reply.findingId);

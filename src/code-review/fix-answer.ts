@@ -27,14 +27,15 @@ export function answerProblems(
   ];
 }
 
-// Each finding marked "fix" in this round gets exactly one entry. An earlier finding
-// may get one only when it needs attention and someone replied after the fixer.
+// Each finding marked "fix" in this round, and not yet replied on, gets exactly one
+// entry. Another may get one only when it needs attention and someone replied after
+// the fixer.
 function coverageProblems(
   replies: readonly FixReply[],
   round: FixRound,
 ): string[] {
   const allowed = new Set(
-    [...round.current, ...round.askable].map((f) => f.id),
+    [...round.pending, ...round.askable].map((f) => f.id),
   );
   const problems: string[] = [];
   const seen = new Set<string>();
@@ -45,11 +46,11 @@ function coverageProblems(
     seen.add(findingId);
     if (!allowed.has(findingId)) {
       problems.push(
-        `${findingId} isn't a finding marked "fix" in this round, or an earlier one that needs attention with a reply after the fixer's.`,
+        `${findingId} isn't a finding marked "fix" in this round, or one that needs attention with a reply after the fixer's.`,
       );
     }
   }
-  for (const finding of round.current) {
+  for (const finding of round.pending) {
     if (!seen.has(finding.id)) {
       problems.push(`${finding.id} has no entry.`);
     }

@@ -42,14 +42,16 @@ export interface PrState {
   readonly issueComments: readonly IssueComment[];
 }
 
-// What a round of the fix loop works on: the findings marked "fix" in the review of
-// the PR's head, and the earlier ones (code review design section 4.5).
+// What a round of the fix loop works on (code review design section 4.5): the
+// findings marked "fix" in the review of the PR's head that the fixer hasn't replied
+// on yet, and the rest, from earlier reviews or already replied on.
 export interface FixRound {
   readonly headSha: string;
-  readonly current: readonly PostedFinding[];
+  readonly pending: readonly PostedFinding[];
   readonly earlier: readonly PostedFinding[];
-  // Earlier findings that need attention, where someone other than the bots replied
-  // after the fixer. The fixer may handle them, if the reply says to fix them.
+  // Findings that need attention, where someone other than the bots replied after the
+  // fixer. The fixer may handle them, if the reply says to fix them. One can be from
+  // the review of the head, when the fixer pushed nothing after it.
   readonly askable: readonly PostedFinding[];
 }
 
@@ -86,10 +88,12 @@ export function postedFindings(state: PrState): PostedFinding[] {
 export function fixRound(state: PrState): FixRound {
   const fixes = postedFindings(state).filter((f) => f.kind === "Fix");
   const headSha = state.pull.headSha;
-  const earlier = fixes.filter((f) => f.commitId !== headSha);
+  const isPending = (f: PostedFinding) =>
+    f.commitId === headSha && lastFixerReply(f) === null;
+  const earlier = fixes.filter((f) => !isPending(f));
   return {
     headSha,
-    current: fixes.filter((f) => f.commitId === headSha),
+    pending: fixes.filter(isPending),
     earlier,
     askable: earlier.filter(isAskable),
   };

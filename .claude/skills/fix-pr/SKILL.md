@@ -29,11 +29,11 @@ It prints:
 - **The PR description.** It holds the task: the issue's "Do" and "Done when" items, and what was checked by hand.
 - **The decisions comment,** posted by the implementer when the PR was opened. It gives each decision made, and the design doc it was written into. Don't undo one of these decisions, such as renaming a tool back.
 - **The findings marked "fix" in the last review,** each with its ID, its place, and its text. Each ends with the reviewer's reason for its label.
-- **The earlier findings and their replies.** Each reply starts with what an earlier fixer did with the finding, and why. Joe may have replied too.
+- **The other findings marked "fix", and their replies:** the ones from earlier reviews, and any from the last review that a fixer already replied on. Each reply starts with what an earlier fixer did with the finding, and why. Joe may have replied too.
 
 If it starts with "Stop:", such as when the checked-out commit isn't the PR's head, or there's no finding marked "fix", stop. Answer "stopped" with its message (see Output).
 
-**When Joe has replied on an earlier finding that needs attention, and says to fix it,** handle it like a finding marked "fix" in this round. The input says which earlier findings have a reply like that.
+**When Joe has replied on a finding that needs attention, and says to fix it,** handle it like a finding marked "fix" in this round. The input says which findings have a reply like that.
 
 ## Step 3: Check each finding
 
@@ -107,7 +107,7 @@ Your final answer is a JSON object. When you handled the findings, it's:
 }
 ```
 
-- **`replies` has one entry for each finding marked "fix",** and one for each earlier finding Joe asked you to fix.
+- **`replies` has one entry for each finding marked "fix",** and one for each finding that needs attention Joe asked you to fix.
 - **`outcome`** is one of the five in step 3.
 - **`issue`** is the issue's number for `deferred`, and `null` for the rest.
 - **`reply`** is posted on the finding's thread. Code starts it with a line that says the outcome, so don't repeat it. For `fixed`, say what changed, in a sentence or two, and name the test. For `deferred`, say why the fix fits the issue's work, and what you fixed now, if anything broke in normal use. For the rest, say why. For `needs_attention`, say what has to be decided. The next round's fixer reads this reply, so say enough that it won't undo what you did. Write in plain words, with one idea per sentence. Name the function or value you mean.
