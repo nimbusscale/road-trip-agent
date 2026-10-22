@@ -1,7 +1,8 @@
 import type { PastDay } from "./archive.schema.js";
 
-// 1 mm, which Open-Meteo gives as 0.039 in (Open-Meteo design 2.3).
-const RAIN_DAY_INCHES = 0.039;
+// 1 mm of rain or snow's water, which Open-Meteo gives as 0.039 in (Open-Meteo design
+// 2.3).
+const PRECIPITATION_DAY_INCHES = 0.039;
 // 1 cm, which Open-Meteo gives as 0.394 in.
 const SNOW_DAY_INCHES = 0.39;
 const HOT_FAHRENHEIT = 90;
@@ -16,7 +17,7 @@ export interface SeasonalAverages {
   lastYear: number;
   averageHighInFahrenheit: number;
   averageLowInFahrenheit: number;
-  rainDaysPercent: number;
+  precipitationDaysPercent: number;
   snowDaysPercent: number;
   daysAt90Percent: number;
   daysAt100Percent: number;
@@ -42,7 +43,9 @@ export function seasonalAveragesOf(
     lastYear: years.last,
     averageHighInFahrenheit: Math.round(average(highs)),
     averageLowInFahrenheit: Math.round(average(lows)),
-    rainDaysPercent: share((day) => day.rainInInches >= RAIN_DAY_INCHES),
+    precipitationDaysPercent: share(
+      (day) => day.precipitationInInches >= PRECIPITATION_DAY_INCHES,
+    ),
     snowDaysPercent: share((day) => day.snowInInches >= SNOW_DAY_INCHES),
     daysAt90Percent: share((day) => day.highInFahrenheit >= HOT_FAHRENHEIT),
     daysAt100Percent: share(

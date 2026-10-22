@@ -30,7 +30,8 @@ export const archiveResponseSchema = z.union([
 export interface PastDay {
   highInFahrenheit: number;
   lowInFahrenheit: number;
-  rainInInches: number;
+  // Rain and snowfall together, with snow counted as its water.
+  precipitationInInches: number;
   snowInInches: number;
 }
 
@@ -45,16 +46,16 @@ function daysOf(daily: {
   return daily.time.flatMap((date, index) => {
     const high = daily.temperature_2m_max[index];
     const low = daily.temperature_2m_min[index];
-    const rain = daily.precipitation_sum[index];
+    const precipitation = daily.precipitation_sum[index];
     const snow = daily.snowfall_sum[index];
-    if (high == null || low == null || rain == null || snow == null) {
+    if (high == null || low == null || precipitation == null || snow == null) {
       return [];
     }
     return [
       {
         highInFahrenheit: high,
         lowInFahrenheit: low,
-        rainInInches: rain,
+        precipitationInInches: precipitation,
         snowInInches: snow,
       },
     ];

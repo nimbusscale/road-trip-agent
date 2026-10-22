@@ -149,7 +149,7 @@ describe("look_up_stay_weather", () => {
       `Weather at Moab (${moab.place.id}) for the Moab stay (${moab.id}), Sunday, October 10, 2027 to Wednesday, October 13, 2027.`,
       "Typical for this time of year, based on 2016–2025. Seasonal averages from Open-Meteo, not a forecast. Each share is of the days within a week of the stay's dates in those years.",
       "- Average high: 71°F. Average low: 47°F.",
-      "- Days with rain: 14%. Days with snow: 0%.",
+      "- Days with rain or snow: 14%. Days with snow: 0%.",
       "- Days at or above 90°F: 1%. At or above 100°F: 0%.",
       "- Nights at or below 32°F: 2%.",
       "- Warmest seen: 90°F. Coldest seen: 27°F.",
@@ -207,6 +207,21 @@ describe("look_up_stay_weather", () => {
       "Typical for this time of year, based on 2016–2025.",
     );
     expect(hosts).not.toContain("weather.googleapis.com");
+  });
+
+  it("counts a day of only snow as a day with rain or snow, since precipitation_sum includes snowfall", async () => {
+    // Open-Meteo's names, so it's written as JSON. 1 in of snow is about 0.1 in of water.
+    const snowOnly =
+      '{"daily":{"time":["2025-10-10"],"temperature_2m_max":[28],"temperature_2m_min":[12],"precipitation_sum":[0.1],"snowfall_sum":[1]}}';
+    const { moab, call } = await moabTrip(OCTOBER_21, {
+      answers: { averages: () => snowOnly },
+    });
+    const text = textOf(
+      await call({ stayId: moab.id, placeId: moab.place.id }),
+    );
+    expect(text).toContain(
+      "- Days with rain or snow: 100%. Days with snow: 100%.",
+    );
   });
 
   it("gives an activity after midnight on the date it falls on", async () => {

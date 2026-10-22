@@ -114,7 +114,7 @@ function averagesLines(averages: SeasonalAverages): string[] {
   return [
     `Typical for this time of year, based on ${String(averages.firstYear)}–${String(averages.lastYear)}. Seasonal averages from Open-Meteo, not a forecast. Each share is of the days within a week of the stay's dates in those years.`,
     `- Average high: ${degrees(averages.averageHighInFahrenheit)}. Average low: ${degrees(averages.averageLowInFahrenheit)}.`,
-    `- Days with rain: ${percent(averages.rainDaysPercent)}. Days with snow: ${percent(averages.snowDaysPercent)}.`,
+    `- Days with rain or snow: ${percent(averages.precipitationDaysPercent)}. Days with snow: ${percent(averages.snowDaysPercent)}.`,
     `- Days at or above 90°F: ${percent(averages.daysAt90Percent)}. At or above 100°F: ${percent(averages.daysAt100Percent)}.`,
     `- Nights at or below 32°F: ${percent(averages.freezingNightsPercent)}.`,
     `- Warmest seen: ${degrees(averages.warmestInFahrenheit)}. Coldest seen: ${degrees(averages.coldestInFahrenheit)}.`,

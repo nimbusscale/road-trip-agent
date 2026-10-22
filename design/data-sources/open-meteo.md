@@ -44,7 +44,7 @@ The tool combines all the days from all 10 years and returns one small summary p
 |---|---|
 | Label | "Typical for this time of year, based on <first year>–<last year>". The itinerary shows this so averages are never mistaken for a forecast (spec 8). It names no dates: the stay's dates show beside it, and moving the trip a day or two keeps the same averages (domain model 4.1) |
 | Average high and low, °F | Mean of the daily highs and lows |
-| Chance of rain on a given day | Share of days with at least 0.04 in (1 mm) of precipitation |
+| Chance of rain or snow on a given day | Share of days with at least 0.04 in (1 mm) of precipitation. `precipitation_sum` counts snowfall as its water, so a day of only snow counts too, and this isn't the chance of rain |
 | Chance of snow on a given day | Share of days with at least 0.4 in (1 cm) of snowfall |
 | Hot days | Share of days at or above 90 °F, and at or above 100 °F |
 | Freezing nights | Share of nights at or below 32 °F |
