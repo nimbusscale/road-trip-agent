@@ -156,8 +156,9 @@ function findingFromComment(
 }
 
 // A review body holds one section per finding, each headed by its file and line, as
-// findings.ts's outsideDiffBody() writes them. Its replies are conversation comments
-// tagged with the finding's ID.
+// findings.ts's outsideDiffBody() writes them. It has no thread, so its replies are
+// conversation comments: the fixer's, tagged with the finding's ID, and Joe's, which
+// name the ID.
 function findingsFromReview(
   review: Review,
   issueComments: readonly IssueComment[],
@@ -180,9 +181,17 @@ function findingsFromReview(
       url: review.url,
       threadCommentId: null,
       replies: issueComments
-        .filter((c) => taggedFindingId(c.body) === id)
+        .filter((c) => isReplyTo(c, id))
         .map((c) => ({ author: c.author, body: c.body, url: c.url })),
     });
   }
   return findings;
+}
+
+function isReplyTo(comment: IssueComment, findingId: string): boolean {
+  if (comment.author === FIXER_BOT || comment.author === REVIEWER_BOT) {
+    return taggedFindingId(comment.body) === findingId;
+  }
+  // The ID ends in a number, so review-9-1 mustn't match in review-9-10.
+  return new RegExp(`\\b${findingId}\\b`).test(comment.body);
 }

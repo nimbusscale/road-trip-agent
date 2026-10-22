@@ -51,9 +51,9 @@ Example: on PR #44 round 1, the schema's false maximum, an N3, was fixed by hand
 
 ### 3.3 Findings below the bar
 
-**The fixer reads each one, and takes no action on it.** It lists it for Joe in the PR comment, quoting the finding, with a short reason. Joe can still ask for it to be fixed.
+**The fixer reads each one, and takes no action on it.** By hand, it says why in a conversation comment that quotes the finding (DEVELOPMENT.md section 7), unless the finding was handled in chat (section 3.6). Joe can still ask for it to be fixed.
 
-In the fix loop, the reviewer marks most of these as notes, and Joe reads them on the PR (section 4.2). The fixer never sees the notes. A finding marked "fix" that the fixer finds below the bar gets the reply "Not fixed" on its thread (section 3.6).
+In the fix loop, the reviewer marks most of these as notes, and Joe reads them on the PR (section 4.2). The fixer never sees the notes. A finding marked "fix" that the fixer finds below the bar gets the reply "Not fixed" on its thread (section 3.6), and code resolves the thread (section 4.4). In the loop, Joe can ask for a fix only on a finding that needs attention (section 4.5). For one that wasn't fixed, he fixes it himself, or asks for it in chat.
 
 ### 3.4 A fix comes with a test
 
@@ -75,7 +75,7 @@ In the fix loop, the reviewer marks most of these as notes, and Joe reads them o
 - `**Not fixed:** below the bar.` or `**Not fixed:** wrong.`
 - `**Needs attention.**` Joe has to decide. This is for a fix that would undo a decision in the decisions comment, or change a config file. It's also for a fix too big for the PR, when no open issue plans it, and for a security hole the fixer can't fix in the PR, since that can't go in a public issue.
 
-The fixer's reason follows on the next lines. A finding in a review body has no thread, so its reply is a conversation comment of its own. It starts with the marker, and quotes the finding with a link to it.
+The fixer's reason follows on the next lines. A finding in a review body has no thread, so its reply is a conversation comment of its own. It starts with the marker, and quotes the finding with a link to it. It also shows the finding's ID, such as `review-5615011373-1`, since Joe replies to it in a comment that names the ID.
 
 **The reviewer never reads the replies.** Code reads the threads, and gives the reviewer only what each marker means for the review (section 4.3). That's built in #93. Until then, the fixer runs only in #76's replays, which aren't reviewed. Code also reads the markers to resolve threads and keep the summary (section 4.4).
 
@@ -192,7 +192,7 @@ Decided 2026-10-21 in #76. It replaced a "Set aside" list in the PR description.
 - **It defers a finding only under the rules in section 3.8.** It never opens an issue. When a fix is too big for the PR, and no open issue plans it, the finding needs attention.
 - **It returns JSON, and code does the writes on the PR,** as with the reviewer (section 2). The fixer checks and fixes the findings, and commits. Its answer has one entry per finding: the finding's ID, its outcome, the issue for a finding deferred, and the reply. Then code pushes the commit, posts each reply with its marker (section 3.6), resolves the threads, and updates the summary (section 4.4). The fixer's only writes to GitHub are to issues' open questions, for findings it defers. Decided 2026-10-21 in #76.
 - **Its answer is checked before anything is posted.** In CI, `claude -p --json-schema` refuses an answer that doesn't fit the schema, such as an outcome that isn't on the list. Then code checks that it fits the round: each finding marked "fix" gets exactly one entry, no ID is made up, "fixed" comes with a commit, and "deferred" comes with an open issue. When anything fails, nothing is posted. A run by hand has no `--json-schema`, so the fixer runs the same check on its own answer before it returns it. Code can't catch an answer that fits but is wrong, such as "fixed" for a change that doesn't fix the finding. The next review catches that, when it checks whether the fix worked.
-- **Code reads the PR's threads by who posted them.** A finding is a comment by the reviewer's app in the format its posting step writes. A reply is the fixer's when its app posted it and it starts with a marker, and anyone else's reply is Joe's. A finding in a review body has no thread, so its reply is tagged with the finding's ID, on a hidden line. The scripts are `fix-input.ts`, which prints the fixer's input, `check-fix.ts`, which checks its answer, and `post-fix.ts`, which does the writes as the fixer's app. Checked by hand on a replay draft of #90, #96, on 2026-10-22.
+- **Code reads the PR's threads by who posted them.** A finding is a comment by the reviewer's app in the format its posting step writes. A reply is the fixer's when its app posted it and it starts with a marker, and anyone else's reply is Joe's. A finding in a review body has no thread, so the fixer's reply to it is tagged with the finding's ID, on a hidden line, and Joe's reply is a conversation comment that names the ID. The scripts are `fix-input.ts`, which prints the fixer's input, `check-fix.ts`, which checks its answer, and `post-fix.ts`, which does the writes as the fixer's app. Checked by hand on a replay draft of #90, #96, on 2026-10-22.
 - **When it stops early, its answer says so, with the reason.** It stops when the checked-out commit isn't the PR's head, when there's no finding marked "fix", or when `npm run check` already failed on the code the review saw. The job reads that from the answer too.
 - **It reads Joe's replies too.** When Joe replies on an earlier thread that needs attention, and says to fix it, the next fixer fixes it.
 - **It runs `npm run check` before it commits.**

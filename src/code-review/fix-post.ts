@@ -81,7 +81,8 @@ async function postReply(
 }
 
 // A finding in a review body has no thread, so its reply is a conversation comment
-// that quotes it, and is tagged with its ID (code review design section 3.6).
+// that quotes it, and is tagged with its ID (code review design section 3.6). The ID
+// is shown too, since Joe replies to it by naming it.
 export function reviewBodyReply(
   finding: PostedFinding,
   marker: string,
@@ -96,6 +97,7 @@ export function reviewBodyReply(
     marker,
     `> On \`${where}\`, in [the review](${finding.url}):\n>\n${quoted}`,
     reply,
+    `To reply, post a comment that names \`${finding.id}\`.`,
     findingTag(finding.id),
   ].join("\n\n");
 }

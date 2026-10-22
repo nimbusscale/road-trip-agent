@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { decisionsComment, stopReason } from "./fix-input-text.js";
+import { answerProblems } from "./fix-answer.js";
+import {
+  decisionsComment,
+  fixInputText,
+  stopReason,
+} from "./fix-input-text.js";
 import { markerLine, outcomeOf } from "./fix-markers.js";
+import { reviewBodyReply } from "./fix-post.js";
 import { FIXER_BOT, fixRound, lastOutcome } from "./fix-round.js";
 import {
   conversationComment,
@@ -103,6 +109,67 @@ describe("fixRound", () => {
 
     expect(round.earlier[0]?.replies).toHaveLength(1);
     expect(round.earlier.map(lastOutcome)).toEqual(["deferred"]);
+  });
+
+  it("lets Joe ask for a fix on a review body's finding, in a comment that names its ID", () => {
+    const [earlier] = fixRound(
+      prState({ reviews: [outsideDiffReview(9, [finding("F6")], OLD_SHA)] }),
+    ).earlier;
+    if (earlier === undefined) {
+      throw new Error("No earlier finding.");
+    }
+    const fixerReply = reviewBodyReply(
+      earlier,
+      markerLine("needs_attention", null, null),
+      "It would undo a decision.",
+    );
+    const state = prState({
+      comments: [inlineComment(1, finding("F2"), HEAD_SHA)],
+      reviews: [outsideDiffReview(9, [finding("F6")], OLD_SHA)],
+      issueComments: [
+        conversationComment(20, fixerReply),
+        conversationComment(21, "Leave review-9-10 alone.", "nimbusscale"),
+        conversationComment(22, "Fix review-9-1 anyway.", "nimbusscale"),
+      ],
+    });
+    const round = fixRound(state);
+
+    expect(round.askable.map((f) => f.id)).toEqual(["review-9-1"]);
+    expect(round.earlier[0]?.replies.map((r) => r.body)).toEqual([
+      fixerReply,
+      "Fix review-9-1 anyway.",
+    ]);
+    expect(fixInputText(state.pull, "None.", round)).toContain(
+      "Fix review-9-1 anyway.",
+    );
+    expect(
+      answerProblems(
+        {
+          status: "done",
+          commit: null,
+          replies: [
+            {
+              findingId: "comment-1",
+              outcome: "wrong",
+              issue: null,
+              reply: "Why.",
+            },
+            {
+              findingId: "review-9-1",
+              outcome: "wrong",
+              issue: null,
+              reply: "Why.",
+            },
+          ],
+        },
+        round,
+        {
+          local: { head: HEAD_SHA, parent: OLD_SHA, clean: true },
+          openIssues: new Set(),
+          ownIssues: new Set(),
+        },
+      ),
+    ).toEqual([]);
   });
 });
 
