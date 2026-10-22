@@ -1,6 +1,6 @@
 # Road Trip Planner: The Stock `/code-review` Prompt at `high`
 
-> **This is a research document, not a design document.** It's the prompt the stock `/code-review` gave its review subagent at the `high` level, in Claude Code 2.1.301. Anthropic doesn't publish it, so it was copied from the run transcript `A-pr30-run1` in the [code review evaluation](code-review-evaluation.md), which is on Joe's machine. The `medium` level got the same prompt, word for word. The first line, "Review target", is filled in from the command's arguments. Our own review prompt starts from this one ([code review design](../design/code-review.md), section 4.1).
+> **This is a research document, not a design document.** It's the prompt the stock `/code-review` gave its review subagent at the `high` level, in Claude Code 2.1.301. Anthropic doesn't publish it, so it was copied from the run transcript `A-pr30-run1` in the [code review evaluation](code-review-evaluation.md), which is on Joe's machine. The `medium` level got the same prompt, word for word. The first line, "Review target", is filled in from the command's arguments. Our own review prompt starts from this one ([code review design](../../design/code-review.md), section 4.1).
 
 Everything below the line is the prompt as the review subagent got it.
 
