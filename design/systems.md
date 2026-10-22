@@ -168,7 +168,13 @@ The commands, code standards, and tests are in [DEVELOPMENT.md](../DEVELOPMENT.m
 - **Not a login saved on a volume.** Running `/login` inside the container would save a login that renews itself, but it needs a Docker volume and a login on the server. Anthropic's docs don't say how often it renews, and if it lapses, the agents stop with no warning.
 - **An `ANTHROPIC_API_KEY` would win over the token,** and bill an API account instead of the plan. So the app leaves every `ANTHROPIC_` variable out of the environment it gives Claude Code. A developer's shell that has a key set can't change which account the app uses.
 
-GitHub holds only what the deploy needs: the server's address, its SSH host keys, and an SSH key, as secrets, and the browser's values as repo variables (section 7). It pushes images with its own built-in token.
+GitHub holds what the deploy needs: the server's address, its SSH host keys, and an SSH key, as secrets, and the browser's values as repo variables (section 7). It pushes images with its own built-in token. It also holds the keys for the code review's two GitHub Apps.
+
+**The code reviewer and the fixer each have a GitHub App,** so their comments and commits show under their own names ([code review design](code-review.md) section 4.6). Each app's private key is a `.pem` file that GitHub made once.
+
+- **In CI,** the key's contents are a repo secret, `REVIEWER_APP_PRIVATE_KEY` or `FIXER_APP_PRIVATE_KEY`. The app's ID is a repo variable, `REVIEWER_APP_ID` or `FIXER_APP_ID`. An ID isn't secret, since it's no use without the key.
+- **On Joe's machine,** the key file is in a folder outside the repo. `.env` holds the ID and the file's path, as `REVIEWER_APP_ID` and `REVIEWER_APP_PRIVATE_KEY_PATH`, and the same for the fixer. `src/code-review/app-token.ts` makes an hour's token from them.
+- **A leaked key** lets anyone act as its app on this repo, within the app's permissions, until the key is deleted in the app's settings on GitHub. Then make a new one, and update the secret and the local file.
 
 **The container images are private,** which is GitHub's default for a new image. The server has no registry credential of its own. Each deploy passes the workflow's built-in token to the server over SSH, and the server signs in with it only to pull that deploy's images. The sign-in is kept in a temporary folder that's removed right after, and the token stops working when the workflow job ends. So nobody has to make or renew a token, and none is left on the server.
 

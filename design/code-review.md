@@ -239,11 +239,19 @@ Then the workflow adds a "ready for Joe" label to the PR.
 
 **A push by Joe doesn't reset the count.** Only the fixer's commits count, so the cap holds however many times Joe pushes. When the loop stops at the cap, the last thing that ran is a review of the code Joe is about to read.
 
-**The fixer pushes as a GitHub App, so it has its own identity.** A push made with the workflow's own token doesn't start another run, so that token can't be used.
+**The fixer pushes as a GitHub App, so it has its own identity.** A push made with the workflow's own token doesn't start another run, so that token can't be used. The reviewer gets an app of its own too, so code can tell the reviewer's findings, the fixer's replies, and Joe's replies apart by who posted them (#92).
 
-- The app is installed on this repo only. It can write code, pull requests, and issues, but not workflow files.
-- Each run makes a token from the app's ID and private key, with `actions/create-github-app-token`. The token lasts an hour, and works only on this repo.
-- Its pushes and comments show as `<app-name>[bot]`, and its commits use the bot as the author. The cap counts those commits.
+| App | Posts as | Can |
+|---|---|---|
+| `nimbusscale-review-pr` | `nimbusscale-review-pr[bot]` | Read code and issues, and write pull requests |
+| `nimbusscale-fix-pr` | `nimbusscale-fix-pr[bot]` | Write code, pull requests, and issues |
+
+- Each app is installed on this repo only. Neither can change workflow files.
+- Each run makes a token from the app's ID and private key, with `actions/create-github-app-token`. The token lasts an hour, and works only on this repo. On Joe's machine, `src/code-review/app-token.ts` makes one the same way ([systems design](systems.md) section 8).
+- The fixer's commits use its bot as the author. The cap counts those commits.
+- The review workflow posts as `github-actions[bot]` until #93 switches it to the reviewer's app.
+
+Checked 2026-10-22 on a throwaway draft PR, #94. A comment posted with each app's token showed under that app. A commit pushed with the fixer's token showed its bot as the author and the pusher, and its push started a workflow run.
 
 A personal token was the other choice. It would push as Joe, and a classic one would cover every repo he owns.
 
