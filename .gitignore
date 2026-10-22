@@ -4,3 +4,33 @@ node_modules/
 coverage/
 dist/
 .claude/worktrees/
+
+# Empty files Claude Code's sandbox makes while a command runs, for the paths it
+# protects that don't exist yet. Listed so the fixer's `git add -A` skips them (code
+# review design section 4.6). Found with Claude Code 2.1.308. The list depends on what's
+# in the repo, so a new folder named like one of these would be ignored too.
+/.bash_profile
+/.bashrc
+/.env.development
+/.env.development.local
+/.env.local
+/.env.production
+/.env.production.local
+/.env.test
+/.env.test.local
+/.gitconfig
+/.gitmodules
+/.idea
+/.mcp.json
+/.npmrc
+/.profile
+/.ripgreprc
+/.vscode
+/.yarnrc
+/.yarnrc.yml
+/.zprofile
+/.zshrc
+/bunfig.toml
+/pnpm-lock.yaml
+/scripts
+/yarn.lock

@@ -43,6 +43,9 @@ const READABILITY_LIMITS = {
   ],
 };
 
+// No comment may turn off a lint rule or a type error. The fixer in CI can't edit this
+// file, so it can't get around a check with one (code review design section 4.5). One
+// that's really needed takes a change here, with Joe's approval.
 const ESCAPE_HATCH_BANS = {
   "@typescript-eslint/no-explicit-any": "error",
   "@typescript-eslint/no-non-null-assertion": "error",
@@ -51,11 +54,10 @@ const ESCAPE_HATCH_BANS = {
     {
       "ts-ignore": true,
       "ts-nocheck": true,
-      "ts-expect-error": "allow-with-description",
+      "ts-expect-error": true,
     },
   ],
-  "@eslint-community/eslint-comments/require-description": "error",
-  "@eslint-community/eslint-comments/no-unlimited-disable": "error",
+  "@eslint-community/eslint-comments/no-use": "error",
 };
 
 // Schemas for outside data go in *.schema.ts files (DEVELOPMENT.md section 4). Other

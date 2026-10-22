@@ -1,6 +1,6 @@
 # Road Trip Planner: Code Review
 
-> **This design is in progress.** It changes as we learn how the review agent behaves. Each review we handle by hand adds to section 5, and what it teaches us goes into sections 3 and 4, and the review rubric. Last updated 2026-10-21.
+> **This design is in progress.** It changes as we learn how the review agent behaves. Each review we handle by hand adds to section 5, and what it teaches us goes into sections 3 and 4, and the review rubric. Last updated 2026-10-22.
 
 This document covers how a pull request's code is reviewed: the review that runs in CI on each PR, how its findings are handled, and the fix loop we plan to build on top of it. Unlike the other design docs, it's about how the app is built, not what it does.
 
@@ -27,9 +27,10 @@ The evidence behind it is in `research/code-review/code-review-evaluation.md`. T
 - **It runs when a PR is opened or gets a new commit,** if the PR changes `src/` or `web/`. Drafts and PRs from forks aren't reviewed. A new commit cancels the review of the one before it.
 - **It pins the Claude Code version,** 2.1.301, since Claude Code's behavior changes between versions.
 - **The reviewer starts from the PR description,** which holds the task and the "Done when" results. It doesn't read the PR's conversation comments, where the implementer's reasons are, since those would color its review (DEVELOPMENT.md section 7, and CLAUDE.md).
-- **It reads the earlier inline comments first,** and doesn't post a finding twice. When a fix didn't cover a finding, it posts it again and says so.
-- **It can read code and run `node`, and the prompt tells it not to post.** Its tools are read-only, plus `node`, `npx tsx`, and the `gh` commands that read the PR and its issues. `gh api` and `node` could still post with the job's GitHub token, which can comment on, edit, or close the PR. That's accepted, since only this repo's own PRs are reviewed. Its commands run in Claude Code's sandbox, which lets them reach only GitHub (section 4.6). The Claude token is kept out of the commands it runs. The job's GitHub token can't push or merge.
-- **The workflow posts the findings, not the reviewer.** The reviewer returns them as JSON, which `claude -p` checks against a schema. The next step posts each one on its line. When the line isn't in the diff, it goes on the file, and when the file isn't in the diff either, into one review body. The code for this is in `src/code-review/`.
+- **It reads a list of its earlier findings first,** and doesn't post a finding twice. Code builds the list from the PR's threads, without the replies (section 4.3). When a fix didn't cover a finding, it posts it again and says so.
+- **It can read code and run `node`, and it can't post.** Its tools are read-only, plus `node`, `npx tsx`, and the `gh` commands that read the PR and its issues. It doesn't get `gh api`, since the list of earlier findings replaces its only use (#93). The job's GitHub token can only read the PR, so nothing the reviewer runs can comment on, edit, or close it. `node` could still read the PR's threads with that token. The prompt forbids it, and the saved transcript shows it. Its commands run in Claude Code's sandbox, which lets them reach only GitHub (section 4.6). The Claude token is kept out of the commands it runs.
+- **The workflow posts the findings, not the reviewer.** The reviewer returns them as JSON, which `claude -p` checks against a schema. The next step posts each one on its line, as the reviewer's app (section 4.6). When the line isn't in the diff, it goes on the file, and when the file isn't in the diff either, into one review body. The code for this is in `src/code-review/`.
+- **A review that couldn't run fails its step,** so it doesn't look like a clean one (section 4.7).
 - **Each run saves its transcript, the reviewer's answer, and `not-posted.md`** for 30 days, so we can check what the reviewer read, and the D labels (section 4.2).
 - **The review doesn't block a merge.**
 
@@ -51,7 +52,7 @@ Example: on PR #44 round 1, the schema's false maximum, an N3, was fixed by hand
 
 ### 3.3 Findings below the bar
 
-**The fixer reads each one, and takes no action on it.** By hand, it says why in a conversation comment that quotes the finding (DEVELOPMENT.md section 7), unless the finding was handled in chat (section 3.6). Joe can still ask for it to be fixed.
+**The fixer reads each one, and takes no action on it.** By hand, it replies on the finding's thread with the marker, from Joe's account (section 3.6). Joe can still ask for it to be fixed.
 
 In the fix loop, the reviewer marks most of these as notes, and Joe reads them on the PR (section 4.2). The fixer never sees the notes. A finding marked "fix" that the fixer finds below the bar gets the reply "Not fixed" on its thread (section 3.6), and code resolves the thread (section 4.4). In the loop, Joe can ask for a fix only on a finding that needs attention (section 4.5). For one that wasn't fixed, he fixes it himself, or asks for it in chat.
 
@@ -78,9 +79,11 @@ In the fix loop, the reviewer marks most of these as notes, and Joe reads them o
 
 The fixer's reason follows on the next lines. A finding in a review body has no thread, so its reply is a conversation comment of its own. It starts with the marker, and quotes the finding with a link to it. It also shows the finding's ID, such as `review-5615011373-1`, since Joe replies to it in a comment that names the ID.
 
-**The reviewer never reads the replies.** Code reads the threads, and gives the reviewer only what each marker means for the review (section 4.3). That's built in #93. Until then, the fixer runs only in #76's replays, which aren't reviewed. Code also reads the markers to resolve threads and keep the summary (section 4.4).
+**The reviewer never reads the replies.** Code reads the threads, and gives the reviewer only what each marker means for the review (section 4.3). That's built in #93. Code also reads the markers to resolve threads and keep the summary (section 4.4).
 
-When findings are handled by hand in chat, no replies are posted, since Joe has already heard each one. Decided 2026-10-21 in #76. It replaced one conversation comment that quoted each finding.
+**A finding handled by hand gets a reply too, from Joe's account.** It starts with the marker, and a line on why is enough. Joe posts it in the UI, or Claude Code posts it with Joe's `gh` login. Without it, the next review sees no reply, and posts the finding again when its lines change. Decided 2026-10-22 in chat, for #93. It replaced the rule that a finding handled in chat gets no reply.
+
+**Code reads a marker only from the fixer's app or Joe's account, `nimbusscale`.** The repo is public, so anyone with a GitHub account could reply on a thread. A marker from anyone else is ignored, so a stranger can't make the reviewer drop a finding. The reviewer still gets only what the marker means, so a marker from Joe shows it nothing more than one from the fixer. Decided 2026-10-22 in chat, for #93.
 
 ### 3.7 When a tool could check the rule
 
@@ -169,6 +172,15 @@ The cost is small:
 
 What it never reads holds the reasons the code was written the way it was. Those would color its review (section 2).
 
+**The reviewer gets the list by running a script, `npx tsx src/code-review/review-input.ts <number>`,** as the fixer gets its input from `fix-input.ts` (section 4.5). The script reads the threads in its own process, and prints only the list, so the transcript never shows a reply. Since it's a command in the skill, `/review-pr <number>` still works on Joe's machine. Each finding on the list gives its text, its place, the commit it was posted on, and what the last marker means for the review:
+
+- **Fixed:** check whether the fix worked, and post it again if it didn't.
+- **Deferred:** don't post it again. The list gives the issue, since that's scope (section 4.4).
+- **Not fixed, or needs attention:** don't post it again. The list doesn't say which, or why.
+- **No reply,** such as a note: don't post it again, unless its lines changed and the problem is still there.
+
+Decided 2026-10-22 in chat, for #93.
+
 **Each review reads the whole PR,** not only the commits since the last review. Example: on PR #44, round 2's one finding above the bar was in code that round 1 had read, and that round 1's fixes hadn't touched. A review of only the new commits would have missed it. This may change once we've seen some loops run.
 
 ### 4.4 Deferred findings, and the summary
@@ -195,8 +207,10 @@ Decided 2026-10-21 in #76. It replaced a "Set aside" list in the PR description.
 - **It reads the decisions comment, unlike the reviewer** (section 4.3). The fixer is doing the implementer's job, so the implementer's reasons help it. They keep it from undoing a decision, such as renaming a tool back. Decided 2026-10-21 in #76.
 - **It follows section 3:** it checks each finding first, and a fix comes with a test.
 - **It defers a finding only under the rules in section 3.8.** It never opens an issue. When a fix is too big for the PR, and no open issue plans it, the finding needs attention.
-- **It returns JSON, and code does the writes on the PR,** as with the reviewer (section 2). The fixer checks and fixes the findings, and commits. Its answer has one entry per finding: the finding's ID, its outcome, the issue for a finding deferred, and the reply. Then code pushes the commit, posts each reply with its marker (section 3.6), resolves the threads, and updates the summary (section 4.4). The fixer's only writes to GitHub are to issues' open questions, for findings it defers. Decided 2026-10-21 in #76.
-- **Its answer is checked before anything is posted.** In CI, `claude -p --json-schema` refuses an answer that doesn't fit the schema, such as an outcome that isn't on the list. Then code checks that it fits the round: each finding marked "fix" gets exactly one entry, no ID is made up, "fixed" comes with a commit, and "deferred" comes with an open issue. When anything fails, nothing is posted. A run by hand has no `--json-schema`, so the fixer runs the same check on its own answer before it returns it. Code can't catch an answer that fits but is wrong, such as "fixed" for a change that doesn't fix the finding. The next review catches that, when it checks whether the fix worked.
+- **It returns JSON, and code does the writes on the PR,** as with the reviewer (section 2). The fixer checks and fixes the findings, and commits. Then code pushes the commit, posts each reply with its marker (section 3.6), resolves the threads, and updates the summary (section 4.4). The fixer's only writes to GitHub are to issues' open questions, for findings it defers. Decided 2026-10-21 in #76.
+- **Its answer is one flat object, with three keys that are always filled in,** so the model doesn't have to work out which keys go with which status. `status` is "done" or "stopped". `reason` is always a sentence: why it stopped, or a summary of the round, which the job prints. `replies` is always a list, and it's empty when the fixer stopped. Each reply gives the finding's ID, its outcome, `deferredTo`, and the reply's text. `deferredTo` is the issue a deferred finding goes to, and `null` for the other outcomes. The answer has no commit. Code reads the checked-out commit from git, and pushes it when it's a new commit on the PR's head. Decided 2026-10-22 in chat, for #77, since `--json-schema` refuses a schema that's a choice between two shapes.
+- **Its answer is checked before anything is posted.** In CI, `claude -p --json-schema` refuses an answer that doesn't fit the schema, such as an outcome that isn't on the list. Then code checks what the schema can't: a "done" answer has at least one reply, and a "stopped" one has none. It also checks that the answer fits the round: each finding marked "fix" gets exactly one entry, no ID is made up, "fixed" comes with a new commit, and "deferred" comes with an open issue. When anything fails, nothing is posted. A run by hand has no `--json-schema`, so the fixer runs the same check on its own answer before it returns it. Code can't catch an answer that fits but is wrong, such as "fixed" for a change that doesn't fix the finding. The next review catches that, when it checks whether the fix worked.
+- **It can't change a config file, or turn off a check in code.** DEVELOPMENT.md section 6 lists the config files. The job turns the ask rules for them in `.claude/settings.json` into deny rules for the fixer (section 4.6). The sandbox then makes those files read-only for the fixer's commands, so `sed` can't change them either. A comment that turns off a lint rule or a type error, such as `eslint-disable` or `@ts-expect-error`, goes in an ordinary code file, so no file rule can block it. ESLint bans every such comment instead, so `npm run check` fails on one. A fix that needs either gets "needs attention" (section 3.6). Decided 2026-10-22 in chat, for #77.
 - **Code reads the PR's threads by who posted them.** A finding is a comment by the reviewer's app in the format its posting step writes. A reply is the fixer's when its app posted it and it starts with a marker, and anyone else's reply is Joe's. A finding in a review body has no thread, so the fixer's reply to it is tagged with the finding's ID, on a hidden line, and Joe's reply is a conversation comment that names the ID. The scripts are `fix-input.ts`, which prints the fixer's input, `check-fix.ts`, which checks its answer, and `post-fix.ts`, which does the writes as the fixer's app. Checked by hand on a replay draft of #90, #96, on 2026-10-22.
 - **When it stops early, its answer says so, with the reason.** It stops when the checked-out commit isn't the PR's head, when there's no finding marked "fix", or when `npm run check` already failed on the code the review saw. The job reads that from the answer too.
 - **It reads Joe's replies too.** When Joe replies on a thread that needs attention, and says to fix it, the next fixer fixes it. That holds for a finding from the review of the PR's head too, when the fixer pushed nothing after it and runs again.
@@ -208,8 +222,10 @@ Decided 2026-10-21 in #76. It replaced a "Set aside" list in the PR description.
 
 **Each push to a PR starts one workflow run, with two jobs:**
 
-1. **The review job** runs our reviewer, posts its findings, and outputs how many are marked "fix".
-2. **The fix job** runs only when that number is above zero, and the branch has fewer than 3 commits by the fixer. The fixer pushes, and the push starts the next run.
+1. **The review job** runs our reviewer, and posts its findings. It outputs how many are marked "fix", and how many findings that need attention have a reply from Joe after the fixer's (section 4.5).
+2. **The fix job** runs when either number is above zero, and the branch has fewer than 3 commits by the fixer. The fixer pushes, and the push starts the next run.
+
+**Joe starts a run by hand after he replies "fix it"** on a finding that needs attention. A reply isn't a push, so nothing else starts one. He re-runs the PR's latest "Code review" run, from the Actions tab or with `gh run rerun <run-id>`, and Claude Code can do it for him. The run reviews the PR again first. To leave such a finding alone, Joe resolves its thread instead of replying, so it doesn't start the fixer. Decided 2026-10-22 in chat, for #77. A trigger on the reply itself was turned down as more to build.
 
 **Neither the reviewer nor the fixer gets WebFetch or WebSearch.** They work from the repo. A finding whose label hangs on an outside fact gets V1, not a guess from the web.
 
@@ -227,6 +243,13 @@ Decided 2026-10-21 in #76. It replaced a "Set aside" list in the PR description.
 - `allowUnsandboxedCommands: false` keeps the model from running a command outside the sandbox. That's from Claude Code's docs, and wasn't tested.
 
 Checked in CI on 2026-10-20 (#82), with `gh api`. `gh pr view` and `gh issue view` worked too, in our reviewer's first run, on #83. If another `gh` command needs more GitHub domains, add them then.
+
+**The fixer's settings also deny edits to the config files** (DEVELOPMENT.md section 6). Claude Code ignores `.claude/settings.json` in CI, so its ask rules for those files don't apply, and there's no one to ask anyway. Before the fixer starts, the job turns those ask rules into deny rules, and adds them to the `--settings` above. That keeps one list of the files. The sandbox mounts each denied file read-only for the fixer's commands, so `sed -i` and `echo >>` fail on it too, not only the Edit tool. Tested with Claude Code 2.1.308 on 2026-10-22. The test found two things the job has to do:
+
+- **Drop each rule's leading `/`.** In `.claude/settings.json`, `/eslint.config.mjs` means the repo root. In an inline `--settings` string, it matches nothing, and even the Edit tool gets through.
+- **Expand a wildcard in a file name into the exact files,** such as `tsconfig*.json` into `tsconfig.json` and the others. The sandbox skips a rule with a wildcard in a file name, so shell commands can still write to the file. A rule for a whole folder, such as `.claude/hooks/**`, works as it is.
+
+**The sandbox makes empty files in the checkout while a command runs,** for paths it protects that don't exist yet, such as `.npmrc`, `yarn.lock`, and `.bashrc`. It can only make a file read-only once the file exists. In our repo, with Claude Code 2.1.308, there are 25, and they're gone when the run ends. `.gitignore` lists them, so the fixer's `git add -A` skips them, and they don't count as uncommitted changes. The list depends on what's in the repo, and maybe on the version, so #77 checks it in CI. One of them is `scripts`, so a `scripts/` folder would need another name. Found in #76's first replay, and decided 2026-10-22 in chat, for #77.
 
 | Run | Review job | Fix job |
 |---|---|---|
@@ -255,7 +278,7 @@ Then the workflow adds a "ready for Joe" label to the PR.
 - Each app is installed on this repo only. Neither can change workflow files.
 - Each run makes a token from the app's ID and private key, with `actions/create-github-app-token`. The token lasts an hour, and works only on this repo. On Joe's machine, `src/code-review/app-token.ts` makes one the same way ([systems design](systems.md) section 8).
 - The fixer's commits use its bot as the author. The cap counts those commits.
-- The review workflow posts as `github-actions[bot]` until #93 switches it to the reviewer's app.
+- The review job's posting step uses the reviewer's app token. The step that runs the reviewer keeps the job's own token, which can only read the PR, so the reviewer can't post (section 2). Until #93 is merged, the review posts as `github-actions[bot]`.
 
 Checked 2026-10-22 on a throwaway draft PR, #94. A comment posted with each app's token showed under that app. A commit pushed with the fixer's token showed its bot as the author and the pusher, and its push started a workflow run.
 
@@ -263,7 +286,13 @@ A personal token was the other choice. It would push as Joe, and a classic one w
 
 ### 4.7 A check that the review ran
 
-**A review that couldn't run must not look like a clean one.** On PR #39, two rounds looked like they passed. One failed to start, and the other had every command blocked. The workflow now fails the step when the run itself fails. A review whose commands are all blocked still passes.
+**A review that couldn't run must not look like a clean one.** On PR #39, two rounds looked like they passed. One failed to start, and the other had every command blocked. In the loop, a review with nothing marked "fix" ends the loop, and the PR gets the "ready for Joe" label, so a blocked review would hand Joe a PR nobody read. The review step fails in three cases:
+
+- **The run itself fails,** such as with a bad token or a usage limit.
+- **The reviewer says it stopped.** Its answer takes the fixer's shape: `status`, "done" or "stopped", `reason`, always a sentence, and `findings`, empty when it stopped. The skill tells it to stop when it can't do a step it needs, such as reading the description, the list of earlier findings, or the diff. The step shows the reason in the job summary.
+- **The reviewer says "done" with no findings, but a command was refused.** `claude -p` lists each refused command in `permission_denials`. This is a backstop, for a reviewer that didn't notice it was stuck. Refused commands are common, such as a `for` loop that isn't on the allowed list. In the six reviews before 2026-10-22, three had one, but each of those also had findings, so none would have failed. A false alarm costs a re-run.
+
+The first case is built. The other two were decided 2026-10-22 in chat, for #77.
 
 ### 4.8 Testing the reviewer
 
