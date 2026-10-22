@@ -31,9 +31,9 @@ It prints:
 - **The findings marked "fix" in the last review,** each with its ID, its place, and its text. Each ends with the reviewer's reason for its label.
 - **The earlier findings and their replies.** Each reply starts with what an earlier fixer did with the finding, and why. Joe may have replied too.
 
-If it says to stop, such as when the checked-out commit isn't the PR's head, or there's no finding marked "fix", stop. Answer "stopped" with its message (see Output).
+If it starts with "Stop:", such as when the checked-out commit isn't the PR's head, or there's no finding marked "fix", stop. Answer "stopped" with its message (see Output).
 
-**When Joe has replied on an earlier finding that needs attention, and says to fix it,** handle it like a finding marked "fix" in this round.
+**When Joe has replied on an earlier finding that needs attention, and says to fix it,** handle it like a finding marked "fix" in this round. The input says which earlier findings have a reply like that.
 
 ## Step 3: Check each finding
 

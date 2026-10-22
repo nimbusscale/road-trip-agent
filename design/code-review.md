@@ -15,7 +15,7 @@ The evidence behind it is in `research/code-review-evaluation.md`. That doc reco
 | The review in CI | Running since 2026-10-16. The stock `/code-review` ran until #75, and our own reviewer runs since (section 2) |
 | Rules for which findings get fixed | Agreed 2026-10-16 and 2026-10-18. Rewritten as a rubric with labels 2026-10-19. Revised 2026-10-20 after four labeling runs, and then called done. It's tuned as it's used. Applied by hand for now (section 3) |
 | Our own review prompt | Written 2026-10-20, as the `review-pr` skill (section 4.1). It replaced the stock one in CI in the PR that added it (#75), and is judged on new PRs (section 4.8) |
-| The fix loop | Not built. Planned 2026-10-19 (section 4). The fixer is written as the `fix-pr` skill, and tested by hand in #76 (section 4.5). The fix job is #77 |
+| The fix loop | Not built. Planned 2026-10-19 (section 4). The fixer is written as the `fix-pr` skill, with the code around it in `src/code-review/`, and tested by hand in #76 (section 4.5). The fix job is #77 |
 | The CI reviewer can read the Claude token | Open item 21 |
 
 ---
@@ -176,7 +176,7 @@ What it never reads holds the reasons the code was written the way it was. Those
 
 > - Write replies leave out leg changes: [finding](…), [reply](…), #80
 
-**An item leaves the summary when its thread is resolved.** After each fix round, code resolves the threads whose reply is "Fixed" or "Not fixed". Threads deferred or needing attention stay open until Joe resolves them. Code never resolves a note's or a check's thread. A finding in a review body has no thread, so its line in the summary has a checkbox, which Joe ticks. Code keeps the ticks when it updates the summary, and drops ticked lines.
+**An item leaves the summary when its thread is resolved.** After each fix round, code resolves the threads whose reply is "Fixed" or "Not fixed". Threads deferred or needing attention stay open until Joe resolves them. Code never resolves a note's or a check's thread. A finding in a review body has no thread, so its line in the summary has a checkbox, which Joe ticks. Code keeps the ticks when it updates the summary. A ticked line stays, ticked, since the tick is the only record that Joe handled it.
 
 **The risk is that the fixer drops a real bug, and the reviewer never raises it again.** That's accepted for this project. Joe can reopen a resolved thread. The number of findings per PR that weren't fixed is also measured (section 4.8), so a fixer that drops too much shows up.
 
@@ -192,11 +192,12 @@ Decided 2026-10-21 in #76. It replaced a "Set aside" list in the PR description.
 - **It defers a finding only under the rules in section 3.8.** It never opens an issue. When a fix is too big for the PR, and no open issue plans it, the finding needs attention.
 - **It returns JSON, and code does the writes on the PR,** as with the reviewer (section 2). The fixer checks and fixes the findings, and commits. Its answer has one entry per finding: the finding's ID, its outcome, the issue for a finding deferred, and the reply. Then code pushes the commit, posts each reply with its marker (section 3.6), resolves the threads, and updates the summary (section 4.4). The fixer's only writes to GitHub are to issues' open questions, for findings it defers. Decided 2026-10-21 in #76.
 - **Its answer is checked before anything is posted.** In CI, `claude -p --json-schema` refuses an answer that doesn't fit the schema, such as an outcome that isn't on the list. Then code checks that it fits the round: each finding marked "fix" gets exactly one entry, no ID is made up, "fixed" comes with a commit, and "deferred" comes with an open issue. When anything fails, nothing is posted. A run by hand has no `--json-schema`, so the fixer runs the same check on its own answer before it returns it. Code can't catch an answer that fits but is wrong, such as "fixed" for a change that doesn't fix the finding. The next review catches that, when it checks whether the fix worked.
+- **Code reads the PR's threads by who posted them.** A finding is a comment by the reviewer's app in the format its posting step writes. A reply is the fixer's when its app posted it and it starts with a marker, and anyone else's reply is Joe's. A finding in a review body has no thread, so its reply is tagged with the finding's ID, on a hidden line. The scripts are `fix-input.ts`, which prints the fixer's input, `check-fix.ts`, which checks its answer, and `post-fix.ts`, which does the writes as the fixer's app. Checked by hand on a replay draft of #90, #96, on 2026-10-22.
 - **When it stops early, its answer says so, with the reason.** It stops when the checked-out commit isn't the PR's head, when there's no finding marked "fix", or when `npm run check` already failed on the code the review saw. The job reads that from the answer too.
 - **It reads Joe's replies too.** When Joe replies on an earlier thread that needs attention, and says to fix it, the next fixer fixes it.
 - **It runs `npm run check` before it commits.**
 - **It makes one commit per round,** with the app's bot as the author (section 4.6). Code pushes it. When it fixed nothing, nothing is pushed.
-- **It doesn't need the project board.** It can read and open issues in this repo. The project's auto-add setting puts each new issue on the board, in Triage.
+- **It doesn't need the project board.** It reads issues, and edits one only to add a deferred finding's work to its open questions (section 3.8).
 
 ### 4.6 The workflow
 
