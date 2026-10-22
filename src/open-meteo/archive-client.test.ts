@@ -101,7 +101,7 @@ describe("ArchiveClient.seasonalAverages", () => {
       lastYear: 2025,
       averageHighInFahrenheit: 71,
       averageLowInFahrenheit: 47,
-      rainDaysPercent: 14,
+      precipitationDaysPercent: 14,
       snowDaysPercent: 0,
       daysAt90Percent: 1,
       daysAt100Percent: 0,
