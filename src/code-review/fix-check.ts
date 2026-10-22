@@ -1,4 +1,4 @@
-import { answerProblems, closedIssues } from "./fix-answer.js";
+import { answerProblems, closedIssues, newCommit } from "./fix-answer.js";
 import { type FixAnswer, fixAnswerSchema } from "./fix-answer.schema.js";
 import { fixRound, type FixRound, type PrState } from "./fix-round.js";
 import {
@@ -14,6 +14,8 @@ export type CheckedAnswer =
       answer: FixAnswer;
       state: PrState;
       round: FixRound;
+      // The fixer's commit on top of the PR's head, or null when it made none.
+      commit: string | null;
     }
   | { ok: false; problems: string[] };
 
@@ -44,16 +46,21 @@ export async function checkAnswer(
   const answer = parsed.data;
   const state = await loadPrState(gh, pullNumber);
   const round = fixRound(state);
-  const deferredTo =
-    answer.status === "done"
-      ? answer.replies.flatMap((r) => (r.issue === null ? [] : [r.issue]))
-      : [];
+  const deferredTo = answer.replies.flatMap((r) =>
+    r.deferredTo === null ? [] : [r.deferredTo],
+  );
   const problems = answerProblems(answer, round, {
     local,
     openIssues: await openIssues(gh, deferredTo),
     ownIssues: closedIssues(state.pull.body),
   });
   return problems.length === 0
-    ? { ok: true, answer, state, round }
+    ? {
+        ok: true,
+        answer,
+        state,
+        round,
+        commit: newCommit(local, round.headSha),
+      }
     : { ok: false, problems };
 }

@@ -16,8 +16,12 @@ function parse(json: string) {
   return reviewResultSchema.safeParse(JSON.parse(json));
 }
 
-function withFindings(isError: boolean, findings: unknown[]): string {
-  const output = JSON.stringify({ findings });
+function withFindings(
+  isError: boolean,
+  findings: unknown[],
+  status = "done",
+): string {
+  const output = JSON.stringify({ status, reason: "Why.", findings });
   return `{"is_error": ${String(isError)}, "structured_output": ${output}}`;
 }
 
@@ -28,6 +32,10 @@ describe("reviewResultSchema", () => {
 
   it("refuses a run that failed, so a failed review doesn't look clean", () => {
     expect(parse(withFindings(true, [])).success).toBe(false);
+  });
+
+  it("refuses a review that stopped, so it doesn't look clean", () => {
+    expect(parse(withFindings(false, [], "stopped")).success).toBe(false);
   });
 
   it("refuses a run with no structured output", () => {

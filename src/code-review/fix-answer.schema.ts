@@ -15,26 +15,29 @@ export type Outcome = (typeof OUTCOMES)[number];
 const fixReplySchema = z.strictObject({
   findingId: z.string().min(1),
   outcome: z.enum(OUTCOMES),
-  issue: z.int().positive().nullable(),
+  // The issue a deferred finding goes to, and null for the other outcomes.
+  deferredTo: z.int().positive().nullable(),
   reply: z.string().min(1),
 });
 
 export type FixReply = z.infer<typeof fixReplySchema>;
 
-// The fixer's whole answer, as the fix-pr skill's Output section gives it.
-export const fixAnswerSchema = z.discriminatedUnion("status", [
-  z.strictObject({
-    status: z.literal("done"),
-    commit: z
-      .string()
-      .regex(/^[0-9a-f]{40}$/)
-      .nullable(),
-    replies: z.array(fixReplySchema).min(1),
-  }),
-  z.strictObject({
-    status: z.literal("stopped"),
-    reason: z.string().min(1),
-  }),
-]);
+// The fixer's whole answer, as the fix-pr skill's Output section gives it. It's one flat
+// object, since claude -p --json-schema refuses a choice between two shapes (code review
+// design section 4.5). fix-answer.ts checks which replies go with which status. There's
+// no commit: code reads the checked-out one from git.
+export const fixAnswerSchema = z.strictObject({
+  status: z.enum(["done", "stopped"]),
+  // Why the fixer stopped, or for "done", a summary of the round.
+  reason: z.string().min(1),
+  replies: z.array(fixReplySchema),
+});
 
 export type FixAnswer = z.infer<typeof fixAnswerSchema>;
+
+// Draft 07, since claude -p refuses Zod's default (review-result.schema.ts).
+export function fixAnswerJsonSchema(): string {
+  return JSON.stringify(
+    z.toJSONSchema(fixAnswerSchema, { target: "draft-07" }),
+  );
+}

@@ -59,7 +59,7 @@ function fakeGh(calls: string[][]): GhApi {
 }
 
 describe("postFix", () => {
-  it("pushes, replies on each thread, and resolves only the fixed and not-fixed ones", async () => {
+  it("replies on each thread, resolves only the fixed and not-fixed ones, and pushes last", async () => {
     const calls: string[][] = [];
     const pushed: string[] = [];
     const log = await postFix(
@@ -68,38 +68,40 @@ describe("postFix", () => {
       {
         answer: {
           status: "done",
-          commit: FIX_SHA,
+          reason: "The round.",
           replies: [
             {
               findingId: "comment-1",
               outcome: "fixed",
-              issue: null,
+              deferredTo: null,
               reply: "Fixed it.",
             },
             {
               findingId: "comment-2",
               outcome: "deferred",
-              issue: 80,
+              deferredTo: 80,
               reply: "It fits #80.",
             },
             {
               findingId: "review-9-1",
               outcome: "wrong",
-              issue: null,
+              deferredTo: null,
               reply: "The doc is right.",
             },
           ],
         },
         round: fixRound(state),
         headRef: "some-branch",
+        commit: FIX_SHA,
       },
       (headRef) => {
-        pushed.push(headRef);
+        // The push starts the next review, so every write is done by then.
+        pushed.push(`${headRef} after ${String(calls.length)} calls`);
         return Promise.resolve();
       },
     );
 
-    expect(pushed).toEqual(["some-branch"]);
+    expect(pushed).toEqual([`some-branch after ${String(calls.length)} calls`]);
     const posts = calls.filter((c) => c.includes("POST"));
     expect(posts.map((c) => c[2])).toEqual([
       "repos/{owner}/{repo}/pulls/7/comments/1/replies",
@@ -117,6 +119,9 @@ describe("postFix", () => {
       c.join(" ").includes("resolveReviewThread"),
     );
     expect(resolved.map((c) => c.at(-1))).toEqual(["id=T1"]);
-    expect(log.at(-1)).toBe("Posted the summary: https://example/posted");
+    expect(log.slice(-2)).toEqual([
+      "Posted the summary: https://example/posted",
+      `Pushed ${FIX_SHA} to some-branch.`,
+    ]);
   });
 });

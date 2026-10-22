@@ -10,8 +10,6 @@ import { type GhApi, loadPrState, loadThreads } from "./fix-state.js";
 import { summaryBody, summaryComment, tickedIds } from "./fix-summary.js";
 import { postedCommentSchema } from "./github-pr.schema.js";
 
-type Done = Extract<FixAnswer, { status: "done" }>;
-
 // After a reply that says the finding is fixed or not fixed, its thread is resolved.
 // Deferred ones and ones that need attention stay open for Joe (code review design
 // section 4.4).
@@ -21,36 +19,39 @@ const RESOLVED_OUTCOMES: ReadonlySet<string> = new Set([
   "wrong",
 ]);
 
-// Does every write on the PR for a checked answer: pushes the commit, posts each reply
-// with its marker, resolves the threads, and updates the summary (code review design
-// section 4.5). It returns what it did, a line each.
+// Does every write on the PR for a checked answer: posts each reply with its marker,
+// resolves the threads, updates the summary, and pushes the commit (code review design
+// section 4.5). The push comes last, since it starts the next review, which reads the
+// replies' markers. It returns what it did, a line each.
 export async function postFix(
   gh: GhApi,
   pullNumber: number,
-  checked: { answer: Done; round: FixRound; headRef: string },
+  checked: {
+    answer: FixAnswer;
+    round: FixRound;
+    headRef: string;
+    commit: string | null;
+  },
   push: (headRef: string) => Promise<void>,
 ): Promise<string[]> {
-  const { answer, round, headRef } = checked;
+  const { answer, round, headRef, commit } = checked;
   const log: string[] = [];
-  if (answer.commit !== null) {
-    await push(headRef);
-    log.push(`Pushed ${answer.commit} to ${headRef}.`);
-  }
   const findings = new Map(
     [...round.pending, ...round.askable].map((f) => [f.id, f]),
   );
   for (const reply of answer.replies) {
     const finding = findings.get(reply.findingId);
     if (finding !== undefined) {
-      const url = await postReply(gh, pullNumber, finding, {
-        reply,
-        commit: answer.commit,
-      });
+      const url = await postReply(gh, pullNumber, finding, { reply, commit });
       log.push(`Replied on ${finding.id}: ${url}`);
     }
   }
   log.push(...(await resolveThreads(gh, pullNumber, answer.replies, findings)));
   log.push(await updateSummary(gh, pullNumber));
+  if (commit !== null) {
+    await push(headRef);
+    log.push(`Pushed ${commit} to ${headRef}.`);
+  }
   return log;
 }
 
@@ -60,7 +61,7 @@ async function postReply(
   finding: PostedFinding,
   { reply, commit }: { reply: FixReply; commit: string | null },
 ): Promise<string> {
-  const marker = markerLine(reply.outcome, commit, reply.issue);
+  const marker = markerLine(reply.outcome, commit, reply.deferredTo);
   const posted =
     finding.threadCommentId === null
       ? await gh([

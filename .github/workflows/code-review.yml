@@ -2,6 +2,10 @@
 # .claude/skills/, and posts its findings as inline comments, each marked "fix", "note",
 # or "check" (code review design sections 2 and 4.2). Opus was picked by testing the
 # stock /code-review on past PRs (research/code-review/code-review-evaluation.md, section 8.5).
+#
+# Then the fix job runs the fixer, the fix-pr skill, on the findings marked "fix", and
+# its push starts the next run. That's the fix loop (code review design section 4.6).
+# When the loop stops, the PR gets the "ready for Joe" label.
 name: Code review
 
 # Runs when a PR is opened or gets a new commit. A push to a branch with no PR doesn't
@@ -17,17 +21,22 @@ on:
 permissions:
   contents: read
 
-# A new commit cancels the review of the one before it.
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
-
 jobs:
   review:
     # Drafts aren't reviewed. Neither are PRs from forks, which can't use the token.
     if: ${{ !github.event.pull_request.draft && github.event.pull_request.head.repo.full_name == github.repository }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    # A new commit cancels the review of the one before it. Only the review job is in
+    # the group, so the fixer's own push doesn't cancel the fix job that made it.
+    concurrency:
+      group: ${{ github.workflow }}-review-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    # What the fix job's condition reads (code review design section 4.6).
+    outputs:
+      fix: ${{ steps.counts.outputs.fix }}
+      asked: ${{ steps.counts.outputs.asked }}
+      fixer-commits: ${{ steps.counts.outputs.fixer-commits }}
     permissions:
       contents: read
       # To read an issue a code comment hands work to (D3 in the review rubric), and the
@@ -120,6 +129,23 @@ jobs:
             jq -r '.result' "$RUNNER_TEMP/review.json" >> "$GITHUB_STEP_SUMMARY"
             exit 1
           fi
+          # A review that couldn't run must not look like a clean one, since a review
+          # with nothing marked "fix" ends the loop (code review design section 4.7).
+          # So the step fails when the reviewer says it stopped.
+          if jq -e '.structured_output.status == "stopped"' "$RUNNER_TEMP/review.json" > /dev/null; then
+            jq -r '"The reviewer stopped: \(.structured_output.reason)"' "$RUNNER_TEMP/review.json" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          # A backstop, for a reviewer that didn't notice it was stuck: no findings, and
+          # a command was refused. A false alarm costs a re-run.
+          if jq -e '(.structured_output.findings | length) == 0 and (.permission_denials | length) > 0' "$RUNNER_TEMP/review.json" > /dev/null; then
+            {
+              echo "The reviewer found nothing, but these commands were refused, so it may not have read the PR:"
+              jq -r '.permission_denials[] | "- \(.tool_name): `\(.tool_input | tostring | .[0:300])`"' "$RUNNER_TEMP/review.json"
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          jq -r '"The reviewer: \(.structured_output.reason)\n"' "$RUNNER_TEMP/review.json" >> "$GITHUB_STEP_SUMMARY"
           exit "$status"
 
       - name: Make the reviewer app's token
@@ -143,6 +169,23 @@ jobs:
         run: |
           npx tsx src/code-review/post-findings.ts "$RUNNER_TEMP/review.json" "$RUNNER_TEMP/not-posted.md" >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Count what the fix job needs
+        # The fix job runs when a finding is marked "fix" and has no fixer reply yet, or
+        # when Joe replied after the fixer on a finding that needs attention. Joe starts
+        # that second kind of run by re-running this one (code review design section
+        # 4.6). The cap counts the fixer's commits on the branch, so Joe's don't reset it.
+        id: counts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          set -o pipefail
+          counts=$(npx tsx src/code-review/round-counts.ts "$PR_NUMBER")
+          fixer_commits=$(git log --format=%an "$BASE_REF..HEAD" | grep -cxF 'nimbusscale-fix-pr[bot]' || true)
+          printf '%s\nfixer-commits=%s\n' "$counts" "$fixer_commits" | tee -a "$GITHUB_OUTPUT"
+          printf '## For the fix job\n\n%s, fixer-commits=%s (the cap is 3).\n' "$(echo "$counts" | paste -sd, - | sed 's/,/, /')" "$fixer_commits" >> "$GITHUB_STEP_SUMMARY"
+
       - name: Save the transcript
         # Shows what the reviewer read, such as whether it opened the PR's comments.
         if: ${{ !cancelled() }}
@@ -156,3 +199,186 @@ jobs:
             ${{ runner.temp }}/not-posted.md
           include-hidden-files: true
           retention-days: 30
+
+  fix:
+    # Runs the fixer when there's something for it, and the branch has fewer than 3 of
+    # its commits (code review design section 4.6). Its push starts the next run.
+    needs: review
+    if: ${{ (fromJSON(needs.review.outputs.fix) > 0 || fromJSON(needs.review.outputs.asked) > 0) && fromJSON(needs.review.outputs.fixer-commits) < 3 }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    outputs:
+      pushed: ${{ steps.post.outputs.pushed }}
+    env:
+      # The version the fixer was tested with, in #76 and #93. The deny rules and the
+      # sandbox's empty files were checked with it too (code review design section 4.6).
+      CLAUDE_CODE_VERSION: 2.1.308
+      DISABLE_AUTOUPDATER: 1
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          # The job's token stays out of .git/config, so nothing the fixer runs can
+          # push with it. The posting step pushes, with its own token.
+          persist-credentials: false
+      - name: Make a local branch for the PR's base
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: git branch "$BASE_REF" "origin/$BASE_REF"
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      # Before the fixer starts, since its commands can't reach npm. npm run check needs
+      # the packages.
+      - run: npm ci
+      - run: npm install --global "@anthropic-ai/claude-code@$CLAUDE_CODE_VERSION"
+      - name: Install the sandbox tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends bubblewrap socat
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+
+      - name: Write the shape of the fixer's answer, and its settings
+        # In its own step, since it runs the PR's code, and this step's environment has
+        # no token. The settings are the sandbox's, as for the reviewer, plus deny rules
+        # for the config files, made from the ask rules in .claude/settings.json (code
+        # review design section 4.6). Two folders are denied too: skill files, which the
+        # fixer doesn't edit, and workflow files, which its app can't push (section
+        # 3.6). The sandbox makes each denied path read-only for its commands as well.
+        # Attribution is off, since no commit in the project carries a Co-Authored-By
+        # line.
+        env:
+          SANDBOX_SETTINGS: '{"sandbox": {"enabled": true, "failIfUnavailable": true, "allowUnsandboxedCommands": false, "network": {"allowedDomains": ["github.com", "api.github.com"], "strictAllowlist": true}}, "attribution": {"commit": "", "pr": "", "sessionUrl": false}}'
+          MORE_DENY_RULES: '["Edit(.claude/skills/**)", "Edit(.github/workflows/**)"]'
+        run: |
+          set -o pipefail
+          npx tsx src/code-review/print-fix-schema.ts > "$RUNNER_TEMP/fix-schema.json"
+          deny=$(npx tsx src/code-review/print-deny-rules.ts)
+          jq -c -n --argjson base "$SANDBOX_SETTINGS" --argjson deny "$deny" --argjson more "$MORE_DENY_RULES" \
+            '$base * $deny | .permissions.deny += $more' > "$RUNNER_TEMP/fix-settings.json"
+          jq . "$RUNNER_TEMP/fix-settings.json"
+
+      - name: Make the fixer's token
+        # Enough to read the PR and edit an issue's open questions, for a finding it
+        # defers (code review design section 3.8). It can't push or post on the PR.
+        # The posting step makes a token that can.
+        id: fixer-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ vars.FIXER_APP_ID }}
+          private-key: ${{ secrets.FIXER_APP_PRIVATE_KEY }}
+          permission-contents: read
+          permission-issues: write
+          permission-pull-requests: read
+
+      - name: Make the fixer's bot the commit author
+        # The cap counts the commits by this name (code review design section 4.6).
+        env:
+          GH_TOKEN: ${{ steps.fixer-token.outputs.token }}
+          APP_SLUG: ${{ steps.fixer-token.outputs.app-slug }}
+        run: |
+          bot_id=$(gh api "users/$APP_SLUG%5Bbot%5D" --jq .id)
+          git config user.name "$APP_SLUG[bot]"
+          git config user.email "$bot_id+$APP_SLUG[bot]@users.noreply.github.com"
+
+      - name: Fix the findings
+        timeout-minutes: 50
+        # The fixer gets the replays' tools (#76): it can edit files in the checkout,
+        # run the checks and the tests, use git, and read issues and the PR. It can't
+        # push, call gh api, or reach the web, and the sandbox lets its commands reach
+        # only GitHub. It doesn't get npx tsx, which fails in the sandbox (code review
+        # design section 4.5). The scrub and the /proc block keep the Claude token from
+        # its commands and file tools, as for the reviewer.
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: 1
+          GH_TOKEN: ${{ steps.fixer-token.outputs.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          status=0
+          claude -p --model claude-opus-5-5 --effort high --output-format json \
+            --settings "$(cat "$RUNNER_TEMP/fix-settings.json")" --json-schema "$(cat "$RUNNER_TEMP/fix-schema.json")" \
+            --allowedTools Read Grep Glob "Edit(./**)" "Write(./scratch/**)" "Bash(git:*)" "Bash(rm:*)" "Bash(npm run check)" "Bash(npm run check:*)" "Bash(npx vitest:*)" "Bash(npx tsc:*)" "Bash(npx eslint:*)" "Bash(npx prettier:*)" "Bash(node:*)" "Bash(gh pr view:*)" "Bash(gh pr diff:*)" "Bash(gh issue view:*)" "Bash(gh issue list:*)" "Bash(gh issue edit:*)" "Bash(cat:*)" "Bash(ls:*)" "Bash(grep:*)" "Bash(rg:*)" "Bash(find:*)" "Bash(head:*)" "Bash(tail:*)" "Bash(wc:*)" "Bash(sed:*)" "Bash(awk:*)" "Bash(sort:*)" "Bash(uniq:*)" "Bash(cut:*)" "Bash(tr:*)" "Bash(diff:*)" "Bash(jq:*)" "Bash(echo:*)" "Bash(printf:*)" \
+            --disallowedTools NotebookEdit WebFetch WebSearch Agent "Bash(git push:*)" "Bash(gh api:*)" "Read(//proc/**)" \
+            -- "/fix-pr $PR_NUMBER" > "$RUNNER_TEMP/fix.json" || status=$?
+          jq -r '"Cost at API prices: $\(.total_cost_usd)\n"' "$RUNNER_TEMP/fix.json" >> "$GITHUB_STEP_SUMMARY"
+          if ! jq -e '.is_error == false' "$RUNNER_TEMP/fix.json" > /dev/null; then
+            jq -r '.result' "$RUNNER_TEMP/fix.json" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          jq '.structured_output' "$RUNNER_TEMP/fix.json" > "$RUNNER_TEMP/fix-answer.json"
+          jq -r '"## The fixer\n\n\(.status): \(.reason)\n"' "$RUNNER_TEMP/fix-answer.json" >> "$GITHUB_STEP_SUMMARY"
+          # A fixer that stopped fails the job, so the PR doesn't get the "ready for
+          # Joe" label as if the loop had ended well (code review design section 4.5).
+          if jq -e '.status == "stopped"' "$RUNNER_TEMP/fix-answer.json" > /dev/null; then
+            exit 1
+          fi
+          exit "$status"
+
+      - name: Save the transcript
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: fix-transcript-${{ github.run_attempt }}
+          path: |
+            ~/.claude/projects/
+            ${{ runner.temp }}/fix.json
+          include-hidden-files: true
+          retention-days: 30
+
+      - name: Make the posting token
+        # After the fixer, so the fixer never has a token that can push or post on the
+        # PR.
+        id: post-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ vars.FIXER_APP_ID }}
+          private-key: ${{ secrets.FIXER_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-issues: write
+          permission-pull-requests: write
+
+      - name: Post the replies, and push
+        # post-fix.ts checks the answer against the PR again, then replies on each
+        # finding, resolves threads, updates the summary, and pushes last, since the
+        # push starts the next run (code review design section 4.5). The push is the
+        # fixer app's, so it starts a run, which a push with the job's token wouldn't.
+        id: post
+        env:
+          GH_TOKEN: ${{ steps.post-token.outputs.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -o pipefail
+          gh auth setup-git
+          npx tsx src/code-review/post-fix.ts "$PR_NUMBER" "$RUNNER_TEMP/fix-answer.json" | tee -a "$GITHUB_STEP_SUMMARY"
+          if [ "$(git rev-parse HEAD)" != "$HEAD_SHA" ]; then
+            echo "pushed=true" >> "$GITHUB_OUTPUT"
+            # The loop goes on, so the PR isn't ready for Joe until it stops again.
+            if gh api "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/labels" --jq '.[].name' | grep -qxF 'ready for Joe'; then
+              gh api -X DELETE "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/labels/ready%20for%20Joe" > /dev/null
+            fi
+          fi
+
+  ready:
+    # The loop stops when the review marks nothing "fix", when the branch has 3 fixer
+    # commits, or when the fixer pushes nothing. Then the PR is ready for Joe (code
+    # review design section 4.6). A review or a fixer that failed or stopped doesn't
+    # count, so Joe never gets a PR that nobody read.
+    needs: [review, fix]
+    if: ${{ !cancelled() && needs.review.result == 'success' && (needs.fix.result == 'skipped' || (needs.fix.result == 'success' && needs.fix.outputs.pushed != 'true')) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Add the "ready for Joe" label
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: gh api -X POST "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/labels" -f "labels[]=ready for Joe" > /dev/null

@@ -30,21 +30,27 @@ const committed: AnswerFacts = {
   ownIssues: new Set([76]),
 };
 
+// Nothing committed: the checked-out commit is the PR's head.
+const unchanged: AnswerFacts = {
+  ...committed,
+  local: { ...committed.local, head: HEAD_SHA },
+};
+
 function reply(
   findingId: string,
   outcome: FixReply["outcome"],
-  issue: number | null = null,
+  deferredTo: number | null = null,
 ): FixReply {
-  return { findingId, outcome, issue, reply: "Why." };
+  return { findingId, outcome, deferredTo, reply: "Why." };
 }
 
-function done(commit: string | null, replies: FixReply[]): FixAnswer {
-  return { status: "done", commit, replies };
+function done(replies: FixReply[]): FixAnswer {
+  return { status: "done", reason: "The round.", replies };
 }
 
 describe("answerProblems", () => {
   it("passes an answer with one entry per finding and its commit", () => {
-    const answer = done(FIX_SHA, [
+    const answer = done([
       reply("comment-1", "fixed"),
       reply("comment-2", "deferred", 80),
     ]);
@@ -53,7 +59,7 @@ describe("answerProblems", () => {
   });
 
   it("finds a missing entry, a doubled one, and a made-up ID", () => {
-    const answer = done(FIX_SHA, [
+    const answer = done([
       reply("comment-1", "fixed"),
       reply("comment-1", "fixed"),
       reply("comment-99", "wrong"),
@@ -67,14 +73,10 @@ describe("answerProblems", () => {
   });
 
   it("refuses a deferral to the PR's own issue, a closed one, or none", () => {
-    const answer = done(null, [
+    const answer = done([
       reply("comment-1", "deferred", 76),
       reply("comment-2", "deferred", 81),
     ]);
-    const unchanged = {
-      ...committed,
-      local: { ...committed.local, head: HEAD_SHA },
-    };
 
     expect(answerProblems(answer, round, unchanged)).toEqual([
       "comment-1 is deferred to #76, the PR's own issue.",
@@ -82,10 +84,7 @@ describe("answerProblems", () => {
     ]);
     expect(
       answerProblems(
-        done(null, [
-          reply("comment-1", "deferred"),
-          reply("comment-2", "wrong", 80),
-        ]),
+        done([reply("comment-1", "deferred"), reply("comment-2", "wrong", 80)]),
         round,
         unchanged,
       ),
@@ -95,8 +94,8 @@ describe("answerProblems", () => {
     ]);
   });
 
-  it("needs a commit for a fix, on top of the PR's head, with nothing left over", () => {
-    const fixedNoCommit = done(null, [
+  it("needs a new commit for a fix, on top of the PR's head, with nothing left over", () => {
+    const fixed = done([
       reply("comment-1", "fixed"),
       reply("comment-2", "wrong"),
     ]);
@@ -105,27 +104,52 @@ describe("answerProblems", () => {
       local: { head: FIX_SHA, parent: "d".repeat(40), clean: false },
     };
 
-    expect(answerProblems(fixedNoCommit, round, twoCommits)).toEqual([
+    expect(
+      answerProblems(fixed, round, {
+        ...unchanged,
+        local: { ...unchanged.local, clean: false },
+      }),
+    ).toEqual([
       "Some changes aren't committed. Commit them, or undo them.",
-      'A finding is "fixed", but the answer gives no commit.',
-      `The answer gives no commit, but the checked-out commit ${FIX_SHA} isn't the PR's head, ${HEAD_SHA}.`,
+      `A finding is "fixed", but there's no new commit on top of the PR's head, ${HEAD_SHA}.`,
+    ]);
+    expect(answerProblems(fixed, round, twoCommits)).toEqual([
+      "Some changes aren't committed. Commit them, or undo them.",
+      `The commit's parent should be the PR's head, ${HEAD_SHA}. Make one commit on top of it.`,
     ]);
     expect(
       answerProblems(
-        done(FIX_SHA, [
-          reply("comment-1", "wrong"),
-          reply("comment-2", "wrong"),
-        ]),
+        done([reply("comment-1", "wrong"), reply("comment-2", "wrong")]),
         round,
-        twoCommits,
+        committed,
       ),
-    ).toContain('The answer gives a commit, but no finding is "fixed".');
+    ).toEqual([
+      `The checked-out commit ${FIX_SHA} isn't the PR's head, ${HEAD_SHA}, but no finding is "fixed".`,
+    ]);
   });
 
-  it("checks nothing when the fixer stopped", () => {
+  it("needs a reply when done, and none when stopped", () => {
+    expect(answerProblems(done([]), round, unchanged)).toEqual([
+      'A "done" answer has at least one reply.',
+    ]);
     expect(
-      answerProblems({ status: "stopped", reason: "Why." }, round, committed),
+      answerProblems(
+        { status: "stopped", reason: "Why.", replies: [] },
+        round,
+        committed,
+      ),
     ).toEqual([]);
+    expect(
+      answerProblems(
+        {
+          status: "stopped",
+          reason: "Why.",
+          replies: [reply("comment-1", "wrong")],
+        },
+        round,
+        unchanged,
+      ),
+    ).toEqual(['A "stopped" answer has no replies.']);
   });
 });
 

@@ -3,7 +3,7 @@
 // prints only what each reply's marker means, so the reviewer's transcript never shows
 // a reply (code review design section 4.3).
 //
-// npx tsx src/code-review/review-input.ts <pr-number>
+// node --import tsx src/code-review/review-input.ts <pr-number>
 import { postedFindings } from "./fix-round.js";
 import { ghApi, loadPrState } from "./fix-state.js";
 import { pullNumberSchema } from "./post-env.schema.js";

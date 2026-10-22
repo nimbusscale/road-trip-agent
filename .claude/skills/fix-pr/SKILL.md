@@ -55,7 +55,7 @@ Each finding ends up with one of these outcomes:
 | `deferred` | The claim holds, and its fix belongs in later work that an open issue already plans (step 5) |
 | `below_the_bar` | The claim holds, but its right label is below F1 to F7 |
 | `wrong` | The claim is false, or the code does what the design asks |
-| `needs_attention` | Fixing it would undo a decision, or change a config file. Or the fix is too big for the PR, and no open issue plans it. Or it's a security hole you can't fix in this PR. Or the claim or the fix rests on an outside fact the repo doesn't show (item 5) |
+| `needs_attention` | Fixing it would undo a decision, or change a config file, a skill file under `.claude/skills/`, or a workflow file under `.github/workflows/`. Or the fix is too big for the PR, and no open issue plans it. Or it's a security hole you can't fix in this PR. Or the claim or the fix rests on an outside fact the repo doesn't show (item 5) |
 
 ## Step 4: Fix
 
@@ -68,6 +68,8 @@ Fix each finding that holds up. Follow DEVELOPMENT.md.
 - **When the right fix is bigger than the PR,** see step 5. It's deferred only when an open issue already plans the work.
 
 Don't change config files, and don't add a disable comment or `@ts-expect-error`, to make a check pass. When a fix needs one, the finding needs attention.
+
+Don't change a skill file under `.claude/skills/`, such as this one, or a workflow file under `.github/workflows/`. You can't edit skill files, and your commit can't be pushed with a workflow file in it. When a fix needs one, the finding needs attention, and Joe fixes it by hand.
 
 ## Step 5: Defer what belongs in planned work
 
@@ -99,33 +101,31 @@ When you fixed something, make one commit with all the fixes. Its message is one
 
 ## Output
 
-Your final answer is a JSON object. When you handled the findings, it's:
+Your final answer is a JSON object with three keys, all of them always filled in:
 
 ```json
 {
   "status": "done",
-  "commit": "<your commit's full SHA, or null when you fixed nothing>",
+  "reason": "<a sentence or two on the round>",
   "replies": [
     {
       "findingId": "<the ID fix-input.ts gave>",
       "outcome": "fixed",
-      "issue": null,
+      "deferredTo": null,
       "reply": "<what you did, and why>"
     }
   ]
 }
 ```
 
-- **`replies` has one entry for each finding marked "fix",** and one for each finding that needs attention Joe asked you to fix.
+- **`status`** is `"done"` when you handled the findings, and `"stopped"` when you stopped early.
+- **`reason`** is always a sentence. When you stopped, say why, such as the message from step 2. When you're done, sum up the round, such as "Fixed 2 findings, and 1 was wrong." The job prints it.
+- **`replies` has one entry for each finding marked "fix",** and one for each finding that needs attention Joe asked you to fix. It's empty when you stopped.
 - **`outcome`** is one of the five in step 3.
-- **`issue`** is the issue's number for `deferred`, and `null` for the rest.
+- **`deferredTo`** is the issue's number for `deferred`, and `null` for the rest.
 - **`reply`** is posted on the finding's thread. Code starts it with a line that says the outcome, so don't repeat it. For `fixed`, say what changed, in a sentence or two, and name the test. For `deferred`, say why the fix fits the issue's work, and what you fixed now, if anything broke in normal use. For the rest, say why. For `needs_attention`, say what has to be decided. The next round's fixer reads this reply, so say enough that it won't undo what you did. Write in plain words, with one idea per sentence. Name the function or value you mean.
 
-When you stopped early, it's:
-
-```json
-{ "status": "stopped", "reason": "<why you stopped>" }
-```
+The answer doesn't name your commit. Code reads it from git, and pushes it when it's a new commit on top of the PR's head.
 
 Before you answer, write it to `scratch/fix-answer.json` with the Write tool, and check it:
 

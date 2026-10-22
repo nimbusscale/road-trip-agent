@@ -3,7 +3,7 @@
 // replies, each with an ID (the fix-pr skill's step 2). It starts with "Stop:" when the
 // fixer has nothing to do, or is on the wrong commit.
 //
-// npx tsx src/code-review/fix-input.ts <pr-number>
+// node --import tsx src/code-review/fix-input.ts <pr-number>
 import {
   decisionsComment,
   fixInputText,
