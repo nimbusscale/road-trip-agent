@@ -320,6 +320,8 @@ One row per review. "Above the bar" uses the rubric's rule, as it stood on 2026-
 | #44 | 2 | 5 | 1 | Every finding was accurate again. Sections 3.1 (normal use, missing tests), 3.4, and 3.7 come from this round |
 | #44 | 3 | 5 | 2 | Every finding was accurate. Three were about round 2's fixes. Sections 3.1 (text said twice) and 4.4 come from this round |
 | #44 | 4 | 5 | 0 | The first review the bar counted as clean. Every finding was accurate. With our own reviewer marking findings, none would be marked "fix", so no fix agent would run (section 4.2) |
+| #109 | 1 | 1 | 1 | The first round of the fixer run by hand, as the fix loop will run it. The fixer couldn't fix its one finding, since `claude -p` can't edit files under `.claude/`. The reviewer runs TypeScript with `node --import tsx` since this round (section 4.1) |
+| #109 | 2 | 2 | 1 | The first review whose threads had fixer replies. It didn't post round 1's fixed finding again |
 
 **PR #44, round 1,** the trip MCP server (phase 13a):
 
@@ -344,3 +346,14 @@ One row per review. "Above the bar" uses the rubric's rule, as it stood on 2026-
 - **Not fixed:** a branch that can never run, "may be too early" said twice, and the leg changes again.
 - **The tests' fake data hid two problems.** Round 1's dropped input got past tests that used the same lenient schema as the tool. In this round, a reply's made-up check result text left out a sentence the real text has, so the test couldn't show it said "may be too early" twice.
 - **This was the third round.** Under the cap agreed on 2026-10-18, two fix rounds, the loop would have stopped here. The cap is now three fix rounds (section 4.6).
+
+**PR #109, round 1,** the reviewer's list of earlier findings (#93), reviewed at 07d3309:
+
+- **Marked "fix", F2:** `npx tsx` fails in the CI reviewer's sandbox, so the reviewer couldn't run `review-input.ts` to get its list. The tsx CLI opens a socket, and the sandbox refuses it. `node --import tsx` opens none, and works.
+- **The fixer answered "needs attention".** The fix was in the `review-pr` skill, and a permission rule blocked the fixer's edit to it. Claude Code fixed it by hand in 419ffcd, and Joe replied "Fixed" on the thread. Whether the fix job should be able to edit skill files is a question for #77.
+
+**PR #109, round 2,** reviewed at 419ffcd:
+
+- **The review didn't post round 1's finding again.** Its list gave the finding as fixed in 419ffcd, without the replies.
+- **Marked "fix", F1:** this PR hadn't recorded its rounds here, as its task asks. The fixer added the rows and these notes.
+- **Note, N6:** section 2 and the workflow still list `npx tsx` among the reviewer's tools, though it can't run in the sandbox.
