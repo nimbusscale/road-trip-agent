@@ -12,9 +12,13 @@ You only read and report. Don't post or edit comments, and don't change any file
 
 Your working directory is the repo root. Run each command from there, without `cd`. A command that starts with `cd` and then reads a file by a relative path is refused.
 
-## Step 1: Read the rubric
+## Step 1: Read the rules
 
-Read `design/review-rubric.md`, all of it. It's the only rule for choosing a label. It also defines "normal use" and each label's limits. F5 points to the threat model in `CLAUDE.md`, under "What this project is".
+Read these three files with the Read tool, each one in full, before anything else. Don't search them with `grep` instead, and don't count the PR's diff of one as reading it. A rule you didn't search for still applies, and the diff shows only the lines that changed.
+
+- **`design/review-rubric.md`.** It's the only rule for choosing a label. It also defines "normal use" and each label's limits. F5 points to the threat model in `CLAUDE.md`, under "What this project is".
+- **`DEVELOPMENT.md`.** It says how code in this repo is written and tested. A PR that breaks one of its rules has a finding, even when the code works.
+- **`design/README.md`.** It says what each design doc covers, so you can tell in step 4 which ones the PR touches.
 
 ## Step 2: Read the task and the earlier findings
 
@@ -24,16 +28,17 @@ Read the PR description:
 gh pr view $ARGUMENTS --json title,body,baseRefName,headRefOid
 ```
 
-The description holds the task: the issue's "Do" and "Done when" items, and what was checked by hand. It may also have a "Set aside" list.
+The description holds the task: the issue's "Do" and "Done when" items, and what was checked by hand.
 
-Then read the findings earlier reviews posted. These are inline comments, plus the body of any review that has one:
+Then read the findings earlier reviews posted:
 
 ```sh
-gh api "repos/{owner}/{repo}/pulls/$ARGUMENTS/comments" --paginate
-gh api "repos/{owner}/{repo}/pulls/$ARGUMENTS/reviews" --paginate
+node --import tsx src/code-review/review-input.ts $ARGUMENTS
 ```
 
-**Never read the PR's conversation comments, or the comments on any issue.** They hold the implementer's reasons for writing the code the way they did, and those would color your review. So don't run `gh pr view --comments`, `gh issue view --comments`, or `gh api` on an `issues/.../comments` path. You may read an issue's own body, with `gh issue view <number> --json number,title,state,body`.
+It prints each earlier finding with its ID, its place, the commit it was posted on, its text, and what to do with it in this review. You use that in step 6. It leaves out the replies on the findings' threads on purpose. Don't read them some other way.
+
+**Never read the PR's conversation comments, or the comments on any issue.** They hold the implementer's reasons for writing the code the way they did, and those would color your review. The same goes for the replies on the findings' threads. So don't run `gh pr view --comments` or `gh issue view --comments`, don't read comments with `node` or any other script, and don't run `fix-input.ts`, which prints the replies for the fixer. You may read an issue's own body, with `gh issue view <number> --json number,title,state,body`.
 
 ## Step 3: Gather the diff
 
@@ -46,9 +51,9 @@ git diff <base>...HEAD
 
 Treat this diff as the review scope. Review the whole PR, not only the commits since the last review.
 
-## Step 4: Read DEVELOPMENT.md and the design docs
+## Step 4: Read the design docs
 
-Read `DEVELOPMENT.md`. It says how code in this repo is written and tested. Then read `design/README.md`, and the design docs that cover the changed files, and the sections the task points to. The design docs say what the code should do, so you can't tell a wrong result from a right one without them. Read only the design docs the PR touches.
+Read the design docs that cover the changed files, and the sections the task points to. `design/README.md`, from step 1, says which docs cover what. The design docs say what the code should do, so you can't tell a wrong result from a right one without them. Read only the design docs the PR touches.
 
 ## Step 5: Find candidates
 
@@ -83,8 +88,11 @@ First, merge candidates that are the same problem at the same place.
 
 Then, for each candidate:
 
-1. **Check the claim against the code.** Read as much as you need. When running code locally would settle it, run it with `node`, such as a rounding case, a timeout, or how a Zod schema handles an input. `node -e` runs a short script. To import the repo's TypeScript, use `node --import tsx --input-type=module -e "..."`, or run a TypeScript file with `npx tsx <file>`. Don't run the tests. CI already runs them in a separate job. Run each check inline, with `-e`, and don't write files. A command with a variable in braces, such as `${PIPESTATUS[0]}`, is refused. Your commands can reach only GitHub, so a check that needs any other service can't run. That's what V1 is for.
-2. **Drop it if it's already handled.** Drop a finding that's on the description's "Set aside" list. Drop one that an earlier finding already makes. The exception is when the lines it points to have changed since, and the problem is still there. Then keep it, and say in the finding that the change didn't fix it.
+1. **Check the claim against the code.** Read as much as you need. When running code locally would settle it, run it with `node`, such as a rounding case, a timeout, or how a Zod schema handles an input. `node -e` runs a short script. To import the repo's TypeScript, use `node --import tsx --input-type=module -e "..."`, or run a TypeScript file with `node --import tsx <file>`. Don't use `npx tsx`, since the sandbox refuses the socket it opens, and it fails before it runs anything. Don't run the tests. CI already runs them in a separate job. Run each check inline, with `-e`, and don't write files. A command with a variable in braces, such as `${PIPESTATUS[0]}`, is refused. Your commands can reach only GitHub, so a check that needs any other service can't run. That's what V1 is for.
+2. **Drop it if it's already handled.** When an earlier finding from step 2 already makes it, do what that finding's "What to do with it" says:
+   - **Fixed:** check whether the fix worked. If the problem is still there, keep it, and say in the finding that the fix didn't cover it.
+   - **Deferred, or handled:** drop it.
+   - **No reply yet:** drop it, unless the lines it points to have changed since it was posted, and the problem is still there. Then keep it, and say in the finding that the change didn't fix it.
 3. **Label it.** Go down the rubric's table, and give it the first label that fits. A D label fits only when it clearly fits. When you're unsure, keep going down the table. When a code comment hands the work to an issue, read that issue's body before you choose D3, as the rubric says.
 
 A finding whose claim turns out to be false still gets returned, labeled D1. Don't drop it. Joe checks the D labels.

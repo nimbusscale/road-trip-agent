@@ -11,6 +11,13 @@ import type {
 // (code review design section 4.6).
 export const REVIEWER_BOT = "nimbusscale-review-pr[bot]";
 export const FIXER_BOT = "nimbusscale-fix-pr[bot]";
+// The repo is public, so anyone can reply on a thread. A reply counts only when the
+// fixer or Joe posted it (code review design section 3.6).
+export const JOE = "nimbusscale";
+
+function countsAsReply(author: string): boolean {
+  return author === FIXER_BOT || author === JOE;
+}
 
 export interface Reply {
   readonly author: string;
@@ -49,8 +56,7 @@ export interface FixRound {
   readonly headSha: string;
   readonly pending: readonly PostedFinding[];
   readonly earlier: readonly PostedFinding[];
-  // Findings that need attention, where someone other than the bots replied after the
-  // fixer. The fixer may handle them, if the reply says to fix them. One can be from
+  // Findings that need attention, where Joe replied after the fixer. The fixer may handle them, if the reply says to fix them. One can be from
   // the review of the head, when the fixer pushed nothing after it.
   readonly askable: readonly PostedFinding[];
 }
@@ -121,13 +127,20 @@ export function lastFixerReply(finding: PostedFinding): Reply | null {
   );
 }
 
+// Joe's reply asks for a fix only when it has no marker. One with a marker says he
+// handled the finding himself (code review design section 3.6).
 function isAskable(finding: PostedFinding): boolean {
-  const fixerReply = lastFixerReply(finding);
-  if (fixerReply === null || outcomeOf(fixerReply.body) !== "needs_attention") {
+  const lastMarked = finding.replies.findLast(
+    (r) => outcomeOf(r.body) !== null,
+  );
+  if (
+    lastMarked?.author !== FIXER_BOT ||
+    outcomeOf(lastMarked.body) !== "needs_attention"
+  ) {
     return false;
   }
-  const after = finding.replies.slice(finding.replies.indexOf(fixerReply) + 1);
-  return after.some((r) => r.author !== FIXER_BOT && r.author !== REVIEWER_BOT);
+  const after = finding.replies.slice(finding.replies.indexOf(lastMarked) + 1);
+  return after.some((r) => r.author === JOE);
 }
 
 // An inline comment, or one on a whole file, which names its line in its first line.
@@ -143,7 +156,7 @@ function findingFromComment(
     return [];
   }
   const replies = all
-    .filter((c) => c.inReplyToId === comment.id)
+    .filter((c) => c.inReplyToId === comment.id && countsAsReply(c.author))
     .sort((a, b) => a.id - b.id)
     .map((c) => ({ author: c.author, body: c.body, url: c.url }));
   return [
@@ -194,8 +207,11 @@ function findingsFromReview(
 }
 
 function isReplyTo(comment: IssueComment, findingId: string): boolean {
-  if (comment.author === FIXER_BOT || comment.author === REVIEWER_BOT) {
+  if (comment.author === FIXER_BOT) {
     return taggedFindingId(comment.body) === findingId;
+  }
+  if (comment.author !== JOE) {
+    return false;
   }
   // The ID ends in a number, so review-9-1 mustn't match in review-9-10.
   return new RegExp(`\\b${findingId}\\b`).test(comment.body);

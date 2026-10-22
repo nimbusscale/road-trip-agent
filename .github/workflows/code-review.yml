@@ -30,9 +30,12 @@ jobs:
     timeout-minutes: 30
     permissions:
       contents: read
-      # To read an issue a code comment hands work to (D3 in the review rubric).
+      # To read an issue a code comment hands work to (D3 in the review rubric), and the
+      # conversation comments that hold Joe's replies to a review body's findings.
       issues: read
-      pull-requests: write
+      # Read only, so nothing the reviewer runs can post. The posting step posts with the
+      # reviewer app's token instead (code review design section 2).
+      pull-requests: read
     env:
       # The version round 1 tested. Claude Code's behavior changes between versions.
       CLAUDE_CODE_VERSION: 2.1.301
@@ -74,8 +77,10 @@ jobs:
         # A timeout here fails only this step, so the transcript is still saved.
         timeout-minutes: 25
         # The token is the Max subscription (research doc section 4.2). The reviewer
-        # gets read-only tools, plus node, npx tsx, and the gh commands that read the PR
-        # and its issues. It doesn't post anything. The next step does, from the JSON it returns.
+        # gets read-only tools, plus node, and the gh commands that read the PR
+        # and its issues. It doesn't get gh api, since review-input.ts gives it the
+        # earlier findings without their replies (code review design section 4.3). It
+        # doesn't post anything. The next step does, from the JSON it returns.
         # The Edit and Write tools, the web tools, and the Agent tool, which starts
         # subagents, are blocked.
         #
@@ -91,10 +96,9 @@ jobs:
         # and Glob, and for cat, head, tail, and sed. The // means the path is from the
         # filesystem root. Without it, Grep could read /proc/self/environ, and Read could
         # reach it through a symlink. Claude Code already refuses Bash commands that name
-        # /proc/*/environ. What's left is the job's GitHub token. It can read code and
-        # comment on, edit, or close the PR. It can't push or merge, and the repo doesn't
-        # let Actions approve PRs. That's accepted, since only this repo's own PRs are
-        # reviewed, and a PR can change this workflow anyway.
+        # /proc/*/environ. What's left is the job's GitHub token. It can only read code,
+        # the PR, and issues. node could still read the threads' replies with it. The
+        # skill forbids that, and the saved transcript would show it.
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: 1
@@ -106,7 +110,7 @@ jobs:
           status=0
           claude -p --model claude-opus-5-5 --output-format json \
             --settings "$SANDBOX_SETTINGS" --json-schema "$(cat "$RUNNER_TEMP/findings-schema.json")" \
-            --allowedTools "Bash(git:*)" "Bash(gh pr view:*)" "Bash(gh pr diff:*)" "Bash(gh issue view:*)" "Bash(gh api:*)" "Bash(node:*)" "Bash(npx tsx:*)" "Bash(cd:*)" "Bash(cat:*)" "Bash(ls:*)" "Bash(grep:*)" "Bash(rg:*)" "Bash(find:*)" "Bash(head:*)" "Bash(tail:*)" "Bash(wc:*)" "Bash(sed:*)" "Bash(awk:*)" "Bash(sort:*)" "Bash(uniq:*)" "Bash(cut:*)" "Bash(tr:*)" "Bash(diff:*)" "Bash(jq:*)" "Bash(echo:*)" "Bash(printf:*)" Read Grep Glob \
+            --allowedTools "Bash(git:*)" "Bash(gh pr view:*)" "Bash(gh pr diff:*)" "Bash(gh issue view:*)" "Bash(node:*)" "Bash(cd:*)" "Bash(cat:*)" "Bash(ls:*)" "Bash(grep:*)" "Bash(rg:*)" "Bash(find:*)" "Bash(head:*)" "Bash(tail:*)" "Bash(wc:*)" "Bash(sed:*)" "Bash(awk:*)" "Bash(sort:*)" "Bash(uniq:*)" "Bash(cut:*)" "Bash(tr:*)" "Bash(diff:*)" "Bash(jq:*)" "Bash(echo:*)" "Bash(printf:*)" Read Grep Glob \
             --disallowedTools Edit Write NotebookEdit WebFetch WebSearch Agent "Read(//proc/**)" \
             -- "/review-pr $PR_NUMBER" > "$RUNNER_TEMP/review.json" || status=$?
           jq -r '"Cost at API prices: $\(.total_cost_usd)\n"' "$RUNNER_TEMP/review.json" >> "$GITHUB_STEP_SUMMARY"
@@ -118,11 +122,22 @@ jobs:
           fi
           exit "$status"
 
+      - name: Make the reviewer app's token
+        # After the review, so the reviewer never has a token that can post. The findings
+        # are posted as the reviewer's app, so code can tell them apart from the fixer's
+        # replies and Joe's (code review design section 4.6).
+        id: reviewer-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ vars.REVIEWER_APP_ID }}
+          private-key: ${{ secrets.REVIEWER_APP_PRIVATE_KEY }}
+          permission-pull-requests: write
+
       - name: Post the findings
         # Posts each finding the reviewer returned, except the D labels, which go in
         # not-posted.md (code review design section 4.2).
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ steps.reviewer-token.outputs.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |

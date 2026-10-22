@@ -28,7 +28,7 @@ The evidence behind it is in `research/code-review/code-review-evaluation.md`. T
 - **It pins the Claude Code version,** 2.1.301, since Claude Code's behavior changes between versions.
 - **The reviewer starts from the PR description,** which holds the task and the "Done when" results. It doesn't read the PR's conversation comments, where the implementer's reasons are, since those would color its review (DEVELOPMENT.md section 7, and CLAUDE.md).
 - **It reads a list of its earlier findings first,** and doesn't post a finding twice. Code builds the list from the PR's threads, without the replies (section 4.3). When a fix didn't cover a finding, it posts it again and says so.
-- **It can read code and run `node`, and it can't post.** Its tools are read-only, plus `node`, `npx tsx`, and the `gh` commands that read the PR and its issues. It doesn't get `gh api`, since the list of earlier findings replaces its only use (#93). The job's GitHub token can only read the PR, so nothing the reviewer runs can comment on, edit, or close it. `node` could still read the PR's threads with that token. The prompt forbids it, and the saved transcript shows it. Its commands run in Claude Code's sandbox, which lets them reach only GitHub (section 4.6). The Claude token is kept out of the commands it runs.
+- **It can read code and run `node`, and it can't post.** Its tools are read-only, plus `node` and the `gh` commands that read the PR and its issues. It doesn't get `gh api`, since the list of earlier findings replaces its only use (#93). The job's GitHub token can only read the PR, so nothing the reviewer runs can comment on, edit, or close it. `node` could still read the PR's threads with that token. The prompt forbids it, and the saved transcript shows it. Its commands run in Claude Code's sandbox, which lets them reach only GitHub (section 4.6). The Claude token is kept out of the commands it runs.
 - **The workflow posts the findings, not the reviewer.** The reviewer returns them as JSON, which `claude -p` checks against a schema. The next step posts each one on its line, as the reviewer's app (section 4.6). When the line isn't in the diff, it goes on the file, and when the file isn't in the diff either, into one review body. The code for this is in `src/code-review/`.
 - **A review that couldn't run fails its step,** so it doesn't look like a clean one (section 4.7).
 - **Each run saves its transcript, the reviewer's answer, and `not-posted.md`** for 30 days, so we can check what the reviewer read, and the D labels (section 4.2).
@@ -79,7 +79,7 @@ In the fix loop, the reviewer marks most of these as notes, and Joe reads them o
 
 The fixer's reason follows on the next lines. A finding in a review body has no thread, so its reply is a conversation comment of its own. It starts with the marker, and quotes the finding with a link to it. It also shows the finding's ID, such as `review-5615011373-1`, since Joe replies to it in a comment that names the ID.
 
-**The reviewer never reads the replies.** Code reads the threads, and gives the reviewer only what each marker means for the review (section 4.3). That's built in #93. Code also reads the markers to resolve threads and keep the summary (section 4.4).
+**The reviewer never reads the replies.** Code reads the threads, and gives the reviewer only what each marker means for the review (section 4.3). `src/code-review/review-input.ts` builds that list. Code also reads the markers to resolve threads and keep the summary (section 4.4).
 
 **A finding handled by hand gets a reply too, from Joe's account.** It starts with the marker, and a line on why is enough. Joe posts it in the UI, or Claude Code posts it with Joe's `gh` login. Without it, the next review sees no reply, and posts the finding again when its lines change. Decided 2026-10-22 in chat, for #93. It replaced the rule that a finding handled in chat gets no reply.
 
@@ -121,7 +121,7 @@ Not built yet. Planned on 2026-10-19. The work to build it is #75, #76, and #77.
 
 The prompt:
 
-- **Reads the review rubric first,** since it labels each finding with it. The rubric is its own doc, so the reviewer doesn't also read the real cases in this doc, such as the past reviews in section 5. The rubric leaves real cases out on purpose.
+- **Reads the review rubric first,** since it labels each finding with it. The rubric is its own doc, so the reviewer doesn't also read the real cases in this doc, such as the past reviews in section 5. The rubric leaves real cases out on purpose. It reads `DEVELOPMENT.md` and `design/README.md` in full in the same step, with the Read tool. In PR #109's five reviews, it only searched `DEVELOPMENT.md` with `grep`, and never opened `design/README.md`, when step 4 said to read them (#87).
 - **Reads the design docs that cover the changed files, as a step of its own.** Without that step, the model may not open them. In the evaluation, Opus at `medium` opened no design doc in any of its 4 runs.
 - **Looks from four angles:** a line-by-line read of each changed function, what removed code used to do, callers and callees, and the task, the docs, and the tests. The first three read code. The fourth is what looks for F1, F3, F6, and F7, such as a design doc that doesn't match the code, or a test that would pass with the bug. The stock review rarely found a design doc that didn't match the code (research doc, section 8.3).
 - **Doesn't look for cleanups, reuse, speed, or style.** Those are notes at best.
@@ -130,7 +130,7 @@ The prompt:
 - **Has no cap on the number of findings.** A finding cut by a cap isn't posted or listed anywhere, so we'd never know it existed. Decided 2026-10-21 in #83. Look at it again after a few PRs.
 - **Writes its findings as JSON,** so the workflow can read them. `claude -p` checks the answer against a schema, and the workflow posts it (section 2). The reviewer gives only the label. The code works out the kind from it, such as "fix" for F2.
 - **Runs with Opus** at the model's default effort, as the stock review did (section 2).
-- **Can run `node` and `npx tsx`, to test a claim that needs no outside access,** such as a timeout or a rounding case. Its commands can reach only GitHub (section 4.6), so `npx` can't download a package. A claim that only an outside service can settle gets V1 (review rubric). It doesn't run the tests, since the "Check and deploy" workflow already does.
+- **Can run `node`, to test a claim that needs no outside access,** such as a timeout or a rounding case. Its commands can reach only GitHub (section 4.6), so `npx` can't download a package. A claim that only an outside service can settle gets V1 (review rubric). It runs the repo's TypeScript with `node --import tsx`. `npx tsx` fails in the sandbox, since it opens a socket the sandbox refuses (#93). It doesn't run the tests, since the "Check and deploy" workflow already does.
 - **Can't start subagents.** The workflow blocks the Agent tool, since the reviewer has no use for one.
 
 It gets its own name, `review-pr`. A project skill named `code-review` would replace the stock one, and the stock one stays available to compare against. Joe can run ours locally with `/review-pr <number>`. It returns the findings, and posts nothing.
@@ -172,7 +172,7 @@ The cost is small:
 
 What it never reads holds the reasons the code was written the way it was. Those would color its review (section 2).
 
-**The reviewer gets the list by running a script, `npx tsx src/code-review/review-input.ts <number>`,** as the fixer gets its input from `fix-input.ts` (section 4.5). The script reads the threads in its own process, and prints only the list, so the transcript never shows a reply. Since it's a command in the skill, `/review-pr <number>` still works on Joe's machine. Each finding on the list gives its text, its place, the commit it was posted on, and what the last marker means for the review:
+**The reviewer gets the list by running a script, `node --import tsx src/code-review/review-input.ts <number>`,** as the fixer gets its input from `fix-input.ts` (section 4.5). The script reads the threads in its own process, and prints only the list, so the transcript never shows a reply. Since it's a command in the skill, `/review-pr <number>` still works on Joe's machine. Each finding on the list gives its text, its place, the commit it was posted on, and what the last marker means for the review:
 
 - **Fixed:** check whether the fix worked, and post it again if it didn't.
 - **Deferred:** don't post it again. The list gives the issue, since that's scope (section 4.4).
@@ -211,7 +211,7 @@ Decided 2026-10-21 in #76. It replaced a "Set aside" list in the PR description.
 - **Its answer is one flat object, with three keys that are always filled in,** so the model doesn't have to work out which keys go with which status. `status` is "done" or "stopped". `reason` is always a sentence: why it stopped, or a summary of the round, which the job prints. `replies` is always a list, and it's empty when the fixer stopped. Each reply gives the finding's ID, its outcome, `deferredTo`, and the reply's text. `deferredTo` is the issue a deferred finding goes to, and `null` for the other outcomes. The answer has no commit. Code reads the checked-out commit from git, and pushes it when it's a new commit on the PR's head. Decided 2026-10-22 in chat, for #77, since `--json-schema` refuses a schema that's a choice between two shapes.
 - **Its answer is checked before anything is posted.** In CI, `claude -p --json-schema` refuses an answer that doesn't fit the schema, such as an outcome that isn't on the list. Then code checks what the schema can't: a "done" answer has at least one reply, and a "stopped" one has none. It also checks that the answer fits the round: each finding marked "fix" gets exactly one entry, no ID is made up, "fixed" comes with a new commit, and "deferred" comes with an open issue. When anything fails, nothing is posted. A run by hand has no `--json-schema`, so the fixer runs the same check on its own answer before it returns it. Code can't catch an answer that fits but is wrong, such as "fixed" for a change that doesn't fix the finding. The next review catches that, when it checks whether the fix worked.
 - **It can't change a config file, or turn off a check in code.** DEVELOPMENT.md section 6 lists the config files. The job turns the ask rules for them in `.claude/settings.json` into deny rules for the fixer (section 4.6). The sandbox then makes those files read-only for the fixer's commands, so `sed` can't change them either. A comment that turns off a lint rule or a type error, such as `eslint-disable` or `@ts-expect-error`, goes in an ordinary code file, so no file rule can block it. ESLint bans every such comment instead, so `npm run check` fails on one. A fix that needs either gets "needs attention" (section 3.6). Decided 2026-10-22 in chat, for #77.
-- **Code reads the PR's threads by who posted them.** A finding is a comment by the reviewer's app in the format its posting step writes. A reply is the fixer's when its app posted it and it starts with a marker, and anyone else's reply is Joe's. A finding in a review body has no thread, so the fixer's reply to it is tagged with the finding's ID, on a hidden line, and Joe's reply is a conversation comment that names the ID. The scripts are `fix-input.ts`, which prints the fixer's input, `check-fix.ts`, which checks its answer, and `post-fix.ts`, which does the writes as the fixer's app. Checked by hand on a replay draft of #90, #96, on 2026-10-22.
+- **Code reads the PR's threads by who posted them.** A finding is a comment by the reviewer's app in the format its posting step writes. A reply is the fixer's when its app posted it and it starts with a marker. A reply is Joe's only when Joe's account, `nimbusscale`, posted it. Code ignores a reply from anyone else, so the fixer never reads it, and it can't ask for a fix (section 3.6). A finding in a review body has no thread, so the fixer's reply to it is tagged with the finding's ID, on a hidden line, and Joe's reply is a conversation comment that names the ID. The scripts are `fix-input.ts`, which prints the fixer's input, `check-fix.ts`, which checks its answer, and `post-fix.ts`, which does the writes as the fixer's app. Checked by hand on a replay draft of #90, #96, on 2026-10-22.
 - **When it stops early, its answer says so, with the reason.** It stops when the checked-out commit isn't the PR's head, when there's no finding marked "fix", or when `npm run check` already failed on the code the review saw. The job reads that from the answer too.
 - **It reads Joe's replies too.** When Joe replies on a thread that needs attention, and says to fix it, the next fixer fixes it. That holds for a finding from the review of the PR's head too, when the fixer pushed nothing after it and runs again.
 - **It runs `npm run check` before it commits.**
@@ -278,7 +278,7 @@ Then the workflow adds a "ready for Joe" label to the PR.
 - Each app is installed on this repo only. Neither can change workflow files.
 - Each run makes a token from the app's ID and private key, with `actions/create-github-app-token`. The token lasts an hour, and works only on this repo. On Joe's machine, `src/code-review/app-token.ts` makes one the same way ([systems design](systems.md) section 8).
 - The fixer's commits use its bot as the author. The cap counts those commits.
-- The review job's posting step uses the reviewer's app token. The step that runs the reviewer keeps the job's own token, which can only read the PR, so the reviewer can't post (section 2). Until #93 is merged, the review posts as `github-actions[bot]`.
+- The review job's posting step uses the reviewer's app token. The step that runs the reviewer keeps the job's own token, which can only read the PR, so the reviewer can't post (section 2).
 
 Checked 2026-10-22 on a throwaway draft PR, #94. A comment posted with each app's token showed under that app. A commit pushed with the fixer's token showed its bot as the author and the pusher, and its push started a workflow run.
 
@@ -320,6 +320,12 @@ One row per review. "Above the bar" uses the rubric's rule, as it stood on 2026-
 | #44 | 2 | 5 | 1 | Every finding was accurate again. Sections 3.1 (normal use, missing tests), 3.4, and 3.7 come from this round |
 | #44 | 3 | 5 | 2 | Every finding was accurate. Three were about round 2's fixes. Sections 3.1 (text said twice) and 4.4 come from this round |
 | #44 | 4 | 5 | 0 | The first review the bar counted as clean. Every finding was accurate. With our own reviewer marking findings, none would be marked "fix", so no fix agent would run (section 4.2) |
+| #109 | 1 | 1 | 1 | The first round of the fixer run by hand, as the fix loop will run it. The fixer couldn't fix its one finding, since `claude -p` can't edit files under `.claude/`. The reviewer runs TypeScript with `node --import tsx` since this round (section 4.1) |
+| #109 | 2 | 2 | 1 | The first review whose threads had fixer replies. It didn't post round 1's fixed finding again |
+| #109 | 3 | 2 | 1 | Found that a "Fixed" marker from Joe still asked the fixer for a fix. The fixer was asked to handle that finding again, saw why, and left it alone |
+| #109 | 4 | 1 | 0 | Nothing marked "fix" after three fix rounds. One V1, which code can't settle: whether #87 got the results |
+| #109 | 5 | 0 | 0 | After a commit that only recorded rounds 3 and 4. No findings |
+| #109 | 6 | 1 | 1 | The first review to read `DEVELOPMENT.md` and `design/README.md` in full, after the skill's step 1 named them. Its F6 was deferred to #77 |
 
 **PR #44, round 1,** the trip MCP server (phase 13a):
 
@@ -344,3 +350,35 @@ One row per review. "Above the bar" uses the rubric's rule, as it stood on 2026-
 - **Not fixed:** a branch that can never run, "may be too early" said twice, and the leg changes again.
 - **The tests' fake data hid two problems.** Round 1's dropped input got past tests that used the same lenient schema as the tool. In this round, a reply's made-up check result text left out a sentence the real text has, so the test couldn't show it said "may be too early" twice.
 - **This was the third round.** Under the cap agreed on 2026-10-18, two fix rounds, the loop would have stopped here. The cap is now three fix rounds (section 4.6).
+
+**PR #109, round 1,** the reviewer's list of earlier findings (#93), reviewed at 07d3309:
+
+- **Marked "fix", F2:** `npx tsx` fails in the CI reviewer's sandbox, so the reviewer couldn't run `review-input.ts` to get its list. The tsx CLI opens a socket, and the sandbox refuses it. `node --import tsx` opens none, and works.
+- **The fixer answered "needs attention".** The fix was in the `review-pr` skill, and a permission rule blocked the fixer's edit to it. Claude Code fixed it by hand in 419ffcd, and replied "Fixed" on the thread from Joe's account. Whether the fix job should be able to edit skill files is a question for #77.
+
+**PR #109, round 2,** reviewed at 419ffcd:
+
+- **The review didn't post round 1's finding again.** Its list gave the finding as fixed in 419ffcd, without the replies.
+- **Marked "fix", F1:** this PR hadn't recorded its rounds here, as its task asks. The fixer added the rows and these notes.
+- **Note, N6:** section 2 and the workflow still list `npx tsx` among the reviewer's tools, though it can't run in the sandbox.
+
+**PR #109, round 3,** reviewed at 6952c84:
+
+- **The review didn't post rounds 1 and 2's findings again.**
+- **Marked "fix", F2:** a "Fixed" marker from Joe, after the fixer's "Needs attention", still made the finding count as asked for. So the fixer would start on a finding Joe had already handled. The reviewer showed it with a short `node` script, on round 1's own thread. The fixer fixed it in eec3b5c: only Joe's reply without a marker asks for a fix.
+- **The fixer met the bug in its own input.** Its input asked it to handle round 1's finding again. It worked out that this was the bug it was fixing, and gave that finding no entry.
+- **Note, N5:** `review-input.ts`'s header comment still gives the `npx tsx` command.
+
+**PR #109, round 4,** reviewed at eec3b5c:
+
+- **Nothing marked "fix",** so under the loop the PR would get the "ready for Joe" label.
+- **Check, V1:** whether #87 had the results of which files each review read. Only the issue's comments show it, and the reviewer doesn't read those. Claude Code posted them after this review.
+- **No review read a reply.** None of the replies' text is in the transcripts of reviews 2 to 4. Review 1 ran before any reply.
+- **The four reviews cost $0.66 to $0.86 each, at API prices. The three fixer runs cost $0.60 to $0.78 each.** Round 1's fixer ran twice. The second run added an allow rule for `.claude/skills/**`, which didn't help, since `claude -p` refuses an edit under `.claude/` unless permissions are bypassed. Both answered "needs attention", and only the second answer was posted.
+
+**PR #109, rounds 5 and 6,** after the cap, on commits Claude Code made by hand. No fixer ran:
+
+- **Round 5,** at c489e0b, which only recorded rounds 3 and 4, found nothing.
+- **Round 6,** at 92cbf09, ran after the skill's step 1 changed to name `DEVELOPMENT.md` and `design/README.md`, and to say a `grep` doesn't count. It read both in full with the Read tool, for the first time in six reviews (#87).
+- **Marked "fix", F6, deferred to #77:** a "Fixed" marker tells every later review to check the fix again. If a later finding says the fix didn't work, and that finding gets "Not fixed: wrong", the list still tells the reviewer to check the first finding's fix. So it could post the same problem a third time. Joe left it unfixed, since it needs a disputed fix and then a "wrong" on the dispute.
+- **Round 1 could have found it,** since the rule was in `review-input-text.ts` from the first commit. With round 3's F2, that's two misses in this PR in code round 1 read (#110).
