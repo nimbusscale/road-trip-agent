@@ -322,6 +322,8 @@ One row per review. "Above the bar" uses the rubric's rule, as it stood on 2026-
 | #44 | 4 | 5 | 0 | The first review the bar counted as clean. Every finding was accurate. With our own reviewer marking findings, none would be marked "fix", so no fix agent would run (section 4.2) |
 | #109 | 1 | 1 | 1 | The first round of the fixer run by hand, as the fix loop will run it. The fixer couldn't fix its one finding, since `claude -p` can't edit files under `.claude/`. The reviewer runs TypeScript with `node --import tsx` since this round (section 4.1) |
 | #109 | 2 | 2 | 1 | The first review whose threads had fixer replies. It didn't post round 1's fixed finding again |
+| #109 | 3 | 2 | 1 | Found that a "Fixed" marker from Joe still asked the fixer for a fix. The fixer was asked to handle that finding again, saw why, and left it alone |
+| #109 | 4 | 1 | 0 | Nothing marked "fix" after three fix rounds. One V1, which code can't settle: whether #87 got the results |
 
 **PR #44, round 1,** the trip MCP server (phase 13a):
 
@@ -350,10 +352,24 @@ One row per review. "Above the bar" uses the rubric's rule, as it stood on 2026-
 **PR #109, round 1,** the reviewer's list of earlier findings (#93), reviewed at 07d3309:
 
 - **Marked "fix", F2:** `npx tsx` fails in the CI reviewer's sandbox, so the reviewer couldn't run `review-input.ts` to get its list. The tsx CLI opens a socket, and the sandbox refuses it. `node --import tsx` opens none, and works.
-- **The fixer answered "needs attention".** The fix was in the `review-pr` skill, and a permission rule blocked the fixer's edit to it. Claude Code fixed it by hand in 419ffcd, and Joe replied "Fixed" on the thread. Whether the fix job should be able to edit skill files is a question for #77.
+- **The fixer answered "needs attention".** The fix was in the `review-pr` skill, and a permission rule blocked the fixer's edit to it. Claude Code fixed it by hand in 419ffcd, and replied "Fixed" on the thread from Joe's account. Whether the fix job should be able to edit skill files is a question for #77.
 
 **PR #109, round 2,** reviewed at 419ffcd:
 
 - **The review didn't post round 1's finding again.** Its list gave the finding as fixed in 419ffcd, without the replies.
 - **Marked "fix", F1:** this PR hadn't recorded its rounds here, as its task asks. The fixer added the rows and these notes.
 - **Note, N6:** section 2 and the workflow still list `npx tsx` among the reviewer's tools, though it can't run in the sandbox.
+
+**PR #109, round 3,** reviewed at 6952c84:
+
+- **The review didn't post rounds 1 and 2's findings again.**
+- **Marked "fix", F2:** a "Fixed" marker from Joe, after the fixer's "Needs attention", still made the finding count as asked for. So the fixer would start on a finding Joe had already handled. The reviewer showed it with a short `node` script, on round 1's own thread. The fixer fixed it in eec3b5c: only Joe's reply without a marker asks for a fix.
+- **The fixer met the bug in its own input.** Its input asked it to handle round 1's finding again. It worked out that this was the bug it was fixing, and gave that finding no entry.
+- **Note, N5:** `review-input.ts`'s header comment still gives the `npx tsx` command.
+
+**PR #109, round 4,** reviewed at eec3b5c:
+
+- **Nothing marked "fix",** so under the loop the PR would get the "ready for Joe" label.
+- **Check, V1:** whether #87 had the results of which files each review read. Only the issue's comments show it, and the reviewer doesn't read those. Claude Code posted them after this review.
+- **No review read a reply.** None of the replies' text is in the transcripts of reviews 2 to 4. Review 1 ran before any reply.
+- **The four reviews cost $0.66 to $0.86 each, at API prices. The three fixer runs cost $0.60 to $0.78 each.** Round 1's fixer ran twice. The second run added an allow rule for `.claude/skills/**`, which didn't help, since `claude -p` refuses an edit under `.claude/` unless permissions are bypassed. Both answered "needs attention", and only the second answer was posted.
