@@ -22,6 +22,28 @@ permissions:
   contents: read
 
 jobs:
+  unready:
+    # Takes the "ready for Joe" label off when a run starts, such as after Joe pushes,
+    # or re-runs a run after a "fix it" reply. Only the ready job puts it back, so the
+    # label never stays on a commit whose review failed (code review design section
+    # 4.6). It's a job of its own, so the reviewer's job token stays read-only.
+    if: ${{ !github.event.pull_request.draft && github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Take the "ready for Joe" label off
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          labeled=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/labels" --jq 'any(.[]; .name == "ready for Joe")')
+          if [ "$labeled" = true ]; then
+            gh api -X DELETE "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/labels/ready%20for%20Joe" > /dev/null
+          fi
+
   review:
     # Drafts aren't reviewed. Neither are PRs from forks, which can't use the token.
     if: ${{ !github.event.pull_request.draft && github.event.pull_request.head.repo.full_name == github.repository }}
@@ -358,19 +380,16 @@ jobs:
           npx tsx src/code-review/post-fix.ts "$PR_NUMBER" "$RUNNER_TEMP/fix-answer.json" | tee -a "$GITHUB_STEP_SUMMARY"
           if [ "$(git rev-parse HEAD)" != "$HEAD_SHA" ]; then
             echo "pushed=true" >> "$GITHUB_OUTPUT"
-            # The loop goes on, so the PR isn't ready for Joe until it stops again.
-            if gh api "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/labels" --jq '.[].name' | grep -qxF 'ready for Joe'; then
-              gh api -X DELETE "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/labels/ready%20for%20Joe" > /dev/null
-            fi
           fi
 
   ready:
     # The loop stops when the review marks nothing "fix", when the branch has 3 fixer
     # commits, or when the fixer pushes nothing. Then the PR is ready for Joe (code
     # review design section 4.6). A review or a fixer that failed or stopped doesn't
-    # count, so Joe never gets a PR that nobody read.
-    needs: [review, fix]
-    if: ${{ !cancelled() && needs.review.result == 'success' && (needs.fix.result == 'skipped' || (needs.fix.result == 'success' && needs.fix.outputs.pushed != 'true')) }}
+    # count, so Joe never gets a PR that nobody read. It waits for the unready job, so
+    # the label can't be taken off after it's put back.
+    needs: [unready, review, fix]
+    if: ${{ !cancelled() && needs.unready.result == 'success' && needs.review.result == 'success' && (needs.fix.result == 'skipped' || (needs.fix.result == 'success' && needs.fix.outputs.pushed != 'true')) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:

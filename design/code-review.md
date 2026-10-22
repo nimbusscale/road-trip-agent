@@ -223,11 +223,12 @@ Decided 2026-10-21 in #76. It replaced a "Set aside" list in the PR description.
 
 ### 4.6 The workflow
 
-**Each push to a PR starts one workflow run, with three jobs:**
+**Each push to a PR starts one workflow run, with four jobs:**
 
 1. **The review job** runs our reviewer, and posts its findings. It outputs how many are marked "fix" and have no reply from the fixer yet, and how many findings that need attention have a reply from Joe after the fixer's (section 4.5). `src/code-review/round-counts.ts` counts them, the same way the fixer's input does. It also counts the fixer's commits on the branch.
 2. **The fix job** runs when either number is above zero, and the branch has fewer than 3 commits by the fixer. The fixer pushes, and the push starts the next run. The job fails when the fixer stops, and shows the reason in the job summary.
 3. **The ready job** adds the "ready for Joe" label when the loop stops (below).
+4. **The unready job** takes the label off when the run starts.
 
 **A new commit cancels the review of the one before it, but not a fix job.** Only the review job is in the concurrency group. If the whole run were in it, the fixer's own push would start a run that cancels the fix job that pushed it. The fix job pushes last for the same reason, after its replies are posted (section 4.5). Decided 2026-10-22, in #77.
 
@@ -272,7 +273,7 @@ Checked in CI on 2026-10-20 (#82), with `gh api`. `gh pr view` and `gh issue vie
 - The fixer pushes nothing, since it fixed none of the findings.
 - The branch already has 3 fixer commits, so the fix job is skipped.
 
-Then the ready job adds a "ready for Joe" label to the PR. A review or a fix job that failed doesn't add it, so Joe never gets a PR nobody read. When the fixer pushes, the fix job takes the label off, since the loop is going again, such as after Joe asked for a fix.
+Then the ready job adds a "ready for Joe" label to the PR. A review or a fix job that failed doesn't add it, so Joe never gets a PR nobody read. Each run takes the label off when it starts, and only the ready job puts it back. So the label never stays on a commit whose review failed, such as after Joe pushes, or re-runs a run after a "fix it" reply. Decided 2026-10-22 in #77, from its first review's F6. A run started while an older run's fix job is still going could get the label back from the older run's ready job. That needs a push during a fix job, and it's accepted.
 
 **A push by Joe doesn't reset the count.** Only the fixer's commits count, so the cap holds however many times Joe pushes. When the loop stops at the cap, the last thing that ran is a review of the code Joe is about to read.
 
