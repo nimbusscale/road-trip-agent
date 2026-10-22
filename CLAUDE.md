@@ -29,7 +29,7 @@ It is not a product. Joe is the main user, and a family member or friend may try
 
 ## Writing code
 
-- Read [DEVELOPMENT.md](DEVELOPMENT.md) before writing or changing code.
+- Read [DEVELOPMENT.md](DEVELOPMENT.md) before writing, changing, or reviewing code.
 - Work is done only when `npm run check` passes.
 - The config files listed in DEVELOPMENT.md section 6 change only with Joe's approval. If a change seems needed, stop, say why, and ask first. Never edit them, or add a disable comment or `@ts-expect-error`, just to make a check pass.
 - Check outside data with Zod where it enters the program (DEVELOPMENT.md section 4).
