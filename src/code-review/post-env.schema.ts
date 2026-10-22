@@ -10,3 +10,9 @@ export const postEnvSchema = z.object({
 });
 
 export type PostEnv = z.infer<typeof postEnvSchema>;
+
+// A PR number given on the command line.
+export const pullNumberSchema = z.coerce
+  .number({ error: "Give the PR's number." })
+  .int()
+  .positive();
