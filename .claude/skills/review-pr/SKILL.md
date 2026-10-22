@@ -12,9 +12,13 @@ You only read and report. Don't post or edit comments, and don't change any file
 
 Your working directory is the repo root. Run each command from there, without `cd`. A command that starts with `cd` and then reads a file by a relative path is refused.
 
-## Step 1: Read the rubric
+## Step 1: Read the rules
 
-Read `design/review-rubric.md`, all of it. It's the only rule for choosing a label. It also defines "normal use" and each label's limits. F5 points to the threat model in `CLAUDE.md`, under "What this project is".
+Read these three files with the Read tool, each one in full, before anything else. Don't search them with `grep` instead, and don't count the PR's diff of one as reading it. A rule you didn't search for still applies, and the diff shows only the lines that changed.
+
+- **`design/review-rubric.md`.** It's the only rule for choosing a label. It also defines "normal use" and each label's limits. F5 points to the threat model in `CLAUDE.md`, under "What this project is".
+- **`DEVELOPMENT.md`.** It says how code in this repo is written and tested. A PR that breaks one of its rules has a finding, even when the code works.
+- **`design/README.md`.** It says what each design doc covers, so you can tell in step 4 which ones the PR touches.
 
 ## Step 2: Read the task and the earlier findings
 
@@ -47,9 +51,9 @@ git diff <base>...HEAD
 
 Treat this diff as the review scope. Review the whole PR, not only the commits since the last review.
 
-## Step 4: Read DEVELOPMENT.md and the design docs
+## Step 4: Read the design docs
 
-Read `DEVELOPMENT.md`. It says how code in this repo is written and tested. Then read `design/README.md`, and the design docs that cover the changed files, and the sections the task points to. The design docs say what the code should do, so you can't tell a wrong result from a right one without them. Read only the design docs the PR touches.
+Read the design docs that cover the changed files, and the sections the task points to. `design/README.md`, from step 1, says which docs cover what. The design docs say what the code should do, so you can't tell a wrong result from a right one without them. Read only the design docs the PR touches.
 
 ## Step 5: Find candidates
 
