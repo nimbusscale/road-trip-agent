@@ -382,3 +382,60 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: gh api -X POST "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/labels" -f "labels[]=ready for Joe" > /dev/null
+
+  # Temporary, for #77: lists the empty files the sandbox makes in CI, to check them
+  # against .gitignore. Taken out before the PR is ready.
+  sandbox-files:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    env:
+      CLAUDE_CODE_VERSION: 2.1.308
+      DISABLE_AUTOUPDATER: 1
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm install --global "@anthropic-ai/claude-code@$CLAUDE_CODE_VERSION"
+      - run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends bubblewrap socat
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - name: Write the fixer's settings
+        env:
+          SANDBOX_SETTINGS: '{"sandbox": {"enabled": true, "failIfUnavailable": true, "allowUnsandboxedCommands": false, "network": {"allowedDomains": ["github.com", "api.github.com"], "strictAllowlist": true}}, "attribution": {"commit": "", "pr": "", "sessionUrl": false}}'
+          MORE_DENY_RULES: '["Edit(.claude/skills/**)", "Edit(.github/workflows/**)"]'
+        run: |
+          set -o pipefail
+          deny=$(npx tsx src/code-review/print-deny-rules.ts)
+          jq -c -n --argjson base "$SANDBOX_SETTINGS" --argjson deny "$deny" --argjson more "$MORE_DENY_RULES" \
+            '$base * $deny | .permissions.deny += $more' > "$RUNNER_TEMP/fix-settings.json"
+      - name: List the files from inside the sandbox
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: 1
+        run: |
+          claude -p --model claude-haiku-5-5 --output-format json \
+            --settings "$(cat "$RUNNER_TEMP/fix-settings.json")" \
+            --allowedTools "Bash(git status:*)" "Edit(./**)" \
+            -- 'Run this one command with the Bash tool, exactly as written, and nothing else: git status --porcelain --ignored --untracked-files=all > sandbox-status.txt' > "$RUNNER_TEMP/out.json" || true
+          jq -r '.result' "$RUNNER_TEMP/out.json"
+          jq -c '.permission_denials' "$RUNNER_TEMP/out.json"
+      - name: Compare with .gitignore
+        run: |
+          {
+            echo "## Seen from inside the sandbox, outside node_modules"
+            echo
+            grep -v -e 'node_modules/' -e 'sandbox-status.txt' sandbox-status.txt | sed 's/^/    /'
+            echo
+            echo "## Left now, after the command ended"
+            echo
+            git status --porcelain --ignored --untracked-files=all | grep -v -e 'node_modules/' -e 'sandbox-status.txt' | sed 's/^/    /'
+          } >> "$GITHUB_STEP_SUMMARY"
