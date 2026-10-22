@@ -5,6 +5,12 @@ about: One piece of work that ends in a PR or a decision (DEVELOPMENT.md section
 
 **Starts** once #N is merged. <!-- Leave this line out if nothing has to come first. -->
 
+<!-- The issue must stand on its own: could a new Claude Code session, with only the repo and this issue, build it the way it's meant? (DEVELOPMENT.md section 9) -->
+
+## Why
+
+<!-- In a few sentences, what the work is for. -->
+
 ## Design
 
 - 
