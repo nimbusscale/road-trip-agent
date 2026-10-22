@@ -130,7 +130,7 @@ The prompt:
 - **Has no cap on the number of findings.** A finding cut by a cap isn't posted or listed anywhere, so we'd never know it existed. Decided 2026-10-21 in #83. Look at it again after a few PRs.
 - **Writes its findings as JSON,** so the workflow can read them. `claude -p` checks the answer against a schema, and the workflow posts it (section 2). The reviewer gives only the label. The code works out the kind from it, such as "fix" for F2.
 - **Runs with Opus** at the model's default effort, as the stock review did (section 2).
-- **Can run `node` and `npx tsx`, to test a claim that needs no outside access,** such as a timeout or a rounding case. Its commands can reach only GitHub (section 4.6), so `npx` can't download a package. A claim that only an outside service can settle gets V1 (review rubric). It doesn't run the tests, since the "Check and deploy" workflow already does.
+- **Can run `node`, to test a claim that needs no outside access,** such as a timeout or a rounding case. Its commands can reach only GitHub (section 4.6), so `npx` can't download a package. A claim that only an outside service can settle gets V1 (review rubric). It runs the repo's TypeScript with `node --import tsx`. `npx tsx` fails in the sandbox, since it opens a socket the sandbox refuses (#93). It doesn't run the tests, since the "Check and deploy" workflow already does.
 - **Can't start subagents.** The workflow blocks the Agent tool, since the reviewer has no use for one.
 
 It gets its own name, `review-pr`. A project skill named `code-review` would replace the stock one, and the stock one stays available to compare against. Joe can run ours locally with `/review-pr <number>`. It returns the findings, and posts nothing.
@@ -172,7 +172,7 @@ The cost is small:
 
 What it never reads holds the reasons the code was written the way it was. Those would color its review (section 2).
 
-**The reviewer gets the list by running a script, `npx tsx src/code-review/review-input.ts <number>`,** as the fixer gets its input from `fix-input.ts` (section 4.5). The script reads the threads in its own process, and prints only the list, so the transcript never shows a reply. Since it's a command in the skill, `/review-pr <number>` still works on Joe's machine. Each finding on the list gives its text, its place, the commit it was posted on, and what the last marker means for the review:
+**The reviewer gets the list by running a script, `node --import tsx src/code-review/review-input.ts <number>`,** as the fixer gets its input from `fix-input.ts` (section 4.5). The script reads the threads in its own process, and prints only the list, so the transcript never shows a reply. Since it's a command in the skill, `/review-pr <number>` still works on Joe's machine. Each finding on the list gives its text, its place, the commit it was posted on, and what the last marker means for the review:
 
 - **Fixed:** check whether the fix worked, and post it again if it didn't.
 - **Deferred:** don't post it again. The list gives the issue, since that's scope (section 4.4).

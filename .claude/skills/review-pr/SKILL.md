@@ -29,7 +29,7 @@ The description holds the task: the issue's "Do" and "Done when" items, and what
 Then read the findings earlier reviews posted:
 
 ```sh
-npx tsx src/code-review/review-input.ts $ARGUMENTS
+node --import tsx src/code-review/review-input.ts $ARGUMENTS
 ```
 
 It prints each earlier finding with its ID, its place, the commit it was posted on, its text, and what to do with it in this review. You use that in step 6. It leaves out the replies on the findings' threads on purpose. Don't read them some other way.
@@ -84,7 +84,7 @@ First, merge candidates that are the same problem at the same place.
 
 Then, for each candidate:
 
-1. **Check the claim against the code.** Read as much as you need. When running code locally would settle it, run it with `node`, such as a rounding case, a timeout, or how a Zod schema handles an input. `node -e` runs a short script. To import the repo's TypeScript, use `node --import tsx --input-type=module -e "..."`, or run a TypeScript file with `npx tsx <file>`. Don't run the tests. CI already runs them in a separate job. Run each check inline, with `-e`, and don't write files. A command with a variable in braces, such as `${PIPESTATUS[0]}`, is refused. Your commands can reach only GitHub, so a check that needs any other service can't run. That's what V1 is for.
+1. **Check the claim against the code.** Read as much as you need. When running code locally would settle it, run it with `node`, such as a rounding case, a timeout, or how a Zod schema handles an input. `node -e` runs a short script. To import the repo's TypeScript, use `node --import tsx --input-type=module -e "..."`, or run a TypeScript file with `node --import tsx <file>`. Don't use `npx tsx`, since the sandbox refuses the socket it opens, and it fails before it runs anything. Don't run the tests. CI already runs them in a separate job. Run each check inline, with `-e`, and don't write files. A command with a variable in braces, such as `${PIPESTATUS[0]}`, is refused. Your commands can reach only GitHub, so a check that needs any other service can't run. That's what V1 is for.
 2. **Drop it if it's already handled.** When an earlier finding from step 2 already makes it, do what that finding's "What to do with it" says:
    - **Fixed:** check whether the fix worked. If the problem is still there, keep it, and say in the finding that the fix didn't cover it.
    - **Deferred, or handled:** drop it.
