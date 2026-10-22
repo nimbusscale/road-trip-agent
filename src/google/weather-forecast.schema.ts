@@ -25,8 +25,10 @@ const forecastDaySchema = z
       }),
       precipitation: z
         .object({
+          // Such as RAIN or SNOW. Any string, so a type the app doesn't know yet still
+          // parses.
           probability: z
-            .object({ percent: percentSchema })
+            .object({ type: z.string().optional(), percent: percentSchema })
             .default({ percent: 0 }),
         })
         .default({ probability: { percent: 0 } }),
@@ -38,7 +40,10 @@ const forecastDaySchema = z
     highInFahrenheit: day.maxTemperature,
     lowInFahrenheit: day.minTemperature,
     conditions: day.daytimeForecast.weatherCondition.description.text,
-    rainChancePercent: day.daytimeForecast.precipitation.probability.percent,
+    precipitationType:
+      day.daytimeForecast.precipitation.probability.type ?? null,
+    precipitationChancePercent:
+      day.daytimeForecast.precipitation.probability.percent,
     thunderstormChancePercent: day.daytimeForecast.thunderstormProbability,
   }));
 

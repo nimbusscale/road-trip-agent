@@ -101,9 +101,25 @@ function forecastLines(days: readonly ForecastDay[]): string[] {
     "Forecast, from Google Weather. Conditions and chances are for the daytime.",
     ...days.map(
       (day) =>
-        `- ${day.date.longText}: high ${degrees(day.highInFahrenheit)}, low ${degrees(day.lowInFahrenheit)}. ${day.conditions}. ${String(day.rainChancePercent)}% chance of rain, ${String(day.thunderstormChancePercent)}% chance of thunderstorms.`,
+        `- ${day.date.longText}: high ${degrees(day.highInFahrenheit)}, low ${degrees(day.lowInFahrenheit)}. ${day.conditions}. ${String(day.precipitationChancePercent)}% chance of ${precipitationWords(day.precipitationType)}, ${String(day.thunderstormChancePercent)}% chance of thunderstorms.`,
     ),
   ];
+}
+
+// Google's precipitation types. Any other type, or none, is called "precipitation", so
+// a chance of snow is never called a chance of rain (Google design section 3).
+const PRECIPITATION_WORDS: ReadonlyMap<string, string> = new Map([
+  ["RAIN", "rain"],
+  ["LIGHT_RAIN", "light rain"],
+  ["HEAVY_RAIN", "heavy rain"],
+  ["SNOW", "snow"],
+  ["RAIN_AND_SNOW", "rain and snow"],
+  ["SLEET", "sleet"],
+  ["FREEZING_RAIN", "freezing rain"],
+]);
+
+function precipitationWords(type: string | null): string {
+  return PRECIPITATION_WORDS.get(type ?? "") ?? "precipitation";
 }
 
 // The label is the one the itinerary shows, so averages are never mistaken for a

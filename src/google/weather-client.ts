@@ -29,7 +29,9 @@ export interface ForecastDay {
   highInFahrenheit: number;
   lowInFahrenheit: number;
   conditions: string;
-  rainChancePercent: number;
+  // Google's type, such as RAIN or SNOW, or null when it gives none.
+  precipitationType: string | null;
+  precipitationChancePercent: number;
   thunderstormChancePercent: number;
 }
 
@@ -117,7 +119,8 @@ function forecastDayOf(day: GoogleForecastDay): ForecastDay {
     highInFahrenheit: day.highInFahrenheit,
     lowInFahrenheit: day.lowInFahrenheit,
     conditions: day.conditions,
-    rainChancePercent: day.rainChancePercent,
+    precipitationType: day.precipitationType,
+    precipitationChancePercent: day.precipitationChancePercent,
     thunderstormChancePercent: day.thunderstormChancePercent,
   };
 }

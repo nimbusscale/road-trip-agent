@@ -79,7 +79,8 @@ describe("WeatherClient.forecastFor", () => {
         highInFahrenheit: 58.4,
         lowInFahrenheit: 52.3,
         conditions: "Heavy rain",
-        rainChancePercent: 75,
+        precipitationType: "RAIN",
+        precipitationChancePercent: 75,
         thunderstormChancePercent: 30,
       },
       {
@@ -87,7 +88,8 @@ describe("WeatherClient.forecastFor", () => {
         highInFahrenheit: 66.1,
         lowInFahrenheit: 43.8,
         conditions: "Sunny",
-        rainChancePercent: 15,
+        precipitationType: "RAIN",
+        precipitationChancePercent: 15,
         thunderstormChancePercent: 10,
       },
     ]);
@@ -125,7 +127,8 @@ describe("WeatherClient.forecastFor", () => {
       }),
     );
     const [day] = await client.forecastFor(MOAB, [october(22)]);
-    expect(day?.rainChancePercent).toBe(0);
+    expect(day?.precipitationType).toBeNull();
+    expect(day?.precipitationChancePercent).toBe(0);
     expect(day?.thunderstormChancePercent).toBe(0);
   });
 

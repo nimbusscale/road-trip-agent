@@ -96,7 +96,9 @@ GET https://weather.googleapis.com/v1/forecast/days:lookup
 - **Asking for more than 10 days fails** with HTTP 400 and only "Request contains an invalid argument." The tool checks the dates before calling.
 - **Dates are local to the location.** The response includes the place's time zone (`timeZone.id`).
 
-**What the tool returns per day:** `displayDate`, `maxTemperature`, `minTemperature`, the daytime `weatherCondition.description.text`, the daytime `precipitation.probability.percent`, and `thunderstormProbability`. Drop the rest, such as moon events and ice thickness. The raw response is about 3,600 characters per day.
+**What the tool returns per day:** `displayDate`, `maxTemperature`, `minTemperature`, the daytime `weatherCondition.description.text`, the daytime `precipitation.probability.percent` and its `type`, and `thunderstormProbability`. Drop the rest, such as moon events and ice thickness. The raw response is about 3,600 characters per day.
+
+**The chance of precipitation is named by its type,** such as "chance of snow" for `SNOW` or "chance of rain and snow" for `RAIN_AND_SNOW`. Google's type isn't always `RAIN`, so the tool never calls every chance a chance of rain. A type the tool doesn't know, or none, is called "precipitation".
 
 ---
 

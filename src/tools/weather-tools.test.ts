@@ -42,6 +42,22 @@ const MOAB_OCTOBER_BY_YEAR: unknown = JSON.parse(
 const MOAB_OCTOBER = new Map(Object.entries(MOAB_OCTOBER_BY_YEAR ?? {}));
 const SPENT_LIMIT = saved("../open-meteo/saved-responses/spent-limit.json");
 
+// A cold forecast from October 23, 2026, with one day for each precipitation type given.
+function forecastWithTypes(types: readonly string[]): string {
+  return JSON.stringify({
+    forecastDays: types.map((type, index) => ({
+      displayDate: { year: 2026, month: 10, day: 23 + index },
+      maxTemperature: { degrees: 30 },
+      minTemperature: { degrees: 20 },
+      daytimeForecast: {
+        weatherCondition: { description: { text: "Cloudy" } },
+        precipitation: { probability: { type, percent: 60 } },
+        thunderstormProbability: 0,
+      },
+    })),
+  });
+}
+
 interface Answers {
   forecast?: string;
   averages?: (year: string) => string;
@@ -175,6 +191,24 @@ describe("stay_weather", () => {
       "- Monday, October 26, 2026: high 62°F, low 39°F. Sunny. 5% chance of rain, 0% chance of thunderstorms.",
     ]);
     expect(hosts).toEqual(["weather.googleapis.com"]);
+  });
+
+  it("names the kind of precipitation Google forecasts, not always rain", async () => {
+    const { moab, call } = await moabTrip(OCTOBER_21, {
+      startDate: new CalendarDate(2026, 10, 23),
+      answers: {
+        forecast: forecastWithTypes(["SNOW", "RAIN_AND_SNOW", "NONE", "HAIL"]),
+      },
+    });
+    const text = textOf(
+      await call({ stayId: moab.id, placeId: moab.place.id }),
+    );
+    expect(text.split("\n").slice(2, 6)).toEqual([
+      "- Friday, October 23, 2026: high 30°F, low 20°F. Cloudy. 60% chance of snow, 0% chance of thunderstorms.",
+      "- Saturday, October 24, 2026: high 30°F, low 20°F. Cloudy. 60% chance of rain and snow, 0% chance of thunderstorms.",
+      "- Sunday, October 25, 2026: high 30°F, low 20°F. Cloudy. 60% chance of precipitation, 0% chance of thunderstorms.",
+      "- Monday, October 26, 2026: high 30°F, low 20°F. Cloudy. 60% chance of precipitation, 0% chance of thunderstorms.",
+    ]);
   });
 
   it("gives seasonal averages when any date is 8 days away, counting today as day 0", async () => {
