@@ -28,7 +28,8 @@ Claude Code writes the code, Joe reviews the code he cares about, and the tools 
 | `npm run format:check` | Fails if any file in `src/` or `web/` isn't formatted |
 | `npm run typecheck` | Type-checks with `tsc --noEmit` |
 | `npm run lint` | Runs ESLint, failing on any warning |
-| `npm run test` | Runs the tests with Vitest |
+| `npm run test` | Runs the tests with Vitest. It never writes a snapshot, so a missing or stale one fails |
+| `npm run agent-views` | Rewrites each agent's view file, such as `src/agent/coordinator.view.md` (section 5). It runs only the agent views test, so it never updates any other snapshot |
 
 Postgres for local development runs in a container, with Docker Compose: `docker compose up -d postgres` ([systems design](design/systems.md), section 6). Copy `.env.example` to `.env` and fill it in first.
 
@@ -78,6 +79,8 @@ Worker results aren't on the list. A worker returns text that the coordinator re
 **Postgres is faked at the repositories,** the only code that sends SQL (section 8). Tests give the writers and readers fake repositories that keep rows in memory. What only the database can show, such as two writes waiting on the row lock, or a query's SQL, is checked by hand against the local Postgres. The PR says what was checked. This is a learning project with no staging server, so the risk that a later change breaks it unnoticed is accepted.
 
 **A fix for a bug comes with a test that fails without the fix, and passes with it.** The test goes through the path where the bug was, not only the part the fix changed. Check it against the code without the fix. This applies to fixes for review findings too ([code review design](design/code-review.md), section 3.4).
+
+**Each agent has a view file of what its model sees on every turn,** such as `src/agent/coordinator.view.md`. It holds the agent's system prompt, built with the real `settings.json`, then each tool's name, description, and input JSON Schema, as an MCP client lists them. So a PR's diff of the file is the change to what the model sees, with the numbers filled in. A test (`src/agent/agent-views.test.ts`) builds each view and fails, with the lines that differ, when it doesn't match the file. A change to anything an agent reads, or to a setting it shows, comes with its rewritten view file in the same commit. Run `npm run agent-views` to rewrite it. Each issue that adds an agent adds its view to the test.
 
 **Tests that need the real agent run on their own,** outside `npm run check`. Examples: the acceptance scenarios (functional spec 11) and the memory tests (technical spec 3.1). They cost money and their results vary from run to run. How they run is settled when the first one is written.
 
