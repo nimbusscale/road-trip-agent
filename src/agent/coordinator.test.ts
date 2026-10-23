@@ -30,6 +30,15 @@ describe("coordinatorOptions", () => {
     expect(options.strictMcpConfig).toBe(true);
   });
 
+  it("asks for a summary of the model's thinking", () => {
+    expect(coordinatorOptions(given(), conversation(), false).thinking).toEqual(
+      {
+        type: "adaptive",
+        display: "summarized",
+      },
+    );
+  });
+
   it("starts a session with no transcript under the ID the app chose", () => {
     const options = coordinatorOptions(given(), conversation(), false);
     expect(options.sessionId).toBe(AGENT_SESSION_ID);

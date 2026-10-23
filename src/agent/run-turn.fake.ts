@@ -6,13 +6,22 @@ import type {
 } from "@anthropic-ai/claude-agent-sdk";
 
 import type { RunTurn } from "./coordinator.js";
-import type { TurnEvent } from "./turn-event.js";
+import type { TurnEvent, TurnUsage } from "./turn-event.js";
+
+export const FAKE_USAGE: TurnUsage = {
+  modelCalls: 2,
+  inputTokens: 12000,
+  cachedInputTokens: 9000,
+  outputTokens: 300,
+};
 
 // A fake in place of the Agent SDK (DEVELOPMENT.md section 5). Each turn replies with
-// the same text parts. Like the SDK with eager flushing, it saves each transcript line
+// the same events before the reply, and the same text parts. Like the SDK with eager flushing, it saves each transcript line
 // to the session store as it goes, whether or not anything reads the turn's events.
 export class FakeSdk {
   readonly calls: { message: string; options: Options }[] = [];
+  // Such as thinking, and a tool call and its reply. Only the text parts are saved.
+  beforeReply: TurnEvent[] = [];
   replyParts = ["Hello!", "Where would you like to go?"];
   // Why each turn fails, or null for turns that succeed.
   failure: string | null = null;
@@ -36,6 +45,7 @@ export class FakeSdk {
     };
     await save({ type: "user", message: { role: "user", content: message } });
     yield { kind: "started", model: "claude-fake-1", tools: [] };
+    yield* this.beforeReply;
     for (const [index, text] of this.replyParts.entries()) {
       if (index > 0) {
         await this.beforeLaterParts();
@@ -46,6 +56,11 @@ export class FakeSdk {
       });
       yield { kind: "text", text };
     }
-    yield { kind: "ended", failure: this.failure, durationMs: 1000 };
+    yield {
+      kind: "ended",
+      failure: this.failure,
+      durationMs: 1000,
+      usage: FAKE_USAGE,
+    };
   }
 }

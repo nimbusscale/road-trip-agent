@@ -21,10 +21,7 @@ export function streamTurn(
       if (stream.aborted) {
         return;
       }
-      const chatEvent = chatEventOf(event);
-      if (chatEvent !== null) {
-        await stream.writeSSE(sseOf(chatEvent));
-      }
+      await stream.writeSSE(sseOf(chatEventOf(event)));
     }
   });
 }
@@ -33,22 +30,42 @@ function sseOf(event: ChatEvent): { event: string; data: string } {
   return { event: event.name, data: JSON.stringify(event.data) };
 }
 
-// The browser shows the reply, and which tool is running. Tool inputs and replies are
-// only in the terminal chat.
-function chatEventOf(event: TurnEvent): ChatEvent | null {
+// Every event goes to the browser. The raw view shows all but the text, and the cards
+// are kept only in the tab (functional spec 10.1).
+function chatEventOf(event: TurnEvent): ChatEvent {
   switch (event.kind) {
+    case "started":
+      return {
+        name: "started",
+        data: { model: event.model, tools: [...event.tools] },
+      };
+    case "message":
+    case "thinking":
     case "text":
-      return { name: "text", data: { text: event.text } };
+      return { name: event.kind, data: { text: event.text } };
     case "toolCall":
-      return { name: "tool", data: { name: shortToolName(event.name) } };
+      return {
+        name: "toolCall",
+        data: { name: event.name, input: event.input },
+      };
+    case "toolReply":
+      return {
+        name: "toolReply",
+        data: { text: event.text, isError: event.isError },
+      };
+    case "system":
+      return {
+        name: "system",
+        data: { subtype: event.subtype, data: event.data },
+      };
     case "ended":
-      return { name: "ended", data: { succeeded: event.failure === null } };
-    default:
-      return null;
+      return {
+        name: "ended",
+        data: {
+          failure: event.failure,
+          durationMs: event.durationMs,
+          usage: event.usage,
+        },
+      };
   }
-}
-
-// Such as update_trip_brief, from mcp__trip__update_trip_brief.
-function shortToolName(name: string): string {
-  return name.replace(/^mcp__[^_]+__/, "");
 }

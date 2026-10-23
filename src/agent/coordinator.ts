@@ -51,6 +51,9 @@ export function coordinatorOptions(
   return {
     model: settings.coordinatorModel,
     systemPrompt: coordinatorPrompt(settings),
+    // Adaptive is the SDK's default for the model. Asking for a summary changes only
+    // what comes back, for the browser chat's raw view (technical spec 5.4).
+    thinking: { type: "adaptive", display: "summarized" },
     env: processEnv,
     // No settings files, CLAUDE.md, or MCP servers but ours, and no built-in tools. Each
     // agent sees only its own tools (technical spec section 2).

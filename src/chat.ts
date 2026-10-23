@@ -182,6 +182,11 @@ function printEvent(event: TurnEvent, terminal: Terminal): void {
         terminal.initShown = true;
       }
       break;
+    case "thinking":
+      console.log(
+        `  [thinking] ${event.text.replaceAll("\n", "\n             ")}`,
+      );
+      break;
     case "text":
       console.log(`\n${event.text}\n`);
       break;
@@ -195,16 +200,33 @@ function printEvent(event: TurnEvent, terminal: Terminal): void {
       );
       break;
     }
+    case "system":
+      console.log(`  [system] ${event.subtype} ${JSON.stringify(event.data)}`);
+      break;
     case "ended":
-      if (event.failure !== null) {
-        console.error(`The turn failed: ${event.failure}`);
-      }
-      console.log(
-        `(The turn took ${String(Math.round(event.durationMs / 1000))} s.)`,
-      );
-      showPrompt(terminal);
+      printEnded(event, terminal);
+      break;
+    // The message the model got. The user typed it, and the app's lines are in
+    // technical spec 5.2.
+    default:
       break;
   }
+}
+
+function printEnded(
+  event: Extract<TurnEvent, { kind: "ended" }>,
+  terminal: Terminal,
+): void {
+  if (event.failure !== null) {
+    console.error(`The turn failed: ${event.failure}`);
+  }
+  const seconds = String(Math.round(event.durationMs / 1000));
+  const tokens =
+    event.usage === null
+      ? ""
+      : `, ${String(event.usage.inputTokens)} input tokens, ${String(event.usage.outputTokens)} output tokens`;
+  console.log(`(The turn took ${seconds} s${tokens}.)`);
+  showPrompt(terminal);
 }
 
 try {
