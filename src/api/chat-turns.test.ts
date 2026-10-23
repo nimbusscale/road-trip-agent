@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { RESUMED_LINE } from "../agent/app-lines.js";
+import { FAKE_USAGE } from "../agent/run-turn.fake.js";
 import { TEST_USER_ID } from "../auth/test-tokens.js";
 import { exampleMoabTrip } from "../domain/itinerary.fake.js";
 import { Session } from "../persistence/session.js";
@@ -39,6 +40,8 @@ describe("the chat's turns", () => {
     );
     expect(events.map((event) => event.name)).toEqual([
       "session",
+      "started",
+      "message",
       "text",
       "text",
       "ended",
@@ -85,6 +88,59 @@ describe("the chat's turns", () => {
     });
   });
 
+  it("streams each part of the turn for the raw view, in the order they happened", async () => {
+    const chat = await chatApi(PLANNING);
+    const sessionId = await startTrip(chat);
+    chat.sdk.beforeReply = [
+      { kind: "thinking", text: "The user gave a length." },
+      {
+        kind: "toolCall",
+        name: "mcp__trip__update_trip_brief",
+        input: { tripLengthInDays: 5 },
+      },
+      {
+        kind: "toolReply",
+        text: "The trip brief was updated.",
+        isError: false,
+      },
+      {
+        kind: "system",
+        subtype: "api_retry",
+        data: { attempt: 1, delayMs: 500 },
+      },
+    ];
+    chat.sdk.replyParts = ["Five days it is."];
+    const events = await eventsOf(await send(chat, sessionId, "Five days."));
+    expect(events).toEqual([
+      {
+        name: "started",
+        data: { model: "claude-fake-1", tools: [] },
+      },
+      { name: "message", data: { text: "Five days." } },
+      { name: "thinking", data: { text: "The user gave a length." } },
+      {
+        name: "toolCall",
+        data: {
+          name: "mcp__trip__update_trip_brief",
+          input: { tripLengthInDays: 5 },
+        },
+      },
+      {
+        name: "toolReply",
+        data: { text: "The trip brief was updated.", isError: false },
+      },
+      {
+        name: "system",
+        data: { subtype: "api_retry", data: { attempt: 1, delayMs: 500 } },
+      },
+      { name: "text", data: { text: "Five days it is." } },
+      {
+        name: "ended",
+        data: { failure: null, durationMs: 1000, usage: FAKE_USAGE },
+      },
+    ]);
+  });
+
   it("finishes a turn whose stream was closed partway, and keeps the whole turn in the transcript", async () => {
     const chat = await chatApi(PLANNING);
     const sessionId = await startTrip(chat);
@@ -115,7 +171,11 @@ describe("the chat's turns", () => {
       const events = await eventsOf(await send(chat, sessionId, "Five days."));
       expect(events.at(-1)).toEqual({
         name: "ended",
-        data: { succeeded: false },
+        data: {
+          failure: "error_during_execution: API Error: 529 Overloaded",
+          durationMs: 1000,
+          usage: FAKE_USAGE,
+        },
       });
       expect(logged).toHaveBeenCalledWith(
         `The turn in session ${sessionId} failed: error_during_execution: API Error: 529 Overloaded`,

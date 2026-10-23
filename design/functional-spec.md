@@ -278,6 +278,17 @@ Miles, Fahrenheit, and US date formats.
   - **Resume** a previous session. The transcript is restored and the agent continues with that conversation's context.
   - **Start a new session.** The agent starts from the current itinerary, the trip brief, trip memory, and user memory, without the earlier transcripts.
 - **Once the trip has started,** no session can be started or resumed (section 2).
+- **The chat view shows the conversation as cards,** as other chat apps do. The user's messages are on the right, and the coordinator's replies are on the left.
+- **A "Raw" toggle shows how the coordinator worked on each turn.** Every user has it. On, the left side also shows each step of the turn as a card, in the order it happened:
+  - the turn's start: the model, and the tools it was given
+  - the message the model got, with the lines the app added, such as the date
+  - each summary of the coordinator's thinking, in italics
+  - each part of the reply, as its own card
+  - each tool call, as its name and input, and the tool's reply, in a box, marked when it's an error
+  - any other message from the system running the coordinator, such as a retry
+  - the turn's end: how long it took, the number of model calls, the input and output tokens, and why it failed, if it did
+
+  Long text is cut to about 15 lines, with "Show all" to see the rest. Off, the chat shows only the user's messages and the coordinator's replies. The steps aren't saved. They're kept only in the browser tab, for the turns sent from it, whether the toggle is on or off. A reload, or resuming the session, shows the conversation with no steps.
 - **Not supported:** two sessions of one trip open at the same time, such as in two browser tabs or on two devices. Nothing stops it, but a session that stays open doesn't learn about changes made in the other one. Only the trip's owner can see it (10.4), so this is one user with two sessions open, never two users.
 
 ### 10.2 Trip memory

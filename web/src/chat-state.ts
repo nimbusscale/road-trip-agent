@@ -5,17 +5,32 @@ import {
   type ShownMessage,
 } from "../../src/shared/session.schema";
 
-// What the chat view shows: the conversation so far, and the reply as it streams in.
+// What the chat view shows: the conversation as cards, and the reply as it streams in
+// (functional spec 10.1).
 
-export interface Line extends ShownMessage {
+// A turn's events for the raw view: all but the session and the reply's text.
+export type RawEvent = Exclude<ChatEvent, { name: "session" | "text" }>;
+
+export type CardBody =
+  | { kind: "user"; text: string }
+  // A part of a reply, or a whole one from a loaded session.
+  | { kind: "reply"; text: string }
+  | { kind: "raw"; event: RawEvent };
+
+export type Card = CardBody & {
   // For React's list keys.
   id: number;
-}
+  // The ID of the card that started the card's turn. The raw view shows each part of a
+  // reply as its own card, in its place among the raw cards. Without it, the parts of
+  // one turn's reply are joined into one card.
+  turn: number;
+};
 
 export interface ChatState {
-  lines: Line[];
-  // The reply streaming in now. Null while no reply is.
-  reply: string | null;
+  // Raw cards come only from the replies this tab streamed, and are kept only here.
+  cards: Card[];
+  // The turn the next card belongs to.
+  turn: number;
   // The tool the coordinator is running, such as update_trip_brief.
   tool: string | null;
   sending: boolean;
@@ -26,8 +41,8 @@ export interface ChatState {
 }
 
 export const EMPTY_CHAT: ChatState = {
-  lines: [],
-  reply: null,
+  cards: [],
+  turn: 0,
   tool: null,
   sending: false,
   turnRunning: false,
@@ -47,24 +62,26 @@ export type ChatAction =
 export const CUT_OFF =
   "The connection closed before the reply finished. Reload the page to see the rest.";
 
+const NOT_FINISHED = "The reply didn't finish. Try sending your message again.";
+
 export function chatReducer(state: ChatState, action: ChatAction): ChatState {
   switch (action.type) {
     case "loaded":
       return {
         ...state,
-        lines: action.session.messages.map((message, id) => ({
-          ...message,
-          id,
-        })),
+        cards: action.session.messages.map(loadedCard),
+        turn: action.session.messages.length,
         turnRunning: action.session.turnRunning,
         error: null,
       };
-    case "sent":
+    case "sent": {
+      const turn = state.cards.length;
       return {
-        ...withLine(state, { role: "user", text: action.text }),
+        ...withCard({ ...state, turn }, { kind: "user", text: action.text }),
         sending: true,
         error: null,
       };
+    }
     case "event":
       return withEvent(state, action.event);
     case "failed":
@@ -74,43 +91,74 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
   }
 }
 
+// Each loaded message is its own turn, so no two are joined.
+function loadedCard(message: ShownMessage, id: number): Card {
+  const kind = message.role === "user" ? "user" : "reply";
+  return { kind, text: message.text, id, turn: id };
+}
+
 function withEvent(state: ChatState, event: ChatEvent): ChatState {
   switch (event.name) {
     case "session":
       return state;
     case "text":
       return {
-        ...state,
-        reply:
-          state.reply === null
-            ? event.data.text
-            : `${state.reply}${REPLY_PART_SEPARATOR}${event.data.text}`,
+        ...withCard(state, { kind: "reply", text: event.data.text }),
         tool: null,
       };
-    case "tool":
-      return { ...state, tool: event.data.name };
+    case "toolCall":
+      return {
+        ...withCard(state, { kind: "raw", event }),
+        tool: shortToolName(event.data.name),
+      };
     case "ended":
       return {
-        ...endReply(state),
-        error: event.data.succeeded
-          ? null
-          : "The reply didn't finish. Try sending your message again.",
+        ...endReply(withCard(state, { kind: "raw", event })),
+        error: event.data.failure === null ? null : NOT_FINISHED,
       };
+    default:
+      return withCard(state, { kind: "raw", event });
   }
 }
 
-// The reply so far becomes a line of the conversation.
 function endReply(state: ChatState): ChatState {
-  const ended =
-    state.reply === null
-      ? state
-      : withLine(state, { role: "coordinator", text: state.reply });
-  return { ...ended, reply: null, tool: null, sending: false };
+  return { ...state, tool: null, sending: false };
 }
 
-function withLine(state: ChatState, message: ShownMessage): ChatState {
-  return {
-    ...state,
-    lines: [...state.lines, { ...message, id: state.lines.length }],
-  };
+function withCard(state: ChatState, body: CardBody): ChatState {
+  const card = { ...body, id: state.cards.length, turn: state.turn };
+  return { ...state, cards: [...state.cards, card] };
+}
+
+// Such as update_trip_brief, from mcp__trip__update_trip_brief.
+function shortToolName(name: string): string {
+  return name.replace(/^mcp__[^_]+__/, "");
+}
+
+// The cards to show. With the raw view off, there are no raw cards, and the parts of
+// each reply are one card, as a reload shows them.
+export function shownCards(cards: readonly Card[], raw: boolean): Card[] {
+  if (raw) {
+    return [...cards];
+  }
+  const shown: Card[] = [];
+  for (const card of cards) {
+    const last = shown.at(-1);
+    if (card.kind === "raw") {
+      continue;
+    }
+    if (
+      card.kind === "reply" &&
+      last?.kind === "reply" &&
+      last.turn === card.turn
+    ) {
+      shown[shown.length - 1] = {
+        ...last,
+        text: `${last.text}${REPLY_PART_SEPARATOR}${card.text}`,
+      };
+    } else {
+      shown.push(card);
+    }
+  }
+  return shown;
 }

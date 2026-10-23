@@ -122,13 +122,16 @@ export class CoordinatorTurns {
     };
   }
 
-  // Never throws: a failed turn ends with a failed "ended" event, and is logged.
+  // Never throws: a failed turn ends with a failed "ended" event, and is logged. The
+  // message the model got follows the turn's start, so the browser shows them in that
+  // order.
   async #run(
     sessionId: string,
     turn: Turn,
     message: string,
     options: Options,
   ): Promise<void> {
+    let messageAdded = false;
     try {
       for await (const event of this.given.runTurn(message, options)) {
         if (event.kind === "ended" && event.failure !== null) {
@@ -137,10 +140,19 @@ export class CoordinatorTurns {
           );
         }
         turn.add(event);
+        if (event.kind === "started" && !messageAdded) {
+          turn.add({ kind: "message", text: message });
+          messageAdded = true;
+        }
       }
     } catch (error) {
       console.error(`The turn in session ${sessionId} failed:`, error);
-      turn.add({ kind: "ended", failure: String(error), durationMs: 0 });
+      turn.add({
+        kind: "ended",
+        failure: String(error),
+        durationMs: 0,
+        usage: null,
+      });
     } finally {
       this.#running.delete(sessionId);
       turn.end();

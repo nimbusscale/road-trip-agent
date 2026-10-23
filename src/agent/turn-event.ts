@@ -5,18 +5,38 @@ import type { SDKMessage } from "@anthropic-ai/claude-agent-sdk";
 // test can fake a turn with them (DEVELOPMENT.md section 5).
 export type TurnEvent =
   | { kind: "started"; model: string; tools: readonly string[] }
+  // The message the model got, with the app's lines added (technical spec 5.2).
+  | { kind: "message"; text: string }
+  // A summary of the model's thinking (technical spec 5.4).
+  | { kind: "thinking"; text: string }
   | { kind: "text"; text: string }
   | { kind: "toolCall"; name: string; input: unknown }
   | { kind: "toolReply"; text: string; isError: boolean }
-  // `failure` says why the turn failed, or is null when it succeeded.
-  | { kind: "ended"; failure: string | null; durationMs: number };
+  // Any other system message from the SDK, such as a retry. `data` is the rest of its
+  // fields.
+  | { kind: "system"; subtype: string; data: Record<string, unknown> }
+  // `failure` says why the turn failed, or is null when it succeeded. `usage` is null
+  // when the turn failed before the SDK's result.
+  | {
+      kind: "ended";
+      failure: string | null;
+      durationMs: number;
+      usage: TurnUsage | null;
+    };
+
+// The whole turn's model calls and tokens. Input tokens include those read from, and
+// written to, the prompt cache. `cachedInputTokens` is the part read from it.
+export interface TurnUsage {
+  modelCalls: number;
+  inputTokens: number;
+  cachedInputTokens: number;
+  outputTokens: number;
+}
 
 export function turnEventsOf(message: SDKMessage): TurnEvent[] {
   switch (message.type) {
     case "system":
-      return message.subtype === "init"
-        ? [{ kind: "started", model: message.model, tools: message.tools }]
-        : [];
+      return systemEvents(message);
     case "assistant":
       return assistantEvents(message.message.content);
     case "user":
@@ -27,12 +47,33 @@ export function turnEventsOf(message: SDKMessage): TurnEvent[] {
           kind: "ended",
           failure: failureOf(message),
           durationMs: message.duration_ms,
+          usage: usageOf(message),
         },
       ];
     default:
       return [];
   }
 }
+
+type SystemMessage = Extract<SDKMessage, { type: "system" }>;
+
+// Thinking token counts come many times a second while the model thinks, so they're
+// left out.
+function systemEvents(message: SystemMessage): TurnEvent[] {
+  if (message.subtype === "init") {
+    return [{ kind: "started", model: message.model, tools: message.tools }];
+  }
+  if (message.subtype === "thinking_tokens") {
+    return [];
+  }
+  const data = Object.fromEntries(
+    Object.entries(message).filter(([key]) => !SYSTEM_MESSAGE_IDS.has(key)),
+  );
+  return [{ kind: "system", subtype: message.subtype, data }];
+}
+
+// The fields every system message has, which say nothing about this one.
+const SYSTEM_MESSAGE_IDS = new Set(["type", "subtype", "uuid", "session_id"]);
 
 type ResultMessage = Extract<SDKMessage, { type: "result" }>;
 
@@ -45,20 +86,40 @@ function failureOf(message: ResultMessage): string | null {
   return [message.subtype, ...message.errors].join(": ");
 }
 
+function usageOf(message: ResultMessage): TurnUsage {
+  const { usage } = message;
+  return {
+    modelCalls: message.num_turns,
+    inputTokens:
+      usage.input_tokens +
+      usage.cache_creation_input_tokens +
+      usage.cache_read_input_tokens,
+    cachedInputTokens: usage.cache_read_input_tokens,
+    outputTokens: usage.output_tokens,
+  };
+}
+
 type AssistantContent = Extract<
   SDKMessage,
   { type: "assistant" }
 >["message"]["content"];
 
+// A thinking block with no summary, such as one cut off by the model's output limit,
+// has nothing to show.
 function assistantEvents(content: AssistantContent): TurnEvent[] {
   return content.flatMap((block): TurnEvent[] => {
-    if (block.type === "text") {
-      return [{ kind: "text", text: block.text }];
+    switch (block.type) {
+      case "thinking":
+        return block.thinking === ""
+          ? []
+          : [{ kind: "thinking", text: block.thinking }];
+      case "text":
+        return [{ kind: "text", text: block.text }];
+      case "tool_use":
+        return [{ kind: "toolCall", name: block.name, input: block.input }];
+      default:
+        return [];
     }
-    if (block.type === "tool_use") {
-      return [{ kind: "toolCall", name: block.name, input: block.input }];
-    }
-    return [];
   });
 }
 

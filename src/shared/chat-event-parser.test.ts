@@ -7,11 +7,11 @@ describe("ChatEventParser", () => {
     const parser = new ChatEventParser();
     expect(
       parser.push(
-        'event: text\ndata: {"text":"Hello!"}\n\nevent: ended\ndata: {"succ',
+        'event: text\ndata: {"text":"Hello!"}\n\nevent: thinking\ndata: {"te',
       ),
     ).toEqual([{ name: "text", data: { text: "Hello!" } }]);
-    expect(parser.push('eeded":true}\n\n')).toEqual([
-      { name: "ended", data: { succeeded: true } },
+    expect(parser.push('xt":"Hmm."}\n\n')).toEqual([
+      { name: "thinking", data: { text: "Hmm." } },
     ]);
   });
 

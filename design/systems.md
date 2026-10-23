@@ -91,7 +91,7 @@ The app never sees a password. Sign-out drops the token in the browser.
 - **Static files** need no server of their own for the UI. Frameworks that render pages on a server, such as Next.js, would add one more thing to run, for nothing the app needs.
 - **TypeScript** lets the front end use the same data shapes as the back end (technical spec section 2).
 
-**Requests are JSON over HTTPS, under `/api`.** A user's message is one request. The coordinator's reply streams back on that request with **Server-Sent Events**: the server sends each part of the reply as it's ready, and the browser shows it. The Agent SDK hands the app its messages one at a time, so the app passes each one on. Server-Sent Events only flow from the server to the browser, which is all a reply needs. WebSockets would carry messages both ways, with more code for reconnecting, and nothing needs that.
+**Requests are JSON over HTTPS, under `/api`.** A user's message is one request. The coordinator's reply streams back on that request with **Server-Sent Events**: the server sends each part of the reply as it's ready, and the browser shows it. It sends each step of the turn too, such as a tool call, for the chat's raw view (functional spec 10.1). The Agent SDK hands the app its messages one at a time, so the app passes each one on. Server-Sent Events only flow from the server to the browser, which is all a reply needs. WebSockets would carry messages both ways, with more code for reconnecting, and nothing needs that.
 
 **The API runs on Hono,** on Node. Request bodies are checked with Zod through `@hono/zod-validator`, and replies stream with Hono's `streamSSE`. The options compared are in [research/server-libraries.md](../research/server-libraries.md).
 

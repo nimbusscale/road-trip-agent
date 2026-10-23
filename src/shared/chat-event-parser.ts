@@ -1,4 +1,8 @@
-import { type ChatEvent, chatEventSchemas } from "./session.schema.js";
+import {
+  type ChatEvent,
+  chatEventSchema,
+  chatEventSchemas,
+} from "./session.schema.js";
 
 // Reads a reply's Server-Sent Events as they arrive (systems design section 4). The
 // browser uses it, and so do the API's tests. Text arrives in chunks that can end
@@ -32,16 +36,7 @@ function eventOf(block: string): ChatEvent | null {
     return null;
   }
   const data: unknown = JSON.parse(dataLines.join("\n"));
-  switch (name) {
-    case "session":
-      return { name, data: chatEventSchemas.session.parse(data) };
-    case "text":
-      return { name, data: chatEventSchemas.text.parse(data) };
-    case "tool":
-      return { name, data: chatEventSchemas.tool.parse(data) };
-    case "ended":
-      return { name, data: chatEventSchemas.ended.parse(data) };
-    default:
-      return null;
-  }
+  return Object.hasOwn(chatEventSchemas, name)
+    ? chatEventSchema.parse({ name, data })
+    : null;
 }
