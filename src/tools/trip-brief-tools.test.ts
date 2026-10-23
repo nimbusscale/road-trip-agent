@@ -7,10 +7,11 @@ import { TripBusyError } from "../persistence/trip-errors.js";
 import { setUp } from "../persistence/trip-writer.fake.js";
 import { CLOCK_TIME_ERROR } from "./clock-time.js";
 import type { ToolReply } from "./tool-reply.js";
-import { UPDATE_TRIP_BRIEF_INPUT } from "./trip-brief-input.schema.js";
+import { updateTripBriefInput } from "./trip-brief-input.schema.js";
 import { readTripBriefTool, updateTripBriefTool } from "./trip-brief-tools.js";
 
 const OWNER = { id: "4f6c1d0e-2a8b-4c3d-9e7f-1a2b3c4d5e6f" };
+const UPDATE_TRIP_BRIEF_INPUT = updateTripBriefInput(setUp().limits);
 
 // The tools for a new trip, with fakes for Postgres and Google (DEVELOPMENT.md
 // section 5). Each call's input goes through the tool's schema first, as the Agent SDK

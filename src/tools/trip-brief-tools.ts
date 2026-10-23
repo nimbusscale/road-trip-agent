@@ -8,7 +8,7 @@ import { strictTool, type StrictToolDefinition } from "./strict-tool.js";
 import {
   READ_TRIP_BRIEF_INPUT,
   type TripBriefItems,
-  UPDATE_TRIP_BRIEF_INPUT,
+  updateTripBriefInput,
 } from "./trip-brief-input.schema.js";
 import type { TripSession } from "./trip-session.js";
 import { textReply, writeReplyOrReadableError } from "./tool-reply.js";
@@ -44,7 +44,7 @@ export function updateTripBriefTool(
   return strictTool(
     "update_trip_brief",
     UPDATE_TRIP_BRIEF_DESCRIPTION,
-    UPDATE_TRIP_BRIEF_INPUT,
+    updateTripBriefInput(session.limits),
     (items) =>
       writeReplyOrReadableError(async () => {
         if (Object.values(items).every((value) => value === undefined)) {

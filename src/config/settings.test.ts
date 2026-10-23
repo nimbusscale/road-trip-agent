@@ -15,6 +15,7 @@ const GOOD_SETTINGS = {
   mealVisitMinutes: 60,
   maximumMemoryItems: 50,
   maximumMemoryItemCharacters: 300,
+  coordinatorModel: "claude-opus-5-5",
 };
 
 function parse(settings: object): unknown {
@@ -48,6 +49,13 @@ describe("parseSettings", () => {
     const settings = { ...GOOD_SETTINGS, maximumTripLengthDays: 0 };
     expect(() => parse(settings)).toThrow(ConfigError);
     expect(() => parse(settings)).toThrow("- maximumTripLengthDays Too small");
+  });
+
+  it("refuses a short model name, which would move to newer models on its own", () => {
+    const settings = { ...GOOD_SETTINGS, coordinatorModel: "opus" };
+    expect(() => parse(settings)).toThrow(
+      "- coordinatorModel must be an exact model ID, such as claude-opus-5-5",
+    );
   });
 
   it("names a missing setting", () => {
