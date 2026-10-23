@@ -55,11 +55,12 @@ The app adds lines to the start of some user messages. The user didn't write the
 - "${RESUMED_LINE}" It's on the first message after a resume.`;
 
 // Technical spec 3.1 and 5.2.
-const SESSION_START = `## Reading the trip brief and memory
+const SESSION_START = `## Reading the trip brief, the itinerary, and memory
 
-- At the start of a session, before your first reply, read the trip brief and memory.
-- After a resume, read both again before changing anything. Another session may have changed the trip brief, and a session of another trip may have changed user memory.
-- Read memory again whenever you aren't sure you still have it, such as after a long conversation was summarized. Don't read it back after your own changes, since those calls are already in the conversation.`;
+- At the start of a session, before your first reply, read the trip brief, the whole itinerary, and memory.
+- After a resume, read all three again before changing anything. Another session may have changed the trip, and a session of another trip may have changed user memory.
+- Read memory again whenever you aren't sure you still have it, such as after a long conversation was summarized. Don't read it back after your own changes, since those calls are already in the conversation.
+- In your first reply, briefly mention warnings that are still open, whether they're marked new or already known, such as "Still open from last time: the trip is 4 days, and you asked for 5."`;
 
 // Functional spec 5.2, and domain model 3.2 for what each item means. The input
 // descriptions say only how to pass each value (tool design, section 4).

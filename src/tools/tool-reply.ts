@@ -1,6 +1,7 @@
 import type { SdkMcpToolDefinition } from "@anthropic-ai/claude-agent-sdk";
 
 import { RuleError } from "../domain/rule-error.js";
+import { GooglePlacesError } from "../google/places-client.js";
 import { GoogleRoutesError } from "../google/routes-client.js";
 import { GoogleWeatherError } from "../google/weather-client.js";
 import { OpenMeteoError } from "../open-meteo/archive-client.js";
@@ -25,8 +26,8 @@ export function writeReplyOrReadableError(
   return replyOrReadableError(work, writeErrorText);
 }
 
-// The same for a tool that only reads, so nothing could have changed: a broken rule,
-// such as a bad ID, or a failed call to Google or Open-Meteo.
+// The same for a tool that only reads the trip, so nothing in it could have changed: a
+// broken rule, such as a bad ID, or a failed call to Google or Open-Meteo.
 export function readReplyOrReadableError(
   work: () => Promise<ToolReply>,
 ): Promise<ToolReply> {
@@ -54,6 +55,7 @@ function isReadable(error: unknown): error is Error {
   return (
     error instanceof RuleError ||
     error instanceof TripBusyError ||
+    error instanceof GooglePlacesError ||
     error instanceof GoogleRoutesError ||
     error instanceof GoogleWeatherError ||
     error instanceof OpenMeteoError

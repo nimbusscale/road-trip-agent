@@ -33,8 +33,9 @@ export function setUp(): {
   pool: FakePool;
   clock: FakeClock;
   routeFinder: FakeRouteFinder;
-  // The settings, as a trip session's tools are given them.
-  limits: Settings;
+  // The settings and the clock, as a trip session's tools are given them.
+  settings: Settings;
+  now: () => Date;
 } {
   const store = new FakeTripStore();
   const pool = new FakePool();
@@ -56,6 +57,7 @@ export function setUp(): {
     pool,
     clock,
     routeFinder,
-    limits: settings,
+    settings,
+    now: () => clock.now(),
   };
 }

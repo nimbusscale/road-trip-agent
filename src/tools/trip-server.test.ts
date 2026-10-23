@@ -35,13 +35,17 @@ describe("createTripServer", () => {
 
   // The Agent SDK leaves out a tool whose input schema it can't turn into JSON Schema,
   // with only a warning. It also drops unknown keys, unless the schema is strict.
-  it("lists both tools, with schemas that refuse other keys and require no item", async () => {
+  it("lists every tool, with schemas that refuse other keys, and no brief item required", async () => {
     const { client } = await connectedClient();
     const { tools } = await client.listTools();
     expect(tools.map((each) => each.name)).toEqual([
       "read_trip_brief",
       "update_trip_brief",
+      "read_itinerary",
     ]);
+    expect(
+      tools.every((each) => each.inputSchema.additionalProperties === false),
+    ).toBe(true);
     const update = tools.find((each) => each.name === "update_trip_brief");
     expect(Object.keys(update?.inputSchema.properties ?? {})).toHaveLength(11);
     expect(update?.inputSchema.additionalProperties).toBe(false);
@@ -54,7 +58,11 @@ describe("createTripServer", () => {
     const server = createTripServer({
       ...fixture,
       tripId: "trip_a",
-      limits: { maximumTripLengthDays: 10, maximumDailyDrivingHours: 9 },
+      settings: {
+        ...fixture.settings,
+        maximumTripLengthDays: 10,
+        maximumDailyDrivingHours: 9,
+      },
     });
     const [clientSide, serverSide] = InMemoryTransport.createLinkedPair();
     await server.instance.connect(serverSide);

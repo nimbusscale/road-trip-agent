@@ -7,6 +7,7 @@ import { SessionReader } from "../persistence/session-reader.js";
 import { SessionWriter } from "../persistence/session-writer.js";
 import { TranscriptAdapter } from "../persistence/transcript-adapter.js";
 import { setUp } from "../persistence/trip-writer.fake.js";
+import { fakePlacesAccess } from "../tools/places-session.fake.js";
 import type { FakeTripStore } from "../persistence/trip-store.fake.js";
 import type { ChatDependencies } from "./chat-dependencies.js";
 
@@ -30,8 +31,14 @@ export function chatSetUp(now: Date): ChatSetUp {
     makeStore: () => transcriptStore,
   });
   const coordinator = {
-    ...coordinatorGiven(trips.limits),
-    trip: { writer: trips.writer, reader: trips.reader, limits: trips.limits },
+    ...coordinatorGiven(trips.settings),
+    trip: {
+      writer: trips.writer,
+      reader: trips.reader,
+      settings: trips.settings,
+      now: trips.now,
+    },
+    places: fakePlacesAccess(trips),
     transcripts,
   };
   const sdk = new FakeSdk();
