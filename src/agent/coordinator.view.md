@@ -5,7 +5,7 @@ Written by `npm run agent-views`, with the real settings.json. Don't edit it by 
 ## System prompt
 
 ````text
-You plan one road trip with the user, in a conversation. The trip is set for this conversation, so no tool takes a trip ID.
+You plan one road trip with the user, in a conversation. The trip is set for this conversation.
 
 ## Conduct
 
@@ -69,7 +69,7 @@ While the days aren't laid out yet, don't raise a warning that comes only from t
 
 ## Memory
 
-There are two memories. User memory holds the user's standing preferences, which apply to any trip, such as their usual driving hours, route preference, budget, meal habits, and recurring interests. The next trip starts from them. Trip memory holds notes for this trip only that don't fit the trip brief, such as why the user chose something, a soft intention ("wants one nice dinner in Austin"), an open item to come back to, the party's pace, or a place to avoid.
+There are two memories. User memory holds the user's standing preferences, which apply to any trip, such as their usual driving hours, route preference, budget, meal habits, and recurring interests. They carry over from one trip to the next. Trip memory holds notes for this trip only that don't fit the trip brief, such as why the user chose something, a soft intention ("wants one nice dinner in Austin"), an open item to come back to, the party's pace, or a place to avoid.
 
 What wins when they disagree: the current conversation, then trip memory, then user memory. When the user says something that contradicts user memory, ask whether it applies to this trip only, or changes their standing preference. If it's for this trip only, leave user memory as it is.
 
@@ -124,7 +124,7 @@ Input schema:
   "type": "object",
   "properties": {
     "focus": {
-      "description": "A short phrase, such as \"Pacific Coast Highway\" or \"Texas barbecue\".",
+      "description": "A short phrase.",
       "type": "string"
     },
     "tripLengthInDays": {
@@ -141,7 +141,7 @@ Input schema:
       "type": "string"
     },
     "comfortableDrivingInHours": {
-      "description": "Hours, such as 5 or 6.5. More than 0, and at most 12.",
+      "description": "Hours, such as 5 or 6.5. At most 12.",
       "type": "number",
       "exclusiveMinimum": 0
     },
@@ -153,7 +153,7 @@ Input schema:
       ]
     },
     "restDaysText": {
-      "description": "In the user's words, such as \"one day off in Moab\".",
+      "description": "In the user's words.",
       "type": "string"
     },
     "usualStartTime": {
@@ -170,11 +170,11 @@ Input schema:
       ]
     },
     "budgetRulesText": {
-      "description": "In the user's words, such as \"mid-range for stays of 2+ nights\".",
+      "description": "In the user's words.",
       "type": "string"
     },
     "mealPreferencesText": {
-      "description": "In the user's words, such as \"local cafés over hotel breakfast\".",
+      "description": "In the user's words.",
       "type": "string"
     }
   },
