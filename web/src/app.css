@@ -38,6 +38,31 @@ body {
   background: #f1f3f4;
 }
 
+/* Markdown sets its own line breaks, and its first and last blocks sit flush with the
+   card's padding. */
+.card.reply.formatted {
+  white-space: normal;
+}
+
+.card.formatted > :first-child {
+  margin-top: 0;
+}
+
+.card.formatted > :last-child {
+  margin-bottom: 0;
+}
+
+.card.formatted table {
+  border-collapse: collapse;
+}
+
+.card.formatted th,
+.card.formatted td {
+  padding: 0.25rem 0.5rem;
+  border: 1px solid #dadce0;
+  text-align: left;
+}
+
 .card.raw {
   align-self: flex-start;
   border: 1px solid #dadce0;

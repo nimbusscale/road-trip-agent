@@ -3,6 +3,7 @@ import { type KeyboardEvent, type SubmitEvent, useState } from "react";
 import { type ChatState, shownCards } from "./chat-state";
 import { Link } from "./link";
 import { RawCard } from "./raw-card";
+import { ReplyText } from "./reply-text";
 import { type ChatStart, useChat } from "./use-chat";
 
 // The chat view: the conversation as cards, the reply as it streams in, and a box for
@@ -73,6 +74,9 @@ function Conversation({ state, raw, busy }: ConversationProps) {
       {shownCards(state.cards, raw).map((card) =>
         card.kind === "raw" ? (
           <RawCard key={card.id} event={card.event} />
+        ) : card.kind === "reply" && !raw ? (
+          // With "Raw" on, a reply shows the Markdown exactly as the coordinator wrote it.
+          <ReplyText key={card.id} text={card.text} />
         ) : (
           <p key={card.id} className={`card ${card.kind}`}>
             {card.text}
