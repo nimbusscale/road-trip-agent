@@ -8,7 +8,10 @@ import remarkGfm from "remark-gfm";
 export function ReplyText({ text }: { text: string }) {
   return (
     <div className="card reply formatted">
-      <Markdown remarkPlugins={[remarkGfm]} components={{ a: NewTabLink }}>
+      <Markdown
+        remarkPlugins={[remarkGfm, remarkLineBreaks]}
+        components={{ a: NewTabLink }}
+      >
         {text}
       </Markdown>
     </div>
@@ -22,4 +25,39 @@ function NewTabLink({ href, title, children }: ComponentProps<"a">) {
       {children}
     </a>
   );
+}
+
+// The few fields of a Markdown syntax tree node that remarkLineBreaks reads.
+interface MarkdownNode {
+  type: string;
+  value?: string;
+  children?: MarkdownNode[];
+}
+
+// Each line ending in a paragraph or list item shows as a line break, as the
+// coordinator wrote it. Markdown alone joins the lines, so one bold label per line
+// would run together. Code is left alone, since its text is a value, not text nodes.
+function remarkLineBreaks() {
+  return (tree: MarkdownNode) => {
+    splitLines(tree);
+  };
+}
+
+function splitLines(node: MarkdownNode): void {
+  if (node.children === undefined) {
+    return;
+  }
+  node.children = node.children.flatMap((child) =>
+    child.type === "text" ? withBreaks(child.value ?? "") : [child],
+  );
+  node.children.forEach(splitLines);
+}
+
+function withBreaks(value: string): MarkdownNode[] {
+  return value
+    .split(/\r?\n|\r/)
+    .flatMap((line, index) => [
+      ...(index === 0 ? [] : [{ type: "break" }]),
+      ...(line === "" ? [] : [{ type: "text", value: line }]),
+    ]);
 }
