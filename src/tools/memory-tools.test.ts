@@ -1,89 +1,21 @@
 import { describe, expect, it } from "vitest";
 
-import { CalendarDate } from "../domain/calendar-date.js";
+import { FakeMemoryStore } from "../persistence/fake-memory-store.js";
 import {
-  FAKE_POOL,
-  FakeMemoryStore,
-} from "../persistence/fake-memory-store.js";
-import { MemoryReader } from "../persistence/memory-reader.js";
-import { MemoryWriter } from "../persistence/memory-writer.js";
-import {
-  addMemoryItemTool,
-  forgetMemoryItemTool,
-  readMemoryTool,
-  updateMemoryItemTool,
-} from "./memory-tools.js";
-import type { MemorySession } from "./memory-session.js";
+  added,
+  STARTED_TRIP,
+  startedTripItem,
+  textOf,
+  toolsFor,
+} from "./memory-tools.fake.js";
 import type { ToolReply } from "./tool-reply.js";
 
 const USER_A = "2f6c1d3e-8a4b-4c5d-9e6f-7a8b9c0d1e2f";
 const USER_B = "7d1e2f3a-4b5c-4d6e-8f9a-0b1c2d3e4f5a";
 const TRIP_1 = "trip_aaaaaaaa";
 const TRIP_2 = "trip_bbbbbbbb";
-const STARTED_TRIP = "trip_ssssssss";
 const MISSING_ID = "mem_zzzzzzzz";
 const NO_SUCH_ITEM = "Nothing was changed. No such memory item.";
-
-const LIMITS = { maximumMemoryItems: 3, maximumMemoryItemCharacters: 30 };
-
-interface Tools {
-  read: () => Promise<string>;
-  add: (input: unknown) => Promise<ToolReply>;
-  update: (input: unknown) => Promise<ToolReply>;
-  forget: (input: unknown) => Promise<ToolReply>;
-}
-
-// One session's memory tools, with fakes for Postgres (DEVELOPMENT.md section 5).
-// Sessions made from one store share its rows, as two users' sessions share the
-// database.
-function toolsFor(
-  store: FakeMemoryStore,
-  userId: string,
-  tripId: string,
-): Tools {
-  const session: MemorySession = {
-    userId,
-    tripId,
-    writer: new MemoryWriter({
-      pool: FAKE_POOL,
-      makeStore: () => store,
-      hasTripStarted: (connection, id) =>
-        Promise.resolve(
-          id === STARTED_TRIP ? new CalendarDate(2027, 10, 10) : null,
-        ),
-      limits: LIMITS,
-    }),
-    reader: new MemoryReader({ pool: FAKE_POOL, makeStore: () => store }),
-    limits: LIMITS,
-  };
-  const readTool = readMemoryTool(session);
-  return {
-    read: async () => textOf(await readTool.handler({})),
-    add: addMemoryItemTool(session).handler,
-    update: updateMemoryItemTool(session).handler,
-    forget: forgetMemoryItemTool(session).handler,
-  };
-}
-
-function textOf(reply: ToolReply): string {
-  return reply.content
-    .map((part) => (part.type === "text" ? part.text : ""))
-    .join("");
-}
-
-// Adds an item through the tool, and returns its ID from the reply.
-async function added(
-  tools: Tools,
-  memory: "user" | "trip",
-  text: string,
-): Promise<string> {
-  const reply = textOf(await tools.add({ memory, text }));
-  const id = /mem_\w+/.exec(reply)?.[0];
-  if (id === undefined) {
-    throw new Error(`No item ID in the reply: ${reply}`);
-  }
-  return id;
-}
 
 function errorText(reply: ToolReply): string {
   expect(reply.isError).toBe(true);
@@ -257,6 +189,24 @@ describe("update_memory_item", () => {
       "Nothing was changed. stay_k7m2x9qa is a stay ID, not a memory item ID.",
     );
   });
+
+  it("refuses a trip item on a started trip, and still updates a user item", async () => {
+    const store = new FakeMemoryStore();
+    const tools = toolsFor(store, USER_A, STARTED_TRIP);
+    const tripItem = startedTripItem(store, USER_A);
+    const userItem = await added(tools, "user", "We never eat at chains.");
+    const reply = await tools.update({ itemId: tripItem, text: "Take I-35." });
+    expect(errorText(reply)).toMatch(
+      /^Nothing was changed\. This trip has started/,
+    );
+    expect(
+      textOf(await tools.update({ itemId: userItem, text: "No chains." })),
+    ).toBe(`Changed ${userItem}.`);
+    expect(store.rows.map((row) => row.text)).toEqual([
+      "Skip I-35.",
+      "No chains.",
+    ]);
+  });
 });
 
 describe("forget_memory_item", () => {
@@ -284,24 +234,31 @@ describe("forget_memory_item", () => {
     expect(store.rows).toHaveLength(1);
   });
 
+  it("refuses the user's own item from another trip", async () => {
+    const store = new FakeMemoryStore();
+    const otherTrip = await added(
+      toolsFor(store, USER_A, TRIP_2),
+      "trip",
+      "Skip I-35.",
+    );
+    const reply = await toolsFor(store, USER_A, TRIP_1).forget({
+      itemId: otherTrip,
+    });
+    expect(errorText(reply)).toBe(NO_SUCH_ITEM);
+    expect(store.rows.map((row) => row.id)).toEqual([otherTrip]);
+  });
+
   it("refuses a trip item on a started trip, and still forgets a user item", async () => {
     const store = new FakeMemoryStore();
     const tools = toolsFor(store, USER_A, STARTED_TRIP);
-    // Added before the trip started.
-    store.rows.push({
-      id: "mem_tttttttt",
-      userId: USER_A,
-      tripId: STARTED_TRIP,
-      text: "Skip I-35.",
-      createdDateTime: new Date("2026-10-15T12:00:00Z"),
-    });
+    const tripItem = startedTripItem(store, USER_A);
     const userItem = await added(tools, "user", "We never eat at chains.");
-    expect(errorText(await tools.forget({ itemId: "mem_tttttttt" }))).toMatch(
+    expect(errorText(await tools.forget({ itemId: tripItem }))).toMatch(
       /^Nothing was changed\. This trip has started/,
     );
     expect(textOf(await tools.forget({ itemId: userItem }))).toBe(
       `Forgot ${userItem}.`,
     );
-    expect(store.rows.map((row) => row.id)).toEqual(["mem_tttttttt"]);
+    expect(store.rows.map((row) => row.id)).toEqual([tripItem]);
   });
 });
