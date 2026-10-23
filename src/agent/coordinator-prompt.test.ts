@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { RESUMED_LINE } from "./app-lines.js";
 import {
   coordinatorPrompt,
   MEMORY_CHANGE_RULE,
@@ -27,6 +28,17 @@ describe("coordinatorPrompt", () => {
   it("gives the rules that cover several tools, word for word", () => {
     expect(prompt).toContain(TRIP_CHANGE_RULE);
     expect(prompt).toContain(MEMORY_CHANGE_RULE);
+  });
+
+  // Functional spec 5.2: budget posture is the default tier plus any rules.
+  it("doesn't ask for budget rules from a user who has none", () => {
+    expect(prompt).toContain(
+      "Each is required, except restDaysText, usualStartTime, and budgetRulesText.",
+    );
+  });
+
+  it("quotes the resumed line as the app adds it", () => {
+    expect(prompt).toContain(`"${RESUMED_LINE}"`);
   });
 
   it("names every trip brief item as the tools do", () => {

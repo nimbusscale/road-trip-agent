@@ -19,6 +19,21 @@ export function todayAt(place: Place, now: Date): CalendarDate {
   return new CalendarDate(part("year"), part("month"), part("day"));
 }
 
+// Today's date for a trip: at its start place, since that is where the trip begins,
+// and in UTC until it has one (technical spec 5.2). The coordinator is given this date.
+// The calendar's today() is null until there's a start place instead, since no rule
+// uses today's date before then.
+export function tripToday(startPlace: Place | null, now: Date): CalendarDate {
+  if (startPlace !== null) {
+    return todayAt(startPlace, now);
+  }
+  return new CalendarDate(
+    now.getUTCFullYear(),
+    now.getUTCMonth() + 1,
+    now.getUTCDate(),
+  );
+}
+
 // Today's date at the start place, once the trip has started: once today is on or
 // after its start date. Null while it hasn't, and while it has no start date (domain
 // model 3.1). The error for a started trip gives this date, so it matches the date the

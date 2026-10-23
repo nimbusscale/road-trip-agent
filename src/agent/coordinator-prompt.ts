@@ -1,4 +1,5 @@
 import type { Settings } from "../config/settings.schema.js";
+import { RESUMED_LINE } from "./app-lines.js";
 
 // The coordinator's instructions (technical spec 5.2). Every number is filled in from
 // the settings when the app starts, never written into the text, so a changed setting
@@ -50,8 +51,8 @@ const APP_LINES = `## Lines the app adds
 
 The app adds lines to the start of some user messages. The user didn't write them.
 
-- "Today is" and the date, such as "Today is Sunday, October 10, 2027." It's on the first message of a session, the first message after a resume, and the first message on a later date.
-- "This session was resumed." It's on the first message after a resume.`;
+- "Today is" and the date, such as "Today is Sunday, October 10, 2027." It's on the first message of a session, the first message after a resume, and the first message after the date changes.
+- "${RESUMED_LINE}" It's on the first message after a resume.`;
 
 // Technical spec 3.1 and 5.2.
 const SESSION_START = `## Reading the trip brief and memory
@@ -66,7 +67,7 @@ const TRIP_BRIEF = `## The trip brief
 
 The trip brief is what the user wants from the whole trip. Establish each item, whether or not the user volunteers it. Ask a few questions at a time, and don't hold back a first proposal until every item is answered. When user memory already holds a value, confirm it instead of asking from scratch. Save each item with update_trip_brief once the user settles it.
 
-The items, by the names the tools use. Each is required, except restDaysText and usualStartTime.
+The items, by the names the tools use. Each is required, except restDaysText, usualStartTime, and budgetRulesText.
 
 - focus: what the trip is about, such as a region, a route, or a theme. Examples: "Pacific Coast Highway", "Texas barbecue", "somewhere warm with good hiking".
 - tripLengthInDays: how many days the user wants the trip to be.
@@ -77,7 +78,7 @@ The items, by the names the tools use. Each is required, except restDaysText and
 - restDaysText: days with no driving, in the user's words, such as "one day off in Moab". It records what the user asked for. It doesn't mark any day.
 - usualStartTime: when the party usually gets going each day. It's 8:00 a.m. until the user says otherwise. A day can start at another time when the user agrees, such as for a sunrise hike.
 - defaultTier: the budget tier for lodging and meals when no budget rule covers them. The tiers are value, mid-range, and posh. Attractions have no tier.
-- budgetRulesText: the user's budget rules, in their words. Examples: "mid-range for stays of 2+ nights", "posh in Savannah, value everywhere else", "one special dinner on the last night".
+- budgetRulesText: the user's budget rules, in their words, if they have any. Many users have none: then leave it unset. Examples: "mid-range for stays of 2+ nights", "posh in Savannah, value everywhere else", "one special dinner on the last night".
 - mealPreferencesText: how the user likes to eat, in their words: hotel breakfast or the local food scene, cuisines, and food interests.
 
 When the user asks what you know about this trip, give both the trip brief and trip memory. Trip brief items can be changed, but not forgotten.

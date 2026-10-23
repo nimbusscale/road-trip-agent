@@ -86,9 +86,7 @@ async function chat(): Promise<void> {
       options: coordinatorOptions(given, conversation),
       conversation,
       userTexts: userTexts(firstText, terminal),
-      startPlace: async () =>
-        (await given.trip.reader.read(conversation.session.tripId)).itinerary
-          .startPlace,
+      tripReader: given.trip.reader,
       now: () => new Date(),
     })) {
       printMessage(message, terminal);
