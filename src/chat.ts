@@ -8,27 +8,23 @@
 import { createInterface, type Interface } from "node:readline";
 import { parseArgs } from "node:util";
 
-import type { SDKMessage } from "@anthropic-ai/claude-agent-sdk";
-
-import { claudeProcessEnv } from "./agent/claude-env.js";
+import { coordinatorAccessFor } from "./agent/coordinator-access.js";
+import {
+  ChatClosedError,
+  CoordinatorTurns,
+} from "./agent/coordinator-turns.js";
 import {
   type Conversation,
   type CoordinatorGiven,
-  converse,
-  coordinatorOptions,
+  runTurnWithSdk,
 } from "./agent/coordinator.js";
+import type { TurnEvent } from "./agent/turn-event.js";
 import { ConfigError } from "./config/config-error.js";
 import { parseEnv } from "./config/env.js";
 import { loadSettings, SETTINGS_PATH } from "./config/settings.js";
 import { createPool } from "./db/connection.js";
 import type { Connectable, Queryable } from "./persistence/queryable.js";
-import { SessionReader } from "./persistence/session-reader.js";
-import { SessionRepository } from "./persistence/session-repository.js";
-import { SessionWriter } from "./persistence/session-writer.js";
-import { TranscriptAdapter } from "./persistence/transcript-adapter.js";
-import { TranscriptRepository } from "./persistence/transcript-repository.js";
-import { memoryAccessFor } from "./tools/memory-server.js";
-import { tripAccessFor } from "./tools/trip-access.js";
+import { sessionAccessFor } from "./persistence/session-access.js";
 
 // Users live in Supabase. Locally, any UUID will do, and memory is kept under it.
 const DEV_USER_ID = "00000000-0000-4000-8000-000000000001";
@@ -46,7 +42,7 @@ interface Terminal {
   lines: AsyncIterator<string>;
   // A piped input isn't shown as it's typed, so each message is printed.
   echo: boolean;
-  // The SDK sends its init message at the start of every turn. It's shown once.
+  // Each turn starts with the model and tools. They're shown once.
   initShown: boolean;
 }
 
@@ -66,30 +62,31 @@ async function chat(): Promise<void> {
     initShown: false,
   };
   try {
-    const given: CoordinatorGiven = {
+    const given = coordinatorAccessFor({
+      env,
+      pool,
       settings,
-      processEnv: claudeProcessEnv(process.env, env.claudeCodeOauthToken),
-      trip: tripAccessFor({ env, pool, settings }),
-      memory: memoryAccessFor({ pool, settings }),
-      transcripts: new TranscriptAdapter({
-        pool,
-        makeStore: (connection) => new TranscriptRepository(connection),
-      }),
-    };
+      processEnv: process.env,
+    });
+    const turns = new CoordinatorTurns({
+      coordinator: given,
+      runTurn: runTurnWithSdk,
+      now: () => new Date(),
+    });
     const { conversation, firstText } = await start(
       args,
       given,
       pool,
       terminal,
     );
-    for await (const message of converse({
-      options: coordinatorOptions(given, conversation),
-      conversation,
-      userTexts: userTexts(firstText, terminal),
-      tripReader: given.trip.reader,
-      now: () => new Date(),
-    })) {
-      printMessage(message, terminal);
+    if (firstText === null) {
+      turns.markResumed(conversation.session.id);
+    }
+    for await (const text of userTexts(firstText, terminal)) {
+      const turn = await turns.begin(conversation, text);
+      for await (const event of turn.events()) {
+        printEvent(event, terminal);
+      }
     }
   } finally {
     readline.close();
@@ -104,12 +101,9 @@ async function start(
   pool: Connectable & Queryable,
   terminal: Terminal,
 ): Promise<{ conversation: Conversation; firstText: string | null }> {
-  const makeStore = (connection: Queryable): SessionRepository =>
-    new SessionRepository(connection);
+  const sessions = sessionAccessFor(pool);
   if (args.resume !== undefined) {
-    const session = await new SessionReader({ pool, makeStore }).get(
-      args.resume,
-    );
+    const session = await sessions.reader.get(args.resume);
     if (session === undefined) {
       throw new ConfigError(`There's no session ${args.resume}.`);
     }
@@ -117,7 +111,7 @@ async function start(
     printStart(session.tripId, session.id, "Resumed");
     showPrompt(terminal);
     return {
-      conversation: { session, userId: trip.owner.id, resumed: true },
+      conversation: { session, userId: trip.owner.id },
       firstText: null,
     };
   }
@@ -130,15 +124,9 @@ async function start(
   if (firstText === null) {
     throw new ConfigError("No first message, so no session was started.");
   }
-  const session = await new SessionWriter({ pool, makeStore }).start(
-    trip.id,
-    firstText,
-  );
+  const session = await sessions.writer.start(trip.id, firstText);
   printStart(trip.id, session.id, "Started");
-  return {
-    conversation: { session, userId: trip.owner.id, resumed: false },
-    firstText,
-  };
+  return { conversation: { session, userId: trip.owner.id }, firstText };
 }
 
 // Only in a terminal. A piped input can end, and close the readline, while a turn
@@ -185,70 +173,44 @@ async function nextText(terminal: Terminal): Promise<string | null> {
   }
 }
 
-function printMessage(message: SDKMessage, terminal: Terminal): void {
-  if (message.type === "system" && message.subtype === "init") {
-    if (!terminal.initShown) {
-      console.log(`Model: ${message.model}`);
-      console.log(`Tools: ${message.tools.join(", ")}`);
-      terminal.initShown = true;
+function printEvent(event: TurnEvent, terminal: Terminal): void {
+  switch (event.kind) {
+    case "started":
+      if (!terminal.initShown) {
+        console.log(`Model: ${event.model}`);
+        console.log(`Tools: ${event.tools.join(", ")}`);
+        terminal.initShown = true;
+      }
+      break;
+    case "text":
+      console.log(`\n${event.text}\n`);
+      break;
+    case "toolCall":
+      console.log(`  [tool] ${event.name} ${JSON.stringify(event.input)}`);
+      break;
+    case "toolReply": {
+      const label = event.isError ? "error" : "reply";
+      console.log(
+        `  [${label}] ${event.text.replaceAll("\n", "\n          ")}`,
+      );
+      break;
     }
-  } else if (message.type === "assistant") {
-    printReplyAndToolCalls(message.message.content);
-  } else if (message.type === "user") {
-    printToolReplies(message.message.content);
-  } else if (message.type === "result") {
-    if (message.subtype !== "success") {
-      console.error(`The turn failed: ${message.subtype}`);
-    }
-    const seconds = Math.round(message.duration_ms / 1000);
-    console.log(`(The turn took ${String(seconds)} s.)`);
-    showPrompt(terminal);
-  }
-}
-
-type AssistantContent = Extract<
-  SDKMessage,
-  { type: "assistant" }
->["message"]["content"];
-
-function printReplyAndToolCalls(content: AssistantContent): void {
-  for (const block of content) {
-    if (block.type === "text") {
-      console.log(`\n${block.text}\n`);
-    } else if (block.type === "tool_use") {
-      console.log(`  [tool] ${block.name} ${JSON.stringify(block.input)}`);
-    }
-  }
-}
-
-type UserContent = Extract<SDKMessage, { type: "user" }>["message"]["content"];
-
-function printToolReplies(content: UserContent): void {
-  if (typeof content === "string") {
-    return;
-  }
-  for (const block of content) {
-    if (block.type !== "tool_result") {
-      continue;
-    }
-    const parts =
-      typeof block.content === "string"
-        ? [block.content]
-        : (block.content ?? []);
-    const text = parts
-      .map((part) =>
-        typeof part === "string" ? part : part.type === "text" ? part.text : "",
-      )
-      .join("\n");
-    const label = block.is_error === true ? "error" : "reply";
-    console.log(`  [${label}] ${text.replaceAll("\n", "\n          ")}`);
+    case "ended":
+      if (event.failure !== null) {
+        console.error(`The turn failed: ${event.failure}`);
+      }
+      console.log(
+        `(The turn took ${String(Math.round(event.durationMs / 1000))} s.)`,
+      );
+      showPrompt(terminal);
+      break;
   }
 }
 
 try {
   await chat();
 } catch (error) {
-  if (!(error instanceof ConfigError)) {
+  if (!(error instanceof ConfigError || error instanceof ChatClosedError)) {
     throw error;
   }
   console.error(error.message);

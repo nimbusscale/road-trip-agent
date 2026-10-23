@@ -31,3 +31,20 @@ export class AppLines {
     return lines.length === 0 ? text : [...lines, "", text].join("\n");
   }
 }
+
+// Such as "Today is Sunday, October 10, 2027."
+const DATE_LINE = /^Today is [A-Z][a-z]+, [A-Z][a-z]+ \d{1,2}, \d{4}\.$/;
+
+// The user's own words from a stored message, without the lines the app added, for
+// showing a resumed session. A message with no app lines comes back as it is.
+export function withoutAppLines(message: string): string {
+  const lines = message.split("\n");
+  const firstOwn = lines.findIndex(
+    (line) => line !== RESUMED_LINE && !DATE_LINE.test(line),
+  );
+  // The app's lines are followed by one blank line.
+  if (firstOwn <= 0 || lines[firstOwn] !== "") {
+    return message;
+  }
+  return lines.slice(firstOwn + 1).join("\n");
+}

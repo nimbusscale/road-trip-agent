@@ -49,7 +49,7 @@ One server runs everything we build. The browser signs in with Supabase, then ta
 | Container | Runs | Notes |
 |---|---|---|
 | `web` | Caddy | Serves the front end's files, and passes `/api` requests to `app`. Gets and renews the HTTPS certificate on its own |
-| `app` | Our TypeScript back end, on Node | Holds the API, the agents, and the tools. The Agent SDK starts a Claude Code process for each running session. One process answering a short question peaked at about 250 MB, measured in phase 9 |
+| `app` | Our TypeScript back end, on Node | Holds the API, the agents, and the tools. The Agent SDK starts a Claude Code process for each turn, which resumes the session from its stored transcript and ends with the turn. So nothing runs between turns. Starting one took about half a second, measured in #52. One process answering a short question peaked at about 250 MB, measured in phase 9 |
 | `postgres` | Postgres | Its data is on a Docker volume on the server's disk |
 
 **One web address for the front end and the API.** Caddy serves both, so the browser never calls a second site, and the app needs no cross-site setup.

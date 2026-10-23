@@ -17,7 +17,8 @@ describe("agent views", () => {
   it("matches the coordinator's view file", async () => {
     const options = coordinatorOptions(
       coordinatorGiven(loadSettings(SETTINGS_PATH)),
-      conversation(false),
+      conversation(),
+      false,
     );
     if (typeof options.systemPrompt !== "string") {
       throw new Error("The coordinator's system prompt isn't plain text.");

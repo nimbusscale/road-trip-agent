@@ -6,6 +6,7 @@ import { FakePlaceStore } from "./place-store.fake.js";
 import { planSchema } from "./plan.schema.js";
 import { planDocumentOf, tripFromRow } from "./plan-document.js";
 import type { Connectable, TransactionClient } from "./queryable.js";
+import { TripNotFoundError } from "./trip-errors.js";
 import type { TripStore } from "./trip-repository.js";
 
 // Test fakes for Postgres (DEVELOPMENT.md section 5). The store keeps each trip's owner,
@@ -54,7 +55,7 @@ export class FakeTripStore implements TripStore {
   #tripFrom(tripId: string, places: readonly Place[]): Trip {
     const row = this.rows.get(tripId);
     if (row === undefined) {
-      throw new Error(`There's no trip ${tripId}.`);
+      throw new TripNotFoundError(tripId);
     }
     const plan = planSchema.parse(JSON.parse(row.plan));
     return tripFromRow({ id: tripId, ownerId: row.ownerId, plan }, places);
