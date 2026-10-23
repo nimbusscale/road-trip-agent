@@ -49,8 +49,7 @@ export function weatherAccessFor(
 }
 
 // Made for each session, with its trip already set. One server object can't be shared
-// by two sessions running at once (tool design, section 4). It has one tool, so it needs
-// no instructions of its own.
+// by two sessions running at once (tool design, section 4).
 export function createWeatherServer(
   session: WeatherSession,
 ): McpSdkServerConfigWithInstance {
