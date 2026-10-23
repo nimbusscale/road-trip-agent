@@ -21,11 +21,6 @@ import type { MemorySession } from "./memory-session.js";
 // design, section 1).
 export const MEMORY_SERVER_NAME = "memory";
 
-// The server's description, which the model reads as its instructions. The one rule
-// that covers several of its tools (tool design, section 4).
-export const MEMORY_SERVER_INSTRUCTIONS =
-  "Once the trip has started, its trip memory can't change, and user memory still can. When a change is refused, nothing is changed, and the error says why.";
-
 export interface MemoryAccessGiven {
   pool: Connectable & Queryable;
   settings: Settings;
@@ -58,7 +53,6 @@ export function createMemoryServer(
 ): McpSdkServerConfigWithInstance {
   return createSdkMcpServer({
     name: MEMORY_SERVER_NAME,
-    instructions: MEMORY_SERVER_INSTRUCTIONS,
     // The coordinator reads memory at the start of every session, so it's never left
     // for it to find with a tool search.
     alwaysLoad: true,
