@@ -8,7 +8,8 @@ export type TurnEvent =
   | { kind: "text"; text: string }
   | { kind: "toolCall"; name: string; input: unknown }
   | { kind: "toolReply"; text: string; isError: boolean }
-  | { kind: "ended"; succeeded: boolean; durationMs: number };
+  // `failure` says why the turn failed, or is null when it succeeded.
+  | { kind: "ended"; failure: string | null; durationMs: number };
 
 export function turnEventsOf(message: SDKMessage): TurnEvent[] {
   switch (message.type) {
@@ -24,13 +25,24 @@ export function turnEventsOf(message: SDKMessage): TurnEvent[] {
       return [
         {
           kind: "ended",
-          succeeded: message.subtype === "success" && !message.is_error,
+          failure: failureOf(message),
           durationMs: message.duration_ms,
         },
       ];
     default:
       return [];
   }
+}
+
+type ResultMessage = Extract<SDKMessage, { type: "result" }>;
+
+// Such as "error_during_execution: <the SDK's errors>". A "success" that's an error,
+// such as when the Claude API fails, carries the error's text in `result`.
+function failureOf(message: ResultMessage): string | null {
+  if (message.subtype === "success") {
+    return message.is_error ? `${message.subtype}: ${message.result}` : null;
+  }
+  return [message.subtype, ...message.errors].join(": ");
 }
 
 type AssistantContent = Extract<

@@ -131,11 +131,16 @@ export class CoordinatorTurns {
   ): Promise<void> {
     try {
       for await (const event of this.given.runTurn(message, options)) {
+        if (event.kind === "ended" && event.failure !== null) {
+          console.error(
+            `The turn in session ${sessionId} failed: ${event.failure}`,
+          );
+        }
         turn.add(event);
       }
     } catch (error) {
       console.error(`The turn in session ${sessionId} failed:`, error);
-      turn.add({ kind: "ended", succeeded: false, durationMs: 0 });
+      turn.add({ kind: "ended", failure: String(error), durationMs: 0 });
     } finally {
       this.#running.delete(sessionId);
       turn.end();

@@ -104,6 +104,27 @@ describe("the chat's turns", () => {
     ).toEqual({ role: "coordinator", text: REPLY });
   });
 
+  it("logs why a turn failed, and tells the browser it didn't finish", async () => {
+    const chat = await chatApi(PLANNING);
+    const sessionId = await startTrip(chat);
+    chat.sdk.failure = "error_during_execution: API Error: 529 Overloaded";
+    const logged = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+    try {
+      const events = await eventsOf(await send(chat, sessionId, "Five days."));
+      expect(events.at(-1)).toEqual({
+        name: "ended",
+        data: { succeeded: false },
+      });
+      expect(logged).toHaveBeenCalledWith(
+        `The turn in session ${sessionId} failed: error_during_execution: API Error: 529 Overloaded`,
+      );
+    } finally {
+      logged.mockRestore();
+    }
+  });
+
   it("refuses a second message while the last turn is still running", async () => {
     const chat = await chatApi(PLANNING);
     const sessionId = await startTrip(chat);

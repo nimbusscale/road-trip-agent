@@ -42,7 +42,7 @@ function chatEventOf(event: TurnEvent): ChatEvent | null {
     case "toolCall":
       return { name: "tool", data: { name: shortToolName(event.name) } };
     case "ended":
-      return { name: "ended", data: { succeeded: event.succeeded } };
+      return { name: "ended", data: { succeeded: event.failure === null } };
     default:
       return null;
   }

@@ -196,8 +196,8 @@ function printEvent(event: TurnEvent, terminal: Terminal): void {
       break;
     }
     case "ended":
-      if (!event.succeeded) {
-        console.error("The turn failed.");
+      if (event.failure !== null) {
+        console.error(`The turn failed: ${event.failure}`);
       }
       console.log(
         `(The turn took ${String(Math.round(event.durationMs / 1000))} s.)`,

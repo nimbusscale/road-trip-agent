@@ -14,6 +14,8 @@ import type { TurnEvent } from "./turn-event.js";
 export class FakeSdk {
   readonly calls: { message: string; options: Options }[] = [];
   replyParts = ["Hello!", "Where would you like to go?"];
+  // Why each turn fails, or null for turns that succeed.
+  failure: string | null = null;
   // Waited on before each part after the first, so a test can act partway through a
   // turn.
   beforeLaterParts: () => Promise<void> = () => Promise.resolve();
@@ -44,6 +46,6 @@ export class FakeSdk {
       });
       yield { kind: "text", text };
     }
-    yield { kind: "ended", succeeded: true, durationMs: 1000 };
+    yield { kind: "ended", failure: this.failure, durationMs: 1000 };
   }
 }
