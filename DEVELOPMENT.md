@@ -21,6 +21,7 @@ Claude Code writes the code, Joe reviews the code he cares about, and the tools 
 | `npm run dev` | Runs the app and the front end locally ([systems design](design/systems.md), section 6) |
 | `npm run migrate` | Runs the database migrations that haven't run yet ([persistence design](design/persistence.md), section 1) |
 | `npm run ask-claude` | Sends Claude one question through the Agent SDK, on the plan's token, and prints the reply. Dev only. A question can follow, as in `npm run ask-claude -- "your question"` |
+| `npm run chat` | Chats with the coordinator in the terminal, against the local database, and prints each tool call and its reply. Dev only. With no options, it starts a new trip for a dev user. `-- --user <uuid>` starts one for another user, `-- --trip <trip ID>` starts a new session on a trip, and `-- --resume <session ID>` resumes a session. Ctrl-D ends it |
 | `npm run build` | Builds the app into `dist/app` and the front end into `dist/web`, as the images do |
 | `npm run check` | Runs every check below, stopping at the first failure |
 | `npm run format` | Formats the code in `src/` and `web/` with Prettier |

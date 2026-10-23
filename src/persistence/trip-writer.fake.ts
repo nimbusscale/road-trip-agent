@@ -1,4 +1,5 @@
 import { loadSettings, SETTINGS_PATH } from "../config/settings.js";
+import type { Settings } from "../config/settings.schema.js";
 import { FakeRouteFinder } from "../domain/route-finder.fake.js";
 import { TripReader } from "./trip-reader.js";
 import type { TripStore } from "./trip-repository.js";
@@ -32,6 +33,8 @@ export function setUp(): {
   pool: FakePool;
   clock: FakeClock;
   routeFinder: FakeRouteFinder;
+  // The settings, as a trip session's tools are given them.
+  limits: Settings;
 } {
   const store = new FakeTripStore();
   const pool = new FakePool();
@@ -53,5 +56,6 @@ export function setUp(): {
     pool,
     clock,
     routeFinder,
+    limits: settings,
   };
 }

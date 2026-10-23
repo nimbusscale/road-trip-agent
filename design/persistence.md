@@ -120,7 +120,8 @@ A started trip can't be changed (domain model 3.1). `TripWriter` refuses a write
 - **The SDK's project key is ignored.** The SDK sends a project key with each line: the app's working folder, turned into a name. It differs between a laptop and the server. `agentSessionId` is unique on its own, so the adapter stores lines by it and the worker key only.
 - **A line that's already stored is skipped.** The SDK sends a line again when a send fails. Most lines carry their own ID, and a line whose ID that transcript already has is skipped. A line with no ID is always stored. Not every line is a message: some are titles, cost totals, or markers the SDK keeps for itself.
 - **Lines are sent as soon as they're written.** The SDK's "eager" setting does this. Its default sends them at the end of each turn, so a restart in the middle of a turn would lose the whole turn.
-- **A failed send is tried 3 times in all.** Then the SDK drops those lines, sends the app a `mirror_error` message, and the turn goes on. So a database outage during a turn can lose lines too, not only a restart.
+- **A failed send is tried 3 times in all.** Then the SDK drops those lines, sends the app a `mirror_error` message, and the turn goes on. So a database outage during a turn can lose lines too, not only a restart. The app logs each `mirror_error` message, with the session's ID and the error, and does nothing more.
+- **A few lines can be out of order after a retry.** A batch that's saved on its second or third try can land after lines the SDK sent later. That's accepted.
 - **Resuming** asks the adapter for the session's lines, and for each worker's. The SDK writes them to a temporary folder of its own, continues the conversation from them, and removes the folder when that run ends (section 8.5). A resume never reads the local file.
 - **Transcript lines are never changed or removed** in the MVP. Nothing deletes a trip or a session.
 - **The SDK marks `sessionStore` as alpha,** meaning it may change. If it breaks, the fallback is to copy the local file to Postgres ourselves at the end of each turn, and write it back to disk before a resume.
@@ -150,7 +151,7 @@ When the container restarts in the middle of a turn:
 - **The transcript loses at most its last line or two** (section 6).
 - **The turn stops,** along with any workers it called. A worker's candidates saved before the restart stay, but the coordinator never hears about them. Example: the Moab Day 4 leg scout saves the Goblin Valley candidates, and the container restarts before the leg scout reports back. The candidates are in the plan, and the transcript doesn't mention them.
 
-The user can resume the session. **A resumed coordinator reads the itinerary and memory again before changing anything** ([technical spec](technical-spec.md), 5.2). The app tells it the session was resumed (section 8.5). The same rule covers a session resumed after another session changed the trip.
+The user can resume the session. **A resumed coordinator reads the trip brief, the itinerary, and memory again before changing anything** ([technical spec](technical-spec.md), 5.2). The app tells it the session was resumed (section 8.5). The same rule covers a session resumed after another session changed the trip.
 
 ---
 
@@ -386,7 +387,7 @@ Nothing about a session changes once it's created. It's never closed: the user j
 **SessionReader** reads sessions.
 
 - **`listForTrip(tripId)`** returns the trip's sessions, in the order created, for the trip's session list.
-- **`get(sessionId)`** returns one session, or nothing when there's no session with that ID. To resume it, the app hands its `agentSessionId` and a `TranscriptAdapter` to the SDK, which restores the transcript (section 6). The coordinator then continues with that conversation's context. The app adds a line to the user's first message after the resume, saying the session was resumed, so the coordinator reads the itinerary and memory again (technical spec 5.2).
+- **`get(sessionId)`** returns one session, or nothing when there's no session with that ID. To resume it, the app hands its `agentSessionId` and a `TranscriptAdapter` to the SDK, which restores the transcript (section 6). The coordinator then continues with that conversation's context. The app adds a line to the user's first message after the resume, saying the session was resumed, so the coordinator reads the trip brief, the itinerary, and memory again (technical spec 5.2).
 
 ### 8.6 Places
 

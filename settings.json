@@ -9,5 +9,6 @@
   "recommendedDailyDrivingHours": 6,
   "mealVisitMinutes": 60,
   "maximumMemoryItems": 50,
-  "maximumMemoryItemCharacters": 300
+  "maximumMemoryItemCharacters": 300,
+  "coordinatorModel": "claude-opus-5-5"
 }

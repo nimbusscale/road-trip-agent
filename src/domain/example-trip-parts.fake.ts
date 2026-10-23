@@ -37,6 +37,7 @@ export const EXAMPLE_SETTINGS: Settings = {
   mealVisitMinutes: 60,
   maximumMemoryItems: 50,
   maximumMemoryItemCharacters: 300,
+  coordinatorModel: "claude-opus-5-5",
 };
 
 // The drive buffer setting's starting value.

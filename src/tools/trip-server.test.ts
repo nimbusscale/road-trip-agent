@@ -48,6 +48,28 @@ describe("createTripServer", () => {
     expect(update?.inputSchema.required).toBeUndefined();
   });
 
+  // The limits are settings, so they're filled in, never written into the text.
+  it("gives the trip length and driving limits from the settings", async () => {
+    const fixture = setUp();
+    const server = createTripServer({
+      ...fixture,
+      tripId: "trip_a",
+      limits: { maximumTripLengthDays: 10, maximumDailyDrivingHours: 9 },
+    });
+    const [clientSide, serverSide] = InMemoryTransport.createLinkedPair();
+    await server.instance.connect(serverSide);
+    const client = new Client({ name: "test", version: "1.0.0" });
+    await client.connect(clientSide);
+    const { tools } = await client.listTools();
+    const update = tools.find((each) => each.name === "update_trip_brief");
+    expect(update?.inputSchema.properties).toMatchObject({
+      tripLengthInDays: { description: "A whole number, from 1 to 10." },
+      comfortableDrivingInHours: {
+        description: "Hours, such as 5 or 6.5. More than 0, and at most 9.",
+      },
+    });
+  });
+
   // A misnamed item once vanished, and the tool still said it saved.
   it("refuses a call with an item it doesn't know, and saves nothing", async () => {
     const { client, reader, tripId } = await connectedClient();
