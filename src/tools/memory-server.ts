@@ -39,19 +39,15 @@ export function memoryAccessFor(
   const { pool, settings } = given;
   const makeStore = (connection: Queryable): MemoryRepository =>
     new MemoryRepository(connection);
-  const limits = {
-    maximumMemoryItems: settings.maximumMemoryItems,
-    maximumMemoryItemCharacters: settings.maximumMemoryItemCharacters,
-  };
   return {
     writer: new MemoryWriter({
       pool,
       makeStore,
       hasTripStarted: tripStartedCheck,
-      limits,
+      limits: settings,
     }),
     reader: new MemoryReader({ pool, makeStore }),
-    limits,
+    limits: settings,
   };
 }
 
