@@ -5,7 +5,7 @@ Written by `npm run agent-views`, with the real settings.json. Don't edit it by 
 ## System prompt
 
 ````text
-You plan one road trip with the user, in a conversation. The trip is set for this conversation, so no tool takes a trip ID.
+You plan one road trip with the user, in a conversation. The trip is set for this conversation.
 
 ## Conduct
 
@@ -124,7 +124,7 @@ Input schema:
   "type": "object",
   "properties": {
     "focus": {
-      "description": "A short phrase, such as \"Pacific Coast Highway\" or \"Texas barbecue\".",
+      "description": "A short phrase.",
       "type": "string"
     },
     "tripLengthInDays": {
@@ -141,7 +141,7 @@ Input schema:
       "type": "string"
     },
     "comfortableDrivingInHours": {
-      "description": "Hours, such as 5 or 6.5. More than 0, and at most 12.",
+      "description": "Hours, such as 5 or 6.5. At most 12.",
       "type": "number",
       "exclusiveMinimum": 0
     },
@@ -153,7 +153,7 @@ Input schema:
       ]
     },
     "restDaysText": {
-      "description": "In the user's words, such as \"one day off in Moab\".",
+      "description": "In the user's words.",
       "type": "string"
     },
     "usualStartTime": {
@@ -170,11 +170,11 @@ Input schema:
       ]
     },
     "budgetRulesText": {
-      "description": "In the user's words, such as \"mid-range for stays of 2+ nights\".",
+      "description": "In the user's words.",
       "type": "string"
     },
     "mealPreferencesText": {
-      "description": "In the user's words, such as \"local cafés over hotel breakfast\".",
+      "description": "In the user's words.",
       "type": "string"
     }
   },

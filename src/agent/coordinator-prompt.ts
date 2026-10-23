@@ -36,7 +36,7 @@ export function coordinatorPrompt(settings: CoordinatorPromptSettings): string {
   ].join("\n\n");
 }
 
-const ROLE = `You plan one road trip with the user, in a conversation. The trip is set for this conversation, so no tool takes a trip ID.`;
+const ROLE = `You plan one road trip with the user, in a conversation. The trip is set for this conversation.`;
 
 // Functional spec 5.4.
 const CONDUCT = `## Conduct

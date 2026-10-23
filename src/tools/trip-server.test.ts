@@ -65,7 +65,7 @@ describe("createTripServer", () => {
     expect(update?.inputSchema.properties).toMatchObject({
       tripLengthInDays: { description: "A whole number, from 1 to 10." },
       comfortableDrivingInHours: {
-        description: "Hours, such as 5 or 6.5. More than 0, and at most 9.",
+        description: "Hours, such as 5 or 6.5. At most 9.",
       },
     });
   });
