@@ -9,7 +9,7 @@ import {
 
 import { sessionResponseSchema } from "../../src/shared/session.schema";
 import type { ChatEvent } from "../../src/shared/session.schema";
-import { ApiError, callApi, sendMessage } from "./api-client";
+import { callApi, messageOf, sendMessage } from "./api-client";
 import {
   type ChatAction,
   chatReducer,
@@ -41,17 +41,13 @@ export function useChat(start: ChatStart): Chat {
   const [tripId, setTripId] = useState(
     start.page === "newSession" ? start.tripId : null,
   );
-  const sessionIdRef = useRef(
-    start.page === "session" ? start.sessionId : null,
-  );
+  // The session this view was opened on. A new trip's or new session's comes later.
+  const resumedSessionId = start.page === "session" ? start.sessionId : null;
+  const sessionIdRef = useRef(resumedSessionId);
 
   useResume(start, dispatch, setTripId);
   // Only a resumed session can have a turn this view didn't start.
-  useCheckRunningTurn(
-    state.turnRunning,
-    start.page === "session" ? start.sessionId : null,
-    dispatch,
-  );
+  useCheckRunningTurn(state.turnRunning, resumedSessionId, dispatch);
 
   const send = useCallback(
     (text: string) => {
@@ -109,7 +105,7 @@ function useResume(
       },
       (error: unknown) => {
         if (!controller.signal.aborted) {
-          dispatch({ type: "failed", message: messageOf(error, FAILED) });
+          dispatch({ type: "failed", message: messageOf(error) });
         }
       },
     );
@@ -156,11 +152,4 @@ function pathFor(start: ChatStart, sessionId: string | null): string {
   return start.page === "newSession"
     ? `/api/trips/${start.tripId}/sessions`
     : "/api/trips";
-}
-
-const FAILED = "Something went wrong. Reload the page to try again.";
-
-// A refusal's own message, or the fallback for a failed connection.
-function messageOf(error: unknown, fallback: string): string {
-  return error instanceof ApiError ? error.message : fallback;
 }

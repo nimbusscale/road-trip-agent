@@ -24,9 +24,7 @@ import { parseEnv } from "./config/env.js";
 import { loadSettings, SETTINGS_PATH } from "./config/settings.js";
 import { createPool } from "./db/connection.js";
 import type { Connectable, Queryable } from "./persistence/queryable.js";
-import { SessionReader } from "./persistence/session-reader.js";
-import { SessionRepository } from "./persistence/session-repository.js";
-import { SessionWriter } from "./persistence/session-writer.js";
+import { sessionAccessFor } from "./persistence/session-access.js";
 
 // Users live in Supabase. Locally, any UUID will do, and memory is kept under it.
 const DEV_USER_ID = "00000000-0000-4000-8000-000000000001";
@@ -103,12 +101,9 @@ async function start(
   pool: Connectable & Queryable,
   terminal: Terminal,
 ): Promise<{ conversation: Conversation; firstText: string | null }> {
-  const makeStore = (connection: Queryable): SessionRepository =>
-    new SessionRepository(connection);
+  const sessions = sessionAccessFor(pool);
   if (args.resume !== undefined) {
-    const session = await new SessionReader({ pool, makeStore }).get(
-      args.resume,
-    );
+    const session = await sessions.reader.get(args.resume);
     if (session === undefined) {
       throw new ConfigError(`There's no session ${args.resume}.`);
     }
@@ -129,10 +124,7 @@ async function start(
   if (firstText === null) {
     throw new ConfigError("No first message, so no session was started.");
   }
-  const session = await new SessionWriter({ pool, makeStore }).start(
-    trip.id,
-    firstText,
-  );
+  const session = await sessions.writer.start(trip.id, firstText);
   printStart(trip.id, session.id, "Started");
   return { conversation: { session, userId: trip.owner.id }, firstText };
 }

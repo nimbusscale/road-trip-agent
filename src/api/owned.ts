@@ -1,6 +1,4 @@
-import { ChatClosedError } from "../agent/coordinator-turns.js";
 import type { SignedInUser } from "../auth/signed-in-user.schema.js";
-import { startedToday } from "../domain/today.js";
 import type { Trip } from "../domain/trip.js";
 import type { SessionReader } from "../persistence/session-reader.js";
 import type { Session } from "../persistence/session.js";
@@ -55,15 +53,5 @@ export async function ownedSession(
       throw new SessionNotFoundError(sessionId);
     }
     throw error;
-  }
-}
-
-// From the trip's start date on, no session can be started or resumed (functional
-// spec 2).
-export function refuseIfChatClosed(trip: Trip, now: Date): void {
-  const { startDate, startPlace } = trip.itinerary;
-  const startedOn = startedToday(startDate, startPlace, now);
-  if (startedOn !== null) {
-    throw new ChatClosedError(startedOn);
   }
 }

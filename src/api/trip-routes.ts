@@ -1,5 +1,6 @@
 import { type Context, Hono } from "hono";
 
+import { refuseIfChatClosed } from "../agent/coordinator-turns.js";
 import type { Trip } from "../domain/trip.js";
 import type {
   TripListResponse,
@@ -8,7 +9,7 @@ import type {
 } from "../shared/trip.schema.js";
 import type { ChatDependencies } from "./chat-dependencies.js";
 import { messageBody } from "./message-body.js";
-import { ownedTrip, refuseIfChatClosed } from "./owned.js";
+import { ownedTrip } from "./owned.js";
 import { streamTurn } from "./turn-stream.js";
 
 // The home screen and the trip page (functional spec 3 and 10.1), and starting a trip
@@ -53,11 +54,10 @@ export function tripRoutes(chat: ChatDependencies): Hono {
       user,
     );
     refuseIfChatClosed(trip, chat.now());
-    const session = await chat.sessions.writer.start(trip.id, text);
-    const turn = await chat.turns.begin({ session, userId: user.userId }, text);
-    return streamTurn(context, turn, {
-      name: "session",
-      data: { tripId: trip.id, sessionId: session.id },
+    return startSession(context, chat, {
+      tripId: trip.id,
+      userId: user.userId,
+      text,
     });
   });
 

@@ -1,4 +1,7 @@
-import type { ShownMessage } from "../shared/session.schema.js";
+import {
+  REPLY_PART_SEPARATOR,
+  type ShownMessage,
+} from "../shared/session.schema.js";
 import { withoutAppLines } from "./app-lines.js";
 import { shownLineSchema } from "./shown-line.schema.js";
 
@@ -16,7 +19,7 @@ export function shownMessagesOf(lines: readonly unknown[]): ShownMessage[] {
     const { role, text } = parsed.data;
     const last = messages.at(-1);
     if (role === "coordinator" && last?.role === "coordinator") {
-      last.text = `${last.text}\n\n${text}`;
+      last.text = `${last.text}${REPLY_PART_SEPARATOR}${text}`;
     } else {
       messages.push({
         role,

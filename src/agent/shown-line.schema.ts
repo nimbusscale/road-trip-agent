@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { REPLY_PART_SEPARATOR } from "../shared/session.schema.js";
+
 // The transcript lines the browser shows when a session is resumed: the user's own
 // messages, and the coordinator's text. A line is one the Agent SDK wrote (persistence
 // design, section 6), so only the parts read here are checked. Every other line, such
@@ -36,7 +38,7 @@ const assistantLineSchema = z
           ? [block.text]
           : [],
       )
-      .join("\n\n"),
+      .join(REPLY_PART_SEPARATOR),
   }));
 
 export const shownLineSchema = z.union([userLineSchema, assistantLineSchema]);

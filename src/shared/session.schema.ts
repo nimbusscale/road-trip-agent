@@ -10,6 +10,10 @@ export const messageRequestSchema = z.object({
 
 export type MessageRequest = z.infer<typeof messageRequestSchema>;
 
+// Between the parts of one reply, such as text before and after a tool call. A resumed
+// session joins them as the browser did while the reply streamed in.
+export const REPLY_PART_SEPARATOR = "\n\n";
+
 export const shownMessageSchema = z.object({
   role: z.enum(["user", "coordinator"]),
   text: z.string(),

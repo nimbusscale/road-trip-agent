@@ -10,6 +10,13 @@ export class ApiError extends Error {
   override name = "ApiError";
 }
 
+export const FAILED = "Something went wrong. Reload the page to try again.";
+
+// A refusal's own message, or the fallback for a failed connection.
+export function messageOf(error: unknown, fallback = FAILED): string {
+  return error instanceof ApiError ? error.message : fallback;
+}
+
 // Calls the API, and parses its reply with the schema.
 export async function callApi<T>(
   path: string,

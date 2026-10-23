@@ -13,9 +13,7 @@ import type { Settings } from "./config/settings.schema.js";
 import { loadSettings, SETTINGS_PATH } from "./config/settings.js";
 import { createPool, isDatabaseReachable } from "./db/connection.js";
 import type { Connectable, Queryable } from "./persistence/queryable.js";
-import { SessionReader } from "./persistence/session-reader.js";
-import { SessionRepository } from "./persistence/session-repository.js";
-import { SessionWriter } from "./persistence/session-writer.js";
+import { sessionAccessFor } from "./persistence/session-access.js";
 
 // Vite's proxy and Caddy both pass /api to this port.
 const APP_PORT = 3000;
@@ -61,15 +59,10 @@ function chatDependencies(
     settings,
     processEnv: process.env,
   });
-  const makeStore = (connection: Queryable): SessionRepository =>
-    new SessionRepository(connection);
   const now = (): Date => new Date();
   return {
     trips: { reader: coordinator.trip.reader, writer: coordinator.trip.writer },
-    sessions: {
-      reader: new SessionReader({ pool, makeStore }),
-      writer: new SessionWriter({ pool, makeStore }),
-    },
+    sessions: sessionAccessFor(pool),
     turns: new CoordinatorTurns({ coordinator, runTurn: runTurnWithSdk, now }),
     transcripts: coordinator.transcripts,
     now,

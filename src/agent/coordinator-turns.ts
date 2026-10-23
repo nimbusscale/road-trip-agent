@@ -1,6 +1,7 @@
 import type { Options } from "@anthropic-ai/claude-agent-sdk";
 
 import type { CalendarDate } from "../domain/calendar-date.js";
+import type { Trip } from "../domain/trip.js";
 import { startedToday, tripToday } from "../domain/today.js";
 import { AppLines } from "./app-lines.js";
 import {
@@ -25,6 +26,16 @@ export class ChatClosedError extends Error {
     super(
       `The trip has started, so its chat is closed. Today is ${today.longText} at its start place.`,
     );
+  }
+}
+
+// From the trip's start date on, no session can be started or resumed, and no message
+// is taken (functional spec 2).
+export function refuseIfChatClosed(trip: Trip, now: Date): void {
+  const { startDate, startPlace } = trip.itinerary;
+  const startedOn = startedToday(startDate, startPlace, now);
+  if (startedOn !== null) {
+    throw new ChatClosedError(startedOn);
   }
 }
 
@@ -90,12 +101,8 @@ export class CoordinatorTurns {
     const { coordinator, now } = this.given;
     const { session } = conversation;
     const trip = await coordinator.trip.reader.read(session.tripId);
-    const { startDate, startPlace } = trip.itinerary;
     const moment = now();
-    const startedOn = startedToday(startDate, startPlace, moment);
-    if (startedOn !== null) {
-      throw new ChatClosedError(startedOn);
-    }
+    refuseIfChatClosed(trip, moment);
     const hasTranscript =
       (await coordinator.transcripts.load({
         projectKey: "",
@@ -107,7 +114,10 @@ export class CoordinatorTurns {
       this.#appLines.get(session.id) ?? new AppLines(hasTranscript);
     this.#appLines.set(session.id, appLines);
     return {
-      message: appLines.addTo(text, tripToday(startPlace, moment)),
+      message: appLines.addTo(
+        text,
+        tripToday(trip.itinerary.startPlace, moment),
+      ),
       options: coordinatorOptions(coordinator, conversation, hasTranscript),
     };
   }

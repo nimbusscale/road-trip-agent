@@ -1,14 +1,11 @@
 import { type Context, Hono } from "hono";
 
+import { refuseIfChatClosed } from "../agent/coordinator-turns.js";
 import { shownMessagesOf } from "../agent/shown-messages.js";
 import type { SessionResponse } from "../shared/session.schema.js";
 import type { ChatDependencies } from "./chat-dependencies.js";
 import { messageBody } from "./message-body.js";
-import {
-  type OwnedSession,
-  ownedSession,
-  refuseIfChatClosed,
-} from "./owned.js";
+import { type OwnedSession, ownedSession } from "./owned.js";
 import { streamTurn } from "./turn-stream.js";
 
 // Resuming a session, and sending it a message (functional spec 10.1).

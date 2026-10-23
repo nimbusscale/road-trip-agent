@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { ZodType } from "zod";
 
-import { ApiError, callApi } from "./api-client";
+import { callApi, messageOf } from "./api-client";
 
 export type Loaded<T> =
   | { status: "loading" }
@@ -21,11 +21,7 @@ export function useApi<T>(path: string, schema: ZodType<T>): Loaded<T> {
       },
       (error: unknown) => {
         if (!controller.signal.aborted) {
-          const message =
-            error instanceof ApiError
-              ? error.message
-              : "Something went wrong. Reload the page to try again.";
-          setLoaded({ status: "failed", message });
+          setLoaded({ status: "failed", message: messageOf(error) });
         }
       },
     );

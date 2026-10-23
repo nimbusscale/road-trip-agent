@@ -8,12 +8,6 @@ export class Turn {
   #ended = false;
   // Resolved, and replaced, on each change, to wake the readers.
   #changed = Promise.withResolvers<undefined>();
-  readonly #finished = Promise.withResolvers<undefined>();
-
-  // Resolves once the turn has ended, and the next message can start a turn.
-  get finished(): Promise<undefined> {
-    return this.#finished.promise;
-  }
 
   add(event: TurnEvent): void {
     this.#events.push(event);
@@ -23,7 +17,6 @@ export class Turn {
   end(): void {
     this.#ended = true;
     this.#wakeReaders();
-    this.#finished.resolve(undefined);
   }
 
   async *events(): AsyncGenerator<TurnEvent> {

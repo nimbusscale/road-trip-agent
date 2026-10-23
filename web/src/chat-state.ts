@@ -1,7 +1,8 @@
-import type {
-  ChatEvent,
-  SessionResponse,
-  ShownMessage,
+import {
+  type ChatEvent,
+  REPLY_PART_SEPARATOR,
+  type SessionResponse,
+  type ShownMessage,
 } from "../../src/shared/session.schema";
 
 // What the chat view shows: the conversation so far, and the reply as it streams in.
@@ -83,7 +84,7 @@ function withEvent(state: ChatState, event: ChatEvent): ChatState {
         reply:
           state.reply === null
             ? event.data.text
-            : `${state.reply}\n\n${event.data.text}`,
+            : `${state.reply}${REPLY_PART_SEPARATOR}${event.data.text}`,
         tool: null,
       };
     case "tool":
