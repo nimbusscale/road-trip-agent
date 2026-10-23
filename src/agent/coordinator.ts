@@ -6,9 +6,7 @@ import {
 } from "@anthropic-ai/claude-agent-sdk";
 
 import type { Settings } from "../config/settings.schema.js";
-import { tripToday } from "../domain/today.js";
 import type { Session } from "../persistence/session.js";
-import type { TripReader } from "../persistence/trip-reader.js";
 import type { TranscriptAdapter } from "../persistence/transcript-adapter.js";
 import type { MemorySession } from "../tools/memory-session.js";
 import {
@@ -17,9 +15,9 @@ import {
 } from "../tools/memory-server.js";
 import type { TripSession } from "../tools/trip-session.js";
 import { createTripServer, TRIP_SERVER_NAME } from "../tools/trip-server.js";
-import { AppLines } from "./app-lines.js";
 import { coordinatorPrompt } from "./coordinator-prompt.js";
 import { sdkUserMessage } from "./sdk-user-message.schema.js";
+import { type TurnEvent, turnEventsOf } from "./turn-event.js";
 
 // The coordinator: the agent the user talks to (technical spec 1). For now it has only
 // the trip brief and memory tools.
@@ -33,19 +31,22 @@ export interface CoordinatorGiven {
   transcripts: TranscriptAdapter;
 }
 
-// One conversation: a new session, or one being resumed.
+// One conversation: a session, and the user it's for.
 export interface Conversation {
   session: Session;
   userId: string;
-  resumed: boolean;
 }
 
+// `hasTranscript` says whether the session has had a turn before. Each turn starts its
+// own Claude Code process, which ends with the turn (systems design section 2). So
+// every turn after the first resumes the conversation from the stored transcript.
 export function coordinatorOptions(
   given: CoordinatorGiven,
   conversation: Conversation,
+  hasTranscript: boolean,
 ): Options {
   const { settings, processEnv, trip, memory, transcripts } = given;
-  const { session, userId, resumed } = conversation;
+  const { session, userId } = conversation;
   const tripId = session.tripId;
   return {
     model: settings.coordinatorModel,
@@ -68,63 +69,48 @@ export function coordinatorOptions(
     // section 6).
     sessionStore: transcripts,
     sessionStoreFlush: "eager",
-    ...(resumed
+    ...(hasTranscript
       ? { resume: session.agentSessionId }
       : { sessionId: session.agentSessionId }),
   };
 }
 
-export interface ConverseGiven {
-  options: Options;
-  conversation: Conversation;
-  // The user's messages, in order. The next one is read only once the last turn ends.
-  userTexts: AsyncIterable<string>;
-  // For the trip's start place, which gives today's date. It's read before each
-  // message, since a tool may have changed it.
-  tripReader: TripReader;
-  now: () => Date;
-}
+// Runs one turn: the user's message, with the app's lines already added, and the
+// coordinator's reply. Tests pass a fake in its place.
+export type RunTurn = (
+  message: string,
+  options: Options,
+) => AsyncIterable<TurnEvent>;
 
-// Runs the conversation, and hands back every message the SDK sends. Each user message
-// waits for the turn before it to end, so the app's lines go on the message they're
-// worked out for.
-export async function* converse(
-  given: ConverseGiven,
-): AsyncGenerator<SDKMessage> {
-  const { options, conversation, userTexts, tripReader, now } = given;
-  const appLines = new AppLines(conversation.resumed);
-  let turnEnded = Promise.withResolvers<undefined>();
-
-  async function* userMessages(): AsyncGenerator<SDKUserMessage> {
-    for await (const text of userTexts) {
-      // The app also checks here that the trip hasn't started, and closes the chat once
-      // it has (technical spec 5.2). #52 adds that check, with the browser chat.
-      const trip = await tripReader.read(conversation.session.tripId);
-      const today = tripToday(trip.itinerary.startPlace, now());
-      turnEnded = Promise.withResolvers<undefined>();
-      yield sdkUserMessage(appLines.addTo(text, today));
-      await turnEnded.promise;
-    }
+// Runs the turn with the Agent SDK. The process ends when the turn does.
+export const runTurnWithSdk: RunTurn = async function* (message, options) {
+  const turnEnded = Promise.withResolvers<undefined>();
+  // The message is held open until the turn ends. A prompt that ends at once could end
+  // the input before the reply.
+  async function* prompt(): AsyncGenerator<SDKUserMessage> {
+    yield sdkUserMessage(message);
+    await turnEnded.promise;
   }
-
-  for await (const message of query({
-    prompt: userMessages(),
-    options,
-  })) {
-    logMirrorError(message, conversation.session.id);
-    if (message.type === "result") {
-      turnEnded.resolve(undefined);
+  const agentSessionId = options.sessionId ?? options.resume ?? "";
+  try {
+    for await (const sdkMessage of query({ prompt: prompt(), options })) {
+      logMirrorError(sdkMessage, agentSessionId);
+      if (sdkMessage.type === "result") {
+        turnEnded.resolve(undefined);
+      }
+      yield* turnEventsOf(sdkMessage);
     }
-    yield message;
+  } finally {
+    turnEnded.resolve(undefined);
   }
-}
+};
 
 // The SDK drops transcript lines after 3 failed tries to save them, and sends this
 // (persistence design, section 6). The turn goes on, so it's only logged.
-function logMirrorError(message: SDKMessage, sessionId: string): void {
+function logMirrorError(message: SDKMessage, agentSessionId: string): void {
   if (message.type === "system" && message.subtype === "mirror_error") {
     console.error(
-      `Transcript lines for session ${sessionId} weren't saved: ${message.error}`,
+      `Transcript lines for agent session ${agentSessionId} weren't saved: ${message.error}`,
     );
   }
 }

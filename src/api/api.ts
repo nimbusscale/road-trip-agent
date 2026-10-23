@@ -1,13 +1,26 @@
 import { Hono } from "hono";
+import type { ContentfulStatusCode } from "hono/utils/http-status";
 
+import {
+  ChatClosedError,
+  TurnRunningError,
+} from "../agent/coordinator-turns.js";
 import type { VerifyToken } from "../auth/token-verifier.js";
+import { RuleError } from "../domain/rule-error.js";
+import { TripNotFoundError } from "../persistence/trip-errors.js";
+import type { ErrorResponse } from "../shared/error.schema.js";
 import type { HealthResponse } from "../shared/health.schema.js";
 import type { MeResponse } from "../shared/me.schema.js";
+import type { ChatDependencies } from "./chat-dependencies.js";
+import { SessionNotFoundError } from "./owned.js";
 import { requireSignIn } from "./require-sign-in.js";
+import { sessionRoutes } from "./session-routes.js";
+import { tripRoutes } from "./trip-routes.js";
 
 export interface ApiDependencies {
   isDatabaseReachable: () => Promise<boolean>;
   verifyToken: VerifyToken;
+  chat: ChatDependencies;
 }
 
 export function createApi(dependencies: ApiDependencies) {
@@ -31,5 +44,37 @@ export function createApi(dependencies: ApiDependencies) {
     return context.json(body);
   });
 
+  api.route("/", tripRoutes(dependencies.chat));
+  api.route("/", sessionRoutes(dependencies.chat));
+
+  api.onError((error, context) => {
+    const status = statusOf(error);
+    if (status === 500) {
+      console.error(error);
+    }
+    const body: ErrorResponse = {
+      error: status === 500 ? "Something went wrong." : error.message,
+    };
+    return context.json(body, status);
+  });
+
   return api;
+}
+
+// Each refusal's message is written for the user. Anything else is a bug, and its
+// message stays in the log.
+function statusOf(error: Error): ContentfulStatusCode {
+  if (
+    error instanceof TripNotFoundError ||
+    error instanceof SessionNotFoundError
+  ) {
+    return 404;
+  }
+  if (error instanceof ChatClosedError || error instanceof TurnRunningError) {
+    return 409;
+  }
+  if (error instanceof RuleError) {
+    return 400;
+  }
+  return 500;
 }

@@ -9,14 +9,17 @@ import { createTokenVerifier } from "../auth/token-verifier.js";
 import { healthResponseSchema } from "../shared/health.schema.js";
 import { meResponseSchema } from "../shared/me.schema.js";
 import { createApi } from "./api.js";
+import { chatSetUp } from "./chat.fake.js";
 
 const NO_ONE_SIGNED_IN = () => Promise.resolve(null);
+const CHAT = chatSetUp(new Date("2026-10-15T09:00:00Z")).chat;
 
 describe("GET /api/health", () => {
   it("reports a reachable database", async () => {
     const api = createApi({
       isDatabaseReachable: () => Promise.resolve(true),
       verifyToken: NO_ONE_SIGNED_IN,
+      chat: CHAT,
     });
     const response = await api.request("/api/health");
     expect(response.status).toBe(200);
@@ -29,6 +32,7 @@ describe("GET /api/health", () => {
     const api = createApi({
       isDatabaseReachable: () => Promise.resolve(false),
       verifyToken: NO_ONE_SIGNED_IN,
+      chat: CHAT,
     });
     const response = await api.request("/api/health");
     expect(response.status).toBe(503);
@@ -47,6 +51,7 @@ describe("GET /api/me", () => {
     api = createApi({
       isDatabaseReachable: () => Promise.resolve(true),
       verifyToken: createTokenVerifier(signer.verifierOptions),
+      chat: CHAT,
     });
     token = await signer.sign();
   });

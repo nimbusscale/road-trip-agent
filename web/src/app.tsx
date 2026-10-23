@@ -1,10 +1,13 @@
 import type { Session } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
 
+import { ChatPage } from "./chat-page";
 import { HealthStatus } from "./health-status";
-import { SignedInPage } from "./signed-in-page";
+import { HomePage } from "./home-page";
+import { pathOf, type Route, useRoute } from "./route";
 import { SignInPage } from "./sign-in-page";
 import { supabase } from "./supabase";
+import { TripPage } from "./trip-page";
 
 // Shows the sign-in page until a user signs in, and again after they sign out.
 export function App() {
@@ -28,9 +31,39 @@ export function App() {
       {session === undefined ? null : session === null ? (
         <SignInPage />
       ) : (
-        <SignedInPage key={session.user.id} />
+        <SignedIn key={session.user.id} />
       )}
       <HealthStatus />
     </>
   );
+}
+
+function SignedIn() {
+  const route = useRoute();
+  return (
+    <>
+      <button type="button" onClick={() => void signOut()}>
+        Sign out
+      </button>
+      <Page key={pathOf(route)} route={route} />
+    </>
+  );
+}
+
+function Page({ route }: { route: Route }) {
+  switch (route.page) {
+    case "home":
+      return <HomePage />;
+    case "trip":
+      return <TripPage tripId={route.tripId} />;
+    case "newTrip":
+    case "newSession":
+    case "session":
+      return <ChatPage start={route} />;
+  }
+}
+
+// Drops the session in this browser only (systems design section 3).
+async function signOut(): Promise<void> {
+  await supabase.auth.signOut({ scope: "local" });
 }

@@ -43,7 +43,7 @@ export function coordinatorGiven(settings: Settings): CoordinatorGiven {
   };
 }
 
-export function conversation(resumed: boolean): Conversation {
+export function conversation(): Conversation {
   return {
     session: new Session({
       id: "session_aaaaaaaa",
@@ -53,6 +53,5 @@ export function conversation(resumed: boolean): Conversation {
       agentSessionId: AGENT_SESSION_ID,
     }),
     userId: "2f6c1d3e-8a4b-4c5d-9e6f-7a8b9c0d1e2f",
-    resumed,
   };
 }

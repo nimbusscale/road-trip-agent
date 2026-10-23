@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { CalendarDate } from "../domain/calendar-date.js";
-import { AppLines, RESUMED_LINE } from "./app-lines.js";
+import { AppLines, RESUMED_LINE, withoutAppLines } from "./app-lines.js";
 
 const FRIDAY = new CalendarDate(2026, 10, 23);
 const SATURDAY = new CalendarDate(2026, 10, 24);
@@ -39,5 +39,20 @@ describe("AppLines", () => {
       `Today is Friday, October 23, 2026.\n${RESUMED_LINE}\n\nWhere were we?`,
     );
     expect(lines.addTo("Five days.", FRIDAY)).toBe("Five days.");
+  });
+});
+
+describe("withoutAppLines", () => {
+  it("takes off the lines the app added, leaving the user's own words", () => {
+    const lines = new AppLines(true);
+    const message = "Five days.\n\nMaybe six.";
+    expect(withoutAppLines(lines.addTo(message, FRIDAY))).toBe(message);
+  });
+
+  it("leaves a message with no app lines as it is", () => {
+    expect(withoutAppLines("Five days.")).toBe("Five days.");
+    expect(withoutAppLines("Today is the day.\n\nLet's go.")).toBe(
+      "Today is the day.\n\nLet's go.",
+    );
   });
 });
