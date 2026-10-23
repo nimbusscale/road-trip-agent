@@ -93,6 +93,8 @@ The app never sees a password. Sign-out drops the token in the browser.
 
 **Requests are JSON over HTTPS, under `/api`.** A user's message is one request. The coordinator's reply streams back on that request with **Server-Sent Events**: the server sends each part of the reply as it's ready, and the browser shows it. It sends each step of the turn too, such as a tool call, for the chat's raw view (functional spec 10.1). The Agent SDK hands the app its messages one at a time, so the app passes each one on. Server-Sent Events only flow from the server to the browser, which is all a reply needs. WebSockets would carry messages both ways, with more code for reconnecting, and nothing needs that.
 
+**The coordinator's replies are Markdown, and the browser formats them,** with `react-markdown` and its plugin for GitHub's tables, `remark-gfm`. So the coordinator writes the way it would anyway, and the chat shows bold labels and numbered lists, not their marks. Each line the coordinator ends shows as a new line, as in GitHub's comments, so one bold label per line doesn't run into one paragraph. Plain Markdown would join those lines. HTML in a reply shows as text, never runs. With the raw view on, a reply shows its Markdown as written (functional spec 10.1).
+
 **The API runs on Hono,** on Node. Request bodies are checked with Zod through `@hono/zod-validator`, and replies stream with Hono's `streamSSE`. The options compared are in [research/server-libraries.md](../research/server-libraries.md).
 
 **A closed tab doesn't stop a turn.** The turn finishes on the server, and its transcript is saved as it goes ([persistence design](persistence.md), section 6). When the user comes back, the session shows the finished reply, and the itinerary shows any changes.
