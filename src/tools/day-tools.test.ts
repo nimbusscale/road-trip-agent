@@ -6,11 +6,18 @@ import { textOf } from "./stored-trip.fake.js";
 
 describe("update_day", () => {
   it("marks a day that stays put as a rest day, which removes its leg", async () => {
-    const { updateDay, example } = await plannedMoab();
+    const { updateDay, read, example } = await plannedMoab();
     const day3 = present(example.moab.days[2]);
-    // Day 3 holds only stops with set times.
+    // The example's Day 3 is already a rest day, so it drives first. It holds only
+    // stops with set times.
+    await updateDay({ dayId: day3.id, isRestDay: false });
+    expect(await read(day3.id)).not.toContain("Rest day.");
     const reply = textOf(await updateDay({ dayId: day3.id, isRestDay: true }));
     expect(reply).toMatch(/^Changed Day 3 \(day_\w+\)\./);
+    expect(reply).toContain(`- Day 3 (${day3.id}): 1 h → no leg.`);
+    const day = await read(day3.id);
+    expect(day).toContain("Rest day.");
+    expect(day).toContain("- No leg.");
   });
 
   it("refuses a rest day on a day that moves, and on the last day", async () => {
@@ -40,9 +47,10 @@ describe("update_day", () => {
     );
   });
 
-  it("approves longer driving on Day 1, which makes its warning approved", async () => {
-    const { updateDay, example } = await plannedMoab();
+  it("approves longer driving on Day 1, and a read gives the approval", async () => {
+    const { updateDay, read, example } = await plannedMoab();
     const day1 = present(example.moab.days[0]);
+    expect(await read(day1.id)).not.toContain("Approval:");
     const reply = textOf(
       await updateDay({
         dayId: day1.id,
@@ -50,6 +58,9 @@ describe("update_day", () => {
       }),
     );
     expect(reply).toMatch(/^Changed Day 1 \(day_\w+\)\./);
+    expect(await read(day1.id)).toContain(
+      '- Approval: drive hours, up to 4.5 hours of driving, because "a slow day on the river". It applies.',
+    );
   });
 
   it("refuses more hours than the maximum daily driving, and an empty reason", async () => {
