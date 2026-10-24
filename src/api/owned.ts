@@ -1,9 +1,11 @@
+import { refuseIfChatClosed } from "../agent/coordinator-turns.js";
 import type { SignedInUser } from "../auth/signed-in-user.schema.js";
 import type { Trip } from "../domain/trip.js";
 import type { SessionReader } from "../persistence/session-reader.js";
 import type { Session } from "../persistence/session.js";
 import { TripNotFoundError } from "../persistence/trip-errors.js";
 import type { TripReader } from "../persistence/trip-reader.js";
+import type { ChatDependencies } from "./chat-dependencies.js";
 
 export class SessionNotFoundError extends Error {
   override name = "SessionNotFoundError";
@@ -54,4 +56,20 @@ export async function ownedSession(
     }
     throw error;
   }
+}
+
+// The user's session, on a trip that hasn't started, so the chat view can open it
+// (functional spec 2).
+export async function openableSession(
+  chat: ChatDependencies,
+  sessionId: string,
+  user: SignedInUser,
+): Promise<OwnedSession> {
+  const owned = await ownedSession(
+    { trips: chat.trips.reader, sessions: chat.sessions.reader },
+    sessionId,
+    user,
+  );
+  refuseIfChatClosed(owned.trip, chat.now());
+  return owned;
 }

@@ -7,12 +7,17 @@ import {
 } from "../agent/coordinator-turns.js";
 import type { VerifyToken } from "../auth/token-verifier.js";
 import { RuleError } from "../domain/rule-error.js";
-import { TripNotFoundError } from "../persistence/trip-errors.js";
+import {
+  TripBusyError,
+  TripNotFoundError,
+} from "../persistence/trip-errors.js";
 import type { ErrorResponse } from "../shared/error.schema.js";
 import type { HealthResponse } from "../shared/health.schema.js";
 import type { MeResponse } from "../shared/me.schema.js";
 import type { ChatDependencies } from "./chat-dependencies.js";
+import { memoryRoutes } from "./memory-routes.js";
 import { SessionNotFoundError } from "./owned.js";
+import { planDownloadRoutes } from "./plan-download-routes.js";
 import { requireSignIn } from "./require-sign-in.js";
 import { sessionRoutes } from "./session-routes.js";
 import { tripRoutes } from "./trip-routes.js";
@@ -46,6 +51,8 @@ export function createApi(dependencies: ApiDependencies) {
 
   api.route("/", tripRoutes(dependencies.chat));
   api.route("/", sessionRoutes(dependencies.chat));
+  api.route("/", memoryRoutes(dependencies.chat));
+  api.route("/", planDownloadRoutes(dependencies.chat));
 
   api.onError((error, context) => {
     const status = statusOf(error);
@@ -70,7 +77,11 @@ function statusOf(error: Error): ContentfulStatusCode {
   ) {
     return 404;
   }
-  if (error instanceof ChatClosedError || error instanceof TurnRunningError) {
+  if (
+    error instanceof ChatClosedError ||
+    error instanceof TurnRunningError ||
+    error instanceof TripBusyError
+  ) {
     return 409;
   }
   if (error instanceof RuleError) {

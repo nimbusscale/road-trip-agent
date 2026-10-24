@@ -1,4 +1,6 @@
 import type { CoordinatorTurns } from "../agent/coordinator-turns.js";
+import type { MemoryReader } from "../persistence/memory-reader.js";
+import type { MemoryWriter } from "../persistence/memory-writer.js";
 import type { SessionReader } from "../persistence/session-reader.js";
 import type { SessionWriter } from "../persistence/session-writer.js";
 import type { TranscriptAdapter } from "../persistence/transcript-adapter.js";
@@ -9,6 +11,7 @@ import type { TripWriter } from "../persistence/trip-writer.js";
 export interface ChatDependencies {
   trips: { reader: TripReader; writer: TripWriter };
   sessions: { reader: SessionReader; writer: SessionWriter };
+  memory: { reader: MemoryReader; writer: MemoryWriter };
   turns: CoordinatorTurns;
   transcripts: TranscriptAdapter;
   now: () => Date;

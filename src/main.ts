@@ -63,6 +63,10 @@ function chatDependencies(
   return {
     trips: { reader: coordinator.trip.reader, writer: coordinator.trip.writer },
     sessions: sessionAccessFor(pool),
+    memory: {
+      reader: coordinator.memory.reader,
+      writer: coordinator.memory.writer,
+    },
     turns: new CoordinatorTurns({ coordinator, runTurn: runTurnWithSdk, now }),
     transcripts: coordinator.transcripts,
     now,

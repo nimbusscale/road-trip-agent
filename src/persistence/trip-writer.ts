@@ -111,6 +111,14 @@ export class TripWriter {
     return trip;
   }
 
+  // Removes the trip and everything that belongs to it (persistence design, section 6).
+  // It isn't a write, so it runs on a started trip too. It waits for a write in
+  // progress, and refuses once that takes longer than the lock wait.
+  async deleteTrip(tripId: string): Promise<void> {
+    const { pool, storeFor } = this.#options;
+    await inTransaction(pool, (client) => storeFor(client).remove(tripId));
+  }
+
   // The four steps of a write (domain model section 1). The lock is taken at the load,
   // before anything changes, so a busy trip is safe to try again.
   #writeOnce<T>(

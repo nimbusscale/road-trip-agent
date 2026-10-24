@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import { CalendarDate } from "../domain/calendar-date.js";
-import { AppLines, RESUMED_LINE, withoutAppLines } from "./app-lines.js";
+import {
+  AppLines,
+  FORGOTTEN_LINE,
+  RESUMED_LINE,
+  withoutAppLines,
+} from "./app-lines.js";
 
 const FRIDAY = new CalendarDate(2026, 10, 23);
 const SATURDAY = new CalendarDate(2026, 10, 24);
@@ -40,11 +45,23 @@ describe("AppLines", () => {
     );
     expect(lines.addTo("Five days.", FRIDAY)).toBe("Five days.");
   });
+
+  it("adds the forgotten line to the first message after the user forgets memory items", () => {
+    const lines = new AppLines(false);
+    lines.addTo("Hi!", FRIDAY);
+    lines.markMemoryForgotten();
+    lines.markMemoryForgotten();
+    expect(lines.addTo("Five days.", FRIDAY)).toBe(
+      `${FORGOTTEN_LINE}\n\nFive days.`,
+    );
+    expect(lines.addTo("Six days.", FRIDAY)).toBe("Six days.");
+  });
 });
 
 describe("withoutAppLines", () => {
   it("takes off the lines the app added, leaving the user's own words", () => {
     const lines = new AppLines(true);
+    lines.markMemoryForgotten();
     const message = "Five days.\n\nMaybe six.";
     expect(withoutAppLines(lines.addTo(message, FRIDAY))).toBe(message);
   });

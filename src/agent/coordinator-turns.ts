@@ -67,6 +67,13 @@ export class CoordinatorTurns {
     this.#appLines.set(sessionId, new AppLines(true));
   }
 
+  // The user forgot memory items in the chat view, so the next message tells the
+  // coordinator to read memory again. A session with no lines kept here gets the resumed
+  // line on its next message, which says that already.
+  markMemoryForgotten(sessionId: string): void {
+    this.#appLines.get(sessionId)?.markMemoryForgotten();
+  }
+
   isRunning(sessionId: string): boolean {
     return this.#running.has(sessionId);
   }

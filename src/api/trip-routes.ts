@@ -1,6 +1,9 @@
 import { type Context, Hono } from "hono";
 
-import { refuseIfChatClosed } from "../agent/coordinator-turns.js";
+import {
+  refuseIfChatClosed,
+  TurnRunningError,
+} from "../agent/coordinator-turns.js";
 import type { Trip } from "../domain/trip.js";
 import type {
   TripListResponse,
@@ -12,8 +15,9 @@ import { messageBody } from "./message-body.js";
 import { ownedTrip } from "./owned.js";
 import { streamTurn } from "./turn-stream.js";
 
-// The home screen and the trip page (functional spec 3 and 10.1), and starting a trip
-// or a session. Each start sends the first message, and streams the reply.
+// The home screen and the trip page (functional spec 3 and 10.1), starting a trip or a
+// session, and deleting a trip. Each start sends the first message, and streams the
+// reply.
 export function tripRoutes(chat: ChatDependencies): Hono {
   const routes = new Hono();
 
@@ -43,6 +47,8 @@ export function tripRoutes(chat: ChatDependencies): Hono {
     return context.json(await tripPageOf(chat, trip));
   });
 
+  routes.delete("/trips/:tripId", (context) => deleteTrip(context, chat));
+
   // "Start a new session": the coordinator gets no earlier transcripts (functional
   // spec 10.1).
   routes.post("/trips/:tripId/sessions", messageBody, async (context) => {
@@ -62,6 +68,26 @@ export function tripRoutes(chat: ChatDependencies): Hono {
   });
 
   return routes;
+}
+
+// Removes the trip with its sessions, places, and trip memory (persistence design,
+// section 6). Refused while one of its sessions has a turn running, since the turn
+// would go on changing the trip. A started trip can be deleted too.
+async function deleteTrip(
+  context: Context,
+  chat: ChatDependencies,
+): Promise<Response> {
+  const trip = await ownedTrip(
+    chat.trips.reader,
+    context.req.param("tripId") ?? "",
+    context.get("user"),
+  );
+  const sessions = await chat.sessions.reader.listForTrip(trip.id);
+  if (sessions.some((session) => chat.turns.isRunning(session.id))) {
+    throw new TurnRunningError();
+  }
+  await chat.trips.writer.deleteTrip(trip.id);
+  return context.body(null, 204);
 }
 
 async function tripPageOf(
