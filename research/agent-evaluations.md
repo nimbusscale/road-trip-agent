@@ -220,8 +220,18 @@ These are inputs for #53, not decisions:
 
 - **Phoenix works for this app.** It traced the coordinator on the Agent SDK version the app uses, and ran a case as an experiment with both kinds of scorer, on the Max plan. Nothing here needed promptfoo.
 - **The instrumented SDK needs the `GlobalTracer` fix** (2.2). Without it, no spans are made. It's worth a bug report to the instrumentation's maintainers.
-- **The user's message and the token counts have to come from our code.** The instrumentation can't read the streamed prompt, and it leaves cache tokens out of the count (2.2). The app could add its own span for each turn, with the message the model got and `TurnUsage`.
-- **Installing `@arizeai/phoenix-client` needs `--legacy-peer-deps`.** It names `@anthropic-ai/sdk` `^0.35.0` as an optional peer, for its prompt helpers only, and the app has 0.135.0. The spike doesn't use those helpers. #53 needs a lasting answer, such as an `overrides` entry in `package.json`.
+- **The user's message and the token counts have to come from our code.** The instrumentation can't read the streamed prompt, and it leaves cache tokens out of the count (2.2). `runTurnWithSdk` in `src/agent/coordinator.ts` already has both: the message it sends the SDK, and the result message `TurnUsage` comes from. It could start its own span for each turn, with them as the span's input and token counts, and run `query()` under it.
+- **Installing `@arizeai/phoenix-client` fails without `--legacy-peer-deps`,** and an `overrides` entry in `package.json` fixes it. The client names `@anthropic-ai/sdk` `^0.35.0` as an optional peer. Below 1.0, npm reads that as 0.35.x only, and the app has 0.135.0, so npm refuses to install. The range looks stale: the client's own development uses `^0.111.0`. Only its prompt helpers use the Anthropic SDK, and the spike doesn't use them.
+
+  The flag doesn't change which versions get installed. It only skips the check. But once the client is on `main`, every install would need it, including `npm ci` in CI, the deploy, and the image builds. This entry tells npm to give the client the app's own `@anthropic-ai/sdk`:
+
+  ```json
+  "overrides": {
+    "@arizeai/phoenix-client": { "@anthropic-ai/sdk": "$@anthropic-ai/sdk" }
+  }
+  ```
+
+  Tested in a scratch folder with only `@anthropic-ai/sdk` 0.135.0 and `@arizeai/phoenix-client` 7.16.2: without the entry, `npm install` failed with `ERESOLVE could not resolve`. With it, the install worked with no flag, the lock file had `@anthropic-ai/sdk` 0.135.0, and `npm ci --dry-run` showed no errors.
 - **A model judge needs its spread measured before its scores mean anything.** One judge call per run flipped on two of five conversations (2.5). Options include a tighter rubric, more than one judge call per run, or keeping the judge for what code can't check and leaning on code scores. `npm run eval:rejudge` shows the spread without rerunning the coordinator.
 - **The memory code checks scope well,** and it gave the same answer on every run.
 - **Each run leaves a user, a trip, and memory rows in the local database.** That's fine for a local database, since each run uses a new user.
