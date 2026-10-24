@@ -27,7 +27,8 @@ export interface ChangeOutcome {
   readonly touchedIds: readonly string[];
 }
 
-// Where a day starts and ends, by the places its leg runs between.
+// Where a day starts and ends, by its towns: the stays' places, not their lodging, as
+// the reply's "now runs" line gives them. Selecting a hotel doesn't move a day.
 interface DayEnds {
   readonly fromId: string | undefined;
   readonly toId: string | undefined;
@@ -96,8 +97,10 @@ function endsOfDays(
 
 function endsOf(calendar: Calendar, itinerary: Itinerary, day: Day): DayEnds {
   return {
-    fromId: calendar.fromPlaceOf(itinerary, day)?.id,
-    toId: calendar.toPlaceOf(itinerary, day)?.id,
+    fromId: (
+      calendar.startStayOf(itinerary, day)?.place ?? itinerary.startPlace
+    )?.id,
+    toId: (calendar.endStayOf(itinerary, day)?.place ?? itinerary.endPlace)?.id,
   };
 }
 

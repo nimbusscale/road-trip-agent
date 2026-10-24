@@ -90,7 +90,10 @@ export async function withEnds(
 
 // The Moab example as planned (domain model 5.2), with its stops, stored for the tools.
 export async function plannedMoab(): Promise<
-  Tools & { example: ReturnType<typeof moabExample> }
+  Tools & {
+    example: ReturnType<typeof moabExample>;
+    fixture: ReturnType<typeof setUp>;
+  }
 > {
   const fixture = setUp();
   const example = moabExample();
@@ -98,5 +101,6 @@ export async function plannedMoab(): Promise<
   return {
     ...toolsFor({ ...fixture, tripId: example.trip.id }),
     example,
+    fixture,
   };
 }

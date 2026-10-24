@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { placeNamed } from "../domain/example-trip-parts.fake.js";
 import { present } from "../domain/itinerary.fake.js";
 import { exampleAddress } from "../domain/place.fake.js";
 import { newMoabTrip, plannedMoab, withEnds } from "./skeleton-tools.fake.js";
@@ -167,6 +168,23 @@ describe("update_stay", () => {
     expect(reply).not.toContain(`(${present(day2).id}) now runs`);
     expect(reply).toContain(
       `- Day 1 (${present(example.torrey.days[0]).id}) now runs Grand Junction → Torrey, and still holds:`,
+    );
+  });
+
+  // The stay's hotel is still in Torrey, so the leg doesn't change. The day still moved.
+  it("lists the stops on a day whose stay moved to another town, though its hotel didn't change", async () => {
+    const { updateStay, example, fixture } = await plannedMoab();
+    const [hanksville] = await fixture.store.places.addPlaces(example.trip.id, [
+      placeNamed("Hanksville"),
+    ]);
+    const reply = textOf(
+      await updateStay({
+        stayId: example.torrey.id,
+        placeId: present(hanksville).id,
+      }),
+    );
+    expect(reply).toContain(
+      `- Day 4 (${present(example.torrey.days[0]).id}) now runs Moab → Hanksville, and still holds:`,
     );
   });
 
