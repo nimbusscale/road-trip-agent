@@ -2,22 +2,25 @@ import type { CheckComparison } from "../domain/feasibility-checker.js";
 import type { CheckResult } from "../domain/check-result.js";
 
 // The check results part of a write's reply (tool design, section 2.1): every result
-// that's new or gone, anywhere in the trip, and the already-known ones whose subject the
-// write touched. `touchedIds` holds those subjects' IDs, always with the itinerary's,
-// which stands for the trip as a whole.
+// that's new, changed, or gone, anywhere in the trip, and the already-known ones whose
+// subject the write touched. `touchedIds` holds those subjects' IDs, always with the
+// itinerary's, which stands for the trip as a whole.
 export function checkResultLines(
   comparison: CheckComparison,
   touchedIds: ReadonlySet<string>,
 ): string[] {
   const lines = [
     ...comparison.newResults.map((result) => `- ${describe("New", result)}`),
+    ...comparison.changedResults.map(
+      (result) => `- ${describe("Changed", result)}`,
+    ),
     ...comparison.knownResults
       .filter((result) => touchedIds.has(result.subjectId))
       .map((result) => `- ${describe("Already known", result)}`),
     ...comparison.goneResults.map((result) => `- Gone: ${result.text}`),
   ];
   return lines.length === 0
-    ? ["No new or gone check results."]
+    ? ["No new, changed, or gone check results."]
     : ["Check results:", ...lines];
 }
 

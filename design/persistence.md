@@ -320,7 +320,7 @@ The fixed list that the classes above use:
 |---|---|
 | `changeResult` | What `change` returned, such as the new stop's ID, or the stops and stays a rejection changed. Its type, `T` in the diagram, is whatever the caller's `change` returns |
 | `legChanges` | The `LegChange` list from `updateLegs()`: one for each day whose leg was added, re-routed, or removed (domain model 4.7). Empty when no leg changed |
-| `checkComparison` | The `CheckComparison` from the `FeasibilityChecker`: the check results that are new, already known, and gone (domain model 4.8). Empty after a worker write, since that runs no checks |
+| `checkComparison` | The `CheckComparison` from the `FeasibilityChecker`: the check results that are new, changed, already known, and gone (domain model 4.8). Empty after a worker write, since that runs no checks |
 
 `write()` doesn't decide what goes in the reply. The tool picks the check results to report, from what the write touched (technical spec section 8, and tool design 2.1).
 

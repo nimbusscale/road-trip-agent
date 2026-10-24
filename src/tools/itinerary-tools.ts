@@ -1,5 +1,4 @@
 import { FeasibilityChecker } from "../domain/feasibility-checker.js";
-import type { Itinerary } from "../domain/itinerary.js";
 import { RuleError } from "../domain/rule-error.js";
 import { calendarAndServicesFor } from "../domain/trip-services.js";
 import { ID_PREFIXES } from "../ids/new-id.js";
@@ -15,6 +14,7 @@ import {
   WHOLE_ITINERARY,
 } from "./read-itinerary-input.schema.js";
 import { strictTool, type StrictToolDefinition } from "./strict-tool.js";
+import { dayIn, stayIn, stopIn } from "./trip-items.js";
 import { readReplyOrReadableError, textReply } from "./tool-reply.js";
 import type { TripSession } from "./trip-session.js";
 
@@ -82,33 +82,17 @@ function linesFor(context: ReadContext, scope: string): string[] {
     return wholeLines(context);
   }
   if (scope.startsWith(ID_PREFIXES.day)) {
-    return dayScopeLines(context, found(itinerary.days, scope, "day"));
+    return dayScopeLines(context, dayIn(itinerary, scope));
   }
   if (scope.startsWith(ID_PREFIXES.stay)) {
-    return stayScopeLines(context, found(itinerary.stays, scope, "stay"));
+    return stayScopeLines(context, stayIn(itinerary, scope));
   }
   if (scope.startsWith(ID_PREFIXES.stop)) {
-    return stopScopeLines(context, found(stopsOf(itinerary), scope, "stop"));
+    return stopScopeLines(context, stopIn(itinerary, scope));
   }
   throw new RuleError(
     `The scope is "${WHOLE_ITINERARY}", or a day, stay, or stop ID. It was given "${scope}".`,
   );
-}
-
-function stopsOf(itinerary: Itinerary) {
-  return itinerary.days.flatMap((day) => day.stops);
-}
-
-function found<T extends { id: string }>(
-  items: readonly T[],
-  id: string,
-  kind: string,
-): T {
-  const item = items.find((each) => each.id === id);
-  if (item === undefined) {
-    throw new RuleError(`This trip has no ${kind} ${id}.`);
-  }
-  return item;
 }
 
 function withinLimit(lines: readonly string[]): string[] {

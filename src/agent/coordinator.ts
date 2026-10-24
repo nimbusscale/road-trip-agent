@@ -18,6 +18,11 @@ import {
   PLACES_SERVER_NAME,
 } from "../tools/places-server.js";
 import type { PlacesSession } from "../tools/places-session.js";
+import {
+  createRoutingServer,
+  ROUTING_SERVER_NAME,
+} from "../tools/routing-server.js";
+import type { RoutingSession } from "../tools/routing-session.js";
 import type { TripSession } from "../tools/trip-session.js";
 import { createTripServer, TRIP_SERVER_NAME } from "../tools/trip-server.js";
 import { coordinatorPrompt } from "./coordinator-prompt.js";
@@ -25,7 +30,8 @@ import { sdkUserMessage } from "./sdk-user-message.schema.js";
 import { type TurnEvent, turnEventsOf } from "./turn-event.js";
 
 // The coordinator: the agent the user talks to (technical spec 1). For now it has the
-// trip brief and memory tools, read_itinerary, find_place, and read_place.
+// trip brief and memory tools, read_itinerary, the tools that build the skeleton,
+// find_place, read_place, and compute_route.
 
 export interface CoordinatorGiven {
   settings: Settings;
@@ -34,6 +40,7 @@ export interface CoordinatorGiven {
   trip: Omit<TripSession, "tripId">;
   memory: Omit<MemorySession, "userId" | "tripId">;
   places: Omit<PlacesSession, "tripId">;
+  routing: Omit<RoutingSession, "tripId">;
   transcripts: TranscriptAdapter;
 }
 
@@ -51,7 +58,8 @@ export function coordinatorOptions(
   conversation: Conversation,
   hasTranscript: boolean,
 ): Options {
-  const { settings, processEnv, trip, memory, places, transcripts } = given;
+  const { settings, processEnv, trip, memory, places, routing, transcripts } =
+    given;
   const { session, userId } = conversation;
   const tripId = session.tripId;
   return {
@@ -70,6 +78,7 @@ export function coordinatorOptions(
       [TRIP_SERVER_NAME]: createTripServer({ ...trip, tripId }),
       [MEMORY_SERVER_NAME]: createMemoryServer({ ...memory, userId, tripId }),
       [PLACES_SERVER_NAME]: createPlacesServer({ ...places, tripId }),
+      [ROUTING_SERVER_NAME]: createRoutingServer({ ...routing, tripId }),
     },
     // Every tool on these servers runs without asking. Anything else is refused, since
     // nobody is there to answer a permission prompt. The places server will hold tools
@@ -79,6 +88,7 @@ export function coordinatorOptions(
       `mcp__${MEMORY_SERVER_NAME}`,
       `mcp__${PLACES_SERVER_NAME}__find_place`,
       `mcp__${PLACES_SERVER_NAME}__read_place`,
+      `mcp__${ROUTING_SERVER_NAME}`,
     ],
     permissionMode: "dontAsk",
     // The transcript goes to Postgres line by line as it's written (persistence design,

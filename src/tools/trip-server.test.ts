@@ -42,6 +42,12 @@ describe("createTripServer", () => {
       "read_trip_brief",
       "update_trip_brief",
       "read_itinerary",
+      "update_itinerary",
+      "add_stay",
+      "update_stay",
+      "remove_stay",
+      "update_day",
+      "set_waypoints",
     ]);
     expect(
       tools.every((each) => each.inputSchema.additionalProperties === false),
@@ -53,7 +59,7 @@ describe("createTripServer", () => {
   });
 
   // The limits are settings, so they're filled in, never written into the text.
-  it("gives the trip length and driving limits from the settings", async () => {
+  it("gives the trip length and driving limits from the settings, in update_trip_brief and update_day", async () => {
     const fixture = setUp();
     const server = createTripServer({
       ...fixture,
@@ -74,6 +80,16 @@ describe("createTripServer", () => {
       tripLengthInDays: { description: "A whole number, from 1 to 10." },
       comfortableDrivingInHours: {
         description: "Hours, such as 5 or 6.5. At most 9.",
+      },
+    });
+    const updateDay = tools.find((each) => each.name === "update_day");
+    expect(updateDay?.inputSchema.properties).toMatchObject({
+      approveDriveHours: {
+        properties: {
+          hours: {
+            description: "Hours of driving, such as 7 or 7.5. At most 9.",
+          },
+        },
       },
     });
   });

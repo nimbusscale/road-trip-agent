@@ -1,25 +1,30 @@
 import type { Place } from "./place.js";
 
+// What a route needs of a place: Google's place ID to route by, and its name or
+// address for an error. The itinerary's legs route the trip's places. The tool
+// compute_route also routes places it looked up and didn't save (tool design 2.4).
+export type RoutablePlace = Pick<Place, "googlePlaceId" | "name" | "address">;
+
 // One place a route goes through between its start and end. A pass-through point is a
 // waypoint: the route passes it without stopping, so it doesn't split a segment.
-export interface RoutePoint {
-  place: Place;
+export interface RoutePoint<P extends RoutablePlace = RoutablePlace> {
+  place: P;
   isPassThrough: boolean;
 }
 
 // A route from one place to another, through the points in order.
 export interface RoutePath {
-  from: Place;
+  from: RoutablePlace;
   through: readonly RoutePoint[];
-  to: Place;
+  to: RoutablePlace;
 }
 
 // Stops to put in the fastest order between two places, with no pass-through points,
 // since Google refuses them when it picks an order (Google design 2.1).
 export interface StopsPath {
-  from: Place;
-  stops: readonly Place[];
-  to: Place;
+  from: RoutablePlace;
+  stops: readonly RoutablePlace[];
+  to: RoutablePlace;
 }
 
 // What Google Routes gave for a route.
@@ -27,6 +32,8 @@ export interface FoundRoute {
   // One for each segment, from the start, through each point that isn't a pass-through
   // point, to the end. Without the drive buffer.
   segmentDriveTimesInMinutes: readonly number[];
+  // The same segments' distances. Only compute_route shows them: a leg keeps the total.
+  segmentDistancesInMiles: readonly number[];
   distanceInMiles: number;
   // Google's encoded route line.
   routeLine: string;

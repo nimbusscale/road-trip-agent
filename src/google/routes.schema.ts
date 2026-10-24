@@ -14,9 +14,10 @@ const secondsSchema = z
 const routeSchema = z.object({
   distanceMeters: z.number().nonnegative().default(0),
   legs: z.array(
-    z
-      .object({ duration: secondsSchema.default(0) })
-      .transform((segment) => segment.duration),
+    z.object({
+      duration: secondsSchema.default(0),
+      distanceMeters: z.number().nonnegative().default(0),
+    }),
   ),
   polyline: z.object({ encodedPolyline: z.string() }),
   // Only when the request asked for the best order.

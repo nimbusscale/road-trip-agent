@@ -3,9 +3,12 @@ import {
   type McpSdkServerConfigWithInstance,
 } from "@anthropic-ai/claude-agent-sdk";
 
+import { setWaypointsTool, updateDayTool } from "./day-tools.js";
 import { readItineraryTool } from "./itinerary-tools.js";
+import { addStayTool, removeStayTool, updateStayTool } from "./stay-tools.js";
 import { readTripBriefTool, updateTripBriefTool } from "./trip-brief-tools.js";
 import type { TripSession } from "./trip-session.js";
+import { updateItineraryTool } from "./update-itinerary-tool.js";
 
 // Part of every tool name the model sees, such as mcp__trip__read_trip_brief (tool
 // design, section 1).
@@ -25,6 +28,12 @@ export function createTripServer(
       readTripBriefTool(session),
       updateTripBriefTool(session),
       readItineraryTool(session),
+      updateItineraryTool(session),
+      addStayTool(session),
+      updateStayTool(session),
+      removeStayTool(session),
+      updateDayTool(session),
+      setWaypointsTool(session),
     ],
   });
 }

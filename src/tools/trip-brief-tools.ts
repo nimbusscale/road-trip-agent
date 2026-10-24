@@ -1,4 +1,3 @@
-import type { Itinerary } from "../domain/itinerary.js";
 import { RuleError } from "../domain/rule-error.js";
 import type { TripBrief } from "../domain/trip-brief.js";
 import type { TripBriefService } from "../domain/trip-brief-service.js";
@@ -21,7 +20,7 @@ export const READ_TRIP_BRIEF_DESCRIPTION =
   'Reads the trip brief. Returns every item, one per line. An item with no value yet shows as "not set".';
 
 export const UPDATE_TRIP_BRIEF_DESCRIPTION =
-  "Changes one or more items in the trip brief. Items not given are not changed. Each item given replaces its old value. An item can be changed, but never emptied. If an item is refused, the error says which item and why, with the limit when there is one. The reply doesn't repeat the items. Its feasibility check results also include the trip-wide ones already known. When comfortableDrivingInHours changes, they also include the results for every day.";
+  "Changes one or more items in the trip brief. Items not given are not changed. Each item given replaces its old value. An item can be changed, but never emptied. If an item is refused, the error says which item and why, with the limit when there is one. The reply doesn't repeat the items. Its feasibility check results also include the trip-wide ones already known.";
 
 export function readTripBriefTool(session: TripSession): StrictToolDefinition {
   return {
@@ -55,7 +54,10 @@ export function updateTripBriefTool(
           "coordinator",
           ({ trip, services }) => {
             applyItems(items, trip.tripBrief, services.tripBrief);
-            return touchedBy(items, trip.itinerary);
+            // A brief change touches only the trip as a whole. A day's warning whose
+            // text it changed, such as the comfortable driving hours, comes back as
+            // changed (tool design 2.1).
+            return new Set([trip.itinerary.id]);
           },
         );
         return textReply([
@@ -66,21 +68,6 @@ export function updateTripBriefTool(
         ]);
       }),
   );
-}
-
-// What a brief change touched, for the already-known check results in its reply (tool
-// design, section 2.1): the itinerary, and every day when the comfortable driving hours
-// change, since every daily driving warning gives them. A result still there after the
-// change is already known, so without the days its new text wouldn't come back. Phase
-// 22 replaces this with check results whose text changed, which also covers a new usual
-// start time moving a stop's times.
-function touchedBy(
-  items: TripBriefItems,
-  itinerary: Itinerary,
-): ReadonlySet<string> {
-  const drivingDays =
-    items.comfortableDrivingInHours === undefined ? [] : itinerary.days;
-  return new Set([itinerary.id, ...drivingDays.map((day) => day.id)]);
 }
 
 // In functional spec 5.2's order.

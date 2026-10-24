@@ -109,6 +109,30 @@ describe("RoutesClient.route", () => {
     expect(route.routeLine.length).toBeGreaterThan(1000);
   });
 
+  it("gives each segment's distance in miles, for compute_route", async () => {
+    const { client } = clientFor(
+      JSON.stringify({
+        routes: [
+          {
+            distanceMeters: 321_869,
+            legs: [
+              { duration: "6000s", distanceMeters: 160_934 },
+              { duration: "6000s", distanceMeters: 160_935 },
+            ],
+            polyline: { encodedPolyline: "abc" },
+          },
+        ],
+      }),
+    );
+    const route = await client.route({
+      from: MONTEREY,
+      through: [{ place: FIRST_AWAKENINGS, isPassThrough: false }],
+      to: SAN_LUIS_OBISPO,
+    });
+    expect(route.segmentDistancesInMiles).toEqual([100, 100]);
+    expect(route.distanceInMiles).toBe(200);
+  });
+
   it("turns an empty answer into a no driving route error that names the places", async () => {
     const { client } = clientFor("{}");
     const route = client.route({
@@ -119,6 +143,13 @@ describe("RoutesClient.route", () => {
     await expect(route).rejects.toThrow(NoDrivingRouteError);
     await expect(route).rejects.toThrow(
       "Google found no driving route from Monterey through First Awakenings to Honolulu.",
+    );
+  });
+
+  it("names the pass-through points in a no driving route error, and says to try one as a stop", async () => {
+    const { client } = clientFor("{}");
+    await expect(client.route(THROUGH_BIG_SUR)).rejects.toThrow(
+      "Google found no driving route from Monterey through First Awakenings to San Luis Obispo, passing Big Sur. Google sometimes can't pass a point without stopping, such as a big city, and doesn't say which. Try one as a stop instead.",
     );
   });
 
@@ -160,6 +191,7 @@ describe("RoutesClient.route", () => {
     });
     expect(route).toEqual({
       segmentDriveTimesInMinutes: [0],
+      segmentDistancesInMiles: [0],
       distanceInMiles: 0,
       routeLine: "c|j~Efe_gV",
     });
@@ -183,6 +215,7 @@ describe("RoutesClient.route", () => {
     });
     expect(route).toEqual({
       segmentDriveTimesInMinutes: [0, 2],
+      segmentDistancesInMiles: [0, 0],
       distanceInMiles: 0,
       routeLine: "abc",
     });

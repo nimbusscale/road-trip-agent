@@ -8,6 +8,7 @@ import { bodyThatBreaks, bodyThatTimesOut } from "./failing-body.fake.js";
 import {
   FIELD_MASK,
   GooglePlacesError,
+  NAME_MATCH_FIELD_MASK,
   PlacesClient,
   TIMEOUT_MILLISECONDS,
 } from "./places-client.js";
@@ -62,6 +63,38 @@ function clientFor(
   const { fetch, sent } = fakeFetch(body, status);
   return { client: new PlacesClient({ apiKey: API_KEY, fetch }), sent };
 }
+
+describe("PlacesClient.matchName", () => {
+  it("asks for the best match only, with the fields of a Pro call", async () => {
+    const { client, sent } = clientFor(
+      JSON.stringify({
+        places: [
+          {
+            id: "google-moab",
+            displayName: { text: "Moab" },
+            formattedAddress: "Moab, UT 84532, USA",
+          },
+        ],
+      }),
+    );
+    expect(await client.matchName("Moab, UT")).toEqual({
+      googlePlaceId: "google-moab",
+      name: "Moab",
+      address: "Moab, UT 84532, USA",
+    });
+    expect(sent[0]?.headers).toMatchObject({
+      "X-Goog-FieldMask":
+        "places.id,places.displayName,places.formattedAddress",
+    });
+    expect(NAME_MATCH_FIELD_MASK).not.toContain("rating");
+    expect(sent[0]?.body).toEqual({ textQuery: "Moab, UT", pageSize: 1 });
+  });
+
+  it("gives null when Google finds no match", async () => {
+    const { client } = clientFor("{}");
+    expect(await client.matchName("Nowhere, UT")).toBeNull();
+  });
+});
 
 describe("PlacesClient.searchText", () => {
   it("sends the key and the field list in headers, and the query in the body", async () => {

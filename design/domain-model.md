@@ -1148,11 +1148,12 @@ The `FeasibilityChecker` runs the feasibility checks in technical spec section 8
 **Given:** the trip brief, for the items the checks compare against. The settings, for the drive buffer, late allowance, and stop-order minimum saving. The calendar, for dates, today, the schedule, and opening hours.
 
 - **`workOut(itinerary : Itinerary) : List<CheckResult>`.** Runs every check in technical spec section 8 over the whole itinerary, and returns the check results that apply now. It saves nothing. A check that compares against an empty trip brief item is skipped. `forecastNowAvailable` is skipped once the trip has started, since nothing can be rewritten then. A check result's `isApproved` is true when `isApplying()` is true for an approval that covers it.
-- **`compare(current : List<CheckResult>, saved : List<CheckResult>) : CheckComparison`.** Matches the current check results with the saved ones. Two check results match when they have the same `check` and the same `subjectId`, whatever their text says. It returns three lists, which aren't stored:
+- **`compare(current : List<CheckResult>, saved : List<CheckResult>) : CheckComparison`.** Matches the current check results with the saved ones. Two check results match when they have the same `check` and the same `subjectId`, whatever their text says. It returns four lists, which aren't stored:
   - **New:** a current check result with no match. Also one whose match was approved and that isn't approved now. Also one whose match had `hasUnselectedStopBefore` true and that has it false now.
+  - **Changed:** a current check result that isn't new, and whose `text` differs from its match's. Example: the user lowers their comfortable driving hours from 6 to 5, and Day 2's daily driving warning now gives the new limit. A write's reply lists it anywhere in the trip, like a new one, so the coordinator can decide whether the user needs to hear it (technical spec section 8).
   - **Already known:** every other current check result.
   - **Gone:** a saved check result with no current match. Its saved `text` describes it, since its subject may no longer exist.
-  - In code, `CheckComparison` holds the three lists as `newResults`, `knownResults`, and `goneResults`.
+  - In code, `CheckComparison` holds the four lists as `newResults`, `changedResults`, `knownResults`, and `goneResults`.
 - **`isApplying(itinerary : Itinerary, day : Day, kind : ApprovalKind) : boolean`,** and the same with a stop in place of the day. Whether the holder's approval of that kind still covers the plan as it is now. False when it has none. The tool `read_itinerary` uses it to mark each approval as applying or not. In code, it's one method that takes a day or a stop.
 
 | Kind | Applies while |

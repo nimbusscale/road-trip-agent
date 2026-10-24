@@ -1,7 +1,7 @@
-import type { Place } from "../domain/place.js";
 import type {
   BestOrder,
   FoundRoute,
+  RoutablePlace,
   RouteFinder,
   RoutePath,
   RoutePoint,
@@ -14,11 +14,13 @@ import { type GoogleRoute, routesResponseSchema } from "./routes.schema.js";
 const COMPUTE_ROUTES_URL =
   "https://routes.googleapis.com/directions/v2:computeRoutes";
 
-// Only what a leg keeps (domain model 3.8). The fields also set the price of the call
-// (Google design section 5).
+// What a leg keeps (domain model 3.8), and each segment's distance, which compute_route
+// shows (tool design 2.4). The fields also set the price of the call (Google design
+// section 5). These are all basic fields.
 export const FIELD_MASK = [
   "routes.distanceMeters",
   "routes.legs.duration",
+  "routes.legs.distanceMeters",
   "routes.polyline.encodedPolyline",
 ].join(",");
 
@@ -110,9 +112,7 @@ export class RoutesClient implements RouteFinder {
       );
     }
     if (parsed.data === null) {
-      throw new NoDrivingRouteError(
-        `Google found no driving route ${describePath(path)}.`,
-      );
+      throw new NoDrivingRouteError(noRouteMessage(path));
     }
     return parsed.data;
   }
@@ -151,9 +151,9 @@ export class RoutesClient implements RouteFinder {
 // pass-through point a "via" waypoint. Drive times don't follow traffic, since the
 // trip is months away.
 function requestFor(
-  from: Place,
+  from: RoutablePlace,
   through: readonly RoutePoint[],
-  to: Place,
+  to: RoutablePlace,
 ): object {
   return {
     origin: { placeId: from.googlePlaceId },
@@ -176,24 +176,40 @@ function foundRouteOf(route: GoogleRoute, segmentCount: number): FoundRoute {
     );
   }
   return {
-    segmentDriveTimesInMinutes: route.legs.map((seconds) =>
-      Math.round(seconds / SECONDS_PER_MINUTE),
+    segmentDriveTimesInMinutes: route.legs.map((segment) =>
+      Math.round(segment.duration / SECONDS_PER_MINUTE),
     ),
-    distanceInMiles:
-      Math.round((route.distanceMeters / METERS_PER_MILE) * 10) / 10,
+    segmentDistancesInMiles: route.legs.map((segment) =>
+      milesOf(segment.distanceMeters),
+    ),
+    distanceInMiles: milesOf(route.distanceMeters),
     routeLine: route.polyline.encodedPolyline,
   };
 }
 
-function describePath(path: RoutePath): string {
-  const stops = path.through
-    .filter((point) => !point.isPassThrough)
-    .map((point) => nameOf(point.place));
-  const through = stops.length === 0 ? "" : ` through ${stops.join(", ")}`;
-  return `from ${nameOf(path.from)}${through} to ${nameOf(path.to)}`;
+function milesOf(meters: number): number {
+  return Math.round((meters / METERS_PER_MILE) * 10) / 10;
 }
 
-function nameOf(place: Place): string {
+// Google answers {} for a route through a pass-through point it can't pass, with no
+// reason. In testing, Atlanta as a pass-through point on Seattle to Miami gave no route,
+// and Atlanta as a stop gave one (checked 2026-10-24). So the error names the
+// pass-through points, and says to try one as a stop.
+function noRouteMessage(path: RoutePath): string {
+  const named = (isPassThrough: boolean): string[] =>
+    path.through
+      .filter((point) => point.isPassThrough === isPassThrough)
+      .map((point) => nameOf(point.place));
+  const stops = named(false);
+  const passing = named(true);
+  const through = stops.length === 0 ? "" : ` through ${stops.join(", ")}`;
+  const route = `Google found no driving route from ${nameOf(path.from)}${through} to ${nameOf(path.to)}`;
+  return passing.length === 0
+    ? `${route}.`
+    : `${route}, passing ${passing.join(", ")}. Google sometimes can't pass a point without stopping, such as a big city, and doesn't say which. Try one as a stop instead.`;
+}
+
+function nameOf(place: RoutablePlace): string {
   return place.name ?? place.address;
 }
 
