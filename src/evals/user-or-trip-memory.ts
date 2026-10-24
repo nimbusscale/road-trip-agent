@@ -116,7 +116,9 @@ function conversationInput(input: Record<string, unknown>): string[] {
 type Experiment = Awaited<ReturnType<typeof runExperiment>>;
 
 // Each run's scores, the coordinator's tokens per turn, and the judge's tokens. The SDK's
-// own cost estimate comes from each turn's AGENT span.
+// own cost estimate comes from the instrumentation's AGENT spans. Each turn after the
+// first resumes the session, and its cost is the session's total so far, so the run's
+// cost is the highest.
 async function printSummary(
   client: ReturnType<typeof createClient>,
   experiment: Experiment,
@@ -152,10 +154,11 @@ async function printSummary(
         toolCalls: turn.toolCalls.map((call) => call.name),
         usage: turn.usage,
       })),
-      sdkCostUsd: runSpans.reduce(
-        (total, span) =>
-          total + Number(span.attributes?.["llm.cost.total"] ?? 0),
+      sdkCostUsd: Math.max(
         0,
+        ...runSpans.map((span) =>
+          Number(span.attributes?.["llm.cost.total"] ?? 0),
+        ),
       ),
       scores: evaluations.map((evaluation) => ({
         name: evaluation.name,

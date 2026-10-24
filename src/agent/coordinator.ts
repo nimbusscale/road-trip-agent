@@ -28,6 +28,7 @@ import { claudeAgentSdk } from "./claude-agent-sdk.js";
 import { coordinatorPrompt } from "./coordinator-prompt.js";
 import { sdkUserMessage } from "./sdk-user-message.schema.js";
 import { type TurnEvent, turnEventsOf } from "./turn-event.js";
+import { endTurnSpan, iterateUnder, startTurnSpan } from "./turn-span.js";
 
 // The coordinator: the agent the user talks to (technical spec 1). For now it has the
 // trip brief and memory tools, read_itinerary, the tools that build the skeleton,
@@ -118,19 +119,22 @@ export const runTurnWithSdk: RunTurn = async function* (message, options) {
     await turnEnded.promise;
   }
   const agentSessionId = options.sessionId ?? options.resume ?? "";
+  const turnSpan = startTurnSpan(message, agentSessionId, options.model ?? "");
+  let result: Extract<SDKMessage, { type: "result" }> | undefined;
   try {
-    for await (const sdkMessage of claudeAgentSdk.query({
-      prompt: prompt(),
-      options,
-    })) {
+    for await (const sdkMessage of iterateUnder(turnSpan.context, () =>
+      claudeAgentSdk.query({ prompt: prompt(), options }),
+    )) {
       logMirrorError(sdkMessage, agentSessionId);
       if (sdkMessage.type === "result") {
+        result = sdkMessage;
         turnEnded.resolve(undefined);
       }
       yield* turnEventsOf(sdkMessage);
     }
   } finally {
     turnEnded.resolve(undefined);
+    endTurnSpan(turnSpan, result);
   }
 };
 
