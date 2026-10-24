@@ -1,8 +1,7 @@
-import {
-  type Options,
-  query,
-  type SDKMessage,
-  type SDKUserMessage,
+import type {
+  Options,
+  SDKMessage,
+  SDKUserMessage,
 } from "@anthropic-ai/claude-agent-sdk";
 
 import type { Settings } from "../config/settings.schema.js";
@@ -25,6 +24,7 @@ import {
 import type { RoutingSession } from "../tools/routing-session.js";
 import type { TripSession } from "../tools/trip-session.js";
 import { createTripServer, TRIP_SERVER_NAME } from "../tools/trip-server.js";
+import { claudeAgentSdk } from "./claude-agent-sdk.js";
 import { coordinatorPrompt } from "./coordinator-prompt.js";
 import { sdkUserMessage } from "./sdk-user-message.schema.js";
 import { type TurnEvent, turnEventsOf } from "./turn-event.js";
@@ -119,7 +119,10 @@ export const runTurnWithSdk: RunTurn = async function* (message, options) {
   }
   const agentSessionId = options.sessionId ?? options.resume ?? "";
   try {
-    for await (const sdkMessage of query({ prompt: prompt(), options })) {
+    for await (const sdkMessage of claudeAgentSdk.query({
+      prompt: prompt(),
+      options,
+    })) {
       logMirrorError(sdkMessage, agentSessionId);
       if (sdkMessage.type === "result") {
         turnEnded.resolve(undefined);

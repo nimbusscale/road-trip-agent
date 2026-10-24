@@ -28,6 +28,9 @@
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "0.3.301",
     "@anthropic-ai/sdk": "0.135.0",
+    "@arizeai/openinference-instrumentation-claude-agent-sdk": "0.3.5",
+    "@arizeai/phoenix-client": "7.16.2",
+    "@arizeai/phoenix-otel": "2.3.0",
     "@hono/node-server": "2.1.5",
     "@hono/zod-validator": "0.9.1",
     "@modelcontextprotocol/sdk": "1.32.1",
@@ -54,6 +57,7 @@
     "migrate": "tsx --env-file=.env src/migrate.ts",
     "ask-claude": "tsx --env-file=.env src/ask-claude.ts",
     "chat": "tsx --env-file=.env src/chat.ts",
+    "eval:memory": "tsx --env-file=.env src/evals/user-or-trip-memory.ts",
     "build": "npm run build:app && npm run build:web",
     "build:app": "esbuild src/main.ts src/migrate.ts src/ask-claude.ts --bundle --platform=node --format=esm --packages=external --sourcemap --outdir=dist/app",
     "build:web": "vite build",

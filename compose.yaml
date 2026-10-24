@@ -100,7 +100,27 @@ services:
     init: true
     restart: unless-stopped
 
+  phoenix:
+    # Arize Phoenix, for agent traces and evaluations (#132). Local only: it starts with
+    # docker compose --profile evals up -d phoenix.
+    profiles: ["evals"]
+    image: arizephoenix/phoenix:20.26.0
+    environment:
+      # Its SQLite database goes in its own volume, not in our Postgres, so traces stay
+      # out of the app's database and its backup.
+      PHOENIX_WORKING_DIR: /mnt/data
+      # No sign-in. It's reachable only from this machine.
+      PHOENIX_ENABLE_AUTH: "false"
+      PHOENIX_TELEMETRY_ENABLED: "false"
+    volumes:
+      - phoenix-data:/mnt/data
+    ports:
+      # The web UI and the OTLP over HTTP endpoint for traces, on the host only.
+      - "127.0.0.1:6006:6006"
+    restart: unless-stopped
+
 volumes:
+  phoenix-data:
   postgres-data:
   caddy-data:
   caddy-config:
