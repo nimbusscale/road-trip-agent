@@ -9,6 +9,7 @@ import { MemoryWriter } from "../persistence/memory-writer.js";
 import { Session } from "../persistence/session.js";
 import { TranscriptAdapter } from "../persistence/transcript-adapter.js";
 import { setUp } from "../persistence/trip-writer.fake.js";
+import { fakePlacesAccess } from "../tools/places-session.fake.js";
 import type { Conversation, CoordinatorGiven } from "./coordinator.js";
 
 // What the coordinator is given, for tests, with fakes for Postgres (DEVELOPMENT.md
@@ -19,10 +20,12 @@ export const AGENT_SESSION_ID = "7c0f5d8e-1a2b-4c3d-8e9f-0a1b2c3d4e5f";
 export function coordinatorGiven(settings: Settings): CoordinatorGiven {
   const memoryStore = new FakeMemoryStore();
   const transcripts = new FakeTranscriptLineStore();
+  const trips = setUp();
   return {
     settings,
     processEnv: {},
-    trip: { ...setUp(), limits: settings },
+    trip: { ...trips, settings },
+    places: fakePlacesAccess(trips),
     memory: {
       writer: new MemoryWriter({
         pool: FAKE_POOL,

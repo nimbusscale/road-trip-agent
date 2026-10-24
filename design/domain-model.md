@@ -900,7 +900,7 @@ A place is any real location: a town, hotel, restaurant, bar, attraction, friend
 
 **The kind of place doesn't limit how it's used.** A hotel can be a stay's lodging, or a stop for its bar. On a loop trip, the start and end are the same place.
 
-**Short line.** Code builds it from the place's facts only: its type, rating, price level, and town, such as "Hotel, 4.6 stars, $$, Austin." The town comes from the address. A part that's empty is left out, such as the type of a start place that's an address. It never holds a reason for offering the place. That's the candidate's rationale (technical spec 7.2).
+**Short line.** Code builds it from the place's facts only: its type, rating, price level, and town, such as "Hotel, 4.6 stars, $$, Austin." The town comes from the address. A part that's empty is left out, such as the type of a start place that's an address. So is a town that's only the place's own name, such as for a town itself, or for "Delicate Arch Trail, Utah, USA", whose address has no town. It never holds a reason for offering the place. That's the candidate's rationale (technical spec 7.2).
 
 **OpeningPeriod.** One opening and the closing after it. It's held by its place, with no `id`, and never changes.
 

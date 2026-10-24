@@ -23,8 +23,8 @@ export function checkResultLines(
 
 // Such as "New warning, approved: ...". An opening-hours warning with a stop before it
 // that has no place yet is marked "may be too early", since that stop will take time
-// once it has one (technical spec 5.2).
-function describe(status: string, result: CheckResult): string {
+// once it has one (technical spec 5.2). read_itinerary marks its results the same way.
+export function describe(status: string, result: CheckResult): string {
   const marks = [
     ...(result.isApproved ? ["approved"] : []),
     ...(result.hasUnselectedStopBefore ? ["may be too early"] : []),

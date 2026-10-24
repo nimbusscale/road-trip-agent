@@ -21,10 +21,20 @@ describe("coordinatorOptions", () => {
     );
   });
 
-  it("gives only the trip and memory servers, with no built-in tools and no settings files", () => {
+  it("gives only the trip, memory, and places servers, with no built-in tools and no settings files", () => {
     const options = coordinatorOptions(given(), conversation(), false);
-    expect(Object.keys(options.mcpServers ?? {})).toEqual(["trip", "memory"]);
-    expect(options.allowedTools).toEqual(["mcp__trip", "mcp__memory"]);
+    expect(Object.keys(options.mcpServers ?? {})).toEqual([
+      "trip",
+      "memory",
+      "places",
+    ]);
+    // The places server will hold the workers' searches too (tool design 3).
+    expect(options.allowedTools).toEqual([
+      "mcp__trip",
+      "mcp__memory",
+      "mcp__places__find_place",
+      "mcp__places__read_place",
+    ]);
     expect(options.tools).toEqual([]);
     expect(options.settingSources).toEqual([]);
     expect(options.strictMcpConfig).toBe(true);

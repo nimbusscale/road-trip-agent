@@ -92,6 +92,27 @@ describe("Place.shortLine", () => {
     });
     expect(state.shortLine).toBe("");
   });
+
+  // Seen in a read of the itinerary, as "Delicate Arch Trail, 5.0 stars, Delicate Arch
+  // Trail", and "Grand Junction, Grand Junction" for a town.
+  it("leaves out a town that's only the place's own name", () => {
+    const trail = examplePlace({
+      name: "Delicate Arch Trail",
+      type: null,
+      rating: 5,
+      priceLevel: null,
+      address: "Delicate Arch Trail, Utah, USA",
+    });
+    expect(trail.shortLine).toBe("5.0 stars");
+    const town = examplePlace({
+      name: "Moab",
+      type: null,
+      rating: null,
+      priceLevel: null,
+      address: "Moab, UT 84532, USA",
+    });
+    expect(town.shortLine).toBe("");
+  });
 });
 
 describe("OpeningPeriod", () => {

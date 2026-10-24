@@ -13,14 +13,19 @@ import {
   createMemoryServer,
   MEMORY_SERVER_NAME,
 } from "../tools/memory-server.js";
+import {
+  createPlacesServer,
+  PLACES_SERVER_NAME,
+} from "../tools/places-server.js";
+import type { PlacesSession } from "../tools/places-session.js";
 import type { TripSession } from "../tools/trip-session.js";
 import { createTripServer, TRIP_SERVER_NAME } from "../tools/trip-server.js";
 import { coordinatorPrompt } from "./coordinator-prompt.js";
 import { sdkUserMessage } from "./sdk-user-message.schema.js";
 import { type TurnEvent, turnEventsOf } from "./turn-event.js";
 
-// The coordinator: the agent the user talks to (technical spec 1). For now it has only
-// the trip brief and memory tools.
+// The coordinator: the agent the user talks to (technical spec 1). For now it has the
+// trip brief and memory tools, read_itinerary, find_place, and read_place.
 
 export interface CoordinatorGiven {
   settings: Settings;
@@ -28,6 +33,7 @@ export interface CoordinatorGiven {
   processEnv: Record<string, string | undefined>;
   trip: Omit<TripSession, "tripId">;
   memory: Omit<MemorySession, "userId" | "tripId">;
+  places: Omit<PlacesSession, "tripId">;
   transcripts: TranscriptAdapter;
 }
 
@@ -45,7 +51,7 @@ export function coordinatorOptions(
   conversation: Conversation,
   hasTranscript: boolean,
 ): Options {
-  const { settings, processEnv, trip, memory, transcripts } = given;
+  const { settings, processEnv, trip, memory, places, transcripts } = given;
   const { session, userId } = conversation;
   const tripId = session.tripId;
   return {
@@ -63,10 +69,17 @@ export function coordinatorOptions(
     mcpServers: {
       [TRIP_SERVER_NAME]: createTripServer({ ...trip, tripId }),
       [MEMORY_SERVER_NAME]: createMemoryServer({ ...memory, userId, tripId }),
+      [PLACES_SERVER_NAME]: createPlacesServer({ ...places, tripId }),
     },
-    // Every tool on both servers runs without asking. Anything else is refused, since
-    // nobody is there to answer a permission prompt.
-    allowedTools: [`mcp__${TRIP_SERVER_NAME}`, `mcp__${MEMORY_SERVER_NAME}`],
+    // Every tool on these servers runs without asking. Anything else is refused, since
+    // nobody is there to answer a permission prompt. The places server will hold tools
+    // only workers get, so the coordinator's are named one by one (tool design 3).
+    allowedTools: [
+      `mcp__${TRIP_SERVER_NAME}`,
+      `mcp__${MEMORY_SERVER_NAME}`,
+      `mcp__${PLACES_SERVER_NAME}__find_place`,
+      `mcp__${PLACES_SERVER_NAME}__read_place`,
+    ],
     permissionMode: "dontAsk",
     // The transcript goes to Postgres line by line as it's written (persistence design,
     // section 6).

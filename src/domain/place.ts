@@ -76,13 +76,16 @@ export class Place {
   }
 
   // One line about the place for the coordinator, such as "Hotel, 4.6 stars, $$,
-  // Austin" (technical spec 7.2). A part that's empty is left out.
+  // Austin" (technical spec 7.2). A part that's empty is left out, and so is a town
+  // that's only the place's own name, such as for a town, or "Delicate Arch Trail,
+  // Utah, USA", whose address has no town.
   get shortLine(): string {
+    const town = townOf(this.address);
     const parts = [
       this.type,
       this.rating === null ? null : `${this.rating.toFixed(1)} stars`,
       this.priceLevel === null ? null : PRICE_LEVEL_TEXT[this.priceLevel],
-      townOf(this.address),
+      town === this.#name ? null : town,
     ];
     return parts.filter((part) => part !== null).join(", ");
   }

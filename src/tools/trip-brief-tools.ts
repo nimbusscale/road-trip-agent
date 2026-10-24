@@ -44,7 +44,7 @@ export function updateTripBriefTool(
   return strictTool(
     "update_trip_brief",
     UPDATE_TRIP_BRIEF_DESCRIPTION,
-    updateTripBriefInput(session.limits),
+    updateTripBriefInput(session.settings),
     (items) =>
       writeReplyOrReadableError(async () => {
         if (Object.values(items).every((value) => value === undefined)) {

@@ -3,6 +3,7 @@ import {
   type McpSdkServerConfigWithInstance,
 } from "@anthropic-ai/claude-agent-sdk";
 
+import { readItineraryTool } from "./itinerary-tools.js";
 import { readTripBriefTool, updateTripBriefTool } from "./trip-brief-tools.js";
 import type { TripSession } from "./trip-session.js";
 
@@ -20,6 +21,10 @@ export function createTripServer(
     // The coordinator uses these tools in most turns, so they're never left for it to
     // find with a tool search.
     alwaysLoad: true,
-    tools: [readTripBriefTool(session), updateTripBriefTool(session)],
+    tools: [
+      readTripBriefTool(session),
+      updateTripBriefTool(session),
+      readItineraryTool(session),
+    ],
   });
 }

@@ -4,6 +4,7 @@ import type { Connectable, Queryable } from "../persistence/queryable.js";
 import { TranscriptAdapter } from "../persistence/transcript-adapter.js";
 import { TranscriptRepository } from "../persistence/transcript-repository.js";
 import { memoryAccessFor } from "../tools/memory-server.js";
+import { placesAccessFor } from "../tools/places-server.js";
 import { tripAccessFor } from "../tools/trip-access.js";
 import { claudeProcessEnv } from "./claude-env.js";
 import type { CoordinatorGiven } from "./coordinator.js";
@@ -27,6 +28,7 @@ export function coordinatorAccessFor(
     processEnv: claudeProcessEnv(processEnv, env.claudeCodeOauthToken),
     trip: tripAccessFor({ env, pool, settings }),
     memory: memoryAccessFor({ pool, settings }),
+    places: placesAccessFor({ env, pool }),
     transcripts: new TranscriptAdapter({
       pool,
       makeStore: (connection) => new TranscriptRepository(connection),

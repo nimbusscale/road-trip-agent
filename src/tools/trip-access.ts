@@ -31,6 +31,7 @@ export function tripAccessFor(
       routeFinder: new RoutesClient({ apiKey: env.googleMapsServerKey, fetch }),
     }),
     reader: new TripReader(pool, storeFor),
-    limits: settings,
+    settings,
+    now: () => new Date(),
   };
 }

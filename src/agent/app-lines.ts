@@ -1,9 +1,7 @@
 import type { CalendarDate } from "../domain/calendar-date.js";
 
-// Technical spec 5.2 adds the itinerary to this line. The coordinator can't read it
-// yet, so #54 adds it, with read_itinerary.
 export const RESUMED_LINE =
-  "This session was resumed. Read the trip brief and memory first.";
+  "This session was resumed. Read the trip brief, the itinerary, and memory first.";
 
 // The lines the app adds to the start of user messages (technical spec 5.2). Today's
 // date goes on the first message of a conversation, and on any message whose date
