@@ -872,7 +872,7 @@ A place is any real location: a town, hotel, restaurant, bar, attraction, friend
 
 **Held as:** an entity that nothing holds. Each place belongs to one trip, and is stored on its own, apart from the plan ([persistence design](persistence.md), section 2). Other objects link to it. Its `id` has the prefix `place_` (technical spec 7.1). Agents see it. Users never do.
 
-**Created and changed by:** code creates it from what a Google lookup returns, in any search tool or the tool `find_place`. Then `PlaceWriter.save()` stores it, or reuses the record the trip already has ([persistence design](persistence.md), section 8.6). Its facts never change. When Google has no name for it, the first name an agent gives fills it in, with `fillName()`. A place is never removed, even when it's rejected.
+**Created and changed by:** code creates it from what a Google lookup returns, in any search tool or the tool `find_place`. Then `PlaceWriter.save()` stores it, or reuses the record the trip already has ([persistence design](persistence.md), section 8.6). Its facts never change. When Google has no name for it, the first name an agent gives fills it in, with `fillName()`. A place is never removed, even when it's rejected. Only deleting its trip removes it ([persistence design](persistence.md), section 6).
 
 | Property | Stored or worked out | Type | Notes |
 |---|---|---|---|

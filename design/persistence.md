@@ -413,7 +413,7 @@ A place is part of the trip, so it's in the domain model (domain model 3.10). Th
 
 - **`get(tripId, placeId)`** returns one of the trip's places, without loading the trip. The tool `read_place` uses it, with the session's trip. It refuses a place from another trip with the same error as an ID that doesn't exist, as `placeOf()` does (section 8.4).
 
-**Places are never removed.** That includes search results that were never offered as candidates, which will be most of a trip's places. Cleaning them up is out of scope for the MVP.
+**Places are never removed,** except when their trip is deleted (section 6). That includes search results that were never offered as candidates, which will be most of a trip's places. Cleaning them up is out of scope for the MVP.
 
 ### 8.7 The repositories
 
