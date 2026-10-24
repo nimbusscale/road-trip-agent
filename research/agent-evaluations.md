@@ -107,7 +107,23 @@ A refused call keeps its input, has no output, and is marked as an error, with t
 
 So the span's input count is no use. The task records the app's own count from the SDK's result message (`TurnUsage`) instead.
 
-**Not in the trace:** each model call within a turn, the thinking, and the system prompt. The instrumentation makes only AGENT and TOOL spans. The span does have the model, the agent session ID, and the SDK's cost estimate (`llm.cost.total`).
+**Not in the trace:** each model call within a turn, the thinking, and the system prompt. The instrumentation makes only AGENT and TOOL spans. The span does have the model, the agent session ID, and the SDK's cost estimate (`llm.cost.total`). Each turn after the first resumes the session, and on those turns the cost is the session's total so far, not the turn's. For example, a turn with 201 output tokens showed $0.096.
+
+**A span for each turn, from our code, fixes the message and the tokens.** A proof of concept on the spike branch does it in `runTurnWithSdk`, with helpers in `src/agent/turn-span.ts`. Before calling `query()`, it starts a `coordinator.turn` span. The span's input is the message the model got, and its `session.id` is the agent session ID. The instrumentation's spans go under it. When the turn ends, the span gets the reply as its output. An LLM span, `coordinator.model_calls`, goes under it with the turn's tokens from the SDK's result message, cache tokens included. From `npm run chat`:
+
+```
+AGENT  coordinator.turn           "Today is Saturday, October 24, 2026.\n\nPlan a 2-day trip from Portland to Bend in late May."
+LLM      coordinator.model_calls  60,894 input tokens, 57,779 of them cached, and 2,229 output
+AGENT    ClaudeAgent.query        {}
+TOOL       mcp__trip__read_trip_brief
+TOOL       mcp__places__find_place
+...
+```
+
+- **The tokens have to be on an LLM span.** Phoenix adds up tokens, and works out a price, only from LLM spans. With the counts on the turn span, Phoenix showed 0 tokens for the trace and for the session. On an LLM span, a two-turn chat's session showed 34,208 input tokens, the sum of its turns' 22,233 and 11,975. The SDK gives only the turn's totals, so one LLM span stands for all of the turn's model calls, and it lasts as long as the turn.
+- **`query()` has to be called, and its iterating started, under the turn span.** The instrumentation starts its span when iterating starts, under whatever span is active then. An async generator doesn't keep that across its yields, so `iterateUnder()` makes the iterator while the turn span is active.
+- **Nothing is counted twice.** The instrumentation's span still has its own token counts and cost, but it's an AGENT span, so Phoenix leaves them out of its totals.
+- **Phoenix's Sessions view now shows the user's side.** It groups traces by `session.id` and shows each session's first message and last reply. Before the turn span, the first message showed as `{}`.
 
 ### 2.3 One evaluation case from start to finish
 
@@ -117,7 +133,7 @@ So the span's input count is no use. The task records the app's own count from t
 2. **Makes the dataset,** `user-or-trip-memory`, with one example. Its input is the three messages and the user memory to add first. Its expected output is each statement, the memory it belongs in, and a pattern that finds it, such as `I-?35`. `createDataset()` updates a dataset of the same name, so a rerun doesn't make a second one.
 3. **Runs the experiment** with `runExperiment()`. The task makes a fresh user UUID, so memory starts empty. It adds the user memory item through `MemoryWriter.add()`, not SQL (persistence design 8.8). Then it runs the conversation through the same code as `npm run chat`: `TripWriter.startTrip()`, `SessionWriter.start()`, `CoordinatorTurns`, and `runTurnWithSdk`. It returns the user and trip IDs, and each turn's reply, tool calls, time, and tokens. Runs go one at a time (`concurrency: 1`), so each one's use of the plan can be told apart.
 4. **Scores each run** with two scorers (below).
-5. **Prints a summary,** with the SDK's cost estimate read back from the AGENT spans.
+5. **Prints a summary,** with the SDK's cost estimate read back from the AGENT spans. It takes the highest of a run's three, since each is the session's total so far (2.2).
 
 **The experiment shows up in Phoenix,** with links the client prints:
 
@@ -128,18 +144,22 @@ Links
   Experiment   http://127.0.0.1:6006/datasets/RGF0YXNldDox/compare?experimentId=RXhwZXJpbWVudDoy
 ```
 
-**Each run's trace holds the whole conversation.** The coordinator's spans land under the experiment's task span:
+**Each run's trace holds the whole conversation.** The coordinator's spans land under the experiment's task span. The task span's input is the whole example, and each turn span's input is the message that turn sent. This is from one run after the turn span was added (2.2). The five runs in 2.5 ran before it.
 
 ```
 CHAIN  Task: task
-AGENT    ClaudeAgent.query            turn 1
-TOOL       mcp__memory__read_memory
-TOOL       mcp__trip__update_itinerary
+AGENT    coordinator.turn             turn 1
+LLM        coordinator.model_calls
+AGENT      ClaudeAgent.query
+TOOL         mcp__memory__read_memory
+TOOL         mcp__trip__update_itinerary
 ...
-AGENT    ClaudeAgent.query            turn 2
-TOOL       mcp__memory__add_memory_item
-AGENT    ClaudeAgent.query            turn 3
-TOOL       mcp__memory__add_memory_item
+AGENT    coordinator.turn             turn 2
+LLM        coordinator.model_calls
+AGENT      ClaudeAgent.query
+TOOL         mcp__memory__add_memory_item
+AGENT    coordinator.turn             turn 3
+...
 ```
 
 **The two scorers:**
@@ -168,13 +188,13 @@ Plan check: {"apiKeySource":"none","account":{"tokenSource":"CLAUDE_CODE_OAUTH_T
 
 | Run | Time | Model calls | Input tokens | Cached | Output tokens | SDK estimate | `saved-scope` | `judge` |
 |---|---|---|---|---|---|---|---|---|
-| 1 | 36 s | 13 | 101,090 | 97,815 | 2,435 | $0.21 | 1 | 0.67 |
-| 2 | 38 s | 13 | 100,703 | 97,455 | 2,366 | $0.21 | 1 | 0.67 |
-| 3 | 44 s | 13 | 100,632 | 97,450 | 2,262 | $0.20 | 1 | 0.67 |
-| 4 | 29 s | 12 | 99,519 | 96,581 | 2,174 | $0.19 | 1 | 0.67 |
-| 5 | 39 s | 13 | 100,208 | 97,196 | 2,069 | $0.19 | 1 | 1 |
+| 1 | 36 s | 13 | 101,090 | 97,815 | 2,435 | $0.095 | 1 | 0.67 |
+| 2 | 38 s | 13 | 100,703 | 97,455 | 2,366 | $0.093 | 1 | 0.67 |
+| 3 | 44 s | 13 | 100,632 | 97,450 | 2,262 | $0.090 | 1 | 0.67 |
+| 4 | 29 s | 12 | 99,519 | 96,581 | 2,174 | $0.086 | 1 | 0.67 |
+| 5 | 39 s | 13 | 100,208 | 97,196 | 2,069 | $0.085 | 1 | 1 |
 
-"Cached" is the part of the input tokens read from the prompt cache. The SDK estimate is the SDK's `total_cost_usd`, its price for the turns at API rates.
+"Cached" is the part of the input tokens read from the prompt cache. The SDK estimate is the SDK's `total_cost_usd` on the run's last turn, its price for the whole run at API rates.
 
 **The coordinator barely changed from run to run.** Every run saved the chain rule to user memory and the I-35 request to trip memory, and nothing to the wrong one. The wording was close every time. For example, runs 2 and 5:
 
@@ -204,7 +224,7 @@ Three of the five conversations got the same score all five times. Two flipped b
 
 ### 2.6 What one run takes
 
-**The coordinator:** about 100,000 input tokens, 97% of them read from the prompt cache, and 2,070 to 2,440 output tokens, over 12 or 13 model calls in 3 turns. A run takes 30 to 45 seconds. The five ran one after another in 3 minutes 19 seconds. The SDK prices one run at $0.19 to $0.21 at API rates.
+**The coordinator:** about 100,000 input tokens, 97% of them read from the prompt cache, and 2,070 to 2,440 output tokens, over 12 or 13 model calls in 3 turns. A run takes 30 to 45 seconds. The five ran one after another in 3 minutes 19 seconds. The SDK prices one run at $0.085 to $0.095 at API rates. Phoenix works out its own price from the LLM spans' token counts (2.2). For the one run after the turn span was added, it gave $0.081, and the SDK gave $0.091. The spike didn't look into the gap.
 
 This runs on the Max plan, so the SDK's estimate isn't a bill. Systems design section 5 says the plan's monthly API credits and its subscription limits both cover the Agent SDK. Nothing the SDK returns says which one a run drew from, or what share of a limit it used. Comparing claude.ai's Settings > Usage page before and after a run would show it.
 
@@ -220,7 +240,8 @@ These are inputs for #53, not decisions:
 
 - **Phoenix works for this app.** It traced the coordinator on the Agent SDK version the app uses, and ran a case as an experiment with both kinds of scorer, on the Max plan. Nothing here needed promptfoo.
 - **The instrumented SDK needs the `GlobalTracer` fix** (2.2). Without it, no spans are made. It's worth a bug report to the instrumentation's maintainers.
-- **The user's message and the token counts have to come from our code.** The instrumentation can't read the streamed prompt, and it leaves cache tokens out of the count (2.2). `runTurnWithSdk` in `src/agent/coordinator.ts` already has both: the message it sends the SDK, and the result message `TurnUsage` comes from. It could start its own span for each turn, with them as the span's input and token counts, and run `query()` under it.
+- **The user's message and the token counts have to come from our code.** The instrumentation can't read the streamed prompt, and it leaves cache tokens out of the count (2.2). A proof of concept on the spike branch fixes both in `runTurnWithSdk` in `src/agent/coordinator.ts`. It starts a span for each turn, with the message as its input, and runs `query()` under it. An LLM span under the turn's holds the turn's tokens, from the result message `TurnUsage` comes from. The tokens have to be on an LLM span, or Phoenix doesn't count them.
+- **The SDK's cost estimate is the session's total so far,** on every turn after the first (2.2). So a run's cost is its last turn's, not the sum of its turns. Phoenix also works out a price from the LLM spans' token counts.
 - **Installing `@arizeai/phoenix-client` fails without `--legacy-peer-deps`,** and an `overrides` entry in `package.json` fixes it. The client names `@anthropic-ai/sdk` `^0.35.0` as an optional peer. Below 1.0, npm reads that as 0.35.x only, and the app has 0.135.0, so npm refuses to install. The range looks stale: the client's own development uses `^0.111.0`. Only its prompt helpers use the Anthropic SDK, and the spike doesn't use them.
 
   The flag doesn't change which versions get installed. It only skips the check. But once the client is on `main`, every install would need it, including `npm ci` in CI, the deploy, and the image builds. This entry tells npm to give the client the app's own `@anthropic-ai/sdk`:
