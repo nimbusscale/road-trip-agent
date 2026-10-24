@@ -58,6 +58,7 @@
     "ask-claude": "tsx --env-file=.env src/ask-claude.ts",
     "chat": "tsx --env-file=.env src/chat.ts",
     "eval:memory": "tsx --env-file=.env src/evals/user-or-trip-memory.ts",
+    "eval:rejudge": "tsx --env-file=.env src/evals/rejudge.ts",
     "build": "npm run build:app && npm run build:web",
     "build:app": "esbuild src/main.ts src/migrate.ts src/ask-claude.ts --bundle --platform=node --format=esm --packages=external --sourcemap --outdir=dist/app",
     "build:web": "vite build",
