@@ -2,7 +2,11 @@ import { Place } from "../domain/place.js";
 import { newId } from "../ids/new-id.js";
 import { googleErrorBodySchema } from "./google-error.schema.js";
 import { isTimeoutError, jsonBodyOf } from "./json-body.js";
-import { textSearchResponseSchema } from "./places-text-search.schema.js";
+import {
+  type NameMatch,
+  nameMatchResponseSchema,
+  textSearchResponseSchema,
+} from "./places-text-search.schema.js";
 
 const TEXT_SEARCH_URL = "https://places.googleapis.com/v1/places:searchText";
 
@@ -26,6 +30,14 @@ export const FIELD_MASK = [
   "places.editorialSummary",
   "places.generativeSummary",
   "places.reviewSummary",
+].join(",");
+
+// For a plain name, only enough to route by it and show what it matched. These fields
+// make it a Pro call, not an Enterprise one (Google design section 5).
+export const NAME_MATCH_FIELD_MASK = [
+  "places.id",
+  "places.displayName",
+  "places.formattedAddress",
 ].join(",");
 
 // A search that takes longer than this has failed. Google usually answers in about a
@@ -62,22 +74,37 @@ export class PlacesClient {
     textQuery: string,
     maximumResults: number,
   ): Promise<Place[]> {
-    const body = await this.#post({
-      textQuery,
-      pageSize: Math.min(Math.max(maximumResults, 1), MAXIMUM_RESULTS),
-    });
+    const body = await this.#post(
+      {
+        textQuery,
+        pageSize: Math.min(Math.max(maximumResults, 1), MAXIMUM_RESULTS),
+      },
+      FIELD_MASK,
+    );
     const parsed = textSearchResponseSchema.safeParse(body);
     if (!parsed.success) {
-      throw new GooglePlacesError(
-        `Google Places sent a response the app doesn't understand: ${parsed.error.message}`,
-      );
+      throw new GooglePlacesError(misunderstood(parsed.error.message));
     }
     return parsed.data.map(
       (facts) => new Place({ id: newId("place"), ...facts }),
     );
   }
 
-  async #post(request: object): Promise<unknown> {
+  // The best match for a plain name, such as "Moab, UT", or null when there's none. For
+  // compute_route, which saves no places (tool design 2.4).
+  async matchName(textQuery: string): Promise<NameMatch | null> {
+    const body = await this.#post(
+      { textQuery, pageSize: 1 },
+      NAME_MATCH_FIELD_MASK,
+    );
+    const parsed = nameMatchResponseSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new GooglePlacesError(misunderstood(parsed.error.message));
+    }
+    return parsed.data;
+  }
+
+  async #post(request: object, fieldMask: string): Promise<unknown> {
     let response: Response;
     let body: unknown;
     try {
@@ -87,7 +114,7 @@ export class PlacesClient {
           "Content-Type": "application/json",
           // The key goes in a header, never in the URL (Google design section 1).
           "X-Goog-Api-Key": this.#options.apiKey,
-          "X-Goog-FieldMask": FIELD_MASK,
+          "X-Goog-FieldMask": fieldMask,
         },
         body: JSON.stringify(request),
         signal: AbortSignal.timeout(TIMEOUT_MILLISECONDS),
@@ -105,6 +132,10 @@ export class PlacesClient {
     }
     return body;
   }
+}
+
+function misunderstood(detail: string): string {
+  return `Google Places sent a response the app doesn't understand: ${detail}`;
 }
 
 function failedCallMessage(error: unknown): string {

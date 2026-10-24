@@ -10,6 +10,7 @@ import { Session } from "../persistence/session.js";
 import { TranscriptAdapter } from "../persistence/transcript-adapter.js";
 import { setUp } from "../persistence/trip-writer.fake.js";
 import { fakePlacesAccess } from "../tools/places-session.fake.js";
+import { fakeRoutingAccess } from "../tools/routing-session.fake.js";
 import type { Conversation, CoordinatorGiven } from "./coordinator.js";
 
 // What the coordinator is given, for tests, with fakes for Postgres (DEVELOPMENT.md
@@ -26,6 +27,7 @@ export function coordinatorGiven(settings: Settings): CoordinatorGiven {
     processEnv: {},
     trip: { ...trips, settings },
     places: fakePlacesAccess(trips),
+    routing: fakeRoutingAccess(trips),
     memory: {
       writer: new MemoryWriter({
         pool: FAKE_POOL,

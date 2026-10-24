@@ -14,8 +14,8 @@ export function withWaypoints(
   stops: readonly Place[],
   to: Place,
   waypoints: readonly Place[],
-): RoutePoint[] {
-  const points: RoutePoint[] = [
+): RoutePoint<Place>[] {
+  const points: RoutePoint<Place>[] = [
     { place: from, isPassThrough: false },
     ...stops.map((place) => ({ place, isPassThrough: false })),
     { place: to, isPassThrough: false },
@@ -33,7 +33,10 @@ export function withWaypoints(
 
 // Where to insert the waypoint: the position after the gap's first neighbor. A tie goes
 // to the earlier gap.
-function cheapestGap(points: readonly RoutePoint[], waypoint: Place): number {
+function cheapestGap(
+  points: readonly RoutePoint<Place>[],
+  waypoint: Place,
+): number {
   let best = 1;
   let bestAdded = Infinity;
   for (let index = 1; index < points.length; index++) {

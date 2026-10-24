@@ -27,6 +27,9 @@ export interface CheckComparison {
   // No saved match, or the saved match was approved and this isn't, or the saved match
   // was marked "may be too early" and this isn't.
   readonly newResults: readonly CheckResult[];
+  // Not new, but the text differs from the saved match's, such as a daily driving
+  // warning that gives a new limit.
+  readonly changedResults: readonly CheckResult[];
   // Every other current check result.
   readonly knownResults: readonly CheckResult[];
   // Saved check results with no current match. Their saved text describes them, since
@@ -55,25 +58,32 @@ export class FeasibilityChecker {
   }
 
   // Two check results match when they have the same check and subject, whatever their
-  // text says.
+  // text says. A match whose text differs is changed, unless it's new.
   compare(
     current: readonly CheckResult[],
     saved: readonly CheckResult[],
   ): CheckComparison {
     const newResults: CheckResult[] = [];
+    const changedResults: CheckResult[] = [];
     const knownResults: CheckResult[] = [];
     current.forEach((result) => {
       const match = saved.find((each) => each.isSameAs(result));
-      const isNew =
+      if (
         match === undefined ||
         (match.isApproved && !result.isApproved) ||
-        (match.hasUnselectedStopBefore && !result.hasUnselectedStopBefore);
-      (isNew ? newResults : knownResults).push(result);
+        (match.hasUnselectedStopBefore && !result.hasUnselectedStopBefore)
+      ) {
+        newResults.push(result);
+      } else {
+        (match.text === result.text ? knownResults : changedResults).push(
+          result,
+        );
+      }
     });
     const goneResults = saved.filter(
       (result) => !current.some((each) => each.isSameAs(result)),
     );
-    return { newResults, knownResults, goneResults };
+    return { newResults, changedResults, knownResults, goneResults };
   }
 
   // Whether the holder's approval of that kind still covers the plan as it is now.

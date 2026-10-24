@@ -107,6 +107,34 @@ export const textSearchResponseSchema = z
   .object({ places: z.array(googlePlaceSchema).default([]) })
   .transform((response) => response.places);
 
+// A response with only NAME_MATCH_FIELD_MASK's fields (places-client.ts), for the plain
+// names compute_route takes (tool design 2.4). The best match, or null when there's
+// none. It isn't saved, so it needs nothing more.
+export const nameMatchResponseSchema = z
+  .object({
+    places: z
+      .array(
+        z.object({
+          id: z.string().min(1),
+          displayName: textOrNullSchema,
+          formattedAddress: z.string(),
+        }),
+      )
+      .default([]),
+  })
+  .transform((response) => {
+    const match = response.places[0];
+    return match === undefined
+      ? null
+      : {
+          googlePlaceId: match.id,
+          name: match.displayName,
+          address: match.formattedAddress,
+        };
+  });
+
+export type NameMatch = NonNullable<z.output<typeof nameMatchResponseSchema>>;
+
 function weekdayOf(point: Point): (typeof WEEKDAYS)[number] {
   const weekday = WEEKDAYS[point.day];
   if (weekday === undefined) {

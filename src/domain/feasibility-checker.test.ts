@@ -92,6 +92,33 @@ describe("FeasibilityChecker.compare, on the Moab trip", () => {
     expect(checker.isApplying(itinerary, day4, "driveHours")).toBe(false);
   });
 
+  it("marks Day 4's driving warning changed when its text differs, and keeps Milt's, whose text is the same, already known", () => {
+    const { itinerary, calendar, checker, torrey, stops } = moab();
+    const day4 = present(torrey.days[0]);
+    const saved = checker.workOut(itinerary);
+    // Still under the 5 hours approved: 115 + 85 + 20 + 25 + 30 minutes with the buffer.
+    routeDay(calendar, itinerary, day4, [104, 77, 18, 22, 27]);
+    const comparison = checker.compare(checker.workOut(itinerary), saved);
+    const driving = resultOf(
+      comparison.changedResults,
+      "dailyDriving",
+      day4.id,
+    );
+    expect(driving?.text).toBe(
+      "Day 4 needs about 4 h 35 m of driving. You agreed to 5.",
+    );
+    expect(resultOf(comparison.knownResults, "dailyDriving", day4.id)).toBe(
+      undefined,
+    );
+    expect(
+      resultOf(
+        comparison.knownResults,
+        "openingHoursNotLongEnough",
+        stops.milts.id,
+      ),
+    ).toBeDefined();
+  });
+
   it("returns Milt's warning as new once selecting Love Muffin clears its 'may be too early' mark", () => {
     const planning = moab();
     const { itinerary, calendar, services, checker, stops } = planning;

@@ -58,6 +58,7 @@ export class FakeRouteFinder implements RouteFinder {
 function foundRoute(segmentDriveTimesInMinutes: readonly number[]): FoundRoute {
   return {
     segmentDriveTimesInMinutes,
+    segmentDistancesInMiles: segmentDriveTimesInMinutes.map(() => 25),
     distanceInMiles: segmentDriveTimesInMinutes.length * 25,
     routeLine: "_p~iF~ps|U_ulLnnqC",
   };
