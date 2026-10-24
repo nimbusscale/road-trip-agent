@@ -40,6 +40,10 @@ export class FakeTripStore implements TripStore {
     return trips.filter((trip) => trip.owner.id === owner.id);
   }
 
+  loadPlaces(tripId: string): Promise<Place[]> {
+    return this.places.loadForTrip(tripId);
+  }
+
   add(trip: Trip): Promise<void> {
     this.#store(trip);
     return Promise.resolve();
@@ -50,6 +54,15 @@ export class FakeTripStore implements TripStore {
     editableTrip.refuseIfStarted(now);
     this.#store(editableTrip.trip);
     return this.places.fillNames(editableTrip.namedPlaces);
+  }
+
+  // The trip's row only. Its sessions, places, and memory are in other fakes, and the
+  // SQL that removes them is checked by hand.
+  remove(tripId: string): Promise<void> {
+    if (!this.rows.delete(tripId)) {
+      throw new TripNotFoundError(tripId);
+    }
+    return Promise.resolve();
   }
 
   #tripFrom(tripId: string, places: readonly Place[]): Trip {

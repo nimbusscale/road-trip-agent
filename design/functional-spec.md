@@ -25,9 +25,10 @@ Planning only. The application never books, reserves, or purchases anything.
 - Budget tiers (value, mid-range, posh), with differentiated rules per stay. Prices are not shown
 - Weather (forecast or seasonal averages) and clothing guidance
 - Itinerary view: summary, map, stays, legs, daily schedule with times
-- Save trips, list trips, reopen trips
+- Save trips, list trips, reopen trips, delete trips
+- Download a trip's brief and itinerary as a JSON file (10.1)
 - Resume previous chat sessions, or start a new session on an existing trip
-- User memory (across trips) and trip memory (within a trip), viewable and forgettable by the user
+- User memory (across trips) and trip memory (within a trip), viewable and forgettable by the user, in the chat and in the chat view's memory list
 - Trips of up to 14 days
 
 ### MVP+1
@@ -45,7 +46,7 @@ Planning only. The application never books, reserves, or purchases anything.
 - Trips longer than 14 days
 - Avoid-tolls or avoid-highways routing
 - Direct manual editing of the itinerary
-- Exports (PDF, calendar, map links)
+- Exports other than the JSON download (PDF, calendar, map links)
 - Showing prices or nightly rates. Recommendations show a budget tier only
 - Seasonal road and pass closures
 - Taking back a place the user rejected, within the same trip
@@ -278,6 +279,7 @@ Miles, Fahrenheit, and US date formats.
   - **Resume** a previous session. The transcript is restored and the agent continues with that conversation's context.
   - **Start a new session.** The agent starts from the current itinerary, the trip brief, trip memory, and user memory, without the earlier transcripts.
 - **Once the trip has started,** no session can be started or resumed (section 2).
+- **"Delete trip"** removes the trip: its itinerary, its sessions, and its trip memory. The app asks first, since it can't be undone. User memory stays. A trip can be deleted at any time, even once it has started, but not while a reply in one of its sessions is still coming in.
 - **The chat view shows the conversation as cards,** as other chat apps do. The user's messages are on the right, and the coordinator's replies are on the left. A reply's formatting, such as bold text and numbered lists, shows as formatting, not as marks.
 - **A "Raw" toggle shows how the coordinator worked on each turn.** Every user has it. On, the left side also shows each step of the turn as a card, in the order it happened:
   - the turn's start: the model, and the tools it was given
@@ -289,6 +291,8 @@ Miles, Fahrenheit, and US date formats.
   - the turn's end: how long it took, the number of model calls, the input and output tokens, and why it failed, if it did
 
   Long text is cut to about 15 lines, with "Show all" to see the rest. On, the replies show their formatting marks as the coordinator wrote them, such as `**Trip brief**`. Off, the chat shows only the user's messages and the coordinator's replies. The steps aren't saved. They're kept only in the browser tab, for the turns sent from it, whether the toggle is on or off. A reload, or resuming the session, shows the conversation with no steps.
+- **A "Memory" toggle shows user memory and trip memory,** each item with "Forget." The app asks first. Forgetting an item here works like asking the agent to forget it (10.5). The list is read again after each reply, since the agent may have changed memory. It's shown once the session exists, after the first message.
+- **"Download plan" saves the trip brief and the itinerary as a JSON file,** on several lines and indented, so a person can read it. It names each place by its name and address, and leaves out route lines. "Download plan as stored" saves them as the app stores them, with each place as an ID, followed by every place the plan links to, with all of its stored facts. Both are shown once the session exists.
 - **Not supported:** two sessions of one trip open at the same time, such as in two browser tabs or on two devices. Nothing stops it, but a session that stays open doesn't learn about changes made in the other one. Only the trip's owner can see it (10.4), so this is one user with two sessions open, never two users.
 
 ### 10.2 Trip memory
@@ -324,6 +328,7 @@ User memory doesn't hold a dislike of one specific place, since it means nothing
 
 - The user can ask the agent what it remembers, at both the user level and the trip level, and the agent answers from its stored memory.
 - The user can ask the agent to forget specific items. Forgotten items no longer influence recommendations.
+- The user can also see both memories in the chat view's memory list, and forget any item there (10.1). The app tells the agent on the next message, so it reads memory again and stops using the item.
 - When the user asks what the agent knows about a trip, the agent gives both the trip brief and trip memory. Memory items can be forgotten. Trip brief items can be changed but not forgotten, because the agent needs them to plan.
 
 ---

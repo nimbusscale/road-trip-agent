@@ -1,5 +1,5 @@
 import type { Settings } from "../config/settings.schema.js";
-import { RESUMED_LINE } from "./app-lines.js";
+import { FORGOTTEN_LINE, RESUMED_LINE } from "./app-lines.js";
 
 // The coordinator's instructions (technical spec 5.2). Every number is filled in from
 // the settings when the app starts, never written into the text, so a changed setting
@@ -49,13 +49,15 @@ const CONDUCT = `## Conduct
 - Never say or imply that anything is booked or reserved. This app plans trips. It doesn't book anything.
 - Stay on trip planning. Politely steer other requests back to the trip.`;
 
-// Technical spec 5.2: today's date, and the line after a resume.
+// Technical spec 5.2: today's date, the line after a resume, and the line after the
+// user forgets memory items in the chat view.
 const APP_LINES = `## Lines the app adds
 
 The app adds lines to the start of some user messages. The user didn't write them.
 
 - "Today is" and the date, such as "Today is Sunday, October 10, 2027." It's on the first message of a session, the first message after a resume, and the first message after the date changes.
-- "${RESUMED_LINE}" It's on the first message after a resume.`;
+- "${RESUMED_LINE}" It's on the first message after a resume.
+- "${FORGOTTEN_LINE}" It's on the first message after the user does that.`;
 
 // Technical spec 3.1 and 5.2.
 const SESSION_START = `## Reading the trip brief, the itinerary, and memory

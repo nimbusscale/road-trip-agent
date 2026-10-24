@@ -123,7 +123,7 @@ A started trip can't be changed (domain model 3.1). `TripWriter` refuses a write
 - **A failed send is tried 3 times in all.** Then the SDK drops those lines, sends the app a `mirror_error` message, and the turn goes on. So a database outage during a turn can lose lines too, not only a restart. The app logs each `mirror_error` message, with the session's ID and the error, and does nothing more.
 - **A few lines can be out of order after a retry.** A batch that's saved on its second or third try can land after lines the SDK sent later. That's accepted.
 - **Resuming** asks the adapter for the session's lines, and for each worker's. The SDK writes them to a temporary folder of its own, continues the conversation from them, and removes the folder when that run ends (section 8.5). A resume never reads the local file.
-- **Transcript lines are never changed or removed** in the MVP. Nothing deletes a trip or a session.
+- **Transcript lines are never changed.** They're removed only when their trip is deleted (below).
 - **The SDK marks `sessionStore` as alpha,** meaning it may change. If it breaks, the fallback is to copy the local file to Postgres ourselves at the end of each turn, and write it back to disk before a resume.
 
 **Claude Code's own files are scratch.** The app sets `CLAUDE_CONFIG_DIR`, the folder where the SDK's Claude Code process keeps its files, to `road-trip-agent-claude` in the system temp folder. On the server and on Linux, that's `/tmp/road-trip-agent-claude`. Nothing in the app reads or cleans it. Under the temp folder, it stays out of a developer's own `~/.claude`, so local runs don't mix the app's transcripts with the developer's own Claude Code sessions. Every conversation shares the folder:
@@ -140,6 +140,12 @@ A resumed run doesn't write here. Its files go in the temporary folder the SDK m
 - **The folder stays small.** A deploy replaces the container's disk. Claude Code also deletes its transcripts after 30 days by default.
 
 Transcripts don't go through a write, and take no row lock.
+
+**Deleting a trip removes everything that belongs to it,** in one transaction: its transcript lines, including its workers', its sessions, its trip memory items, its places, and its row. User memory stays, since it isn't part of any trip. A deleted trip is gone, not hidden. `TripWriter.deleteTrip()` does it (section 8.2).
+
+- **It takes the row lock first,** "for update," with the same 5-second wait as a write. So it waits for a write in progress, and refuses with the busy error if that takes too long. Unlike a write's lock, it also makes a place insert's foreign-key check wait, so no place is added once the trip's places are removed.
+- **It isn't a write.** It doesn't load the plan or check the started-trip lock, so a started trip can be deleted.
+- **The app refuses it while one of the trip's sessions has a turn running,** since the turn would go on changing the trip.
 
 ---
 
@@ -170,11 +176,13 @@ classDiagram
     class TripWriter {
         write(tripId : string, by : WriteBy, change : Change) WriteResult~T~
         startTrip(owner : User) Trip
+        deleteTrip(tripId : string)
     }
 
     class TripReader {
         read(tripId : string) Trip
         listForOwner(owner : User) List~Trip~
+        readPlaces(tripId : string) List~Place~
     }
 
     class PlaceWriter {
@@ -230,8 +238,10 @@ classDiagram
         loadForWrite(tripId : string) EditableTrip
         load(tripId : string) Trip
         listForOwner(owner : User) List~Trip~
+        loadPlaces(tripId : string) List~Place~
         add(trip : Trip)
         save(editableTrip : EditableTrip, now : dateTime)
+        remove(tripId : string)
     }
 
     class EditableTrip {
@@ -313,6 +323,7 @@ The fixed list that the classes above use:
 
   If anything refuses or fails along the way, it rolls back and passes the error on, and returns no `WriteResult`.
 - **`startTrip(owner)`** creates a new trip (domain model 3.1, "A new trip"), sets its last updated to now, adds its row, and returns it.
+- **`deleteTrip(tripId)`** removes the trip and everything that belongs to it, with `TripRepository.remove()`, in one transaction (section 6). It isn't a write, so it runs no change, no finish, and no started-trip check.
 
 **A `WriteResult`** holds what a tool needs for its reply (domain model section 1, "What a write hands back"). It isn't stored.
 
@@ -338,6 +349,7 @@ The fixed list that the classes above use:
 
 - **`read(tripId)`** loads one trip. The tools use it for reads, such as `read_itinerary`, and the search tools use it to leave out rejected places, with `itinerary.isRejected()`.
 - **`listForOwner(owner)`** loads every trip the user owns, for the home screen, newest change first. The name, dates, and last updated each come from the plan document (section 2).
+- **`readPlaces(tripId)`** loads every place the trip has, for the plan's downloads (functional spec 10.1). The stored download lists the places the plan links to, and the readable one puts each one's name and address where the plan has its ID.
 
 **A trip from a read is never saved.** Code can change it in memory, but `TripRepository.save()` only takes an `EditableTrip`, and only `loadForWrite()` makes one (section 8.4). So a change made to a read by mistake goes nowhere.
 
@@ -412,8 +424,10 @@ A **repository** is a class that reads and saves one kind of record (section 2).
 - **`loadForWrite(tripId)`** loads the trip's row "for no key update," which takes the row lock (section 4). Then it loads the trip's places, and returns an `EditableTrip`. If the lock isn't free within 5 seconds, it refuses, and the error says the trip is busy. `TripWriter` tries again twice before passing the error on (section 4).
 - **`load(tripId)`** does the same without the row lock, and returns the `Trip`.
 - **`listForOwner(owner)`** loads every trip the user owns.
+- **`loadPlaces(tripId)`** loads the trip's places, with `PlaceRepository.loadForTrip()`.
 - **`add(trip)`** adds a new trip's row.
 - **`save(editableTrip, now)`** checks the started-trip lock with `editableTrip.refuseIfStarted(now)`, and refuses when the trip has started by `now` (section 5). Otherwise it saves the plan document. Then it passes each place in `unnamedPlaceIds` that now has a name to `PlaceRepository.fillNames()`. `TripWriter` passes the time from its clock.
+- **`remove(tripId)`** takes the row lock "for update," then removes the trip's transcript lines, sessions, trip memory items, places, and row, in that order, since each row goes before the rows it links to (section 6). It's the one query that reaches other records' tables, so that deleting a trip stays one call in one transaction.
 
 **PlaceRepository** reads and saves place rows.
 
@@ -453,13 +467,13 @@ A **memory item** is one plain-text note in user memory or in one trip's memory 
 
 | Property | Type | Notes |
 |---|---|---|
-| `id` | `string`, read only | Prefix `mem_` (technical spec 7.1). The coordinator sees it, so it can update or forget the item. Users never see it |
+| `id` | `string`, read only | Prefix `mem_` (technical spec 7.1). The coordinator sees it, so it can update or forget the item. The chat view's memory list gets it too, to forget the item, but doesn't show it |
 | `userId` | `string`, read only | The user it belongs to. For a trip item, that's the trip's owner |
 | `tripId` | `string?`, read only | The trip, for a trip memory item. Empty for a user memory item |
 | `text` | `string` | The note. At most the maximum memory item length (technical spec section 10) |
 | `createdDateTime` | `dateTime`, read only | Items are read back in the order created |
 
-**Every memory class takes the user ID,** and every query includes it. The tools pass the session's user and trip, so no agent chooses them (tool design section 4). An item whose user, or whose trip for a trip item, doesn't match is treated as one that doesn't exist.
+**Every memory class takes the user ID,** and every query includes it. The tools pass the session's user and trip, so no agent chooses them (tool design section 4). The chat view's memory list goes by its session the same way, so the browser can't choose them either (functional spec 10.1). An item whose user, or whose trip for a trip item, doesn't match is treated as one that doesn't exist.
 
 **MemoryWriter** changes memory. None of its operations takes a row lock or loads the plan for a write (section 2).
 

@@ -33,6 +33,8 @@ export interface Chat {
   state: ChatState;
   // Null until the trip exists.
   tripId: string | null;
+  // Null until the session exists, which is when the trip does.
+  sessionId: string | null;
   send: (text: string) => void;
 }
 
@@ -44,6 +46,7 @@ export function useChat(start: ChatStart): Chat {
   // The session this view was opened on. A new trip's or new session's comes later.
   const resumedSessionId = start.page === "session" ? start.sessionId : null;
   const sessionIdRef = useRef(resumedSessionId);
+  const [sessionId, setSessionId] = useState(resumedSessionId);
 
   useResume(start, dispatch, setTripId);
   // Only a resumed session can have a turn this view didn't start.
@@ -55,6 +58,7 @@ export function useChat(start: ChatStart): Chat {
       const onEvent = (event: ChatEvent): void => {
         if (event.name === "session") {
           sessionIdRef.current = event.data.sessionId;
+          setSessionId(event.data.sessionId);
           setTripId(event.data.tripId);
           replaceAddress({ page: "session", sessionId: event.data.sessionId });
         }
@@ -76,7 +80,7 @@ export function useChat(start: ChatStart): Chat {
     [start],
   );
 
-  return { state, tripId, send };
+  return { state, tripId, sessionId, send };
 }
 
 // Opening a session resumes it: the server tells the coordinator so on the next

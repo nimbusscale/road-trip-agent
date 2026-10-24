@@ -1,3 +1,4 @@
+import type { Place } from "../domain/place.js";
 import type { Trip } from "../domain/trip.js";
 import type { User } from "../domain/user.js";
 import type { Queryable } from "./queryable.js";
@@ -14,6 +15,11 @@ export class TripReader {
 
   read(tripId: string): Promise<Trip> {
     return this.#store.load(tripId);
+  }
+
+  // Every place the trip has, for the plan's downloads.
+  readPlaces(tripId: string): Promise<Place[]> {
+    return this.#store.loadPlaces(tripId);
   }
 
   // For the home screen, which shows each trip's name, dates, and last updated. Each

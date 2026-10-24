@@ -1,5 +1,5 @@
-import type { OpeningPeriod } from "../domain/opening-period.js";
 import { Place } from "../domain/place.js";
+import { storedOpeningPeriod } from "./place-document.js";
 import { placeRowSchema } from "./place-row.schema.js";
 import type { Queryable } from "./queryable.js";
 
@@ -123,20 +123,11 @@ function valuesOf(tripId: string, place: Place): unknown[] {
     place.rating,
     place.reviewCount,
     place.priceLevel,
-    JSON.stringify(place.openingPeriods.map(storedPeriod)),
+    JSON.stringify(place.openingPeriods.map(storedOpeningPeriod)),
     place.weekdayHoursLines,
     place.summaries,
     place.links,
   ];
-}
-
-function storedPeriod(period: OpeningPeriod): object {
-  return {
-    openDay: period.openDay,
-    openTime: period.openTime.toText(),
-    closeDay: period.closeDay,
-    closeTime: period.closeTime?.toText() ?? null,
-  };
 }
 
 function inGivenOrder(

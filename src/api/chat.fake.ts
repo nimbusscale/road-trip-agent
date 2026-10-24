@@ -1,11 +1,18 @@
 import { CoordinatorTurns } from "../agent/coordinator-turns.js";
 import { coordinatorGiven } from "../agent/coordinator.fake.js";
 import { FakeSdk } from "../agent/run-turn.fake.js";
+import {
+  FAKE_POOL,
+  FakeMemoryStore,
+} from "../persistence/fake-memory-store.js";
+import { MemoryReader } from "../persistence/memory-reader.js";
+import { MemoryWriter } from "../persistence/memory-writer.js";
 import { FakeSessionRowStore } from "../persistence/fake-session-row-store.js";
 import { FakeTranscriptLineStore } from "../persistence/fake-transcript-line-store.js";
 import { SessionReader } from "../persistence/session-reader.js";
 import { SessionWriter } from "../persistence/session-writer.js";
 import { TranscriptAdapter } from "../persistence/transcript-adapter.js";
+import { tripStartedCheckUsing } from "../persistence/trip-started-check.js";
 import { setUp } from "../persistence/trip-writer.fake.js";
 import { fakePlacesAccess } from "../tools/places-session.fake.js";
 import type { FakeTripStore } from "../persistence/trip-store.fake.js";
@@ -19,6 +26,7 @@ export interface ChatSetUp {
   tripStore: FakeTripStore;
   sessionStore: FakeSessionRowStore;
   transcriptStore: FakeTranscriptLineStore;
+  memoryStore: FakeMemoryStore;
 }
 
 // `now` is the time the started-trip checks go by.
@@ -30,8 +38,11 @@ export function chatSetUp(now: Date): ChatSetUp {
     pool: trips.pool,
     makeStore: () => transcriptStore,
   });
+  const memoryStore = new FakeMemoryStore();
+  const memory = fakeMemoryAccess(memoryStore, trips, now);
   const coordinator = {
     ...coordinatorGiven(trips.settings),
+    memory: { ...memory, limits: trips.settings },
     trip: {
       writer: trips.writer,
       reader: trips.reader,
@@ -50,6 +61,7 @@ export function chatSetUp(now: Date): ChatSetUp {
         reader: new SessionReader(sessions),
         writer: new SessionWriter(sessions),
       },
+      memory,
       turns: new CoordinatorTurns({
         coordinator,
         runTurn: sdk.runTurn,
@@ -62,5 +74,27 @@ export function chatSetUp(now: Date): ChatSetUp {
     tripStore: trips.store,
     sessionStore,
     transcriptStore,
+    memoryStore,
+  };
+}
+
+// One memory for the coordinator's tools and the chat view's memory list. A trip
+// memory item can't change once the trip has started by `now`.
+function fakeMemoryAccess(
+  memoryStore: FakeMemoryStore,
+  trips: ReturnType<typeof setUp>,
+  now: Date,
+): ChatDependencies["memory"] {
+  return {
+    reader: new MemoryReader({ pool: FAKE_POOL, makeStore: () => memoryStore }),
+    writer: new MemoryWriter({
+      pool: FAKE_POOL,
+      makeStore: () => memoryStore,
+      hasTripStarted: tripStartedCheckUsing(
+        () => trips.store,
+        () => now,
+      ),
+      limits: trips.settings,
+    }),
   };
 }

@@ -20,6 +20,7 @@ The app adds lines to the start of some user messages. The user didn't write the
 
 - "Today is" and the date, such as "Today is Sunday, October 10, 2027." It's on the first message of a session, the first message after a resume, and the first message after the date changes.
 - "This session was resumed. Read the trip brief, the itinerary, and memory first." It's on the first message after a resume.
+- "The user forgot memory items in the app, outside this chat. Read memory again, and stop using any item that's gone." It's on the first message after the user does that.
 
 ## Reading the trip brief, the itinerary, and memory
 
