@@ -36,8 +36,9 @@ describe("coordinatorOptions", () => {
       "mcp__places__find_place",
       "mcp__places__read_place",
       "mcp__routing",
+      "Agent",
     ]);
-    expect(options.tools).toEqual([]);
+    expect(options.tools).toEqual(["Agent"]);
     expect(options.settingSources).toEqual([]);
     expect(options.strictMcpConfig).toBe(true);
   });

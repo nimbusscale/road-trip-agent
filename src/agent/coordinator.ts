@@ -1,3 +1,5 @@
+import { appendFileSync } from "node:fs";
+
 import {
   type Options,
   query,
@@ -72,12 +74,19 @@ export function coordinatorOptions(
     // Spike (#132): the stream events give each model call's start and its final
     // tokens, for its span (TurnTrace). turnEventsOf() leaves them out.
     includePartialMessages: true,
-    env: processEnv,
+    // Spike (#136): SPIKE_FORWARD_SUBAGENT_TEXT=1 sends a worker's text and thinking too.
+    forwardSubagentText: process.env.SPIKE_FORWARD_SUBAGENT_TEXT === "1",
+    // Spike (#136): a throwaway worker, so a turn has a worker's spans to trace.
+    agents: { "coffee-finder": COFFEE_FINDER },
+    // Spike (#136): workers run in the foreground, so each one's Agent call returns its
+    // result in the same turn. Otherwise the Agent tool runs them in the background by
+    // default, and the coordinator is woken in a new turn when each one is done.
+    env: { ...processEnv, CLAUDE_CODE_DISABLE_BACKGROUND_TASKS: "1" },
     // No settings files, CLAUDE.md, or MCP servers but ours, and no built-in tools. Each
     // agent sees only its own tools (technical spec section 2).
     settingSources: [],
     strictMcpConfig: true,
-    tools: [],
+    tools: ["Agent"],
     mcpServers: {
       [TRIP_SERVER_NAME]: createTripServer({ ...trip, tripId }),
       [MEMORY_SERVER_NAME]: createMemoryServer({ ...memory, userId, tripId }),
@@ -93,6 +102,7 @@ export function coordinatorOptions(
       `mcp__${PLACES_SERVER_NAME}__find_place`,
       `mcp__${PLACES_SERVER_NAME}__read_place`,
       `mcp__${ROUTING_SERVER_NAME}`,
+      "Agent",
     ],
     permissionMode: "dontAsk",
     // The transcript goes to Postgres line by line as it's written (persistence design,
@@ -103,6 +113,27 @@ export function coordinatorOptions(
       ? { resume: session.agentSessionId }
       : { sessionId: session.agentSessionId }),
   };
+}
+
+// Spike (#136): a throwaway worker on another model, with one tool.
+const COFFEE_FINDER = {
+  description:
+    "Finds two coffee shops near one place. Give it the place's name and town.",
+  prompt:
+    "Find two coffee shops near the place you're given, with find_place. Reply with each one's name and address, and nothing else.",
+  tools: [`mcp__${PLACES_SERVER_NAME}__find_place`],
+  model: "claude-sonnet-5-5",
+};
+
+// Spike (#136): SPIKE_SDK_DUMP=<file> appends each of the SDK's messages to the file.
+function dumpSdkMessage(sdkMessage: SDKMessage): void {
+  const file = process.env.SPIKE_SDK_DUMP;
+  if (file !== undefined) {
+    appendFileSync(
+      file,
+      `${JSON.stringify({ at: Date.now(), ...sdkMessage })}\n`,
+    );
+  }
 }
 
 // Runs one turn: the user's message, with the app's lines already added, and the
@@ -122,10 +153,15 @@ export const runTurnWithSdk: RunTurn = async function* (message, options) {
     await turnEnded.promise;
   }
   const agentSessionId = options.sessionId ?? options.resume ?? "";
-  const turnTrace = new TurnTrace(message, agentSessionId);
+  const turnTrace = new TurnTrace(
+    message,
+    agentSessionId,
+    options.sessionStore,
+  );
   try {
     for await (const sdkMessage of query({ prompt: prompt(), options })) {
       logMirrorError(sdkMessage, agentSessionId);
+      dumpSdkMessage(sdkMessage);
       turnTrace.record(sdkMessage);
       if (sdkMessage.type === "result") {
         turnEnded.resolve(undefined);
@@ -134,7 +170,7 @@ export const runTurnWithSdk: RunTurn = async function* (message, options) {
     }
   } finally {
     turnEnded.resolve(undefined);
-    turnTrace.end();
+    await turnTrace.end();
   }
 };
 

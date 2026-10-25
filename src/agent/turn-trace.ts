@@ -1,4 +1,8 @@
-import type { SDKMessage } from "@anthropic-ai/claude-agent-sdk";
+import {
+  getSubagentMessages,
+  type SDKMessage,
+  type SessionStore,
+} from "@anthropic-ai/claude-agent-sdk";
 import {
   OpenInferenceSpanKind,
   SemanticConventions,
@@ -12,12 +16,15 @@ import {
   trace,
 } from "@opentelemetry/api";
 
+import { z } from "zod";
+
 import { toolResultsOf, toolResultText } from "./turn-event.js";
 
 const TRACER_NAME = "road-trip-agent";
 
 type AssistantMessage = Extract<SDKMessage, { type: "assistant" }>;
 type ResultMessage = Extract<SDKMessage, { type: "result" }>;
+type TaskStartedMessage = Extract<SDKMessage, { subtype: "task_started" }>;
 type StreamEvent = Extract<SDKMessage, { type: "stream_event" }>["event"];
 type ContentBlock = AssistantMessage["message"]["content"][number];
 type Usage = AssistantMessage["message"]["usage"];
@@ -41,7 +48,22 @@ interface ModelCall {
   endedAt: Date;
 }
 
-// Spike (#132): the trace of one coordinator turn, made from the SDK's messages. The
+// Spike (#136): one worker, started by one of the coordinator's Agent tool calls. Its
+// span is under that tool's span. Its tool spans are made from the stream as they come.
+// Its model call spans are made when the turn ends, from its transcript, since the SDK
+// sends none of a worker's stream events, and its text and thinking only with
+// forwardSubagentText on. The transcript is read when the turn ends, since when the
+// worker's result arrives, its last model call isn't in the session store yet.
+interface Worker {
+  name: string;
+  agentId: string | undefined;
+  span: Span;
+  context: Context;
+  startedAt: Date;
+  endedAt: Date | undefined;
+}
+
+// Spike (#132, #136): the trace of one coordinator turn, made from the SDK's messages. The
 // turn's span holds the message the model got and the reply. Under it, in order, is a
 // span for each model call, with its thinking, text, tool calls, and tokens, and a span
 // for each tool call. With no tracer provider set up, the spans go nowhere.
@@ -54,11 +76,22 @@ export class TurnTrace {
   readonly #turn: Span;
   readonly #context: Context;
   readonly #tools = new Map<string, Span>();
+  readonly #toolStarts = new Map<string, Date>();
+  // By the tool_use_id of the coordinator's Agent call that started each one.
+  readonly #workers = new Map<string, Worker>();
+  readonly #agentSessionId: string;
+  readonly #sessionStore: SessionStore | undefined;
   #call: ModelCall | undefined;
   #stepEndedAt: Date;
   #hasResult = false;
 
-  constructor(message: string, agentSessionId: string) {
+  constructor(
+    message: string,
+    agentSessionId: string,
+    sessionStore: SessionStore | undefined,
+  ) {
+    this.#agentSessionId = agentSessionId;
+    this.#sessionStore = sessionStore;
     this.#stepEndedAt = new Date();
     this.#turn = tracer().startSpan("coordinator.turn", {
       startTime: this.#stepEndedAt,
@@ -74,6 +107,13 @@ export class TurnTrace {
   }
 
   record(message: SDKMessage): void {
+    if (
+      "parent_tool_use_id" in message &&
+      typeof message.parent_tool_use_id === "string"
+    ) {
+      this.#recordWorkerMessage(message.parent_tool_use_id, message);
+      return;
+    }
     switch (message.type) {
       case "assistant":
         this.#recordBlocks(message);
@@ -87,14 +127,24 @@ export class TurnTrace {
       case "stream_event":
         this.#recordStreamEvent(message.event);
         break;
+      case "system":
+        if (message.subtype === "task_started") {
+          this.#startWorker(message);
+        }
+        break;
       default:
         break;
     }
   }
 
-  // Ends every span still open, such as when the turn failed before its result.
-  end(): void {
+  // Ends every span still open, such as when the turn failed before its result. Each
+  // worker's model calls are read from its transcript first.
+  async end(): Promise<void> {
     this.#endCall();
+    for (const worker of this.#workers.values()) {
+      await this.#endWorker(worker);
+    }
+    this.#workers.clear();
     for (const span of this.#tools.values()) {
       span.setStatus({
         code: SpanStatusCode.ERROR,
@@ -174,7 +224,13 @@ export class TurnTrace {
     };
   }
 
-  #startTool(id: string, name: string, input: unknown, at: Date): void {
+  #startTool(
+    id: string,
+    name: string,
+    input: unknown,
+    at: Date,
+    parent: Context = this.#context,
+  ): void {
     const span = tracer().startSpan(
       name,
       {
@@ -188,18 +244,28 @@ export class TurnTrace {
           [SemanticConventions.INPUT_MIME_TYPE]: "application/json",
         },
       },
-      this.#context,
+      parent,
     );
     this.#tools.set(id, span);
+    this.#toolStarts.set(id, at);
   }
 
   #recordToolResults(
     content: Extract<SDKMessage, { type: "user" }>["message"]["content"],
+    isCoordinator = true,
   ): void {
     for (const block of toolResultsOf(content)) {
       const span = this.#tools.get(block.tool_use_id);
       if (span === undefined) {
         continue;
+      }
+      const worker = this.#workers.get(block.tool_use_id);
+      if (worker !== undefined) {
+        worker.endedAt = new Date();
+        worker.span.setAttributes({
+          [SemanticConventions.OUTPUT_VALUE]: toolResultText(block),
+          [SemanticConventions.OUTPUT_MIME_TYPE]: "text/plain",
+        });
       }
       const text = toolResultText(block);
       span.setAttributes({
@@ -211,8 +277,11 @@ export class TurnTrace {
           ? { code: SpanStatusCode.ERROR, message: text }
           : { code: SpanStatusCode.OK },
       );
-      this.#stepEndedAt = new Date();
-      span.end(this.#stepEndedAt);
+      const now = new Date();
+      if (isCoordinator) {
+        this.#stepEndedAt = now;
+      }
+      span.end(now);
       this.#tools.delete(block.tool_use_id);
     }
   }
@@ -237,14 +306,189 @@ export class TurnTrace {
     if (call === undefined) {
       return;
     }
-    call.span.setAttributes({
-      ...modelCallAttributes(call),
-      ...outputMessageAttributes(call.blocks),
-    });
-    call.span.setStatus({ code: SpanStatusCode.OK });
-    call.span.end(call.endedAt);
+    endModelCall(call);
     this.#call = undefined;
   }
+
+  // The worker's span goes under the Agent tool span that started it.
+  #startWorker(message: TaskStartedMessage): void {
+    const toolUseId = message.tool_use_id;
+    if (toolUseId === undefined || this.#workers.has(toolUseId)) {
+      return;
+    }
+    this.#workerFor(toolUseId, message.subagent_type, message.prompt);
+  }
+
+  #workerFor(
+    toolUseId: string,
+    name = "worker",
+    prompt: string | undefined = undefined,
+  ): Worker {
+    const known = this.#workers.get(toolUseId);
+    if (known !== undefined) {
+      return known;
+    }
+    const toolSpan = this.#tools.get(toolUseId);
+    const parent =
+      toolSpan === undefined
+        ? this.#context
+        : trace.setSpan(this.#context, toolSpan);
+    // From when the coordinator's call for it arrived. The worker's prompt is written to
+    // its transcript before the SDK sends task_started.
+    const startedAt = this.#toolStarts.get(toolUseId) ?? new Date();
+    const span = tracer().startSpan(
+      `${name}.turn`,
+      {
+        startTime: startedAt,
+        attributes: {
+          [SemanticConventions.OPENINFERENCE_SPAN_KIND]:
+            OpenInferenceSpanKind.AGENT,
+          [SemanticConventions.AGENT_NAME]: name,
+          [SemanticConventions.SESSION_ID]: this.#agentSessionId,
+          ...(prompt === undefined
+            ? {}
+            : {
+                [SemanticConventions.INPUT_VALUE]: prompt,
+                [SemanticConventions.INPUT_MIME_TYPE]: "text/plain",
+              }),
+        },
+      },
+      parent,
+    );
+    const worker: Worker = {
+      name,
+      agentId: undefined,
+      span,
+      context: trace.setSpan(parent, span),
+      startedAt,
+      endedAt: undefined,
+    };
+    this.#workers.set(toolUseId, worker);
+    return worker;
+  }
+
+  // A worker's tool calls and results. Its stream events, text, and thinking are left
+  // out, since its model calls come from its transcript (#endWorker).
+  #recordWorkerMessage(toolUseId: string, message: SDKMessage): void {
+    if (message.type === "assistant") {
+      const worker = this.#workerFor(toolUseId);
+      worker.agentId ??= message.agent_id;
+      const now = new Date();
+      for (const block of message.message.content) {
+        if (block.type === "tool_use") {
+          this.#startTool(
+            block.id,
+            block.name,
+            block.input,
+            now,
+            worker.context,
+          );
+        }
+      }
+    } else if (message.type === "user") {
+      this.#recordToolResults(message.message.content, false);
+    }
+  }
+
+  async #endWorker(worker: Worker): Promise<void> {
+    const endedAt = worker.endedAt ?? new Date();
+    if (worker.agentId === undefined || this.#sessionStore === undefined) {
+      worker.span.setStatus({
+        code: SpanStatusCode.ERROR,
+        message: "No agent ID or session store, so no model calls.",
+      });
+    } else {
+      try {
+        const messages = await getSubagentMessages(
+          this.#agentSessionId,
+          worker.agentId,
+          { sessionStore: this.#sessionStore },
+        );
+        for (const call of workerCalls(messages, worker)) {
+          endModelCall(call);
+        }
+        worker.span.setStatus(
+          worker.endedAt === undefined
+            ? { code: SpanStatusCode.ERROR, message: "The worker didn't end." }
+            : { code: SpanStatusCode.OK },
+        );
+      } catch (error) {
+        worker.span.setStatus({
+          code: SpanStatusCode.ERROR,
+          message: `Couldn't read the worker's transcript: ${String(error)}`,
+        });
+      }
+    }
+    worker.span.end(endedAt);
+  }
+}
+
+function endModelCall(call: ModelCall): void {
+  call.span.setAttributes({
+    ...modelCallAttributes(call),
+    ...outputMessageAttributes(call.blocks),
+  });
+  call.span.setStatus({ code: SpanStatusCode.OK });
+  call.span.end(call.endedAt);
+}
+
+// A transcript line's message from the model. The SDK types it as unknown.
+const transcriptCall = z.object({
+  id: z.string(),
+  model: z.string(),
+  usage: z.object({
+    input_tokens: z.number(),
+    cache_read_input_tokens: z.number().nullish(),
+    cache_creation_input_tokens: z.number().nullish(),
+    output_tokens: z.number(),
+  }),
+  content: z.array(z.looseObject({ type: z.string() })),
+});
+
+const timestamped = z.looseObject({ timestamp: z.string() });
+
+// The worker's model calls, from its transcript. The transcript has a line for each of
+// a call's blocks, each with the call's final tokens. A call starts when the line
+// before it, its prompt or a tool result, was written, and ends with its last block.
+function workerCalls(
+  messages: ReadonlyArray<{ type: string; message: unknown }>,
+  worker: Worker,
+): ModelCall[] {
+  const calls: ModelCall[] = [];
+  let stepEndedAt = worker.startedAt;
+  for (const line of messages) {
+    const at = new Date(timestamped.parse(line).timestamp);
+    if (line.type !== "assistant") {
+      stepEndedAt = at;
+      continue;
+    }
+    const { id, model, usage, content } = transcriptCall.parse(line.message);
+    let call = calls.at(-1);
+    if (call?.id !== id) {
+      call = {
+        id,
+        span: tracer().startSpan(
+          `${worker.name}.model_call`,
+          { startTime: stepEndedAt },
+          worker.context,
+        ),
+        model,
+        tokens: { input: 0, cacheRead: 0, cacheWrite: 0, output: 0 },
+        blocks: [],
+        endedAt: at,
+      };
+      calls.push(call);
+    }
+    call.tokens = {
+      input: usage.input_tokens,
+      cacheRead: usage.cache_read_input_tokens ?? 0,
+      cacheWrite: usage.cache_creation_input_tokens ?? 0,
+      output: usage.output_tokens,
+    };
+    call.blocks.push(...(content as unknown as ContentBlock[]));
+    call.endedAt = at;
+  }
+  return calls;
 }
 
 // Phoenix and runExperiment() replace the global provider, so the tracer is looked up

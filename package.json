@@ -69,6 +69,7 @@
     "typecheck": "tsc --noEmit && tsc --noEmit -p web",
     "lint": "eslint . --max-warnings 0",
     "test": "vitest run --update=none",
-    "agent-views": "vitest run --update=all src/agent/agent-views.test.ts"
+    "agent-views": "vitest run --update=all src/agent/agent-views.test.ts",
+    "spike:subagent": "tsx --env-file=.env src/spike/subagent-messages.ts"
   }
 }
