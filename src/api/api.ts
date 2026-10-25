@@ -24,6 +24,7 @@ import { tripRoutes } from "./trip-routes.js";
 
 export interface ApiDependencies {
   isDatabaseReachable: () => Promise<boolean>;
+  isPhoenixReachable: () => Promise<boolean>;
   verifyToken: VerifyToken;
   chat: ChatDependencies;
 }
@@ -32,13 +33,18 @@ export function createApi(dependencies: ApiDependencies) {
   const api = new Hono().basePath("/api");
 
   // Open to everyone: the deploy calls it to check the live site (systems design
-  // section 7).
+  // section 7), and the page shows it. Only the database decides the status, so the
+  // deploy doesn't fail when Phoenix is down (systems design section 10).
   api.get("/health", async (context) => {
-    const reachable = await dependencies.isDatabaseReachable();
+    const [database, phoenix] = await Promise.all([
+      dependencies.isDatabaseReachable(),
+      dependencies.isPhoenixReachable(),
+    ]);
     const body: HealthResponse = {
-      database: reachable ? "reachable" : "unreachable",
+      database: database ? "reachable" : "unreachable",
+      phoenix: phoenix ? "reachable" : "unreachable",
     };
-    return context.json(body, reachable ? 200 : 503);
+    return context.json(body, database ? 200 : 503);
   });
 
   // Every route after this one needs a signed-in user (systems design section 3).

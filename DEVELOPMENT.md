@@ -33,6 +33,14 @@ Claude Code writes the code, Joe reviews the code he cares about, and the tools 
 
 Postgres for local development runs in a container, with Docker Compose: `docker compose up -d postgres` ([systems design](design/systems.md), section 6). Copy `.env.example` to `.env` and fill it in first.
 
+**Bring up the SSH tunnel to the server's Phoenix before `npm run dev` or `npm run chat`,** so each turn's trace is saved (systems design section 10):
+
+```sh
+ssh -N -L 6006:127.0.0.1:6006 root@projects.jjk3.com
+```
+
+Then open the Phoenix UI at `http://127.0.0.1:6006`. Local traces are in the `road-trip-agent-local` project, and the live site's are in `road-trip-agent`. Without the tunnel, the chat still works, the page shows a red X, and the turns' traces are lost.
+
 ---
 
 ## 3. Style

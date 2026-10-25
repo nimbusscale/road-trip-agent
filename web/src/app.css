@@ -107,3 +107,11 @@ textarea {
   box-sizing: border-box;
   font: inherit;
 }
+
+.phoenix.reachable {
+  color: #188038;
+}
+
+.phoenix.unreachable {
+  color: #d93025;
+}

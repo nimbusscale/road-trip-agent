@@ -125,23 +125,34 @@ function assistantEvents(content: AssistantContent): TurnEvent[] {
 
 type UserContent = Extract<SDKMessage, { type: "user" }>["message"]["content"];
 
+export type ToolResultBlock = Extract<
+  Exclude<UserContent, string>[number],
+  { type: "tool_result" }
+>;
+
 function toolReplyEvents(content: UserContent): TurnEvent[] {
+  return toolResultsOf(content).map((block) => ({
+    kind: "toolReply",
+    text: toolResultText(block),
+    isError: block.is_error === true,
+  }));
+}
+
+export function toolResultsOf(content: UserContent): ToolResultBlock[] {
   if (typeof content === "string") {
     return [];
   }
-  return content.flatMap((block): TurnEvent[] => {
-    if (block.type !== "tool_result") {
-      return [];
-    }
-    const parts =
-      typeof block.content === "string"
-        ? [block.content]
-        : (block.content ?? []);
-    const text = parts
-      .map((part) =>
-        typeof part === "string" ? part : part.type === "text" ? part.text : "",
-      )
-      .join("\n");
-    return [{ kind: "toolReply", text, isError: block.is_error === true }];
-  });
+  return content.filter(
+    (block): block is ToolResultBlock => block.type === "tool_result",
+  );
+}
+
+export function toolResultText(block: ToolResultBlock): string {
+  const parts =
+    typeof block.content === "string" ? [block.content] : (block.content ?? []);
+  return parts
+    .map((part) =>
+      typeof part === "string" ? part : part.type === "text" ? part.text : "",
+    )
+    .join("\n");
 }

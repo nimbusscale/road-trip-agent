@@ -1,6 +1,6 @@
 # Road Trip Planner: Systems Design (MVP)
 
-This document covers where the app runs and how its parts connect: the server and its containers, sign-in, how the browser talks to the app, the outside services, local development, deploys, secrets, and backups. It stays at the level of design. Exact config files, such as the Docker Compose file, the Caddy config, and the GitHub workflow, are written during development.
+This document covers where the app runs and how its parts connect: the server and its containers, sign-in, how the browser talks to the app, the outside services, local development, deploys, secrets, backups, and traces. It stays at the level of design. Exact config files, such as the Docker Compose file, the Caddy config, and the GitHub workflow, are written during development.
 
 For what the agents and tools do, see the [technical spec](technical-spec.md). For how a trip, its sessions, and memory are stored, see the [persistence design](persistence.md).
 
@@ -15,6 +15,7 @@ flowchart LR
         caddy["web<br>Caddy"]
         app["app<br>Node, Agent SDK"]
         db[("postgres")]
+        phoenix["phoenix<br>Arize Phoenix"]
     end
     supabase["Supabase Auth"]
     claude["Claude API"]
@@ -27,6 +28,7 @@ flowchart LR
     browser -- "map" --> google
     caddy -- "/api" --> app
     app --> db
+    app -- "traces" --> phoenix
     app -- "check sign-in token" --> supabase
     app --> claude
     app --> google
@@ -52,9 +54,11 @@ One server runs everything we build. The browser signs in with Supabase, then ta
 | `app` | Our TypeScript back end, on Node | Holds the API, the agents, and the tools. The Agent SDK starts a Claude Code process for each turn, which resumes the session from its stored transcript and ends with the turn. So nothing runs between turns. Starting one took about half a second, measured in #52. One process answering a short question peaked at about 250 MB, measured in phase 9 |
 | `postgres` | Postgres | Its data is on a Docker volume on the server's disk |
 
+Two more run only on the server: `backup`, the nightly backup (section 9), and `phoenix`, which keeps each chat turn's trace (section 10).
+
 **One web address for the front end and the API.** Caddy serves both, so the browser never calls a second site, and the app needs no cross-site setup.
 
-**Only Caddy is open to the internet,** on ports 80 and 443. `app` is reachable only from the other containers. `postgres` is also reachable from the server itself, but not from the internet. Locally, that's how `npm run dev` reaches it. On the server, it allows an SSH tunnel to the database. SSH is open for deploys (section 7).
+**Only Caddy is open to the internet,** on ports 80 and 443. `app` is reachable only from the other containers. `postgres` and `phoenix` are also reachable from the server itself, but not from the internet. Locally, that's how `npm run dev` reaches Postgres. On the server, it allows an SSH tunnel to the database, and to Phoenix (section 10). SSH is open for deploys (section 7).
 
 ---
 
@@ -123,6 +127,7 @@ The app never sees a password. Sign-out drops the token in the browser.
 - **`npm run dev` runs the app and the front end on the developer's machine.** Vite serves the front end on `localhost:5173`, and passes `/api` to the app on `127.0.0.1:3000`, the same split as Caddy in production.
 - **The same Docker Compose file runs on the server and locally.** Locally, it usually starts only Postgres, with `docker compose up -d postgres`. Postgres listens on `127.0.0.1:5432`, so only the machine itself reaches it. It can also build and start the whole stack, to try out production before a merge. Caddy reads its site name from the environment: `roadtrip.jjk3.com` on the server, `localhost` locally.
 - **Sign-in uses the same Supabase project as production** (section 3). Nothing about sign-in runs locally.
+- **Traces go to the server's Phoenix, through an SSH tunnel** (section 10). No Phoenix runs locally.
 - **Keys are in the repo's git-ignored `.env` file** ([Google design](data-sources/google.md), section 1). Google's browser key also allows `localhost`, so the map works locally.
 
 There's no staging server. A change goes from local development straight to production.
@@ -142,7 +147,7 @@ The commands, code standards, and tests are in [DEVELOPMENT.md](../DEVELOPMENT.m
 5. Runs `ops/deploy.sh` on the server. It pulls the new images, and runs the database migrations from the new `app` image before the new app starts. Then it restarts the containers with the new images.
 6. Calls `/api/health` on the live site, and fails if the site doesn't answer.
 
-`postgres` uses the standard Postgres image, so a deploy doesn't change it.
+`postgres` uses the standard Postgres image, and `phoenix` uses Phoenix's, at a fixed version. So a deploy doesn't change them. `ops/deploy.sh` pulls only our own images, which are private (section 8). `docker compose up` pulls Phoenix's public image on its own, the first time.
 
 **The images are private** (section 8). On the server, the deploy tags the images it pulled as `:latest`, and `compose.yaml` runs `:latest`. So `:latest` on the server is always the commit that's deployed. Locally, Compose builds the same image names from the Dockerfiles.
 
@@ -200,3 +205,43 @@ GitHub holds what the deploy needs: the server's address, its SSH host keys, and
 - **Dumps go to the `jjk3-backups` bucket,** in the `road-trip-agent/` folder, named by the time they were made in UTC, such as `2026-10-15T090000Z.dump`. The container only writes and removes dumps in that folder.
 
 Users aren't in the dump, since they live in Supabase (section 3).
+
+---
+
+## 10. Traces
+
+**A trace is the record of one chat turn,** kept in Arize Phoenix, a tool for looking at how agents worked. Joe uses it to see how the coordinator worked on a turn once it's over, which the chat's raw view doesn't keep (functional spec 10.1). Agent evaluations (#53) will build on it too. Each trace is made of **spans**: one for the turn, and under it, in order, one for each model call and one for each tool call.
+
+| Span | Kind | Holds |
+|---|---|---|
+| `coordinator.turn` | AGENT | The message the model got, with the app's lines (technical spec 5.2), the reply, the agent session ID as `session.id`, and the user's ID as `user.id` |
+| `coordinator.model_call` | LLM | The call's thinking summary, text, and the tool calls it asked for, with its model and tokens |
+| A tool's name, such as `mcp__trip__read_trip_brief` | TOOL | The tool's input and its reply. A refused call is marked as an error, with the tool's error text |
+| `<worker>.turn`, under the `Agent` call that started it | AGENT | The worker's prompt, and the result the coordinator got. Its model calls and tool calls go under it |
+
+- **Our own code makes the spans,** from the Agent SDK's messages: `TurnTrace`, in `src/agent/turn-trace.ts`. Phoenix's instrumentation for the Agent SDK was tried first, in #132. It showed the user's message as `{}`, left out the model calls and the thinking, and counted only the input tokens that weren't cached. So a 48,255-token turn showed as 8.
+- **Each model call's tokens come from the SDK's stream events.** Each block of a call carries the tokens from the call's start. The call's `message_delta` event has its final output count. So the coordinator's options turn on `includePartialMessages`. The input count includes the tokens read from, and written to, the prompt cache, as the raw view's does.
+- **Tokens are on the LLM spans,** since Phoenix adds up tokens, and works out a price, only from those. The Sessions view groups a chat's turns by `session.id`, with their totals.
+- **A worker's model calls come from its transcript,** read with the SDK's `getSubagentMessages()` from our session store once the turn is over (persistence design, section 6). The SDK sends none of a worker's stream events, and none of its text or thinking. A worker's output tokens can be low: its transcript sometimes has a call's count from the call's start. The #136 spike saw 762 against the SDK's 909, in 1 turn of 4. That's accepted. No worker exists yet (#60, #61, #64).
+- **Not in a trace:** the system prompt, and the input each model call got.
+
+**One Phoenix runs on the server,** as the `phoenix` container, with the `arizephoenix/phoenix:20.26.0` image.
+
+- **It's in the `production` profile,** like `backup`, so it starts only on the server.
+- **It listens on the server's `127.0.0.1:6006`,** for its web UI, its REST API, and the traces. The server's app reaches it as `http://phoenix:6006`, over the Compose network.
+- **There's no sign-in,** and Phoenix's own telemetry is off. Nothing new is open to the internet, so a scanning bot can't reach it.
+- **Its data is a SQLite file in its own volume, `phoenix-data`,** not in our Postgres. So it isn't in the nightly backup (section 9), and losing it loses only traces.
+
+**Joe's machine reaches it through an SSH tunnel,** the same way as the server's Postgres:
+
+```sh
+ssh -N -L 6006:127.0.0.1:6006 root@projects.jjk3.com
+```
+
+With the tunnel up, `npm run dev` and `npm run chat` send their traces to `http://127.0.0.1:6006`, and a browser opens the Phoenix UI at the same address. Putting Phoenix on the internet through Caddy was the other choice. It would need Phoenix's sign-in, an API key for sending traces, and a second site.
+
+**The server's traces and local ones go to two Phoenix projects.** A project holds its own traces, sessions, and token totals. The server sends to `road-trip-agent`, and Joe's machine to `road-trip-agent-local`. Local traces are mostly test chats against the local database, so mixed in, they'd skew the server's sessions and totals. Two environment values set this, checked when the app starts: `PHOENIX_URL` and `PHOENIX_PROJECT`. `compose.yaml` sets them for the server's app, so the server's `.env` doesn't have them. Locally, they're in `.env`.
+
+**Spans that can't be sent are lost,** with no retry. They're sent in batches, every few seconds, and the app and `npm run chat` send what's left when they stop. The chat works the same whether Phoenix can be reached or not.
+
+**The page shows whether the app can reach Phoenix,** with a green check or a red X next to the health line (functional spec 10.1). `/api/health` asks Phoenix's own health check, `/healthz`, and gives up after 2 seconds. The app does the check, since it's what sends the traces, and on the server the browser can't reach Phoenix. Only the database decides the reply's status, so the deploy's call to `/api/health` doesn't fail when Phoenix is down. The check says only that Phoenix can be reached, not that each turn's spans arrived.

@@ -13,6 +13,8 @@ const GOOD_ENV: readonly (readonly [string, string])[] = [
   ["SUPABASE_URL", "https://abc.supabase.co"],
   ["CLAUDE_CODE_OAUTH_TOKEN", "plan-token"],
   ["GOOGLE_MAPS_SERVER_KEY", "server-key"],
+  ["PHOENIX_URL", "http://127.0.0.1:6006"],
+  ["PHOENIX_PROJECT", "road-trip-agent-local"],
 ];
 
 function envWith(name: string, value: string): Record<string, string> {
@@ -34,7 +36,27 @@ describe("parseEnv", () => {
       supabaseUrl: "https://abc.supabase.co",
       claudeCodeOauthToken: "plan-token",
       googleMapsServerKey: "server-key",
+      phoenixUrl: "http://127.0.0.1:6006",
+      phoenixProject: "road-trip-agent-local",
     });
+  });
+
+  it("drops a trailing slash from Phoenix's address", () => {
+    expect(
+      parseEnv(envWith("PHOENIX_URL", "http://phoenix:6006/")).phoenixUrl,
+    ).toBe("http://phoenix:6006");
+  });
+
+  it("refuses a Phoenix address that isn't a web address", () => {
+    expect(() => parseEnv(envWith("PHOENIX_URL", "phoenix:6006"))).toThrow(
+      "- PHOENIX_URL must be an http address",
+    );
+  });
+
+  it("stops the app when the Phoenix project is missing", () => {
+    expect(() => parseEnv(envWithout("PHOENIX_PROJECT"))).toThrow(
+      "- PHOENIX_PROJECT is missing",
+    );
   });
 
   it("drops a trailing slash from the Supabase address", () => {

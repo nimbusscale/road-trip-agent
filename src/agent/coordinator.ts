@@ -1,4 +1,5 @@
 import {
+  getSubagentMessages,
   type Options,
   query,
   type SDKMessage,
@@ -28,6 +29,8 @@ import { createTripServer, TRIP_SERVER_NAME } from "../tools/trip-server.js";
 import { coordinatorPrompt } from "./coordinator-prompt.js";
 import { sdkUserMessage } from "./sdk-user-message.schema.js";
 import { type TurnEvent, turnEventsOf } from "./turn-event.js";
+import { TurnTrace } from "./turn-trace.js";
+import type { ReadWorkerTranscript } from "./worker-trace.js";
 
 // The coordinator: the agent the user talks to (technical spec 1). For now it has the
 // trip brief and memory tools, read_itinerary, the tools that build the skeleton,
@@ -68,6 +71,9 @@ export function coordinatorOptions(
     // Adaptive is the SDK's default for the model. Asking for a summary changes only
     // what comes back, for the browser chat's raw view (technical spec 5.4).
     thinking: { type: "adaptive", display: "summarized" },
+    // The stream events give each model call's start and its final tokens, for the
+    // turn's trace (systems design section 10). turnEventsOf() leaves them out.
+    includePartialMessages: true,
     env: processEnv,
     // No settings files, CLAUDE.md, or MCP servers but ours, and no built-in tools. Each
     // agent sees only its own tools (technical spec section 2).
@@ -102,14 +108,20 @@ export function coordinatorOptions(
 }
 
 // Runs one turn: the user's message, with the app's lines already added, and the
-// coordinator's reply. Tests pass a fake in its place.
+// coordinator's reply. The user's ID goes on the turn's trace. Tests pass a fake in its
+// place.
 export type RunTurn = (
   message: string,
   options: Options,
+  userId: string,
 ) => AsyncIterable<TurnEvent>;
 
 // Runs the turn with the Agent SDK. The process ends when the turn does.
-export const runTurnWithSdk: RunTurn = async function* (message, options) {
+export const runTurnWithSdk: RunTurn = async function* (
+  message,
+  options,
+  userId,
+) {
   const turnEnded = Promise.withResolvers<undefined>();
   // The message is held open until the turn ends. A prompt that ends at once could end
   // the input before the reply.
@@ -118,9 +130,16 @@ export const runTurnWithSdk: RunTurn = async function* (message, options) {
     await turnEnded.promise;
   }
   const agentSessionId = options.sessionId ?? options.resume ?? "";
+  const turnTrace = new TurnTrace({
+    message,
+    agentSessionId,
+    userId,
+    readWorkerTranscript: workerTranscriptReader(options),
+  });
   try {
     for await (const sdkMessage of query({ prompt: prompt(), options })) {
       logMirrorError(sdkMessage, agentSessionId);
+      turnTrace.record(sdkMessage);
       if (sdkMessage.type === "result") {
         turnEnded.resolve(undefined);
       }
@@ -128,8 +147,18 @@ export const runTurnWithSdk: RunTurn = async function* (message, options) {
     }
   } finally {
     turnEnded.resolve(undefined);
+    await turnTrace.end();
   }
 };
+
+// A worker's transcript is in the same session store as the coordinator's.
+function workerTranscriptReader(options: Options): ReadWorkerTranscript {
+  const { sessionStore } = options;
+  return (agentSessionId, agentId) =>
+    sessionStore === undefined
+      ? Promise.reject(new Error("The turn has no session store."))
+      : getSubagentMessages(agentSessionId, agentId, { sessionStore });
+}
 
 // The SDK drops transcript lines after 3 failed tries to save them, and sends this
 // (persistence design, section 6). The turn goes on, so it's only logged.

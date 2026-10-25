@@ -29,6 +29,22 @@ export const envSchema = z.object({
   claudeCodeOauthToken: requiredText(),
   // Google's server key, for Routes, Places, and Weather (Google design section 1).
   googleMapsServerKey: requiredText(),
+  // Where each turn's trace is sent, and where the page's check looks for Phoenix
+  // (systems design section 10). http, since it's on the Compose network or through an
+  // SSH tunnel.
+  phoenixUrl: z
+    .url({
+      protocol: /^https?$/,
+      error: (issue) =>
+        issue.input === undefined
+          ? "is missing"
+          : "must be an http address, such as http://127.0.0.1:6006",
+    })
+    // The code adds paths such as /healthz, so a trailing slash would double up.
+    .transform((url) => url.replace(/\/+$/, "")),
+  // The Phoenix project the traces go to: road-trip-agent on the server, and
+  // road-trip-agent-local on Joe's machine.
+  phoenixProject: requiredText(),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -43,4 +59,6 @@ export const ENV_NAMES = {
   supabaseUrl: "SUPABASE_URL",
   claudeCodeOauthToken: "CLAUDE_CODE_OAUTH_TOKEN",
   googleMapsServerKey: "GOOGLE_MAPS_SERVER_KEY",
+  phoenixUrl: "PHOENIX_URL",
+  phoenixProject: "PHOENIX_PROJECT",
 } as const satisfies Record<keyof Env, string>;

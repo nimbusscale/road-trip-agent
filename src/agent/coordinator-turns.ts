@@ -97,7 +97,7 @@ export class CoordinatorTurns {
       this.#running.delete(sessionId);
       throw error;
     }
-    void this.#run(sessionId, turn, started.message, started.options);
+    void this.#run(turn, conversation, started);
     return turn;
   }
 
@@ -133,14 +133,19 @@ export class CoordinatorTurns {
   // message the model got follows the turn's start, so the browser shows them in that
   // order.
   async #run(
-    sessionId: string,
     turn: Turn,
-    message: string,
-    options: Options,
+    conversation: Conversation,
+    started: { message: string; options: Options },
   ): Promise<void> {
+    const sessionId = conversation.session.id;
+    const { message, options } = started;
     let messageAdded = false;
     try {
-      for await (const event of this.given.runTurn(message, options)) {
+      for await (const event of this.given.runTurn(
+        message,
+        options,
+        conversation.userId,
+      )) {
         if (event.kind === "ended" && event.failure !== null) {
           console.error(
             `The turn in session ${sessionId} failed: ${event.failure}`,
