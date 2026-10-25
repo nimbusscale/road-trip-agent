@@ -120,12 +120,9 @@ const COFFEE_FINDER = {
   description:
     "Finds two coffee shops near one place. Give it the place's name and town.",
   prompt:
-    "Find coffee shops near the place you're given, with find_place. Pick the two closest to it, judging from their addresses. Reply with each one's name and address, and one line on why you picked it.",
+    "Find two coffee shops near the place you're given, with find_place. Reply with each one's name and address, and nothing else.",
   tools: [`mcp__${PLACES_SERVER_NAME}__find_place`],
   model: "claude-sonnet-5-5",
-  // A subagent has no thinking option, only effort. The most effort, and a choice to
-  // make, so it thinks.
-  effort: "max" as const,
 };
 
 // Spike (#136): SPIKE_SDK_DUMP=<file> appends each of the SDK's messages to the file.
