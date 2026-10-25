@@ -334,6 +334,15 @@ The turn with two workers, from Phoenix's API. The times are seconds into the mi
 - **The trace's totals include the workers'.** Phoenix put the trace at 36,633 input and 1,813 output tokens. That's the coordinator's 26,932 plus the workers' 9,701 input, and the coordinator's 1,051 plus the workers' 762 output. The 762 is the low count from the transcript: `modelUsage` says 909.
 - **The session's totals include them too.** In an earlier chat, a turn with two workers was followed by a turn with none. Phoenix's session showed 68,391 input and 2,169 output tokens. That's the sum of its two traces, 35,957 and 1,516, then 32,434 and 653. That first turn's worker spans matched `modelUsage` exactly.
 
+#### A worker's thinking
+
+**A worker's thinking shows in its model call spans.** In the turn above, the worker didn't think. In other turns it did, on some calls. To check that its thinking always comes through, the spike made the worker think on every call. A subagent has no thinking option, only `effort`. So the spike set the worker's `effort` to `"max"`. It also gave the worker a choice to make: "Pick the two closest to it, judging from their addresses. Reply with each one's name and address, and one line on why you picked it."
+
+- **Each of the four model calls, two per worker, had a thinking block in its span.** An example, from the Ferry Building worker's last call: "Comparing locations, both Red Bay Coffee and Blue Bottle are right inside the Ferry Building, while Philz is several blocks away..."
+- **The thinking is a summary,** as the coordinator's is (2.2). The call with the most thinking used 14,441 output tokens, and its summary is 8,428 characters.
+- **The four calls' output tokens added up to `modelUsage` exactly:** 15,807.
+- **Max effort is slow.** That one call thought for about 108 seconds, and the turn took 125 seconds. The spike set the worker back to its default effort and its first instructions.
+
 ---
 
 ## 3. What this means for #53
