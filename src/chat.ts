@@ -25,6 +25,7 @@ import { loadSettings, SETTINGS_PATH } from "./config/settings.js";
 import { createPool } from "./db/connection.js";
 import type { Connectable, Queryable } from "./persistence/queryable.js";
 import { sessionAccessFor } from "./persistence/session-access.js";
+import { startTracing } from "./tracing/phoenix.js";
 
 // Users live in Supabase. Locally, any UUID will do, and memory is kept under it.
 const DEV_USER_ID = "00000000-0000-4000-8000-000000000001";
@@ -51,6 +52,7 @@ async function chat(): Promise<void> {
   const env = parseEnv(process.env);
   const settings = loadSettings(SETTINGS_PATH);
   const pool = createPool(env);
+  const tracing = startTracing(env);
   const readline = createInterface({
     input: process.stdin,
     output: process.stdout,
@@ -91,6 +93,7 @@ async function chat(): Promise<void> {
   } finally {
     readline.close();
     await pool.end();
+    await tracing.shutdown();
   }
 }
 

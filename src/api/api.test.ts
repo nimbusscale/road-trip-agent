@@ -15,29 +15,40 @@ const NO_ONE_SIGNED_IN = () => Promise.resolve(null);
 const CHAT = chatSetUp(new Date("2026-10-15T09:00:00Z")).chat;
 
 describe("GET /api/health", () => {
-  it("reports a reachable database", async () => {
-    const api = createApi({
-      isDatabaseReachable: () => Promise.resolve(true),
+  function healthApi(database: boolean, phoenix: boolean) {
+    return createApi({
+      isDatabaseReachable: () => Promise.resolve(database),
+      isPhoenixReachable: () => Promise.resolve(phoenix),
       verifyToken: NO_ONE_SIGNED_IN,
       chat: CHAT,
     });
-    const response = await api.request("/api/health");
+  }
+
+  it("reports a reachable database and Phoenix", async () => {
+    const response = await healthApi(true, true).request("/api/health");
     expect(response.status).toBe(200);
     expect(healthResponseSchema.parse(await response.json())).toEqual({
       database: "reachable",
+      phoenix: "reachable",
     });
   });
 
   it("reports a database it can't reach", async () => {
-    const api = createApi({
-      isDatabaseReachable: () => Promise.resolve(false),
-      verifyToken: NO_ONE_SIGNED_IN,
-      chat: CHAT,
-    });
-    const response = await api.request("/api/health");
+    const response = await healthApi(false, true).request("/api/health");
     expect(response.status).toBe(503);
     expect(healthResponseSchema.parse(await response.json())).toEqual({
       database: "unreachable",
+      phoenix: "reachable",
+    });
+  });
+
+  // The deploy calls it, and a Phoenix that's down mustn't fail the deploy.
+  it("still answers 200 when Phoenix can't be reached", async () => {
+    const response = await healthApi(true, false).request("/api/health");
+    expect(response.status).toBe(200);
+    expect(healthResponseSchema.parse(await response.json())).toEqual({
+      database: "reachable",
+      phoenix: "unreachable",
     });
   });
 });
@@ -50,6 +61,7 @@ describe("GET /api/me", () => {
     const signer = await createTestSigner();
     api = createApi({
       isDatabaseReachable: () => Promise.resolve(true),
+      isPhoenixReachable: () => Promise.resolve(true),
       verifyToken: createTokenVerifier(signer.verifierOptions),
       chat: CHAT,
     });

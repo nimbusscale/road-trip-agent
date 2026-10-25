@@ -40,6 +40,10 @@ services:
       SUPABASE_URL: ${SUPABASE_URL:?}
       CLAUDE_CODE_OAUTH_TOKEN: ${CLAUDE_CODE_OAUTH_TOKEN:?}
       GOOGLE_MAPS_SERVER_KEY: ${GOOGLE_MAPS_SERVER_KEY:?}
+      # Each turn's trace goes to phoenix, over the Compose network (systems design
+      # section 10). Locally, a whole stack has no phoenix, so the page shows the X.
+      PHOENIX_URL: http://phoenix:6006
+      PHOENIX_PROJECT: road-trip-agent
     depends_on:
       postgres:
         condition: service_healthy
@@ -100,7 +104,29 @@ services:
     init: true
     restart: unless-stopped
 
+  phoenix:
+    # Arize Phoenix, which keeps the chat turns' traces (systems design section 10). It
+    # only starts on the server, like backup. Locally, the app sends its traces to the
+    # server's phoenix, through an SSH tunnel.
+    profiles: ["production"]
+    image: arizephoenix/phoenix:20.26.0
+    environment:
+      # Its SQLite database goes in its own volume, not in our Postgres, so traces stay
+      # out of the app's database and its backup.
+      PHOENIX_WORKING_DIR: /mnt/data
+      # No sign-in. It's reachable only from the server and through a tunnel.
+      PHOENIX_ENABLE_AUTH: "false"
+      PHOENIX_TELEMETRY_ENABLED: "false"
+    volumes:
+      - phoenix-data:/mnt/data
+    ports:
+      # The web UI, the REST API, and the endpoint for traces, on the host only. The
+      # internet doesn't reach it, and an SSH tunnel does.
+      - "127.0.0.1:6006:6006"
+    restart: unless-stopped
+
 volumes:
+  phoenix-data:
   postgres-data:
   caddy-data:
   caddy-config:

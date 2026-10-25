@@ -56,6 +56,13 @@ describe("the chat's turns", () => {
     expect(call?.options.resume).toBeUndefined();
   });
 
+  // It goes on the turn's trace (systems design section 10).
+  it("runs the turn for the signed-in user", async () => {
+    const chat = await chatApi(PLANNING);
+    await startTrip(chat);
+    expect(chat.sdk.calls.map((call) => call.userId)).toEqual([TEST_USER_ID]);
+  });
+
   it("resumes the conversation for each later message, and says when the user resumed it", async () => {
     const chat = await chatApi(PLANNING);
     const sessionId = await startTrip(chat);

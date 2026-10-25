@@ -26,6 +26,7 @@ export async function chatApi(now: Date): Promise<ChatApi> {
   const setUp = chatSetUp(now);
   const api = createApi({
     isDatabaseReachable: () => Promise.resolve(true),
+    isPhoenixReachable: () => Promise.resolve(true),
     verifyToken: createTokenVerifier(signer.verifierOptions),
     chat: setUp.chat,
   });

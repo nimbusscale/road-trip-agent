@@ -19,7 +19,7 @@ export const FAKE_USAGE: TurnUsage = {
 // the same events before the reply, and the same text parts. Like the SDK with eager flushing, it saves each transcript line
 // to the session store as it goes, whether or not anything reads the turn's events.
 export class FakeSdk {
-  readonly calls: { message: string; options: Options }[] = [];
+  readonly calls: { message: string; options: Options; userId: string }[] = [];
   // Such as thinking, and a tool call and its reply. Only the text parts are saved.
   beforeReply: TurnEvent[] = [];
   replyParts = ["Hello!", "Where would you like to go?"];
@@ -29,11 +29,15 @@ export class FakeSdk {
   // turn.
   beforeLaterParts: () => Promise<void> = () => Promise.resolve();
 
-  readonly runTurn: RunTurn = (message, options) =>
-    this.#turn(message, options);
+  readonly runTurn: RunTurn = (message, options, userId) =>
+    this.#turn(message, options, userId);
 
-  async *#turn(message: string, options: Options): AsyncGenerator<TurnEvent> {
-    this.calls.push({ message, options });
+  async *#turn(
+    message: string,
+    options: Options,
+    userId: string,
+  ): AsyncGenerator<TurnEvent> {
+    this.calls.push({ message, options, userId });
     const save = async (line: SessionStoreEntry): Promise<void> => {
       const key = {
         projectKey: "fake",

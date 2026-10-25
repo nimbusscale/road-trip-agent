@@ -14,6 +14,7 @@ import { loadSettings, SETTINGS_PATH } from "./config/settings.js";
 import { createPool, isDatabaseReachable } from "./db/connection.js";
 import type { Connectable, Queryable } from "./persistence/queryable.js";
 import { sessionAccessFor } from "./persistence/session-access.js";
+import { isPhoenixReachable, startTracing } from "./tracing/phoenix.js";
 
 // Vite's proxy and Caddy both pass /api to this port.
 const APP_PORT = 3000;
@@ -24,8 +25,10 @@ function start(): void {
   const settings = loadSettings(SETTINGS_PATH);
 
   const pool = createPool(env);
+  const tracing = startTracing(env);
   const api = createApi({
     isDatabaseReachable: () => isDatabaseReachable(pool),
+    isPhoenixReachable: () => isPhoenixReachable(env.phoenixUrl),
     verifyToken: createSupabaseTokenVerifier(env.supabaseUrl),
     chat: chatDependencies(env, pool, settings),
   });
@@ -39,10 +42,12 @@ function start(): void {
   );
 
   // Docker stops a container with SIGTERM. Node ignores it by default when it's the
-  // container's first process, so Docker would wait 10 seconds and then kill it.
+  // container's first process, so Docker would wait 10 seconds and then kill it. The
+  // spans not sent yet go first.
   const stop = (): void => {
     server.close();
     void pool.end();
+    void tracing.shutdown();
   };
   process.once("SIGTERM", stop);
   process.once("SIGINT", stop);
