@@ -1,6 +1,6 @@
 # Road Trip Planner: Agent Evaluations with Arize Phoenix (Spike)
 
-> **This is a research document, not a design document.** It records what a spike found when it ran one agent evaluation with Arize Phoenix (#132). It does not make design decisions. The build is #53.
+> **This is a research document, not a design document.** It records what a spike found when it ran one agent evaluation with Arize Phoenix (#132), and what a second spike found when it traced workers (#136). It does not make design decisions. The build is #53.
 
 The question: can self-hosted Phoenix trace the coordinator, and run an evaluation of it from start to finish, on the Agent SDK version the app uses and on the Claude Max plan? And what does one run take?
 
@@ -11,7 +11,7 @@ An **evaluation case** here is one scripted conversation with the coordinator, p
 ## 1. Method
 
 - **The code** is on the [`spike/phoenix-evals`](https://github.com/nimbusscale/road-trip-agent/tree/spike/phoenix-evals) branch, which never gets a PR. It doesn't pass `npm run check`: three lint errors are left, one for function length and two for the Anthropic SDK's snake_case fields. Its commits skip the pre-commit hook for that reason. The app's 708 tests still pass on it.
-- **Versions:** Phoenix image `arizephoenix/phoenix:20.26.0`, the newest release on 2026-10-24. `@anthropic-ai/claude-agent-sdk` 0.3.301, the app's. `@arizeai/phoenix-otel` 2.3.0, `@arizeai/openinference-instrumentation-claude-agent-sdk` 0.3.5, and `@arizeai/phoenix-client` 7.16.2, each the newest on 2026-10-24. The instrumentation was tried first, then replaced by spans from our own code (2.2), which use `@opentelemetry/api` 1.9.1 and `@arizeai/openinference-semantic-conventions` 2.15.0. Coordinator on `claude-opus-5-5`, judge on `claude-haiku-5-5`.
+- **Versions:** Phoenix image `arizephoenix/phoenix:20.26.0`, the newest release on 2026-10-24. `@anthropic-ai/claude-agent-sdk` 0.3.301, the app's. `@arizeai/phoenix-otel` 2.3.0, `@arizeai/openinference-instrumentation-claude-agent-sdk` 0.3.5, and `@arizeai/phoenix-client` 7.16.2, each the newest on 2026-10-24. The instrumentation was tried first, then replaced by spans from our own code (2.2), which use `@opentelemetry/api` 1.9.1 and `@arizeai/openinference-semantic-conventions` 2.15.0. Coordinator on `claude-opus-5-5`, judge on `claude-haiku-5-5`. The throwaway worker in 2.7 is on `claude-sonnet-5-5`.
 - **The case** is the "user or trip memory" check from #48 (technical spec 3.1). A fresh user, with one user memory item added first, starts a new trip and sends three messages:
   1. "Hi! We're planning a road trip from Austin to Santa Fe in April, about 6 days."
   2. "One thing about us: we never eat at chains."
@@ -220,6 +220,120 @@ This runs on the Max plan, so the SDK's estimate isn't a bill. Systems design se
 
 **Phoenix** costs nothing to run. It's one more container on this machine.
 
+### 2.7 Tracing workers
+
+#136 added a throwaway worker on the spike branch, to find out what the SDK sends from a worker, and to trace it. A **worker** is a subagent the coordinator starts with its `Agent` tool (technical spec section 6). The commands are the same as in section 1, with `npm run chat`.
+
+#### The throwaway worker
+
+`coffee-finder` is in the coordinator's `agents` option. `Agent` is added to the coordinator's `tools` and `allowedTools`.
+
+```ts
+const COFFEE_FINDER = {
+  description:
+    "Finds two coffee shops near one place. Give it the place's name and town.",
+  prompt:
+    "Find two coffee shops near the place you're given, with find_place. Reply with each one's name and address, and nothing else.",
+  tools: [`mcp__places__find_place`],
+  model: "claude-sonnet-5-5",
+};
+```
+
+- **The coordinator started it from a message alone.** Its instructions weren't changed. This message started one worker: "Before we plan anything: can you find me two coffee shops near the Ferry Building in San Francisco?" Adding "and two near Pike Place Market in Seattle" started two, from the same model call.
+- **The SDK offers its built-in agent types too.** The transcript's list of agents had `claude`, `Explore`, `general-purpose`, and `Plan`, next to `coffee-finder`. The coordinator never picked one.
+- **The SDK's init message calls the tool `Task`.** `npm run chat` printed `Tools: Task, mcp__memory__add_memory_item, …`. The model's calls use `Agent`.
+
+#### Workers in the background
+
+**The `Agent` tool runs a worker in the background unless the model says not to.** The description of its `run_in_background` input says "Agents run in the background by default." With one worker, the coordinator set it to `false` every time. With two, it left it out, and the SDK started both in the background:
+
+- Each `Agent` call returned at once, with "Async agent launched successfully." The turn ended with "I've started two coffee searches."
+- When each worker was done, the SDK started a new turn on its own, in the same `query()` call, to give the coordinator the result. So one user message got three result messages, and the chat printed three replies.
+
+**`CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1` makes every worker run in the foreground.** It goes in the Claude Code process's environment. With it, the same message ran both workers at the same time. The coordinator got both results in the same turn, which had one result message. The spike branch sets it in `coordinatorOptions()`, and everything below ran with it.
+
+#### What the SDK sends from a worker
+
+**Each of a worker's messages has `parent_tool_use_id` set,** to the ID of the coordinator's `Agent` call that started it. It also has `agent_id`, the worker's own ID. The coordinator's messages have `parent_tool_use_id: null`. The SDK's `task_started`, `task_progress`, and `task_notification` messages also have both IDs.
+
+| From the worker | `forwardSubagentText` off, the default | `forwardSubagentText` on |
+|---|---|---|
+| Its prompt | Yes, as a user message | Yes |
+| Its thinking | No | Yes |
+| Its text | No | Yes |
+| Its tool calls, with their inputs | Yes, a message for each | Yes |
+| Its tool results | Yes | Yes |
+| Its stream events | No | No |
+| Each model call's final tokens | No | No |
+
+That's with `includePartialMessages` on, as `TurnTrace` has it.
+
+- **A worker's messages carry each call's token counts from the call's start,** as the coordinator's messages do (2.2). Examples are 24 and 28 output tokens. The final count comes in the call's `message_delta` stream event, and the SDK sends none of a worker's stream events. The input and cache counts are right, since they're known when a call starts. Only the output count is off.
+- **With the flag off, a call that only writes text isn't in the stream at all.** Each worker's last call is one of these.
+- **The `Agent` call's result has the worker's last call's tokens, not its total.** Its `tool_use_result` has `usage`, which matched the last call, and `totalTokens`, which is that call's input plus output. The `total_tokens` in `task_progress` and `task_notification` matched neither the last call nor the sum of the calls.
+
+**The turn's result message leaves the workers out of `usage`, and counts them in `modelUsage`.** For the turn with two workers in the span tree below:
+
+| From the result message | Input tokens | Output tokens |
+|---|---|---|
+| `usage` | 26,932 | 1,051 |
+| `modelUsage`, `claude-opus-5-5`: the coordinator | 26,932 | 1,051 |
+| `modelUsage`, `claude-sonnet-5-5`: the two workers | 9,701 | 909 |
+| `modelUsage`, `claude-haiku-5-5`: the session's title | 1,230 | 724 |
+
+- **`npm run chat` prints `usage`,** so the count it prints leaves the workers out.
+- **`total_cost_usd` counts all three models.** On a resumed session, `modelUsage` is the session's total so far, like the cost (2.2).
+- **The Haiku call is the SDK naming the session.** It's on a session's first turn, with or without a worker. It used about 1,200 input tokens, and 17 to 724 output tokens, in this spike's runs. The transcript gets an `ai-title` line, such as "Spring road trip planning". Claude Code's telemetry (below) labels the call `generate_session_title`. It isn't in the trace.
+
+#### `getSubagentMessages()`
+
+**`getSubagentMessages()` reads a worker's transcript from our session store in Postgres.** It takes the agent session ID, the worker's ID, and `{ sessionStore }`. The store already keeps each worker's transcript (persistence design, section 6). It returns the worker's prompt, its tool results, and a line for each block of each model call. A block's line has the call's message ID, model, stop reason, and token counts, and when it was written. It has the thinking and the text, with `forwardSubagentText` off.
+
+**It can be read once the turn is over, not when the worker's result arrives.** When each `Agent` call's result reached the coordinator, the worker's transcript in the store had 3 lines: its prompt, its first call, and its tool result. Its last call wasn't there yet. Once the turn was over, each had all 5.
+
+**Its output token counts are usually final, but not always.** A call that asks for tools has a line for each tool call. The SDK writes each line as soon as that tool call is complete, so it can start the tool. That can be before the call's final count arrives. In 1 of 4 turns with two workers, both lines of one call had 28 output tokens. That call asked for two `find_place` calls. By `modelUsage`, it used 175. That turn's worker spans came to 762 output tokens, and `modelUsage` to 909. In the other three turns, the worker spans matched `modelUsage` exactly.
+
+**Claude Code's own telemetry has each call's final count.** With `CLAUDE_CODE_ENABLE_TELEMETRY=1` and an OTLP endpoint for logs, Claude Code sends a `claude_code.api_request` event for each model call. Each event has the model, the final input, cache, and output tokens, the cost, and a request ID. A worker's call has `query_source: agent:custom`, and the coordinator's has `sdk`. The event doesn't say which worker made the call. But each transcript line, and each assistant message in the stream, has the same request ID, so the two can be joined. In one turn with two workers, sent to a small local listener, the events' tokens matched `modelUsage` for each model. Phoenix takes traces, not logs, so using them needs a log receiver in our process, or a collector. The spike didn't build one.
+
+#### Spans for workers
+
+`TurnTrace` on the spike branch now traces workers:
+
+- **It splits the SDK's messages by `parent_tool_use_id`.** The coordinator's messages make its spans as before. Without the split, a worker's tool call would end the coordinator's open model call span, and the worker's tool spans would go under the turn.
+- **Each worker gets an AGENT span, under the `Agent` tool span that started it.** It's named for the worker, such as `coffee-finder.turn`. It starts when the coordinator's `Agent` call arrives, and ends when its result does. Its input is the worker's prompt, and its output is the result the coordinator got. It has `agent.name`, and the turn's `session.id`.
+- **A worker's tool spans come from the stream,** under the worker's span, as they happen.
+- **A worker's model call spans come from its transcript, once the turn is over.** `TurnTrace.end()` is now async. For each worker, it calls `getSubagentMessages()`, puts a call's lines together by message ID, and makes an LLM span for the call, under the worker's span. Each has the call's thinking, text, tool calls, and tokens, as the coordinator's do (2.2). A call's span starts when the line before it was written, its prompt or a tool result, and ends with its last line. OpenTelemetry takes a span's start and end times, so spans can be made after the fact.
+- **`forwardSubagentText` stays off,** since the transcript has the thinking and the text.
+
+The turn with two workers, from Phoenix's API. The times are seconds into the minute.
+
+```
+38.0–54.5  AGENT  coordinator.turn               "Before we plan anything: can you find me two coffee shops near…"
+39.9–43.5  LLM      coordinator.model_call       thinking, text, read_trip_brief, read_itinerary,   12,422 in   525 out
+                                                 read_memory, Agent, Agent
+42.2       TOOL     mcp__trip__read_trip_brief
+42.2       TOOL     mcp__trip__read_itinerary
+42.2       TOOL     mcp__memory__read_memory
+42.6–47.3  TOOL     Agent                        "Coffee near Ferry Building"
+42.6–47.3  AGENT      coffee-finder.turn         "Find two coffee shops near the Ferry Building in San Francisco…"
+42.6–44.4  LLM          coffee-finder.model_call find_place, find_place     2,017 in   175 out
+43.8       TOOL         mcp__places__find_place
+44.4       TOOL         mcp__places__find_place
+44.8–47.3  LLM          coffee-finder.model_call text                       2,964 in   306 out
+43.5–48.2  TOOL     Agent                        "Coffee near Pike Place"
+43.5–48.2  AGENT      coffee-finder.turn         "Find two coffee shops near Pike Place Market in Seattle…"
+43.5–45.3  LLM          coffee-finder.model_call find_place, find_place     2,016 in    28 out
+44.8       TOOL         mcp__places__find_place
+45.3       TOOL         mcp__places__find_place
+45.6–48.1  LLM          coffee-finder.model_call text                       2,704 in   253 out
+49.7–54.3  LLM      coordinator.model_call       thinking, text                                    14,510 in   526 out
+```
+
+- **The two workers ran at the same time,** and neither one's spans are under the other's. Each worker's spans are under its own `Agent` tool span.
+- **The coordinator's model call spans hold only its own tokens.** They add up to 26,932 input and 1,051 output tokens, the result message's `usage`.
+- **The trace's totals include the workers'.** Phoenix put the trace at 36,633 input and 1,813 output tokens. That's the coordinator's 26,932 plus the workers' 9,701 input, and the coordinator's 1,051 plus the workers' 762 output. The 762 is the low count from the transcript: `modelUsage` says 909.
+- **The session's totals include them too.** In an earlier chat, a turn with two workers was followed by a turn with none. Phoenix's session showed 68,391 input and 2,169 output tokens. That's the sum of its two traces, 35,957 and 1,516, then 32,434 and 653. That first turn's worker spans matched `modelUsage` exactly.
+
 ---
 
 ## 3. What this means for #53
@@ -229,7 +343,13 @@ These are inputs for #53, not decisions:
 - **Phoenix works for this app.** It traced the coordinator on the Agent SDK version the app uses, and ran a case as an experiment with both kinds of scorer, on the Max plan. Nothing here needed promptfoo.
 - **Spans from our own code worked better than Phoenix's instrumentation** (2.2). The instrumentation needed the `GlobalTracer` fix to make any spans, showed the user's message as `{}`, counted the tokens wrong, and left out the model calls and the thinking. `TurnTrace` shows each turn's message, each model call's thinking, tool calls, and tokens, and each tool call, in order. It needs only `@opentelemetry/api`, the OpenInference names, and the SDK's stream events. `runTurnWithSdk` in `src/agent/coordinator.ts` is where it hooks in.
 - **The tokens have to be on LLM spans,** or Phoenix doesn't count them or price them (2.2).
-- **Workers aren't traced yet.** The coordinator has none today. By default, the SDK sends only a subagent's tool calls and results, not its text or thinking. Whether its stream events come through, with its tokens, needs checking.
+- **Workers can be traced, with spans from our own code (2.7).** The SDK sends no stream events from a worker, and by default none of its text or thinking. Its transcript in our session store has all of them. `TurnTrace` on `main` (#135) needs these changes:
+  - Split the SDK's messages by `parent_tool_use_id`. Otherwise a worker's messages end up in the coordinator's spans.
+  - Give each worker an AGENT span under the `Agent` tool span that started it, with its tool spans from the stream.
+  - Make each worker's model call spans from `getSubagentMessages()`, with the session store, once the turn is over. Before then, the worker's last call isn't in the store yet. So `end()` becomes async, and `runTurnWithSdk` passes the trace its session store.
+- **A worker's output tokens can be counted low.** Its transcript sometimes has a call's output count from the call's start, not its final count (2.7). In one turn, the workers' spans had 762 output tokens, and the SDK's `modelUsage` had 909. Claude Code's telemetry has exact counts, joined by request ID, but needs a log receiver. The other choice is to accept the low counts. `modelUsage` on the result message gives each model's exact total, but not each call's.
+- **The `Agent` tool runs workers in the background by default** (2.7). Then a turn's workers finish in turns of their own, which the SDK starts in the same `query()` call. `CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1` keeps them in the coordinator's turn. #60 asks whether a worker may run in the background.
+- **The result message's `usage` leaves the workers out** (2.7). Its `modelUsage` counts them, by model. So does Phoenix, from the LLM spans.
 - **The SDK's cost estimate is the session's total so far,** on every turn after the first (2.2). So a run's cost is its last turn's, not the sum of its turns. Phoenix also works out a price from the LLM spans' token counts.
 - **Installing `@arizeai/phoenix-client` fails without `--legacy-peer-deps`,** and an `overrides` entry in `package.json` fixes it. The client names `@anthropic-ai/sdk` `^0.35.0` as an optional peer. Below 1.0, npm reads that as 0.35.x only, and the app has 0.135.0, so npm refuses to install. The range looks stale: the client's own development uses `^0.111.0`. Only its prompt helpers use the Anthropic SDK, and the spike doesn't use them.
 
