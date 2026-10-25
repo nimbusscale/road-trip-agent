@@ -1,7 +1,8 @@
-import type {
-  Options,
-  SDKMessage,
-  SDKUserMessage,
+import {
+  type Options,
+  query,
+  type SDKMessage,
+  type SDKUserMessage,
 } from "@anthropic-ai/claude-agent-sdk";
 
 import type { Settings } from "../config/settings.schema.js";
@@ -24,11 +25,10 @@ import {
 import type { RoutingSession } from "../tools/routing-session.js";
 import type { TripSession } from "../tools/trip-session.js";
 import { createTripServer, TRIP_SERVER_NAME } from "../tools/trip-server.js";
-import { claudeAgentSdk } from "./claude-agent-sdk.js";
 import { coordinatorPrompt } from "./coordinator-prompt.js";
 import { sdkUserMessage } from "./sdk-user-message.schema.js";
 import { type TurnEvent, turnEventsOf } from "./turn-event.js";
-import { endTurnSpan, iterateUnder, startTurnSpan } from "./turn-span.js";
+import { TurnTrace } from "./turn-trace.js";
 
 // The coordinator: the agent the user talks to (technical spec 1). For now it has the
 // trip brief and memory tools, read_itinerary, the tools that build the skeleton,
@@ -69,6 +69,9 @@ export function coordinatorOptions(
     // Adaptive is the SDK's default for the model. Asking for a summary changes only
     // what comes back, for the browser chat's raw view (technical spec 5.4).
     thinking: { type: "adaptive", display: "summarized" },
+    // Spike (#132): the stream events give each model call's start and its final
+    // tokens, for its span (TurnTrace). turnEventsOf() leaves them out.
+    includePartialMessages: true,
     env: processEnv,
     // No settings files, CLAUDE.md, or MCP servers but ours, and no built-in tools. Each
     // agent sees only its own tools (technical spec section 2).
@@ -119,22 +122,19 @@ export const runTurnWithSdk: RunTurn = async function* (message, options) {
     await turnEnded.promise;
   }
   const agentSessionId = options.sessionId ?? options.resume ?? "";
-  const turnSpan = startTurnSpan(message, agentSessionId, options.model ?? "");
-  let result: Extract<SDKMessage, { type: "result" }> | undefined;
+  const turnTrace = new TurnTrace(message, agentSessionId);
   try {
-    for await (const sdkMessage of iterateUnder(turnSpan.context, () =>
-      claudeAgentSdk.query({ prompt: prompt(), options }),
-    )) {
+    for await (const sdkMessage of query({ prompt: prompt(), options })) {
       logMirrorError(sdkMessage, agentSessionId);
+      turnTrace.record(sdkMessage);
       if (sdkMessage.type === "result") {
-        result = sdkMessage;
         turnEnded.resolve(undefined);
       }
       yield* turnEventsOf(sdkMessage);
     }
   } finally {
     turnEnded.resolve(undefined);
-    endTurnSpan(turnSpan, result);
+    turnTrace.end();
   }
 };
 

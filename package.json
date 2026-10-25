@@ -28,7 +28,6 @@
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "0.3.301",
     "@anthropic-ai/sdk": "0.135.0",
-    "@arizeai/openinference-instrumentation-claude-agent-sdk": "0.3.5",
     "@arizeai/openinference-semantic-conventions": "2.15.0",
     "@arizeai/phoenix-client": "7.16.2",
     "@arizeai/phoenix-otel": "2.3.0",

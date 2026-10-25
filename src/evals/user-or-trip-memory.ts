@@ -8,7 +8,6 @@ import { parseArgs } from "node:util";
 import { createClient } from "@arizeai/phoenix-client";
 import { createDataset } from "@arizeai/phoenix-client/datasets";
 import { runExperiment } from "@arizeai/phoenix-client/experiments";
-import { getSpans } from "@arizeai/phoenix-client/spans";
 
 import { coordinatorAccessFor } from "../agent/coordinator-access.js";
 import { parseEnv } from "../config/env.js";
@@ -96,7 +95,7 @@ async function main(): Promise<void> {
         judgeScorer(coordinator.memory.reader, process.env.JUDGE_API_KEY),
       ],
     });
-    await printSummary(client, experiment);
+    printSummary(experiment);
   } finally {
     await pool.end();
   }
@@ -115,32 +114,14 @@ function conversationInput(input: Record<string, unknown>): string[] {
 
 type Experiment = Awaited<ReturnType<typeof runExperiment>>;
 
-// Each run's scores, the coordinator's tokens per turn, and the judge's tokens. The SDK's
-// own cost estimate comes from the instrumentation's AGENT spans. Each turn after the
-// first resumes the session, and its cost is the session's total so far, so the run's
-// cost is the highest.
-async function printSummary(
-  client: ReturnType<typeof createClient>,
-  experiment: Experiment,
-): Promise<void> {
+// Each run's scores, the coordinator's tokens per turn, and the judge's tokens. Phoenix
+// shows each run's price, worked out from the model call spans' tokens.
+function printSummary(experiment: Experiment): void {
   const runs = Object.values(experiment.runs);
-  const traceIds = runs.flatMap((run) =>
-    run.traceId === null ? [] : [run.traceId],
-  );
-  const { spans } = await getSpans({
-    client,
-    project: { projectName: experiment.projectName ?? "default" },
-    traceIds,
-    spanKind: "AGENT",
-    limit: 1000,
-  });
   const summary = runs.map((run) => {
     const record = conversationRecordSchema.parse(run.output);
     const evaluations = (experiment.evaluationRuns ?? []).filter(
       (evaluation) => evaluation.experimentRunId === run.id,
-    );
-    const runSpans = spans.filter(
-      (span) => span.context.trace_id === run.traceId,
     );
     return {
       run: run.id,
@@ -154,12 +135,6 @@ async function printSummary(
         toolCalls: turn.toolCalls.map((call) => call.name),
         usage: turn.usage,
       })),
-      sdkCostUsd: Math.max(
-        0,
-        ...runSpans.map((span) =>
-          Number(span.attributes?.["llm.cost.total"] ?? 0),
-        ),
-      ),
       scores: evaluations.map((evaluation) => ({
         name: evaluation.name,
         error: evaluation.error,
