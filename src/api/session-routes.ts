@@ -60,6 +60,7 @@ export function sessionRoutes(chat: ChatDependencies): Hono {
     });
     return {
       sessionId: session.id,
+      agentSessionId: session.agentSessionId,
       tripId: session.tripId,
       messages: shownMessagesOf(lines ?? []),
       turnRunning,

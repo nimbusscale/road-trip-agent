@@ -33,11 +33,14 @@ function sseOf(event: ChatEvent): { event: string; data: string } {
   return { event: event.name, data: JSON.stringify(event.data) };
 }
 
-// Null for an event the browser doesn't use. The chat shows the reply, and the tool
-// being called while it runs (functional spec 10.1). The turn's other steps are in its
+// Null for an event the browser doesn't use. The chat shows the reply, the tool being
+// called while it runs, and the turn's rating and link to its trace (functional spec
+// 10.1). The turn's other steps are in its
 // trace (systems design section 10).
 function chatEventOf(event: TurnEvent): ChatEvent | null {
   switch (event.kind) {
+    case "traced":
+      return { name: "traced", data: { spanId: event.spanId } };
     case "text":
       return { name: "text", data: { text: event.text } };
     case "toolCall":

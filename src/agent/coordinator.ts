@@ -137,6 +137,7 @@ export const runTurnWithSdk: RunTurn = async function* (
     readWorkerTranscript: workerTranscriptReader(options),
   });
   try {
+    yield { kind: "traced", spanId: turnTrace.spanId };
     for await (const sdkMessage of query({ prompt: prompt(), options })) {
       logMirrorError(sdkMessage, agentSessionId);
       turnTrace.record(sdkMessage);

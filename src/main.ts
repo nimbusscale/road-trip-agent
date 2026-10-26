@@ -14,6 +14,7 @@ import { loadSettings, SETTINGS_PATH } from "./config/settings.js";
 import { createPool, isDatabaseReachable } from "./db/connection.js";
 import type { Connectable, Queryable } from "./persistence/queryable.js";
 import { sessionAccessFor } from "./persistence/session-access.js";
+import { phoenixRatings } from "./tracing/phoenix-ratings.js";
 import { isPhoenixReachable, startTracing } from "./tracing/phoenix.js";
 
 // Vite's proxy and Caddy both pass /api to this port.
@@ -31,6 +32,7 @@ function start(): void {
     isPhoenixReachable: () => isPhoenixReachable(env.phoenixUrl),
     verifyToken: createSupabaseTokenVerifier(env.supabaseUrl),
     chat: chatDependencies(env, pool, settings),
+    ratings: phoenixRatings(env.phoenixUrl, env.phoenixProject),
   });
   const server = serve(
     { fetch: api.fetch, hostname: env.appHost, port: APP_PORT },

@@ -79,6 +79,14 @@ describe("TurnTrace", () => {
     expect(turn.status.code).toBe(1);
   });
 
+  // For the chat's rating and "View trace" link (systems design section 10).
+  it("gives the turn span's ID", async () => {
+    const turnTrace = await runTrace(ONE_TOOL_TURN);
+    expect(turnTrace.spanId).toBe(
+      spanNamed("coordinator.turn").spanContext().spanId,
+    );
+  });
+
   it("puts the turn's start on its span, with the model and the tools", async () => {
     await runTrace(ONE_TOOL_TURN);
     const [started] = spanNamed("coordinator.turn").events;
