@@ -42,6 +42,7 @@ describe("createTripServer", () => {
       "read_trip_brief",
       "update_trip_brief",
       "read_itinerary",
+      "find_in_trip",
       "update_itinerary",
       "add_stay",
       "update_stay",

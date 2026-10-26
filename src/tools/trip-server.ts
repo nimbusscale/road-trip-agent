@@ -4,6 +4,7 @@ import {
 } from "@anthropic-ai/claude-agent-sdk";
 
 import { setWaypointsTool, updateDayTool } from "./day-tools.js";
+import { findInTripTool } from "./find-in-trip-tool.js";
 import { readItineraryTool } from "./itinerary-tools.js";
 import { addStayTool, removeStayTool, updateStayTool } from "./stay-tools.js";
 import { readTripBriefTool, updateTripBriefTool } from "./trip-brief-tools.js";
@@ -28,6 +29,7 @@ export function createTripServer(
       readTripBriefTool(session),
       updateTripBriefTool(session),
       readItineraryTool(session),
+      findInTripTool(session),
       updateItineraryTool(session),
       addStayTool(session),
       updateStayTool(session),

@@ -26,7 +26,10 @@ import {
 // How read_itinerary shows a stay and a day (tool design 2.1). Days, stays, and sets are
 // counted from 1, as people count them (domain model section 1).
 
-export function dayNumber(context: ReadContext, day: Day): string {
+export function dayNumber(
+  context: Pick<ReadContext, "itinerary" | "calendar">,
+  day: Day,
+): string {
   return `Day ${String(context.calendar.orderOf(context.itinerary, day) + 1)}`;
 }
 
