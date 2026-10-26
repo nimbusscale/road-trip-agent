@@ -1,13 +1,12 @@
 # Road Trip Planner: Making a Whole Itinerary Read Smaller
 
-> **This is a research document, not a design document.** It records what was measured for #129, on how to fit a whole `read_itinerary` of a long trip under Claude Code's limit. It describes a proposal, with its problems and trade-offs, but it makes no decision. Decisions go in tool design 2.1 once Joe agrees to one.
+> **This is a research document, not a design document.** It records what was measured for #129, on what a whole `read_itinerary` of a long trip needs to carry, and how much smaller it could be. It describes a proposal, with its problems and trade-offs, but it makes no decision. Decisions go in tool design 2.1 once Joe agrees to one.
 
-The problem: Claude Code gives the model at most 25,000 tokens of a tool result. A whole read of a busy 14-day trip is well over that, so `read_itinerary` refuses it (tool design 2.1).
+The problem: a whole read of a busy 14-day trip is 34,498 tokens. That's over Claude Code's limit of 25,000 tokens for a tool result, so `read_itinerary` refuses it (tool design 2.1). The limit could be raised. But every read stays in context for the rest of the session, so a large read costs tokens on every later turn. So the better question is why the coordinator reads the whole trip, and what it needs from the read each time. Section 2 answers that. The rest of the doc measures a read that carries only that.
 
-**Where it stands.** The leading proposal takes a busy 14-day trip from 34,498 tokens to 21,000. It mainly drops the candidates that weren't picked, on stops and stays that have a picked place (section 4). Two things are still open:
+**Where it stands.** The leading proposal is version L (section 5). It lists the picked place on each stop and stay, and gives only a count of the other candidates, by set. A busy 14-day trip goes from 34,498 tokens to 20,860. The same trip with nothing picked goes from 26,324 tokens to 10,820. So the read fits in every state the trip passes through. One thing is still open:
 
-- The proposed read is 41,710 characters, and the tool refuses anything over 40,000. So the tool's character limit would have to go up too (section 8).
-- It doesn't help a trip where little is picked yet. That read is 24,078 to 26,324 tokens, so it's at or over the limit, and still needs a fallback (section 7).
+- The busy read in version L is 41,444 characters, and the tool refuses anything over 40,000. So the tool's character limit would have to go up too (section 9).
 
 ---
 
@@ -17,14 +16,34 @@ The problem: Claude Code gives the model at most 25,000 tokens of a tool result.
 - **The same trip with nothing picked** shows the state right after workers fill the days, before the user chooses. It's the same trip, built with no lodging or stop place selected. Only the two stops the user named have a place. Its whole read is `itinerary-read-size/full-read-14-nothing-picked.txt`.
 - **How the reads were made:** a script builds the trip through the services, like the example trips, and prints it with `wholeLines`, the code `read_itinerary` uses. It skips the tool's size limit. The script is `scratch/realistic-itinerary.ts`, which is git-ignored. `NOTHING_PICKED=1` builds the trip with nothing picked, and `ONE_SET=1` keeps only each item's first set.
 - **How each change was measured:** `itinerary-read-size/variants.py` rewrites the read's text into each slimmer version. So these are mockups of the formats, not code changes. Each version keeps the same IDs and places.
-- **How tokens were counted:** the same way as in tool design 2.1. The text goes to `claude-opus-5-5`, the coordinator's model, through the Agent SDK. The count is its input tokens less those of a one-word prompt.
-- **The review.** A fresh agent, with no chat history or memory, compared the first proposal (version F in section 3) with the design docs, the code, and the tests. Section 5 covers what it found and how the proposal changed.
+- **How tokens were counted:** the same way as in tool design 2.1. The text goes to `claude-opus-5-5`, the coordinator's model, through the Agent SDK. The count is its input tokens less those of a one-word prompt. Counting version J a second time gave the same 21,000 tokens.
+- **The review.** A fresh agent, with no chat history or memory, compared an earlier proposal (version F in section 4) with the design docs, the code, and the tests. Section 6 covers what it found and how the proposal changed.
 
 ---
 
-## 2. Where the characters go
+## 2. Why the coordinator reads the whole trip
 
-The whole read is 66,260 characters, and the API counts it as 34,498 tokens. That's 1.92 characters a token, close to the 1.89 that #54 measured.
+Technical spec 5.2 has the coordinator read the whole itinerary in three cases. Here is what each one needs from the read.
+
+| Case | What the coordinator needs |
+|---|---|
+| **The start of a session** | The open warnings, to mention in its first reply. The forecast notes, to offer a weather rerun. And a picture of the trip: its dates and ends, its stays and days, what's picked on each stop and stay, and why |
+| **After a resume** | What changed since the transcript ends. Another session may have changed the trip, or a worker may have saved candidates before a restart cut off the turn ([persistence design](../design/persistence.md), section 7). Also the open warnings |
+| **"What's left to decide?"** | Which stops and lodging are empty or proposed, the open warnings, and the approved exceptions |
+
+None of the three needs every candidate's name and short line:
+
+- For an item that's picked, the picked place is what matters.
+- For an item that isn't picked yet, the coordinator needs to know it's undecided, and how many options it has. To talk through the options, it reads that stop or stay.
+- After a resume, it needs to notice new candidates, not read them. A count by set shows that a stop that was empty now has a set, or that a picked stop has a new one.
+
+**Why a whole read lists every candidate today.** Technical spec 7.2 says a whole read gives "the name and short line for every selected place and every candidate". It says that in a new session, this is all the coordinator knows about the trip's places. With every name in context, the coordinator can follow along when the user names a candidate, such as "let's do the Desert Pearl instead," and select it without another call. That's useful, but it isn't one of the three jobs above. Without it, the coordinator reads the stop or stay first, which is one call (section 7).
+
+---
+
+## 3. Where the characters go
+
+The busy trip's whole read is 66,260 characters, and the API counts it as 34,498 tokens. That's 1.92 characters a token, close to the 1.89 that #54 measured.
 
 | Part | Characters | Share |
 |---|---|---|
@@ -34,9 +53,11 @@ The whole read is 66,260 characters, and the API counts it as 34,498 tokens. Tha
 
 The picked places' candidate lines mostly repeat the stop line. The stop line already says "Selected: Whiptail Grill (place_…), visit time 1 h." The candidate line then says the name and ID again, and adds the short line and the rationale.
 
+The nothing-picked read is 51,047 characters, and its candidate lines are 29,474 of them, or 58%.
+
 ---
 
-## 3. What each change saves
+## 4. What each change saves
 
 Each version is the busy trip's whole read with one or more changes.
 
@@ -52,33 +73,34 @@ Each version is the busy trip's whole read with one or more changes.
 | G. B, without the picked place's rationale | 32,377 | 17,268 | −50% |
 | H. B, with C, D, E, short dates, and no "the usual start time" | 32,480 | 16,422 | −52% |
 | I. H, and G | 24,680 | 13,496 | −61% |
-| **J. B, keeping the picked place's detour time, and counting the others by set. The current proposal** | **41,710** | **21,000** | **−39%** |
+| J. B, keeping the picked place's detour time, and counting the others by set | 41,710 | 21,000 | −39% |
 | K. B, keeping the detour time, and listing in full any set newer than the picked one | 46,598 | 23,023 | −33% |
+| **L. J, and counting by set the candidates of items with nothing picked too. The current proposal** | **41,444** | **20,860** | **−40%** |
 
 Short dates means "Sun Sep 12" instead of "Sunday, September 12, 2027". It and dropping "the usual start time" each save about 1% of the characters. Their tokens weren't counted on their own.
 
-The same trip with nothing picked:
+L saves little over J on the busy trip, since only one of its stops has candidates and nothing picked. It matters on the trip with nothing picked:
 
-| State | Characters | Tokens |
-|---|---|---|
-| Nothing picked, one set for each item | 47,064 | 24,078 |
-| Nothing picked, with the second sets | 51,047 | 26,324 |
+| State | Today | J | L |
+|---|---|---|---|
+| Nothing picked, one set for each item | 47,064 characters, 24,078 tokens | the same as today | not measured |
+| Nothing picked, with the second sets | 51,047 characters, 26,324 tokens | the same as today | 22,806 characters, 10,820 tokens |
 
-None of the changes above make these smaller. With no place picked, every candidate stays, and with no times known, the schedule has no drive lines to drop.
+Versions A to K don't make the nothing-picked read smaller. With no place picked, every candidate stays, and with no times known, the schedule has no drive lines to drop.
 
 ---
 
-## 4. The current proposal (version J)
+## 5. The current proposal (version L)
 
 It changes only the whole read. Reads of a day, stay, or stop stay as they are. `itinerary-read-size/slim-read-proposed.txt` is the busy trip in this format.
 
 **What changes:**
 
-- On a stop or stay with a picked place, the candidates not picked are no longer listed. A line gives their count, by set.
-- The picked place's own candidate line goes away. Its short line, its detour time, and its rationale move onto the stop line, or onto the stay's "Lodging:" line.
+- No candidate is listed. A line on each stop and stay gives the count of its candidates, by set.
+- On a stop or stay with a picked place, the picked place's own candidate line goes away. Its short line, its detour time, and its rationale move onto the stop line, or onto the stay's "Lodging:" line. The count line then covers only the other candidates.
 - A picked place with no other candidates gets no count line, such as a place the user named.
 
-Today:
+A picked stop today:
 
 ```
 - 10:18 a.m. to 12:18 p.m.: Stop 2 (stop_…), attraction: "a first look at red rock on the way". Along the leg. Selected: Valley of Fire State Park (place_…), visit time 2 h.
@@ -95,18 +117,25 @@ Proposed:
   - Other candidates: 2 in set 1.
 ```
 
+A stop with nothing picked, proposed:
+
+```
+- 6:30 p.m.: Stop 4 (stop_…), meal: "dinner". Near the Springdale stay. Set time: 6:30 p.m. Tier: value, from the rule "the trip default". No place selected yet.
+  - Candidates: 3 in set 1, 3 in set 2.
+```
+
 **What stays:**
 
-- A stop or stay with no picked place still lists every candidate. So "what's left to decide?" (technical spec 5.2) still has what it needs.
+- Each of the three cases in section 2 still has what it needs. "What's left to decide?" sees every stop and stay with no place picked, and how many options each has.
 - The schedule's drive lines, each meal's tier, and each stay's weather text.
 - Everything outside candidates: the trip's dates and ends, stays, legs, approvals, rejected places, and check results. So the parts that only a whole read shows stay in reach. These are the check results about the trip itself, such as its length, plus the start and end places, the dates, and the rejected places. Reading a stay at a time loses them (#129, last open question).
-- A read scoped to a stop or stay still gives every candidate in full. So the coordinator can always get the rest with a call it already has.
+- A read scoped to a stop or stay still gives every candidate in full. So the coordinator can always get them with a call it already has.
 
 ---
 
-## 5. What the review found, and how the proposal changed
+## 6. What the review found, and how the proposal changed
 
-The first proposal was version F. The review found four problems with it.
+The review looked at version F. It found four problems. They led to version J, and version L keeps all four fixes. The review didn't look at L.
 
 **1. The meal tier cut (D) can't be built reliably. The proposal now drops it.** It would hide a meal's tier when it's the trip default. But code has no reliable way to tell what the trip default is:
 
@@ -128,10 +157,11 @@ It saved only about 640 tokens.
 
 ---
 
-## 6. Trade-offs that remain
+## 7. Trade-offs that remain
 
-- **In a new session, the coordinator doesn't know the other options.** Technical spec 7.2 says a whole read gives every candidate, and that in a new session it's all the coordinator knows about the trip's places. Now some requests take one extra stop read each:
-  - "What else was offered?", or picking another option by name (functional spec 7.5).
+- **In a new session, the coordinator doesn't know any candidate's name.** Now some requests take one extra stop or stay read each:
+  - Picking an option by name in chat, such as "let's do the Desert Pearl" (functional spec 7.5). In version L this includes the first pick on an item, not only a change of pick. A Select click on an option card isn't affected, since its message carries the place's line and IDs (technical spec 7.2).
+  - "What else was offered?", or recommending one of an item's options.
   - Offering again a place passed over for a date reason (technical spec 5.2).
   - Checking whether another candidate is open on the stop's date (technical spec 7.2).
 
@@ -141,41 +171,41 @@ It saved only about 640 tokens.
 
 ---
 
-## 7. A trip with little picked is still too large
+## 8. A trip that's partly picked
 
-Right after workers fill the days, nothing is picked yet. The read is then 24,078 tokens with one set per item, and 26,324 with the second sets (section 3). The proposal can't help, since it only trims items that have a pick. That's also when a session is most likely to start or resume mid-planning. So on a long trip, the whole read at the start of a session can still be refused, at the busiest stretch of picking.
+The fill round sends workers for the whole trip at once (technical spec 4.2, step 4). So every long trip passes through a state with almost nothing picked, right after the fill. A person isn't likely to leave a trip that way for long. But a session can end partway through the picking, and the next one then starts with a whole read of a trip that's partly picked.
 
-The read gets smaller as the user picks.
+In version J, a partly picked trip lies between 21,000 tokens (busy) and 26,324 (nothing picked), so it's near or over the limit. In version L, it lies between 10,820 and 20,860. A partly picked trip wasn't measured, but each pick makes the read longer in L, since the picked place's line is longer than a count. So the busy trip is close to the largest a whole read gets.
 
-So the tool still needs its fallback for a whole read that's too large. Today its error says to read the trip a stay at a time. But a stay read is the largest scoped read, since it gives every candidate's full details. #54 measured a 3-night stay at 28,104 characters. Day reads are smaller, at about 5,200 characters each at most. So the error could point to day reads instead. That still leaves the parts only a whole read shows (section 4) out of reach in this state.
-
----
-
-## 8. The tool's character limit
-
-The tool can't count tokens, so it refuses a reply over 40,000 characters, which is about 21,000 tokens at 1.89 characters a token (tool design 2.1). Version J is 41,710 characters but only 21,000 tokens, so the tool would refuse it.
-
-Fewer IDs means more characters per token. The measured reads ran from 1.83 to 2.06 characters a token, and the densest one is version I, with the most IDs for its length. At 1.83, a limit of about 45,000 characters stays under 25,000 tokens. J would fit. K, at 46,598 characters, would not. The nothing-picked reads, at 47,064 and 51,047 characters, still wouldn't.
+The tool still needs its refusal for a read that's too large, for a trip denser than this one. Today its error says to read the trip a stay at a time. But a stay read is the largest scoped read, since it gives every candidate's full details. #54 measured a 3-night stay at 28,104 characters. Day reads are smaller, at about 5,200 characters each at most. So the error could point to day reads instead.
 
 ---
 
-## 9. What in the design and code would change
+## 9. The tool's character limit
+
+The tool can't count tokens, so it refuses a reply over 40,000 characters, which is about 21,000 tokens at 1.89 characters a token (tool design 2.1). Version L is 41,444 characters but only 20,860 tokens, so the tool would refuse it.
+
+Fewer IDs means more characters per token. The measured reads ran from 1.83 to 2.11 characters a token, and the densest one is version I, with the most IDs for its length. At 1.83, a limit of about 45,000 characters stays under 25,000 tokens. J and L would fit. K, at 46,598 characters, would not.
+
+---
+
+## 10. What in the design and code would change
 
 - **Tool design 2.1, the `read_itinerary` row.** It says a read gives "every stored property of each item it covers", and for each stop and stay "every candidate, in the order offered, each with its set number and its visit and detour times." It also says a scoped read returns "the same details for its part only". A day read would now return more than the whole read does.
-- **Tool design 2.1, the size paragraphs.** "A whole read of a long trip is refused" would be true only while little is picked. The 40,000-character limit would change (section 8). So would the fallback, if it points to day reads (section 7).
-- **Technical spec 7.2, "Reading the itinerary".** It says the read returns "the name and short line for every selected place and every candidate," and that in a new session this is all the coordinator knows about the trip's places.
-- **The tool's description, `READ_ITINERARY_DESCRIPTION` in `src/tools/itinerary-tools.ts`.** "Candidates are listed in the order offered, with their set" would be wrong for a whole read, and the count line needs explaining. `src/agent/coordinator.view.md` is a snapshot of it, so `npm run agent-views` updates it.
-- **The coordinator's instructions.** They should say to read the stop before "More options", "Higher tier", or "Lower tier" (section 6).
-- **Tests.** `src/tools/itinerary-read-marks.test.ts` has a test that a whole read of `fourteenDayExample` is refused as too large. That trip has everything picked, so in the new format it would probably fit, and the test would fail. A new test should pin the count line, the folded stop line, and that undecided items still list every candidate.
+- **Tool design 2.1, the size paragraphs.** "A whole read of a long trip is refused" would no longer be true of a trip like this one. The 40,000-character limit would change (section 9). So would the fallback, if it points to day reads (section 8).
+- **Technical spec 7.2, "Reading the itinerary".** It says the read returns "the name and short line for every selected place and every candidate," and that in a new session this is all the coordinator knows about the trip's places. In version L, the read gives only the selected places, and counts for the rest.
+- **Technical spec 5.2.** It could say what each whole read is for, as in section 2, so the instructions don't lean on the read for candidates.
+- **The tool's description, `READ_ITINERARY_DESCRIPTION` in `src/tools/itinerary-tools.ts`.** "Candidates are listed in the order offered, with their set" would be wrong for a whole read, and the count lines need explaining. `src/agent/coordinator.view.md` is a snapshot of it, so `npm run agent-views` updates it.
+- **The coordinator's instructions.** They should say to read the stop or stay before picking an option by name, recommending one, or "More options", "Higher tier", or "Lower tier" (section 7).
+- **Tests.** `src/tools/itinerary-read-marks.test.ts` has a test that a whole read of `fourteenDayExample` is refused as too large. In the new format it would probably fit, and the test would fail. A new test should pin both count lines and the folded stop line.
 
 ---
 
-## 10. Fine as is
+## 11. Fine as is
 
-The review checked these, and found they don't change:
+The review checked these for version F, and found they don't change. Each still holds for version L:
 
-- "What's left to decide?" (technical spec 5.2): empty and undecided items still list everything.
-- Fill briefs (technical spec 4.2): the stops they cover are still empty, so every candidate shows.
+- Fill briefs (technical spec 4.2): the stops they cover are still empty, so there are no candidates to hide.
 - The weather worker's brief (technical spec 5.3): it needs only stay IDs, town names, and place IDs, which stay.
 - Open warnings and forecast notes at the start of a session: check results don't change.
 - Rejected places, approvals, waypoints, leg lines, and arrival lines.
@@ -184,8 +214,9 @@ The review checked these, and found they don't change:
 
 ---
 
-## 11. Not measured
+## 12. Not measured
 
 - **Fewer IDs.** Version B has 191 IDs, at about 5 tokens each, so about 1,000 tokens. The coordinator needs each one to act on its item, so there isn't much to cut.
 - **JSON instead of text.** Repeating each key and its quotes on every item would likely cost more.
+- **A partly picked trip.** It lies between the busy and nothing-picked reads (section 8).
 - **The largest busy trip.** Since 14 days is the longest trip allowed (technical spec section 10), a trip like this one is close to the largest a whole read gets once most items are picked.

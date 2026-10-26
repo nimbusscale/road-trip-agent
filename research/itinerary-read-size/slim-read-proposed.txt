@@ -288,10 +288,7 @@ Schedule:
 - 3:15 p.m. to 4:30 p.m.: Stop 5 (stop_66yechdn), attraction: "a quiet stop in the afternoon". Along the leg. Selected: Navajo National Monument (place_x7ybhmq6), National monument, 4.8 stars, Black Mesa, detour 42 m when offered, visit time 1 h 15 m. Why: "The Betatakin cliff dwelling from a one-mile overlook trail, free, and almost never crowded."
   - Other candidates: 2 in set 1.
 - 6:30 p.m.: Stop 6 (stop_tb7c5f7d), meal: "dinner". Near the Page stay. Set time: 6:30 p.m. Tier: value, from the rule "the trip default". No place selected yet.
-  - Candidates:
-    - Set 1: Big John's Texas BBQ (place_t5q7k232), Barbecue restaurant, 4.6 stars, $$, Page.
-    - Set 1: Bonkers Restaurant (place_739skdjs), American restaurant, 4.5 stars, $$, Page.
-    - Set 1: Into the Grand (place_c4ftczff), Southwestern restaurant, 4.5 stars, $$, Page.
+  - Candidates: 3 in set 1.
 - Time not known yet: drive.
 Arrival at Hyatt Place Page/Lake Powell: time not known yet.
 

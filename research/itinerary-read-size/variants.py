@@ -1,7 +1,7 @@
 # Rewrites the realistic whole read into slimmer versions, to measure what each change
 # to its format would save (research/itinerary-read-size.md). Writes one file per
 # version, named by its letter in the doc's section 3, and prints each one's characters
-# and IDs.
+# and IDs. It also runs on the nothing-picked read, where only version L changes it.
 #   python3 research/itinerary-read-size/variants.py \
 #     research/itinerary-read-size/full-read-14-realistic.txt <output folder>
 import re, sys, os
@@ -24,11 +24,7 @@ def others_lines(indent, cands, sel, others):
         return [f"{indent}- {plural(len(rest))}."]
     picked_set = int(sel.group(2))
     if others == "by_set":
-        sets = {}
-        for m in rest:
-            sets[int(m.group(2))] = sets.get(int(m.group(2)), 0) + 1
-        parts = ", ".join(f"{n} in set {k}" for k, n in sorted(sets.items()))
-        return [f"{indent}- Other candidates: {parts}."]
+        return [f"{indent}- Other candidates: {set_counts(rest)}."]
     # newer_sets: count the rest of the picked set and older sets, list newer sets in full
     older = [m for m in rest if int(m.group(2)) <= picked_set]
     newer = [m for m in rest if int(m.group(2)) > picked_set]
@@ -39,7 +35,14 @@ def others_lines(indent, cands, sel, others):
     return lines
 
 
-def slim_candidates(lines, fold=True, keep_why=True, keep_detour=False, others="count"):
+def set_counts(cands):
+    sets = {}
+    for m in cands:
+        sets[int(m.group(2))] = sets.get(int(m.group(2)), 0) + 1
+    return ", ".join(f"{n} in set {k}" for k, n in sorted(sets.items()))
+
+
+def slim_candidates(lines, fold=True, keep_why=True, keep_detour=False, others="count", undecided="list"):
     res = []
     i = 0
     while i < len(lines):
@@ -55,7 +58,9 @@ def slim_candidates(lines, fold=True, keep_why=True, keep_detour=False, others="
             cands.append(SET.match(lines[j]))
             j += 1
         sel = next((m for m in cands if m.group(6)), None)
-        if sel is None:  # nothing picked: keep every candidate
+        if sel is None and undecided == "count":  # nothing picked: count the candidates by set
+            res.append(f"{indent}- {line.strip()[2:-1]}: {set_counts(cands)}.")
+        elif sel is None:  # nothing picked: keep every candidate
             res.extend(lines[i:j])
         elif fold:
             extra = re.sub(r", visit time [^,]+", "", sel.group(5))
@@ -119,6 +124,7 @@ versions = {
     "I-H-no-why": small_cuts(slim_candidates(base, keep_why=False)),
     "J-B-detour-count-by-set": slim_candidates(base, keep_detour=True, others="by_set"),
     "K-B-detour-newer-sets": slim_candidates(base, keep_detour=True, others="newer_sets"),
+    "L-J-count-undecided-too": slim_candidates(base, keep_detour=True, others="by_set", undecided="count"),
 }
 
 os.makedirs(out, exist_ok=True)
