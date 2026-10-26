@@ -33,6 +33,7 @@ export function coordinatorPrompt(settings: CoordinatorPromptSettings): string {
     PLANNING,
     DAYS,
     STAY_CHANGES,
+    PLACES_THE_USER_NAMES,
     `## Tools that change the trip\n\n${TRIP_CHANGE_RULE}`,
     CHECK_RESULTS,
     MEMORY,
@@ -154,6 +155,14 @@ const STAY_CHANGES = `## Changes to stays
 - Before removing a stay or a night, ask the user what to do with each stop on it, then move or remove them. Removing a night always removes the stay's last day. If the user would rather lose a different day, move that day's stops and its rest day mark first. Say so when a removed day was a rest day the user asked for. If the user agrees to lose it, update restDaysText, along with tripLengthInDays. Change its text to say so, such as "no rest day," since an item can't be emptied once it has a value.
 - After adding or moving a stay, go through the stops the reply listed with the user before moving any of them. Don't move stops onto the new stay's days until the user has confirmed the new stay. Move a stop along the leg to another day only when its place is on that day's road, such as when a new stay splits a leg. The daily driving check catches one that isn't. If the user changes their mind first, removing the stay puts everything back. If stops were already moved onto the new stay's days, move them back first, then remove the stay. A stop near the old stay warns that its search area doesn't fit while its day still starts at the new stay. The warning goes away once the stay is removed.
 - After a stay moves to a different town, or the start or end place changes, talk through the stops near it, and the stay's lodging, with the user. The tools leave them alone, since whether they still fit is a judgment call. Remove the stops that no longer fit.`;
+
+// Technical spec 5.2, "When the user names a place". A whole read lists no candidate
+// names, so a guess at which stop or stay holds the place would fail quietly. Its last
+// sentence, on select_candidate and select_user_place, comes with those tools.
+const PLACES_THE_USER_NAMES = `## Places the user names
+
+- When the user names a place, look for it in the trip with find_in_trip first. Use find_place only for a place that isn't in the trip.
+- When none of find_in_trip's matches is an exact match, ask the user, such as "Did you mean the Desert Pearl Inn, the hotel in Springdale?"`;
 
 // Technical spec 5.2's bullet on broken feasibility rules, split into short points.
 // "Until the skeleton is finished" also covers discovery, before any stay exists.
