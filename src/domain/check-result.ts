@@ -21,7 +21,6 @@ const LEVELS: Readonly<Record<CheckKind, CheckLevel>> = {
   searchAreaDoesNotFitDay: "warning",
   weatherOutOfDate: "note",
   forecastNowAvailable: "note",
-  stayTierSetForDifferentNights: "note",
 };
 
 // Only these can depend on a stop before them with no place yet: a stop with no place

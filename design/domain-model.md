@@ -171,7 +171,6 @@ classDiagram
         lodgingCandidates : List~Candidate~ #123;viaService#125;
         tier : Tier #123;readOnly#125;
         tierRule : string #123;readOnly#125;
-        tierSetForNightCount : integer #123;readOnly#125;
         days : List~StayDay~ #123;viaService#125;
         weatherText : WeatherText? #123;viaService#125;
         /nightCount : integer
@@ -378,7 +377,7 @@ The fixed lists that properties above use:
 | `Weekday` | `sunday`<br>`monday`<br>`tuesday`<br>`wednesday`<br>`thursday`<br>`friday`<br>`saturday` |
 | `ApprovalKind` | `driveHours`<br>`routeType`<br>`openingHours` |
 | `CheckLevel` | `warning`<br>`note` |
-| `CheckKind` | `tripLengthVsBrief`<br>`dailyDriving`<br>`openingHoursNotLongEnough`<br>`openingHoursClosed`<br>`openingHoursNotKnown`<br>`lateForSetTime`<br>`stopOrder`<br>`searchAreaDoesNotFitDay`<br>`weatherOutOfDate`<br>`forecastNowAvailable`<br>`stayTierSetForDifferentNights` |
+| `CheckKind` | `tripLengthVsBrief`<br>`dailyDriving`<br>`openingHoursNotLongEnough`<br>`openingHoursClosed`<br>`openingHoursNotKnown`<br>`lateForSetTime`<br>`stopOrder`<br>`searchAreaDoesNotFitDay`<br>`weatherOutOfDate`<br>`forecastNowAvailable` |
 
 ---
 
@@ -487,7 +486,6 @@ A check result is one finding from the feasibility checks in technical spec sect
 | `searchAreaDoesNotFitDay` | Search area doesn't fit the day | Warning | A stop | None |
 | `weatherOutOfDate` | Weather out of date | Note | A stay | None |
 | `forecastNowAvailable` | Forecast now available | Note | A stay | None |
-| `stayTierSetForDifferentNights` | Stay tier set for different nights | Note | A stay | None |
 
 **The `FeasibilityChecker`** works out the check results, compares them with the saved list, and decides which are new. It's a service, so it's in section 4.8, with when it runs and which check results count as new.
 
@@ -575,9 +573,8 @@ A stay is an overnight location, for one or more nights (functional spec 4). It 
 | `place` | Stored | `Place` | Where it is, usually a town, such as Moab. Set directly. See below |
 | `lodging` | Stored | `Place?`, read only | Where the party sleeps, such as a hotel, a campground, or a friend's house. Empty until selected. Always one of `lodgingCandidates`. Changes only through `selectCandidate()`, or when its candidate is removed by a rejection (`RejectionsService.rejectPlaces()`, section 4.3) |
 | `lodgingCandidates` | Stored | `List<Candidate>`, in the order offered, via service | Every lodging candidate offered and not rejected. Changes only through `StaysService.addLodgingCandidates()`, or when `RejectionsService.rejectPlaces()` removes one |
-| `tier` | Stored | `Tier`, read only | The lodging's budget tier (technical spec section 9). Changes only through `setTier()` and `selectCandidate()` |
+| `tier` | Stored | `Tier`, read only | The lodging's budget tier (technical spec section 9). Changes only through `setTier()` and `selectCandidate()`, so a change to the nights leaves it as it is |
 | `tierRule` | Stored | `string`, read only | The user's rule that produced the tier, such as "mid-range for stays of 2+ nights" |
-| `tierSetForNightCount` | Stored | `integer`, read only | The stay's nights when its tier was last set. See below |
 | `days` | Stored | `List<StayDay>`, in order, via service | One for each night. Created with the stay. Changes only through `StaysService.setNightCount()` |
 | `weatherText` | Stored | `WeatherText?`, via service | Weather and clothing guidance. Empty until the weather worker writes it. Changes only through `StaysService.setWeatherText()` |
 | `nightCount` | Worked out | `integer` | How many days it holds |
@@ -588,8 +585,6 @@ A stay is an overnight location, for one or more nights (functional spec 4). It 
 **Creating a stay.** `StaysService.addStay()` creates it with its place, its nights, and its tier and rule, and the stay creates its days. So a stay always has at least one day and a tier. Creating one is refused when the night count is less than 1 or the rule is empty.
 
 **Place.** Set directly. Moving a stay to a different town leaves its lodging and the stops on its days alone, because whether they still fit is a judgment call. The coordinator talks it through with the user. Then it removes the stops that no longer fit, and rejects the hotel if it no longer fits (technical spec 5.2). The legs on either side are re-routed at the end of the write, and the weather text goes out of date (`isWeatherOutOfDate()`, section 4.1). Example: moving from Monterey to Carmel keeps every stop and the hotel.
-
-**Tier and nights.** A rule like "mid-range for stays of 2+ nights" depends on the nights. So setting the tier records the current nights in `tierSetForNightCount`. When `nightCount` no longer matches, the checks give the `stayTierSetForDifferentNights` note (see Check result). Setting the tier again, even to the same one, records the current nights and clears the note.
 
 **WeatherText.** Held by its stay, with no `id`. A new one replaces the old one whole, so its properties never change. `StaysService.setWeatherText()` creates it (section 4.4). Creating one with empty guidance is refused.
 
@@ -610,7 +605,7 @@ Whether the text is out of date needs the stay's current dates and activities, w
 
 **Operations:**
 
-- **`setTier(tier : Tier, tierRule : string)`** (the tool `update_stay`). Sets `tier` and `tierRule`, and records the current `nightCount` in `tierSetForNightCount`.
+- **`setTier(tier : Tier, tierRule : string)`** (the tool `update_stay`). Sets `tier` and `tierRule`.
   - **Refused:** when the rule is empty.
 - **`selectCandidate(place : Place)`** (the tools `select_candidate` and `select_user_place`). Sets `lodging` to the candidate's place. When the candidate has a tier that differs from the stay's, it sets the tier to the candidate's, with the rule "the user picked a mid-range option" (or whichever tier), the same way `setTier()` does. A place the user named has no tier, so the stay's tier stays.
   - **Follows on:** every leg that starts or ends at the stay is re-routed at the end of the write. For a three-night stay, that's the day in, the days that stay put, and the day out.
@@ -1049,7 +1044,7 @@ The two trip brief items whose limits are settings. Every other item is set dire
   - **Follows on:** every leg whose start or end changed is re-routed at the end of the write. A day keeps its stops, but where it starts or ends can change. The tool lists those stops for the coordinator (tool design 2.1). A stop near a stay can end up on a day that doesn't start or end there. The move goes through, and the checks give the `searchAreaDoesNotFitDay` warning.
   - **Refused:** by the itinerary's own rule, when `after` is the stay itself or isn't one of its stays.
 - **`setNightCount(itinerary : Itinerary, stay : Stay, nightCount : integer) : List<StayDay>`** (the tool `update_stay`). Adds or removes days at the end of the stay's days until it has `nightCount` of them. A new day isn't a rest day, and has no start time, stops, or approvals. A removed day goes with its leg and approvals. Returns the days added, or an empty list when nights were removed.
-  - **Follows on:** every later day moves, and keeps its ID. Every leg whose start or end changed is re-routed at the end of the write. Example: removing Moab's last night leaves the Torrey day starting at the Moab hotel, so its leg isn't re-routed. The stay's tier still records the nights it was set for, so the checks add a note when they differ (see Stay).
+  - **Follows on:** every later day moves, and keeps its ID. Every leg whose start or end changed is re-routed at the end of the write. Example: removing Moab's last night leaves the Torrey day starting at the Moab hotel, so its leg isn't re-routed. The stay's tier stays as it is (technical spec section 9).
   - **Refused:** when the trip would be longer than the maximum trip length. When a day it would remove holds stops. The refusal lists those stops. By the stay's own rule: when `nightCount` is less than 1. Removing a stay's last night means removing the stay.
 - **`removeStay(itinerary : Itinerary, stay : Stay)`** (the tool `remove_stay`). Removes the stay, which takes its days, lodging candidates, and weather text with it. The places stay stored.
   - **Follows on:** the next day now starts from the stay before, or from the start place, and its leg is re-routed at the end of the write.

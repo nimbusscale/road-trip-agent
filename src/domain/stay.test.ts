@@ -37,7 +37,6 @@ describe("creating a stay", () => {
       false,
     ]);
     expect(new Set(moab.days.map((day) => day.id)).size).toBe(3);
-    expect(moab.tierSetForNightCount).toBe(3);
   });
 
   it("refuses fewer than 1 night, or an empty rule", () => {
@@ -61,15 +60,10 @@ describe("creating a stay", () => {
 });
 
 describe("Stay.setTier", () => {
-  it("records the nights it was set for, and refuses an empty rule", () => {
+  it("sets the tier and its rule, and refuses an empty rule", () => {
     const moab = newStay(MOAB_FIELDS);
-    moab[VIA_SERVICE].setNightCount(1);
     moab.setTier("value", "one-night stays");
-    expect([moab.tier, moab.tierRule, moab.tierSetForNightCount]).toEqual([
-      "value",
-      "one-night stays",
-      1,
-    ]);
+    expect([moab.tier, moab.tierRule]).toEqual(["value", "one-night stays"]);
     expect(() => {
       moab.setTier("posh", "");
     }).toThrow(RuleError);
@@ -189,7 +183,6 @@ function storedFieldsOf(stay: Stay): ConstructorParameters<typeof Stay>[0] {
     lodgingCandidates: stay.lodgingCandidates,
     tier: stay.tier,
     tierRule: stay.tierRule,
-    tierSetForNightCount: stay.tierSetForNightCount,
     days: stay.days,
     weatherText: stay.weatherText,
   };

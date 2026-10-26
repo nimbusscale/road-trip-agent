@@ -11,7 +11,6 @@ export const CHECK_KINDS = [
   "searchAreaDoesNotFitDay",
   "weatherOutOfDate",
   "forecastNowAvailable",
-  "stayTierSetForDifferentNights",
 ] as const;
 
 export type CheckKind = (typeof CHECK_KINDS)[number];
