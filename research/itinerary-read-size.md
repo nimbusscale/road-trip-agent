@@ -9,7 +9,7 @@ The problem: a whole read of a busy 14-day trip is 34,498 tokens. That's over Cl
 - **Version O of the whole read (section 5).** It gives the picked place on each stop and stay, with only its town from the short line, and a count of the other candidates, by set. It leaves out the picked place's rationale, type, rating, and price, and each stay's weather text, which the itinerary view already shows the user. It keeps each tier, but not the rule that produced it. A busy 14-day trip goes from 34,498 tokens to 15,291. The same trip with nothing picked goes from 26,324 tokens to 9,433. Both are under the tool's 40,000-character limit, so the limit can stay (section 10).
 - **A new tool, `find_in_trip`, that searches the trip's own places by name (section 6).** With no candidate names in the whole read, it's how the coordinator finds the stop or stay a place belongs to, when the user names one.
 
-One thing is still open: whether `select_user_place` should say when the place is already a candidate on another stop or stay (section 6).
+`select_user_place` also gets a line in its reply when the place is a candidate on another stop or stay (section 6.4).
 
 ---
 
@@ -201,13 +201,25 @@ Names in the read cost tokens on every session start and resume, and they stay i
 
 ### 6.2 `find_in_trip`
 
-It's a new tool. `find_in_trip` is a working name, kept far from `find_place` so the two are hard to mix up.
+It's a new tool. `find_in_trip` is a working name, kept far from `find_place` so the two are hard to mix up. Only the coordinator gets it, on the `trip` server next to `read_itinerary`. Only the coordinator talks to the user, and a worker that offers a place already in the trip gets a refusal from code. Agreed on 2026-10-26, in chat.
 
 - **What it searches:** every place in the trip. That's the candidates, the selected places, the rejected places, the start and end places, and the stays' towns. Code already loads every place with the trip (persistence design: `EditableTrip` holds every place loaded with the trip). So the search runs in TypeScript, with no new table or Postgres extension.
-- **How it matches:** by string similarity, meaning how many letters and word pieces two names share. Not by vector search. Vector search matches meaning, and a typo is a spelling problem. An embedding of "Desert Rose" could land closer to a "Rose Garden" than to the Desert Pearl Inn.
+- **How it matches:** by trigram similarity, written in TypeScript in the tool, with no new package. It splits both strings into overlapping three-letter pieces, such as "des", "ese", and "ser", and scores how many they share. That handles both typos, such as "Desert Rose" for "Desert Pearl Inn", and partial names, such as "Cliffrose" for "Cliffrose Springdale, Curio Collection by Hilton". Edit distance, which counts the letters to change, handles typos but not partial names. Before scoring, both strings are lowercased, with punctuation and a leading "the" taken out. It can be tuned later if it misses. Not vector search: that matches meaning, and a typo is a spelling problem. An embedding of "Desert Rose" could land closer to a "Rose Garden" than to the Desert Pearl Inn. Agreed on 2026-10-26, in chat.
 - **Input:** only the text the user said, such as "Desert Rose." No stay or day to narrow it. The coordinator often won't know the stay, and an optional input goes against tool design section 4.
-- **Reply:** the closest few places, best first. Each gives its name, place ID, short line, and where it sits in the trip. Examples: "Lodging candidate for Stay 1, Springdale (stay_…), set 1, not selected." "Selected for Day 1, Stop 4 (stop_…)." "Rejected: the user doesn't want to stay on the Strip."
-- **No cutoff for a match.** It always returns the closest few, and the coordinator judges. When none is an exact match, it asks the user, such as "Did you mean the Desert Pearl Inn?" That keeps a fiddly threshold out of code, and leaves the judgment with the agent, where an evaluation can watch it.
+- **Reply:** the 5 closest places, best first, or every place when the trip has fewer than 5. That's the same number `find_place` returns, so the two tools behave alike. Each gives its name, place ID, short line, and where it sits in the trip. Agreed on 2026-10-26, in chat. It's written in the read's style, with the full short line, and one line for each spot the trip holds the place in:
+
+  ```
+  The 5 places in the trip closest to "Desert Rose", best first:
+  - Desert Pearl Inn (place_…), Hotel, 4.8 stars, $$$, Springdale.
+    - Lodging candidate for Stay 1, Springdale (stay_…), set 1. Selected.
+  - Desert View Watchtower (place_…), Historical landmark, 4.8 stars, $, Grand Canyon Village.
+    - Candidate for Day 12, Stop 5 (stop_…), attraction, set 1. Not selected.
+  - Rose Well Camp (place_…), Campground, 4.1 stars, Seligman.
+    - Rejected for the whole trip: "too far off the route".
+  ```
+
+  The full short line stays here, unlike in the whole read. It's the coordinator's only look at each match, and the type and town are what it needs to check with the user, such as "Did you mean the Desert Pearl Inn, the hotel in Springdale?" A place in more than one spot, such as a hotel that's also a dinner candidate, gets a line for each. The start and end places read "The start and end place.", and a stay's town reads "The town of Stay 1 (stay_…)."
+- **No cutoff for a match.** It always returns the 5 closest, and the coordinator judges. When none is an exact match, it asks the user, such as "Did you mean the Desert Pearl Inn?" That keeps a fiddly threshold out of code, and leaves the judgment with the agent, where an evaluation can watch it.
 - **Its own tool, not a `read_itinerary` scope.** Tool design 2.1 says the scopes are IDs, not a query language, so a bad request gets an error instead of quietly returning nothing. A search by name is a query.
 
 ### 6.3 What to watch
@@ -215,9 +227,13 @@ It's a new tool. `find_in_trip` is a working name, kept far from `find_place` so
 - **Two tools for a place the user names.** This is the risk that comes with this approach. The coordinator's instructions have to say to use `find_in_trip` first, and `find_place` only for a place that isn't in the trip. An evaluation should check that it picks the right tool.
 - **A close match that isn't what the user meant.** Say the user wants a new restaurant, Desert Rose Grill, and the search returns the Desert Pearl Inn as the closest. The coordinator has to notice the match isn't exact and ask. This comes with any approach that takes a name the user typed, Google's included. Only exact matching avoids it, and exact matching fails on a typo.
 
-### 6.4 Still open
+### 6.4 `select_user_place` says when the place is a candidate elsewhere
 
-`select_user_place` could say in its reply when the place is already a candidate on another stop or stay, and name it. It shouldn't refuse the call, since the same place can be a candidate on two stops on purpose (tool design 2.1). That would make a wrong guess visible, to the coordinator and in a trace. With `find_in_trip`, a wrong guess should be rarer, so this may not be needed.
+Agreed on 2026-10-26, in chat. Say the user says "let's do Oscar's for dinner," and the coordinator puts it on Day 2's dinner with `select_user_place`, though Oscar's was a candidate for Day 1's dinner. Today the call succeeds with no sign anything is off. Oscar's is added to Day 2 as a place the user named, and Day 1's dinner stays undecided.
+
+So the reply gets a line for each other stop or stay where the place is a candidate, in the form the whole read uses: "Oscar's Cafe is also a candidate for Day 1, Stop 4 (stop_…), dinner." For lodging, it names the stay, such as "Stay 1, Springdale (stay_…), lodging." The ID lets the coordinator fix the pick with `select_candidate` and no other call. The day, stop number, and purpose let it judge, and ask the user, without a lookup.
+
+The call isn't refused, since the same place can be a candidate on two stops on purpose (tool design 2.1). The coordinator decides: fix the pick, ask the user which one they meant, or leave it. Code looks the place up among the trip's candidates, the same data `find_in_trip` searches. The line also shows in a trace whether the coordinator noticed, which an evaluation can check. `select_user_place` isn't built yet. #56 builds it from tool design 2.1, so the line goes there once tool design 2.1 has it.
 
 ---
 
@@ -265,7 +281,9 @@ The fill round sends workers for the whole trip at once (technical spec 4.2, ste
 
 In version J, a partly picked trip lies between 21,000 tokens (busy) and 26,324 (nothing picked), so it's near or over the limit. In version O, it lies between 9,433 and 15,291. With Stay 8 open, it's 14,355 (section 4). Each pick makes the read longer in O, since the picked place's line is longer than a count. So the busy trip is close to the largest a whole read gets.
 
-The tool still needs its refusal for a read that's too large, for a trip denser than this one. Today its error says to read the trip a stay at a time. But a stay read is the largest scoped read, since it gives every candidate's full details. On this trip, the 3-night Moab stay reads at 25,582 characters. Day reads are smaller, at about 5,200 characters each at most (#54). So the error could point to day reads instead.
+**A trip too large to read is no longer valid.** Agreed on 2026-10-26, in chat. The tool still refuses a whole read over its limit, but the error no longer steers the coordinator to scoped reads. Today it says "Can't read the itinerary: it's too large to return. Read one day, stay, or stop at a time instead." It would say something like "Can't read the itinerary: it's too large to read, so this trip can't be planned any further." The coordinator tells the user. Nothing else changes: no code marks the trip, and scoped reads still work.
+
+The reason: the proposed read of this busy trip is 27,582 characters, against the 40,000 limit. A trip that goes over it means something has likely gone wrong, or the trip is one this learning project doesn't need to handle. A production system would keep the scoped reads as a fallback and watch for this case. Here, it isn't worth the rules. A fallback wouldn't reach the trip-level parts anyway, such as the check results about the whole trip, which no scoped read shows.
 
 ---
 
@@ -280,15 +298,17 @@ Fewer IDs for their length means more characters per token. The measured reads r
 ## 11. What in the design and code would change
 
 - **Tool design 2.1, the `read_itinerary` row.** It says a read gives "every stored property of each item it covers", and for each stop and stay "every candidate, in the order offered, each with its set number and its visit and detour times." It also says a scoped read returns "the same details for its part only". A day read would now return more than the whole read does.
-- **Tool design 2.1, the size paragraphs.** "A whole read of a long trip is refused" would no longer be true of a trip like this one. The fallback would change, if it points to day reads (section 9).
+- **Tool design 2.1, the size paragraphs.** "A whole read of a long trip is refused" would no longer be true of a trip like this one. The error for a read that's too large would change, and say the trip can't be planned any further (section 9). So would the paragraph "A whole read of a long trip is refused", which has the coordinator read the trip a stay or a day at a time.
 - **Tool design 2.1, a new row for `find_in_trip` (section 6.2),** with its description, input, and reply.
+- **Tool design 2.1, the `select_user_place` row.** Its reply names each other stop or stay where the place is a candidate (section 6.4).
 - **Technical spec 5.1,** the coordinator's tools: it would add `find_in_trip`, next to "find a named place".
 - **Technical spec 7.2, "Reading the itinerary".** It says the read returns "the name and short line for every selected place and every candidate". It also says every selected place comes with its rationale, and that in a new session this is all the coordinator knows about the trip's places. In version O, the read gives only the selected places, each with its town, and counts for the rest, with no rationale.
 - **Technical spec 9, and the domain model's stay tier and nights.** #148 removes the note about a stay's tier set for different nights, and states the rule that nothing already set is revisited.
 - **Technical spec 5.2.** It could say what each whole read is for, as in section 2.1, so the instructions don't lean on the read for candidates.
+- **The error, `TOO_LARGE_ERROR` in `src/tools/itinerary-tools.ts`,** for the new wording (section 9).
 - **The tool's description, `READ_ITINERARY_DESCRIPTION` in `src/tools/itinerary-tools.ts`.** "Candidates are listed in the order offered, with their set" would be wrong for a whole read, and the count lines need explaining. `src/agent/coordinator.view.md` is a snapshot of it, so `npm run agent-views` updates it.
 - **The coordinator's instructions.** They should say to use `find_in_trip` before `find_place` when the user names a place. They should also say to read the stop or stay before recommending one of its options, or "More options", "Higher tier", or "Lower tier" (section 8).
-- **Tests.** `src/tools/itinerary-read-marks.test.ts` has a test that a whole read of `fourteenDayExample` is refused as too large. In the new format it would probably fit, and the test would fail. A new test should pin both count lines, the folded stop line, the weather line without its text, and the tier lines without their rules.
+- **Tests.** `src/tools/itinerary-read-marks.test.ts` has a test that a whole read of `fourteenDayExample` is refused as too large. In the new format it would probably fit, and the test would fail. The test needs a denser fake trip that's still over the limit. A new test should pin both count lines, the folded stop line, the weather line without its text, and the tier lines without their rules.
 
 ---
 
