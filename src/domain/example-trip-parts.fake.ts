@@ -3,7 +3,7 @@ import { Calendar } from "./calendar.js";
 import type { Day } from "./day.js";
 import type { Itinerary } from "./itinerary.js";
 import { userOffer } from "./itinerary.fake.js";
-import { Leg } from "./leg.js";
+import { Leg, type LegFields } from "./leg.js";
 import { OpeningPeriod } from "./opening-period.js";
 import type { Place } from "./place.js";
 import { examplePlace } from "./place.fake.js";
@@ -210,6 +210,23 @@ export function routeDay(
   day: Day | undefined,
   segmentDriveTimesInMinutes: readonly number[],
 ): void {
+  routeDayAlong(calendar, itinerary, day, {
+    segmentDriveTimesInMinutes,
+    distanceInMiles: 100,
+    routeLine: "_p~iF~ps|U_ulLnnqC",
+  });
+}
+
+// The same, along a route Google gave, such as a saved response's.
+export function routeDayAlong(
+  calendar: Calendar,
+  itinerary: Itinerary,
+  day: Day | undefined,
+  route: Pick<
+    LegFields,
+    "segmentDriveTimesInMinutes" | "distanceInMiles" | "routeLine"
+  >,
+): void {
   if (day === undefined) {
     return;
   }
@@ -220,9 +237,7 @@ export function routeDay(
   }
   day[VIA_SERVICE].setLeg(
     new Leg({
-      segmentDriveTimesInMinutes,
-      distanceInMiles: 100,
-      routeLine: "_p~iF~ps|U_ulLnnqC",
+      ...route,
       stopsInBestOrder: [],
       timeSavedInMinutes: 0,
       routedFromPlace: from,

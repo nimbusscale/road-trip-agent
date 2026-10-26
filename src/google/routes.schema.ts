@@ -6,7 +6,7 @@ import { z } from "zod";
 // (Google design 2.3). Google calls a segment a "leg", and our leg a "route".
 
 // A duration, such as "5412s".
-const secondsSchema = z
+export const secondsSchema = z
   .string()
   .regex(/^\d+(\.\d+)?s$/, { error: "isn't a duration in seconds" })
   .transform((text) => Number.parseFloat(text.slice(0, -1)));

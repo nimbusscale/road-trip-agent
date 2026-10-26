@@ -1,0 +1,386 @@
+{
+  "places": [
+    {
+      "id": "ChIJzfjtgBjkjYARx0GmVDIWC9w",
+      "types": [
+        "tourist_attraction",
+        "historical_landmark",
+        "historical_place",
+        "point_of_interest",
+        "establishment"
+      ],
+      "formattedAddress": "1 Old Fisherman’s Wharf, Monterey, CA 93940, USA",
+      "location": {
+        "latitude": 36.6037963,
+        "longitude": -121.89337030000002
+      },
+      "rating": 4.5,
+      "googleMapsUri": "https://maps.google.com/?cid=15855791318512320967&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA",
+      "regularOpeningHours": {
+        "periods": [
+          {
+            "open": {
+              "day": 0,
+              "hour": 9,
+              "minute": 0
+            },
+            "close": {
+              "day": 0,
+              "hour": 22,
+              "minute": 0
+            }
+          },
+          {
+            "open": {
+              "day": 1,
+              "hour": 9,
+              "minute": 0
+            },
+            "close": {
+              "day": 1,
+              "hour": 22,
+              "minute": 0
+            }
+          },
+          {
+            "open": {
+              "day": 2,
+              "hour": 9,
+              "minute": 0
+            },
+            "close": {
+              "day": 2,
+              "hour": 22,
+              "minute": 0
+            }
+          },
+          {
+            "open": {
+              "day": 3,
+              "hour": 9,
+              "minute": 0
+            },
+            "close": {
+              "day": 3,
+              "hour": 22,
+              "minute": 0
+            }
+          },
+          {
+            "open": {
+              "day": 4,
+              "hour": 9,
+              "minute": 0
+            },
+            "close": {
+              "day": 4,
+              "hour": 22,
+              "minute": 0
+            }
+          },
+          {
+            "open": {
+              "day": 5,
+              "hour": 9,
+              "minute": 0
+            },
+            "close": {
+              "day": 5,
+              "hour": 22,
+              "minute": 0
+            }
+          },
+          {
+            "open": {
+              "day": 6,
+              "hour": 9,
+              "minute": 0
+            },
+            "close": {
+              "day": 6,
+              "hour": 22,
+              "minute": 0
+            }
+          }
+        ],
+        "weekdayDescriptions": [
+          "Monday: 9:00 AM – 10:00 PM",
+          "Tuesday: 9:00 AM – 10:00 PM",
+          "Wednesday: 9:00 AM – 10:00 PM",
+          "Thursday: 9:00 AM – 10:00 PM",
+          "Friday: 9:00 AM – 10:00 PM",
+          "Saturday: 9:00 AM – 10:00 PM",
+          "Sunday: 9:00 AM – 10:00 PM"
+        ]
+      },
+      "userRatingCount": 18500,
+      "displayName": {
+        "text": "Old Fisherman's Wharf",
+        "languageCode": "en"
+      },
+      "primaryTypeDisplayName": {
+        "text": "Tourist Attraction",
+        "languageCode": "en-US"
+      },
+      "editorialSummary": {
+        "text": "Iconic waterside complex & event site featuring seafood eateries, shops & water-sports activities.",
+        "languageCode": "en"
+      },
+      "generativeSummary": {
+        "overview": {
+          "text": "Walkable coastal tourist attraction featuring bay views, wildlife spotting, and diverse seafood dining.",
+          "languageCode": "en"
+        },
+        "overviewFlagContentUri": "https://www.google.com/local/content/rap/report?postId=CiUweDgwOGRlNDE4ODBlZGY4Y2Q6MHhkYzBiMTYzMjU0YTY0MWM3MAI&d=17924085&t=12",
+        "disclosureText": {
+          "text": "Summarized with Gemini",
+          "languageCode": "en-US"
+        }
+      },
+      "reviewSummary": {
+        "text": {
+          "text": "People say this wharf offers a wide variety of restaurants with delicious seafood, especially clam chowder, and numerous unique shops. Visitors also highlight the beautiful waterfront views, lively atmosphere, and opportunities to see marine wildlife. They also appreciate the convenient parking options and clean public restrooms.<ctrl100>",
+          "languageCode": "en-US"
+        },
+        "flagContentUri": "https://www.google.com/local/content/rap/report?postId=5%401:CAIQACodChtyc19oOkVwRFgydVI2RjJWZ2JJNGZLUEp5aEE%7CCAIQACorChtyc19oOkVwRFgydVI2RjJWZ2JJNGZLUEp5aEESDAjF-vTWBhDgpYTuAg&d=17924085&t=8",
+        "disclosureText": {
+          "text": "Summarized with Gemini",
+          "languageCode": "en-US"
+        },
+        "reviewsUri": "https://www.google.com/maps/place//data=!4m4!3m3!1s0x808de41880edf8cd:0xdc0b163254a641c7!9m1!1b1"
+      }
+    },
+    {
+      "id": "ChIJA3Junz7mjYAR4IcFptzxDXg",
+      "types": ["tourist_attraction", "point_of_interest", "establishment"],
+      "formattedAddress": "San Antonio Ave, Carmel-By-The-Sea, CA 93921, USA",
+      "location": {
+        "latitude": 36.5505317,
+        "longitude": -121.929104
+      },
+      "rating": 4.8,
+      "googleMapsUri": "https://maps.google.com/?cid=8650836389229070304&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA",
+      "regularOpeningHours": {
+        "periods": [
+          {
+            "open": {
+              "day": 0,
+              "hour": 8,
+              "minute": 0
+            },
+            "close": {
+              "day": 0,
+              "hour": 20,
+              "minute": 30
+            }
+          },
+          {
+            "open": {
+              "day": 1,
+              "hour": 8,
+              "minute": 0
+            },
+            "close": {
+              "day": 1,
+              "hour": 20,
+              "minute": 30
+            }
+          },
+          {
+            "open": {
+              "day": 2,
+              "hour": 8,
+              "minute": 0
+            },
+            "close": {
+              "day": 2,
+              "hour": 20,
+              "minute": 30
+            }
+          },
+          {
+            "open": {
+              "day": 3,
+              "hour": 8,
+              "minute": 0
+            },
+            "close": {
+              "day": 3,
+              "hour": 20,
+              "minute": 30
+            }
+          },
+          {
+            "open": {
+              "day": 4,
+              "hour": 8,
+              "minute": 0
+            },
+            "close": {
+              "day": 4,
+              "hour": 20,
+              "minute": 30
+            }
+          },
+          {
+            "open": {
+              "day": 5,
+              "hour": 8,
+              "minute": 0
+            },
+            "close": {
+              "day": 5,
+              "hour": 20,
+              "minute": 30
+            }
+          },
+          {
+            "open": {
+              "day": 6,
+              "hour": 8,
+              "minute": 0
+            },
+            "close": {
+              "day": 6,
+              "hour": 20,
+              "minute": 30
+            }
+          }
+        ],
+        "weekdayDescriptions": [
+          "Monday: 8:00 AM – 8:30 PM",
+          "Tuesday: 8:00 AM – 8:30 PM",
+          "Wednesday: 8:00 AM – 8:30 PM",
+          "Thursday: 8:00 AM – 8:30 PM",
+          "Friday: 8:00 AM – 8:30 PM",
+          "Saturday: 8:00 AM – 8:30 PM",
+          "Sunday: 8:00 AM – 8:30 PM"
+        ]
+      },
+      "userRatingCount": 2678,
+      "displayName": {
+        "text": "Carmel by the sea",
+        "languageCode": "en"
+      },
+      "primaryTypeDisplayName": {
+        "text": "Tourist Attraction",
+        "languageCode": "en-US"
+      },
+      "generativeSummary": {
+        "overview": {
+          "text": "Scenic coastal destination featuring dog-friendly beaches and local art galleries.",
+          "languageCode": "en"
+        },
+        "overviewFlagContentUri": "https://www.google.com/local/content/rap/report?postId=CiUweDgwOGRlNjNlOWY2ZTcyMDM6MHg3ODBkZjFkY2E2MDU4N2UwMAI&d=17924085&t=12",
+        "disclosureText": {
+          "text": "Summarized with Gemini",
+          "languageCode": "en-US"
+        }
+      },
+      "reviewSummary": {
+        "text": {
+          "text": "Visitors say this coastal town features beautiful architecture, charming fairy-tale cottages, and flower-filled streets, creating a magical atmosphere. They also highlight the stunning white sand beach, which is dog-friendly with provided waste bags and trash bins. Guests mention the town is very clean and offers a relaxing experience with incredible sunsets.<ctrl100>",
+          "languageCode": "en-US"
+        },
+        "flagContentUri": "https://www.google.com/local/content/rap/report?postId=5%401:CAIQACodChtyc19oOnpaQ2hqY1J5c0Nrb2oyM2FfMFVjRGc%7CCAIQACorChtyc19oOnpaQ2hqY1J5c0Nrb2oyM2FfMFVjRGcSDAjF-vTWBhDgpYTuAg&d=17924085&t=8",
+        "disclosureText": {
+          "text": "Summarized with Gemini",
+          "languageCode": "en-US"
+        },
+        "reviewsUri": "https://www.google.com/maps/place//data=!4m4!3m3!1s0x808de63e9f6e7203:0x780df1dca60587e0!9m1!1b1"
+      }
+    },
+    {
+      "id": "ChIJxRJqSgCTjYARjOYNUIGddB4",
+      "types": ["tourist_attraction", "point_of_interest", "establishment"],
+      "formattedAddress": "8485+6F, Monterey, CA 93940, USA",
+      "location": {
+        "latitude": 36.3155587,
+        "longitude": -121.891258
+      },
+      "rating": 4.4,
+      "googleMapsUri": "https://maps.google.com/?cid=2194552097155704460&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA",
+      "userRatingCount": 5,
+      "displayName": {
+        "text": "Point Sur Lighthouse Vista Point",
+        "languageCode": "en"
+      },
+      "primaryTypeDisplayName": {
+        "text": "Tourist Attraction",
+        "languageCode": "en-US"
+      }
+    },
+    {
+      "id": "ChIJdyWfxdrx7IAROeqNlMm04M0",
+      "types": ["tourist_attraction", "point_of_interest", "establishment"],
+      "formattedAddress": "990 Palm St, San Luis Obispo, CA 93401, USA",
+      "location": {
+        "latitude": 35.282844,
+        "longitude": -120.6626816
+      },
+      "googleMapsUri": "https://maps.google.com/?cid=14835055950432168505&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA",
+      "displayName": {
+        "text": "Visit SLO",
+        "languageCode": "en"
+      },
+      "primaryTypeDisplayName": {
+        "text": "Tourist Attraction",
+        "languageCode": "en-US"
+      }
+    }
+  ],
+  "routingSummaries": [
+    {
+      "legs": [
+        {
+          "duration": "219s",
+          "distanceMeters": 1089
+        },
+        {
+          "duration": "8659s",
+          "distanceMeters": 229115
+        }
+      ],
+      "directionsUri": "https://www.google.com/maps/dir/36.5973,-121.8978/''/35.28277,-120.65963/data=!4m7!4m6!1m0!1m2!1m1!1s0x808de41880edf8cd:0xdc0b163254a641c7!1m0!3e0"
+    },
+    {
+      "legs": [
+        {
+          "duration": "786s",
+          "distanceMeters": 7034
+        },
+        {
+          "duration": "8981s",
+          "distanceMeters": 236687
+        }
+      ],
+      "directionsUri": "https://www.google.com/maps/dir/36.5973,-121.8978/''/35.28277,-120.65963/data=!4m7!4m6!1m0!1m2!1m1!1s0x808de63e9f6e7203:0x780df1dca60587e0!1m0!3e0"
+    },
+    {
+      "legs": [
+        {
+          "duration": "2343s",
+          "distanceMeters": 36348
+        },
+        {
+          "duration": "9073s",
+          "distanceMeters": 181008
+        }
+      ],
+      "directionsUri": "https://www.google.com/maps/dir/36.5973,-121.8978/''/35.28277,-120.65963/data=!4m7!4m6!1m0!1m2!1m1!1s0x808d93004a6a12c5:0x1e749d81500de68c!1m0!3e0"
+    },
+    {
+      "legs": [
+        {
+          "duration": "8461s",
+          "distanceMeters": 228233
+        },
+        {
+          "duration": "95s",
+          "distanceMeters": 524
+        }
+      ],
+      "directionsUri": "https://www.google.com/maps/dir/36.5973,-121.8978/''/35.28277,-120.65963/data=!4m7!4m6!1m0!1m2!1m1!1s0x80ecf1dac59f2577:0xcde0b4c9948dea39!1m0!3e0"
+    }
+  ]
+}

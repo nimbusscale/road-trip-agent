@@ -3,8 +3,10 @@ import { newId } from "../ids/new-id.js";
 import { googleErrorBodySchema } from "./google-error.schema.js";
 import { isTimeoutError, jsonBodyOf } from "./json-body.js";
 import {
+  alongRouteResponseSchema,
   type NameMatch,
   nameMatchResponseSchema,
+  type RouteSummary,
   textSearchResponseSchema,
 } from "./places-text-search.schema.js";
 
@@ -32,6 +34,10 @@ export const FIELD_MASK = [
   "places.reviewSummary",
 ].join(",");
 
+// A search along a route adds each place's drive from the route's start, and on to its
+// end (Google design 2.1).
+export const ALONG_ROUTE_FIELD_MASK = `${FIELD_MASK},routingSummaries`;
+
 // For a plain name, only enough to route by it and show what it matched. These fields
 // make it a Pro call, not an Enterprise one (Google design section 5).
 export const NAME_MATCH_FIELD_MASK = [
@@ -46,6 +52,29 @@ export const TIMEOUT_MILLISECONDS = 10_000;
 
 // Google allows 1 to 20 results per call (Google design 2.1).
 export const MAXIMUM_RESULTS = 20;
+
+// The center and radius of a search near a point. The radius biases the results, and
+// isn't a limit, so a query that names a farther place still finds it (technical spec
+// section 10, the near distance).
+export interface NearPoint {
+  latitude: number;
+  longitude: number;
+  radiusInMeters: number;
+}
+
+// A route to search along: Google's encoded route line, and where it starts, which the
+// drives in each place's summary start from.
+export interface RouteToSearch {
+  routeLine: string;
+  start: { latitude: number; longitude: number };
+}
+
+// A place found along a route, with its drives from the route's start and on to its end.
+// The route is null when Google gave none for the place.
+export interface PlaceAlongRoute {
+  place: Place;
+  route: RouteSummary | null;
+}
 
 export interface PlacesClientOptions {
   // The server key, GOOGLE_MAPS_SERVER_KEY (Google design section 1).
@@ -74,13 +103,58 @@ export class PlacesClient {
     textQuery: string,
     maximumResults: number,
   ): Promise<Place[]> {
+    return this.#places({ textQuery, pageSize: pageSizeOf(maximumResults) });
+  }
+
+  // Places near a point, such as a stay's lodging, ranked by how well they match, not
+  // by distance (Google design 2.1).
+  async searchNear(
+    textQuery: string,
+    near: NearPoint,
+    maximumResults: number,
+  ): Promise<Place[]> {
+    return this.#places({
+      textQuery,
+      pageSize: pageSizeOf(maximumResults),
+      locationBias: {
+        circle: {
+          center: { latitude: near.latitude, longitude: near.longitude },
+          radius: near.radiusInMeters,
+        },
+      },
+    });
+  }
+
+  // Places along a route, in Google's order. Each new place gets a new ID, as in
+  // searchText().
+  async searchAlongRoute(
+    textQuery: string,
+    route: RouteToSearch,
+    maximumResults: number,
+  ): Promise<PlaceAlongRoute[]> {
     const body = await this.#post(
       {
         textQuery,
-        pageSize: Math.min(Math.max(maximumResults, 1), MAXIMUM_RESULTS),
+        pageSize: pageSizeOf(maximumResults),
+        searchAlongRouteParameters: {
+          polyline: { encodedPolyline: route.routeLine },
+        },
+        routingParameters: { origin: route.start },
       },
-      FIELD_MASK,
+      ALONG_ROUTE_FIELD_MASK,
     );
+    const parsed = alongRouteResponseSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new GooglePlacesError(misunderstood(parsed.error.message));
+    }
+    return parsed.data.map(({ facts, route: summary }) => ({
+      place: new Place({ id: newId("place"), ...facts }),
+      route: summary,
+    }));
+  }
+
+  async #places(request: object): Promise<Place[]> {
+    const body = await this.#post(request, FIELD_MASK);
     const parsed = textSearchResponseSchema.safeParse(body);
     if (!parsed.success) {
       throw new GooglePlacesError(misunderstood(parsed.error.message));
@@ -132,6 +206,10 @@ export class PlacesClient {
     }
     return body;
   }
+}
+
+function pageSizeOf(maximumResults: number): number {
+  return Math.min(Math.max(maximumResults, 1), MAXIMUM_RESULTS);
 }
 
 function misunderstood(detail: string): string {

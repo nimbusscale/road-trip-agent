@@ -1,3 +1,4 @@
+import type { Settings } from "../config/settings.schema.js";
 import type { PlacesClient } from "../google/places-client.js";
 import type { PlaceReader } from "../persistence/place-reader.js";
 import type { PlaceWriter } from "../persistence/place-writer.js";
@@ -8,9 +9,15 @@ import type { TripReader } from "../persistence/trip-reader.js";
 // 4).
 export interface PlacesSession {
   readonly tripId: string;
-  // For the trip's rejected places, which find_place marks.
+  // For the trip's rejected places, which find_place marks and the searches leave out,
+  // and the stops, stays, and legs the searches start from.
   readonly reader: TripReader;
   readonly places: PlaceReader;
   readonly placeWriter: PlaceWriter;
   readonly google: PlacesClient;
+  // For the near distance and the along-leg end distance (technical spec section 10).
+  readonly settings: Settings;
+  // The current moment, which the calendar needs. The system clock in the app, and a
+  // fixed time in tests.
+  readonly now: () => Date;
 }

@@ -359,7 +359,7 @@ Settings are values code uses that aren't part of any trip. They're the same for
 | Late allowance | 15 minutes | How long after a stop's set time the party can arrive before it counts as late |
 | Stop-order minimum saving | 15 minutes | The least time a faster order of a day's stops has to save before it's worth suggesting |
 | Drive buffer | 10% of road time | Extra time added to each drive for fuel and short breaks, as a share of its road time |
-| Along-leg end distance | 2 miles | Places this close to either end of a leg don't count as along it. Searches along a leg leave them out, since results bunch up at the ends |
+| Along-leg end distance | 2 miles | Places this close to either end of a leg, as the crow flies, don't count as along it. Searches along a leg leave them out, since results bunch up at the ends |
 | Near distance | 15 miles | The default search radius around a point, such as a stay's town or lodging, or the start or end place. It isn't a limit: a search can name a farther place in its query, such as restaurants in Tuolumne Meadows from a Yosemite stay ([tool design](tools.md), 2.3) |
 | Maximum trip length | 14 days | The most days a trip can have, counting the last day. A longer trip is refused. The coordinator's instructions give it (5.2), and so does the `update_trip_brief` input description for `tripLengthInDays` |
 | Maximum daily driving | 12 hours | The most driving in one day (functional spec 5.2). Comfortable driving hours can't be set higher, and neither can a drive hours approval for one day. The coordinator's instructions give it (5.2), and so does the `update_trip_brief` input description for `comfortableDrivingInHours` |
