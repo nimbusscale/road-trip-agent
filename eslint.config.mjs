@@ -77,7 +77,9 @@ const ZOD_ONLY_IN_SCHEMA_FILES = [
 export default defineConfig(
   // Build output, not source. scratch/ holds throwaway files that git ignores, such as
   // the fixer's test scripts (the fix-pr skill), so they mustn't fail the check.
-  globalIgnores(["dist/", "coverage/", "scratch/"]),
+  // .claude/worktrees/ holds Claude Code sessions' git worktrees. Each is a full copy of
+  // the repo, with its own tsconfig.json, so linting it here fails.
+  globalIgnores(["dist/", "coverage/", "scratch/", ".claude/worktrees/"]),
   eslint.configs.recommended,
   tseslint.configs.strictTypeChecked,
   tseslint.configs.stylisticTypeChecked,
