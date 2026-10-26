@@ -189,7 +189,9 @@ describe("search_near", () => {
     expect(lines).toContain("Hours: Friday, May 14, 2027: 11:00 AM – 2:00 AM.");
   });
 
-  it("gives a stop set after midnight the hours of the next day, when it falls", async () => {
+  // Google lists hours that run past midnight on the day they open, so a place open at
+  // 1 a.m. Saturday shows it on Friday's line.
+  it("gives a stop set after midnight the hours of its day and of the next day, when it falls", async () => {
     const planning = planned();
     const { search } = await searchFor(
       planning.trip,
@@ -199,9 +201,15 @@ describe("search_near", () => {
       stopOrStayId: stopWithPurpose(planning, "a late bite"),
       query: "late night food",
     });
-    expect(textOf(reply)).toContain("Hours are for Saturday, May 15, 2027.");
-    expect(textOf(reply)).toContain(
-      "Hours: Saturday, May 15, 2027: 11:00 AM – 10:00 PM.",
+    const lines = textOf(reply).split("\n");
+    expect(lines[0]).toMatch(
+      /Hours are for Friday, May 14, 2027 to Saturday, May 15, 2027\. Google lists hours that run past midnight on the day they open\.$/,
+    );
+    expect(lines).toContain(
+      "Hours: Friday, May 14, 2027: 11:00 AM – 10:00 PM. Saturday, May 15, 2027: 11:00 AM – 10:00 PM.",
+    );
+    expect(lines).toContain(
+      "Hours: Friday, May 14, 2027: 11:00 AM – 2:00 AM. Saturday, May 15, 2027: 11:00 AM – 2:00 AM.",
     );
   });
 

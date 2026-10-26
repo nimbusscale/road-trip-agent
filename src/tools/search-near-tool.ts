@@ -34,8 +34,11 @@ export const SEARCH_NEAR_RESULTS = 10;
 
 const METERS_PER_MILE = 1609.344;
 
+const PAST_MIDNIGHT_NOTE =
+  "Google lists hours that run past midnight on the day they open.";
+
 export function searchNearDescription(nearDistanceMiles: number): string {
-  return `Searches Google for places near one of your stops or stays, such as hotels for a stay, or restaurants for a meal near it. It searches around the stay's selected lodging, or its town while none is selected. For a stop near the trip's start or end place, it searches around that place. It favors places within ${String(nearDistanceMiles)} miles, and a query that names somewhere farther, such as "restaurants in Tuolumne Meadows", searches there. Returns up to ${String(SEARCH_NEAR_RESULTS)} places, best match first, each with its place ID, type, address, distance in a straight line, rating and review count, price level, links, and what Google and the public say about it. Each place's opening hours are given for the stop's date, or for each of the stay's dates. They're Google's hours for a normal week, with no holidays or seasonal closures. Places the user rejected for this trip are left out. Every place found is saved to the trip, so its place ID works in the other tools.`;
+  return `Searches Google for places near one of your stops or stays, such as hotels for a stay, or restaurants for a meal near it. It searches around the stay's selected lodging, or its town while none is selected. For a stop near the trip's start or end place, it searches around that place. It favors places within ${String(nearDistanceMiles)} miles, and a query that names somewhere farther, such as "restaurants in Tuolumne Meadows", searches there. Returns up to ${String(SEARCH_NEAR_RESULTS)} places, best match first, each with its place ID, type, address, distance in a straight line, rating and review count, price level, links, and what Google and the public say about it. Each place's opening hours are given for the stop's date, or for each of the stay's dates. For a stop after midnight, they're given for the day before too, since Google lists hours that run past midnight on the day they open, such as Friday's "11:00 AM – 2:00 AM". They're Google's hours for a normal week, with no holidays or seasonal closures. Places the user rejected for this trip are left out. Every place found is saved to the trip, so its place ID works in the other tools.`;
 }
 
 export function searchNearTool(session: PlacesSession): StrictToolDefinition {
@@ -54,7 +57,7 @@ async function searchNear(
   query: string,
 ): Promise<ToolReply> {
   const trip = await session.reader.read(session.tripId);
-  const { point, dates } = searchPointOf(
+  const { point, dates, afterMidnight } = searchPointOf(
     calendarFor(trip, session),
     trip.itinerary,
     stopOrStayId,
@@ -77,7 +80,7 @@ async function searchNear(
   const rejected = rejectedIds(trip.itinerary.rejectedPlaces);
   const kept = saved.filter((place) => !rejected.has(place.id));
   return textReply([
-    `Places for "${query}" ${around}, best match first. ${hoursForLine(dates)}`,
+    `Places for "${query}" ${around}, best match first. ${hoursForLine(dates)}${afterMidnight && dates.length > 0 ? ` ${PAST_MIDNIGHT_NOTE}` : ""}`,
     ...kept.flatMap((place) =>
       resultLines(
         place,
@@ -104,6 +107,8 @@ interface SearchPoint {
   point: Place;
   // The dates the hours are given for. Empty while the trip has no start date.
   dates: CalendarDate[];
+  // A stop set after midnight, whose hours start the day before.
+  afterMidnight: boolean;
 }
 
 // A stay searches around where the party sleeps: its lodging, or its town while none is
@@ -115,7 +120,11 @@ function searchPointOf(
 ): SearchPoint {
   if (id.startsWith(ID_PREFIXES.stay)) {
     const stay = stayIn(itinerary, id);
-    return { point: stay.sleepsAt, dates: calendar.datesOf(itinerary, stay) };
+    return {
+      point: stay.sleepsAt,
+      dates: calendar.datesOf(itinerary, stay),
+      afterMidnight: false,
+    };
   }
   if (!id.startsWith(ID_PREFIXES.stop)) {
     throw new RuleError(`${id} isn't a stop ID or a stay ID.`);
@@ -125,6 +134,7 @@ function searchPointOf(
   return {
     point: stopPoint(itinerary, stop, day),
     dates: stopDates(calendar, itinerary, stop, day),
+    afterMidnight: stop.setTime?.isNextDay === true,
   };
 }
 
@@ -154,8 +164,9 @@ function endPlace(place: Place | null, end: "start" | "end"): Place {
   return place;
 }
 
-// The date the stop falls on: the next day for a set time after midnight (tool design
-// 2.3).
+// The date the stop falls on. For a set time after midnight, that's the next day, with
+// the day before too, since Google lists hours that run past midnight on the day they
+// open (tool design 2.3).
 function stopDates(
   calendar: Calendar,
   itinerary: Itinerary,
@@ -166,5 +177,5 @@ function stopDates(
   if (date === null) {
     return [];
   }
-  return [stop.setTime?.isNextDay === true ? date.plusDays(1) : date];
+  return stop.setTime?.isNextDay === true ? [date, date.plusDays(1)] : [date];
 }
