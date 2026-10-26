@@ -1,7 +1,7 @@
 # Rewrites the realistic whole read into slimmer versions, to measure what each change
 # to its format would save (research/itinerary-read-size.md). Writes one file per
 # version, named by its letter in the doc's section 3, and prints each one's characters
-# and IDs. It also runs on the nothing-picked read, where only versions L and M, and the L versions with names, change it.
+# and IDs. It also runs on the nothing-picked read, where only versions L, M, and N, and the L versions with names, change it.
 #   python3 research/itinerary-read-size/variants.py \
 #     research/itinerary-read-size/full-read-14-realistic.txt <output folder>
 import re, sys, os
@@ -46,8 +46,20 @@ def set_counts(cands, listing="count"):
     return "; ".join(f"set {k}: " + ", ".join(name(m) for m in ms) for k, ms in sorted(sets.items()))
 
 
+def town_of(short_line):
+    """The town, which is the short line's last field."""
+    return short_line.split(", ")[-1]
+
+
 def slim_candidates(
-    lines, fold=True, keep_why=True, keep_detour=False, others="count", undecided="list", listing="count"
+    lines,
+    fold=True,
+    keep_why=True,
+    keep_detour=False,
+    others="count",
+    undecided="list",
+    listing="count",
+    town_only=False,
 ):
     res = []
     i = 0
@@ -70,8 +82,12 @@ def slim_candidates(
             res.extend(lines[i:j])
         elif fold:
             extra = re.sub(r", visit time [^,]+", "", sel.group(5))
-            if not keep_detour:
-                extra = re.sub(r", detour [^,]+ when offered", "", extra)
+            detour = re.search(r", detour [^,]+ when offered", extra)
+            extra = re.sub(r", detour [^,]+ when offered", "", extra)
+            if town_only:
+                extra = town_of(extra)
+            if keep_detour and detour:
+                extra += detour.group(0)
             why = f' Why: "{sel.group(8)}"' if keep_why and sel.group(8) else ""
             owner = max(k for k in range(len(res)) if sel.group(4) in res[k])
             o = res[owner]
@@ -133,6 +149,9 @@ versions = {
     "L-J-count-undecided-too": slim_candidates(base, keep_detour=True, others="by_set", undecided="count"),
     "M-L-no-why-no-weather-text": no_weather_text(
         slim_candidates(base, keep_why=False, keep_detour=True, others="by_set", undecided="count")
+    ),
+    "N-M-picked-place-town-only": no_weather_text(
+        slim_candidates(base, keep_why=False, keep_detour=True, others="by_set", undecided="count", town_only=True)
     ),
     "L-with-names": slim_candidates(base, keep_detour=True, others="by_set", undecided="count", listing="names"),
     "L-with-names-and-ids": slim_candidates(
