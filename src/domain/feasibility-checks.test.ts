@@ -185,18 +185,11 @@ describe("the stay checks", () => {
     expect(on("2027-10-10")).toEqual([]);
   });
 
-  it("notes a stay whose nights changed since its tier was set", () => {
+  it("says nothing about a stay's tier when its nights change", () => {
     const { itinerary, services, checker, torrey } = moab();
     services.stays.setNightCount(itinerary, torrey, 2);
-    expect(
-      resultOf(
-        checker.workOut(itinerary),
-        "stayTierSetForDifferentNights",
-        torrey.id,
-      )?.text,
-    ).toBe("Torrey's nights changed from 1 to 2. Its tier was set for 1.");
-    torrey.setTier("value", "the trip default");
     expect(checksAbout(checker.workOut(itinerary), torrey.id)).toEqual([]);
+    expect(torrey.tier).toBe("value");
   });
 });
 

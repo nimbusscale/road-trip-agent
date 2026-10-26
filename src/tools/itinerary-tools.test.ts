@@ -95,7 +95,7 @@ describe("read_itinerary on the Moab trip", () => {
     const lines = linesOf(await read(torrey.id));
     expect(lines.slice(0, 6)).toEqual([
       `Stay 2 (stay_…): Torrey (place_…), ${SHORT}. 1 night, Day 4, from Wednesday, October 13, 2027 to the morning of Thursday, October 14, 2027.`,
-      '- Lodging tier: value, from the rule "the trip default", set when the stay had 1 night.',
+      '- Lodging tier: value, from the rule "the trip default".',
       "- Lodging: Torrey hotel (place_…).",
       "- Lodging candidates:",
       `  - Set 1: Torrey hotel (place_…), ${SHORT}, selected. Why: "The user's pick." Named by the user.`,

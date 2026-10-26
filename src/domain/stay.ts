@@ -27,7 +27,6 @@ export interface StayFields {
   lodgingCandidates: readonly Candidate[];
   tier: Tier;
   tierRule: string;
-  tierSetForNightCount: number;
   days: readonly StayDay[];
   weatherText: WeatherText | null;
 }
@@ -55,7 +54,6 @@ export class Stay {
   #lodgingCandidates: Candidate[];
   #tier: Tier;
   #tierRule: string;
-  #tierSetForNightCount: number;
   #days: StayDay[];
   #weatherText: WeatherText | null;
 
@@ -88,7 +86,6 @@ export class Stay {
     this.place = fields.place;
     this.#tier = fields.tier;
     this.#tierRule = checkedTierRule(fields.tierRule);
-    this.#tierSetForNightCount = checkedNightCount(fields.tierSetForNightCount);
     if (fields.days.length < 1) {
       throw new RuleError("A stay holds at least one day.");
     }
@@ -121,11 +118,6 @@ export class Stay {
     return this.#tierRule;
   }
 
-  // The nights when the tier was last set. A rule like "2+ nights" depends on them.
-  get tierSetForNightCount(): number {
-    return this.#tierSetForNightCount;
-  }
-
   // One for each night, in order.
   get days(): readonly StayDay[] {
     return Object.freeze([...this.#days]);
@@ -144,12 +136,11 @@ export class Stay {
     return this.#lodging ?? this.place;
   }
 
-  // Records the current nights with it, which clears the stayTierSetForDifferentNights
-  // note, even when the tier is the same.
+  // A later change to the nights or the rules leaves it as it is (technical spec
+  // section 9).
   setTier(tier: Tier, tierRule: string): void {
     this.#tierRule = checkedTierRule(tierRule);
     this.#tier = tier;
-    this.#tierSetForNightCount = this.nightCount;
   }
 
   // Selects one of the stay's candidates as its lodging. A candidate offered at another
@@ -197,7 +188,6 @@ export function newStay(fields: NewStayFields): Stay {
     lodgingCandidates: [],
     tier: fields.tier,
     tierRule: fields.tierRule,
-    tierSetForNightCount: fields.nightCount,
     days,
     weatherText: null,
   });

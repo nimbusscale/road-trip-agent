@@ -284,7 +284,6 @@ The coordinator's itinerary write tools run these checks after every change.
 | Search area doesn't fit the day | Warning |
 | Weather out of date | Note |
 | Forecast now available | Note |
-| Stay tier set for different nights | Note |
 
 A check that compares against a trip brief item is skipped while that item is empty. Example: during discovery, setting the start and end places routes the last day's leg before the user has given comfortable driving hours, so the daily driving check doesn't run yet. The same goes for trip length vs the brief before the brief has a trip length.
 
@@ -337,7 +336,7 @@ The checks that need judgment stay with the agent: must-sees vs days, seasonal r
 
 The coordinator turns the user's natural-language rules into a tier for each lodging and meal stop before briefing a worker. Example: the user says "value by default, mid-range for stays of 2+ nights." A 2-night stay's lodging is briefed as "mid-range, from rule: 2+ nights." The worker searches at that tier, and offers only places at that tier. Code copies the stop's or stay's tier and rule to each candidate when it's added. That is where the card's "which rule produced it" comes from (functional spec 7.1). When the user selects a candidate whose tier differs from the stop's or stay's tier, the tool sets the stored tier to the candidate's, with the rule "the user picked a mid-range option" (or whichever tier). A later "More options" then searches at the tier the user chose.
 
-**A stay's tier records the nights it was set for.** A rule like "2+ nights" depends on them. When the stay's nights no longer match, the check results include a note: "Moab's nights changed from 3 to 1. Its tier was set for 3." It works like out-of-date weather (domain model 4.1). The coordinator rechecks anything that depended on nights, including meal preferences such as "hotel breakfast on one-night stays, local cafés on longer ones." It asks the user before changing anything. Example: "Moab is one night now, and your rule says value for one-night stays. Keep the Red Cliffs Lodge, or see value options?" It sends a worker only if the user wants new options. A selected hotel stays selected either way. Setting the tier again, even to the same one, records the current nights and clears the note. When the rule gives the same tier for the new nights, the coordinator sets it again without asking.
+**A tier already set isn't revisited.** A change to the budget rules, the default tier, or a stay's nights applies only to tiers set after it. Example: Moab is set to mid-range as a 3-night stay, under the rule "mid-range for stays of 2+ nights." The user cuts Moab to 1 night. Moab stays mid-range, and nothing is said. The same goes for a meal stop's tier. The user sees each tier in the itinerary view, and asks for a change if they want one.
 
 **Every lodging and meal stop gets a tier.** A rule can set one for a kind of meal, such as "upscale coffee, we'll pay for a good espresso": a coffee stop gets posh, from that rule. When no rule covers a stop, it gets the trip's default tier. A meal stop whose place the user names still gets a tier when it's added, since it's added before the place is named. The tier is used if the user later asks for more options or a different tier. The named place's card shows "your choice" (domain model 3.9).
 
