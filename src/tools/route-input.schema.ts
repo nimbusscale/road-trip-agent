@@ -3,7 +3,9 @@ import { z } from "zod";
 // The routing tool's input (tool design 2.4). Each input says only how to pass its
 // value.
 
-export const POINT_KINDS = ["stop", "passThrough"] as const;
+// Not "stop", which in the itinerary is a meal or attraction on a day. "waypoint" is
+// the same idea as a day's waypoints (tool design 2.4).
+export const POINT_KINDS = ["stopover", "waypoint"] as const;
 
 export const ROUTE_ORDERS = ["keep", "fastest"] as const;
 
@@ -20,7 +22,7 @@ export const COMPUTE_ROUTE_INPUT = z.strictObject({
       }),
     )
     .min(2)
-    .describe("In driving order. The first and the last are stops."),
+    .describe("In driving order. The first and the last are stopovers."),
   order: z.enum(ROUTE_ORDERS),
 });
 

@@ -34,14 +34,14 @@ describe("update_day", () => {
     );
   });
 
-  it("sets a start time, then the usual one again with none", async () => {
+  it("sets a start time, then the usual one again with default", async () => {
     const { updateDay, read, example } = await plannedMoab();
     const day1 = present(example.moab.days[0]);
     await updateDay({ dayId: day1.id, startTime: "7:00 a.m." });
     expect(await read(day1.id)).toContain(
       "Starts 7:00 a.m., the day's own start time.",
     );
-    await updateDay({ dayId: day1.id, startTime: "none" });
+    await updateDay({ dayId: day1.id, startTime: "default" });
     expect(await read(day1.id)).toContain(
       "Starts 8:00 a.m., the usual start time.",
     );

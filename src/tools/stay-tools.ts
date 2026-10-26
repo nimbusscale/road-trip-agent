@@ -17,19 +17,19 @@ import {
   type UpdateStayInput,
 } from "./skeleton-input.schema.js";
 import { strictTool, type StrictToolDefinition } from "./strict-tool.js";
-import { stayAfter, stayIn } from "./trip-items.js";
+import { FIRST, stayAfter, stayIn } from "./trip-items.js";
 import type { TripSession } from "./trip-session.js";
 
 // The tools that add, change, and remove stays (tool design 2.1).
 
-export const ADD_STAY_DESCRIPTION =
-  "Adds a stay, with one day for each of its nights, after the stay given or first. The place is usually a town. Needs the itinerary's start place, end place, and start date first. The reply gives the new stay's ID and its days' IDs, and lists the stops on any day that now starts or ends somewhere else.";
+// A description names the after input, and says what "first" does (tool design 2.1,
+// "Where an item goes").
+export const ADD_STAY_DESCRIPTION = `Adds a stay, with one day for each of its nights. Give after the ID of the stay it follows, or "${FIRST}" to put it before every other stay. The place is usually a town. The itinerary's start place, end place, and start date must be set before a stay can be added. The reply gives the new stay's ID and its days' IDs, and lists the stops on any day that now starts or ends somewhere else.`;
 
-export const UPDATE_STAY_DESCRIPTION =
-  "Changes a stay: its place, where it goes, its nights, or its lodging tier. Items not given are not changed. Changing the nights adds or removes days at the end of the stay's days. Removing a night is refused while that day holds stops, and the error lists them. The reply gives the IDs of any days added, and lists the stops on any day that now starts or ends somewhere else.";
+export const UPDATE_STAY_DESCRIPTION = `Changes a stay: its place, where it goes, its nights, or its lodging tier. Items not given are not changed. To move it, give after the ID of the stay it now follows, or "${FIRST}" to put it before every other stay. Changing the nights adds or removes days at the end of the stay's days. Removing a night is refused while that day holds stops, and the error lists them. The reply gives the IDs of any days added, and lists the stops on any day that now starts or ends somewhere else.`;
 
 export const REMOVE_STAY_DESCRIPTION =
-  "Removes a stay and its days. Refused while any stop is on its days, or any stop anywhere is near it. The error lists those stops.";
+  "Removes a stay and its days. Refused while any stop is on its days, or while a stop on another day has this stay as its search area. The error lists those stops.";
 
 export function addStayTool(session: TripSession): StrictToolDefinition {
   return strictTool(

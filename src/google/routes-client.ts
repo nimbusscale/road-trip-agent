@@ -194,7 +194,7 @@ function milesOf(meters: number): number {
 // Google answers {} for a route through a pass-through point it can't pass, with no
 // reason. In testing, Atlanta as a pass-through point on Seattle to Miami gave no route,
 // and Atlanta as a stop gave one (checked 2026-10-24). So the error names the
-// pass-through points, and says to try one as a stop.
+// pass-through points, and says to try stopping at one.
 function noRouteMessage(path: RoutePath): string {
   const named = (isPassThrough: boolean): string[] =>
     path.through
@@ -206,7 +206,7 @@ function noRouteMessage(path: RoutePath): string {
   const route = `Google found no driving route from ${nameOf(path.from)}${through} to ${nameOf(path.to)}`;
   return passing.length === 0
     ? `${route}.`
-    : `${route}, passing ${passing.join(", ")}. Google sometimes can't pass a point without stopping, such as a big city, and doesn't say which. Try one as a stop instead.`;
+    : `${route}, passing ${passing.join(", ")}. Google sometimes can't pass a point without stopping, such as a big city, and doesn't say which. Try stopping at one instead.`;
 }
 
 function nameOf(place: RoutablePlace): string {

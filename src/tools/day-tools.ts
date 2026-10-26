@@ -13,7 +13,7 @@ import {
   refuseNoChange,
 } from "./itinerary-write.js";
 import {
-  NO_TIME,
+  DEFAULT_START_TIME,
   SET_WAYPOINTS_INPUT,
   updateDayInput,
   type UpdateDayInput,
@@ -27,8 +27,9 @@ import type { TripSession } from "./trip-session.js";
 export const UPDATE_DAY_DESCRIPTION =
   "Changes a day: whether it's a rest day, its start time, and its approvals. Items not given are not changed. Only a day that starts and ends at the same stay can be a rest day, and every stop on it needs a set time. Marking a rest day removes the day's leg and its waypoints. An approval replaces any of the same kind the day has, and needs the user's reason. The reply gives any leg that changed.";
 
+// What a waypoint is, is in the coordinator's instructions (tool design, section 4).
 export const SET_WAYPOINTS_DESCRIPTION =
-  "Sets a day's waypoints: places its drive passes through without stopping, to steer the route, such as onto a scenic road. Replaces any the day had. An empty list clears them. Code places each one among the day's selected stops, where it adds the least distance. Refused for a day with no leg, such as a rest day, or a day that stays put with no selected stop yet. The reply gives the leg's new road time.";
+  "Sets a day's waypoints, replacing any the day had. An empty list clears them. Code places each one among the day's selected stops, where it adds the least distance. Refused for a day with no leg, such as a rest day, or a day that stays put with no selected stop yet. The reply gives the leg's new road time.";
 
 export function updateDayTool(session: TripSession): StrictToolDefinition {
   return strictTool(
@@ -97,7 +98,9 @@ function updateDay(
   }
   if (startTime !== undefined) {
     day.ownStartTime =
-      startTime === NO_TIME ? null : timeOfDayFromClockText(startTime);
+      startTime === DEFAULT_START_TIME
+        ? null
+        : timeOfDayFromClockText(startTime);
   }
   if (input.removeApproval !== undefined) {
     services.days.removeApproval(day, input.removeApproval);
