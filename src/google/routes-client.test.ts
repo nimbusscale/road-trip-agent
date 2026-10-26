@@ -146,10 +146,10 @@ describe("RoutesClient.route", () => {
     );
   });
 
-  it("names the pass-through points in a no driving route error, and says to try one as a stop", async () => {
+  it("names the pass-through points in a no driving route error, and says to try stopping at one", async () => {
     const { client } = clientFor("{}");
     await expect(client.route(THROUGH_BIG_SUR)).rejects.toThrow(
-      "Google found no driving route from Monterey through First Awakenings to San Luis Obispo, passing Big Sur. Google sometimes can't pass a point without stopping, such as a big city, and doesn't say which. Try one as a stop instead.",
+      "Google found no driving route from Monterey through First Awakenings to San Luis Obispo, passing Big Sur. Google sometimes can't pass a point without stopping, such as a big city, and doesn't say which. Try stopping at one instead.",
     );
   });
 

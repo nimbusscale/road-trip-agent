@@ -557,7 +557,7 @@ The itinerary keeps a change method for `rejectedPlaces` that only services reac
 
 - **A trip has at least 1 day,** since it always has its last day. The maximum trip length is a setting, so `StaysService` refuses a change that would go over it (section 4.4).
 - **The last day is created with the itinerary and never removed.** It has no stay: the party drives to the end place and doesn't sleep anywhere on the trip. A day trip is just the last day. Example: on the San Francisco trip, the Monterey stay holds Day 1, the San Luis Obispo stay holds Day 2, and Day 3 is the last day.
-- **A day keeps its ID when its number or date changes.** Removing a night removes that stay's last day. Every later day keeps its ID and moves up one. Check results match by their subject's ID, and approvals sit on days, so both depend on this.
+- **A day keeps its ID when its number or date changes.** Removing a night removes the last of that stay's days. Every later day keeps its ID and moves up one. Check results match by their subject's ID, and approvals sit on days, so both depend on this.
 - **The start date is after today when it or the start place is set.** `ItineraryService` checks it (section 4.9). Once today reaches it, the trip has started and can't change (see Trip).
 
 ### 3.5 Stay
@@ -1022,7 +1022,7 @@ The two trip brief items whose limits are settings. Every other item is set dire
 - **`setTripLength(brief : TripBrief, tripLengthInDays : integer)`** (the tool `update_trip_brief`). Sets `tripLengthInDays`.
   - **Refused:** when it's more than the maximum trip length, a setting (technical spec section 10). The coordinator explains the limit and offers a trip of the maximum length (functional spec 6.1). By the brief's own rules: when it's less than 1, or empty.
 - **`setComfortableDriving(brief : TripBrief, comfortableDrivingInHours : decimal)`** (the tool `update_trip_brief`). Sets `comfortableDrivingInHours`.
-  - **Refused:** when it's more than the maximum daily driving, a setting (technical spec section 10). The error gives the limit, so the coordinator can send it again at the limit (technical spec 5.2). By the brief's own rules: when it isn't more than 0, or is empty.
+  - **Refused:** when it's more than the maximum daily driving, a setting (technical spec section 10). The error gives the limit, and the coordinator decides with the user what to do next (technical spec 5.2, comfortable driving hours). By the brief's own rules: when it isn't more than 0, or is empty.
 
 ### 4.3 RejectionsService
 

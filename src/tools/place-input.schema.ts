@@ -11,7 +11,9 @@ export const FIND_PLACE_INPUT = z.strictObject({
     ),
   where: z
     .string()
-    .describe('A town, region, or state, such as "Moab, UT" or "Utah".'),
+    .describe(
+      'A town or region with its state, or only the state when you aren\'t sure where the place is, such as "Moab, UT", "Big Sur, CA", or "Utah".',
+    ),
 });
 
 export const READ_PLACE_INPUT = z.strictObject({

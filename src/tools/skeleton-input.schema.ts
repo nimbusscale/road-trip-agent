@@ -10,9 +10,10 @@ import { FIRST } from "./trip-items.js";
 // only how to pass its value. What each item means is in the coordinator's instructions
 // (tool design, section 4).
 
-// A day's start time takes this in place of a time, since in the update tools a blank
-// means "don't change it" (tool design 2.1, "Times are clock times").
-export const NO_TIME = "none";
+// A day's start time takes this in place of a time, to go back to the trip brief's usual
+// start time, since in the update tools a blank means "don't change it". Not "none",
+// which reads as no start time (tool design 2.1, "Times are clock times").
+export const DEFAULT_START_TIME = "default";
 
 // The approvals a day holds. Only a stop holds an opening hours approval.
 export const DAY_APPROVAL_KINDS = ["driveHours", "routeType"] as const;
@@ -43,11 +44,10 @@ const nightCount = z
   .positive()
   .describe("A whole number of nights, at least 1.");
 
+// What the rule means is in the coordinator's instructions (tool design, section 4).
 const tierRule = z
   .string()
-  .describe(
-    'The rule that produced the tier, in a few words, such as "the default tier".',
-  );
+  .describe('In a few words, such as "the default tier".');
 
 const reason = z.string().describe("The user's reason, in a few words.");
 
@@ -86,12 +86,13 @@ export function updateDayInput(
     isRestDay: z.boolean().optional(),
     startTime: z
       .string()
-      .refine((text) => text === NO_TIME || CLOCK_TIME_TEXT.test(text), {
-        error: `${CLOCK_TIME_ERROR}, or "${NO_TIME}".`,
-      })
+      .refine(
+        (text) => text === DEFAULT_START_TIME || CLOCK_TIME_TEXT.test(text),
+        { error: `${CLOCK_TIME_ERROR}, or "${DEFAULT_START_TIME}".` },
+      )
       .optional()
       .describe(
-        `A clock time, such as "5:30 a.m.", or "${NO_TIME}" to use the trip brief's usual start time.`,
+        `A clock time, such as "5:30 a.m.", or "${DEFAULT_START_TIME}" to use the trip brief's usual start time.`,
       ),
     approveDriveHours: z
       .strictObject({
