@@ -1,0 +1,360 @@
+The whole itinerary.
+Start place: Las Vegas (place_gcdphkn4), City.
+End place: Las Vegas (place_gcdphkn4), City.
+Start date: Sunday, September 12, 2027. 14 days, to Saturday, September 25, 2027. 29 h 39 m of road time in all, without the drive buffer.
+
+Stay 1 (stay_eyyrspqh): Springdale (place_cvp2c2r5), City. 2 nights, Days 1 to 2, from Sunday, September 12, 2027 to the morning of Tuesday, September 14, 2027.
+- Lodging tier: midRange.
+- Lodging: Desert Pearl Inn (place_wq65qvfd), Springdale.
+- Other candidates: 2 in set 1, 3 in set 2.
+- Weather and clothing, from seasonal averages, written Thursday, October 15, 2026.
+
+Day 1 (day_jjtxh2rz), Sunday, September 12, 2027: Las Vegas → Springdale. Starts 8:00 a.m., the usual start time.
+- Leg: 172 miles, 3 h 24 m of road time, 3 h 47 m of driving with the drive buffer.
+Schedule:
+- 8:00 a.m. to 8:14 a.m.: drive.
+- 8:14 a.m. to 9:14 a.m.: Stop 1 (stop_pe38yeq7), meal: "breakfast". Near the start place. Tier: value. Selected: The Egg & I (place_ytxpwm7r), Las Vegas, visit time 1 h.
+  - Other candidates: 2 in set 1.
+- 9:14 a.m. to 10:18 a.m.: drive.
+- 10:18 a.m. to 12:18 p.m.: Stop 2 (stop_xbk5vz8f), attraction: "a first look at red rock on the way". Along the leg. Selected: Valley of Fire State Park (place_8md8fgje), Overton, detour 38 m when offered, visit time 2 h.
+  - Other candidates: 2 in set 1.
+- 12:18 p.m. to 1:49 p.m.: drive.
+- 1:49 p.m. to 2:49 p.m.: Stop 3 (stop_mvtghgvk), meal: "lunch". Along the leg. Tier: value. Selected: Cliffside Restaurant (place_kegrf8d7), St. George, detour 6 m when offered, visit time 1 h.
+  - Other candidates: 2 in set 1.
+- 2:49 p.m. to 5:37 p.m.: free time.
+- 5:37 p.m. to 6:30 p.m.: drive.
+- 6:30 p.m. to 7:30 p.m.: Stop 4 (stop_uzrzufkk), meal: "dinner". Near the Springdale stay. Set time: 6:30 p.m. Tier: value. Selected: Whiptail Grill (place_87pcpgjs), Springdale, visit time 1 h.
+  - Other candidates: 3 in set 1, 2 in set 2.
+- 7:30 p.m. to 7:35 p.m.: drive.
+Arrives at Desert Pearl Inn at 7:35 p.m.
+
+Day 2 (day_65hruwsc), Monday, September 13, 2027: Springdale. Starts 8:00 a.m., the usual start time.
+- Leg: 24 miles, 41 m of road time, 48 m of driving with the drive buffer.
+Schedule:
+- 8:00 a.m. to 8:04 a.m.: drive.
+- 8:04 a.m. to 9:04 a.m.: Stop 1 (stop_3d5zpu36), meal: "breakfast". Near the Springdale stay. Tier: value. Selected: Deep Creek Coffee Co. (place_csf7m4ys), Springdale, visit time 1 h.
+  - Other candidates: 2 in set 1.
+- 9:04 a.m. to 9:09 a.m.: drive.
+- 9:09 a.m. to 1:09 p.m.: Stop 2 (stop_xny34bg7), attraction: "the big hike of the trip". Near the Springdale stay. Selected: The Narrows via Riverside Walk (place_jqam8jds), Springdale, visit time 4 h.
+  - Other candidates: 2 in set 1, 3 in set 2.
+- 1:09 p.m. to 1:23 p.m.: drive.
+- 1:23 p.m. to 2:23 p.m.: Stop 3 (stop_cmtf5hsk), meal: "lunch". Near the Springdale stay. Tier: value. Selected: Zion Pizza & Noodle Co. (place_m8naxktp), Springdale, visit time 1 h.
+  - Other candidates: 2 in set 1.
+- 2:23 p.m. to 2:34 p.m.: drive.
+- 2:34 p.m. to 3:49 p.m.: Stop 4 (stop_xa3xcfxn), attraction: "an easy afternoon walk". Near the Springdale stay. Selected: Pa'rus Trail (place_fawx32ye), Springdale, visit time 1 h 15 m.
+  - Other candidates: 2 in set 1.
+- 3:49 p.m. to 6:21 p.m.: free time.
+- 6:21 p.m. to 6:30 p.m.: drive.
+- 6:30 p.m. to 7:30 p.m.: Stop 5 (stop_3gxt8sdn), meal: "dinner". Near the Springdale stay. Set time: 6:30 p.m. Tier: value. Selected: Porter's Smokehouse & Grill (place_q3cz9nha), Springdale, visit time 1 h.
+  - Other candidates: 2 in set 1.
+- 7:30 p.m. to 7:35 p.m.: drive.
+Arrives at Desert Pearl Inn at 7:35 p.m.
+
+Stay 2 (stay_djyvhgsb): Bryce Canyon City (place_y7t6zuhr), City. 1 night, Day 3, from Tuesday, September 14, 2027 to the morning of Wednesday, September 15, 2027.
+- Lodging tier: value.
+- Lodging: Best Western Plus Ruby's Inn (place_dnssxmfq), Bryce Canyon City.
+- Other candidates: 2 in set 1.
+- Weather and clothing, from seasonal averages, written Thursday, October 15, 2026.
+
+Day 3 (day_9cazg9na), Tuesday, September 14, 2027: Springdale → Bryce Canyon City. Starts 8:00 a.m., the usual start time.
+- Leg: 86 miles, 1 h 47 m of road time, 2 h 1 m of driving with the drive buffer.
+Schedule:
+- 8:00 a.m. to 8:04 a.m.: drive.
+- 8:04 a.m. to 9:04 a.m.: Stop 1 (stop_pbukyvzz), meal: "breakfast". Near the Springdale stay. Tier: value. Selected: Café Soleil (place_fdqktv92), Springdale, visit time 1 h.
+  - Other candidates: 2 in set 1.
+- 9:04 a.m. to 9:20 a.m.: drive.
+- 9:20 a.m. to 9:40 a.m.: Stop 2 (stop_j7aw455a), attraction: "the east side of Zion on the way out". Along the leg. Selected: Checkerboard Mesa Viewpoint (place_n2pxnb95), Springdale, detour 2 m when offered, visit time 20 m.
+  - Other candidates: 2 in set 1.
+- 9:40 a.m. to 10:13 a.m.: drive.
+- 10:13 a.m. to 11:13 a.m.: Stop 3 (stop_4gx5jmvz), meal: "lunch". Along the leg. Tier: value. Selected: Thunderbird Restaurant (place_xcm28rfn), Mt Carmel, detour 4 m when offered, visit time 1 h.
+  - Other candidates: 2 in set 1.
+- 11:13 a.m. to 12:00 p.m.: drive.
+- 12:00 p.m. to 12:45 p.m.: Stop 4 (stop_3e2a6ewz), attraction: "an afternoon walk among red hoodoos". Along the leg. Selected: Red Canyon Arches Trail (place_467w89hj), Panguitch, detour 2 m when offered, visit time 45 m.
+  - Other candidates: 2 in set 1.
+- 12:45 p.m. to 6:29 p.m.: free time.
+- 6:29 p.m. to 6:45 p.m.: drive.
+- 6:45 p.m. to 7:45 p.m.: Stop 5 (stop_qgkvn4v9), attraction: "sunset over the amphitheater". Near the Bryce Canyon City stay. Set time: 6:45 p.m. Selected: Sunset Point (place_6e5zzcz3), Bryce Canyon City, visit time 1 h.
+  - Other candidates: 2 in set 1.
+- 7:45 p.m. to 7:50 p.m.: drive.
+Arrives at Best Western Plus Ruby's Inn at 7:50 p.m.
+
+Stay 3 (stay_z7mfhwxn): Torrey (place_negfkd7m), City. 1 night, Day 4, from Wednesday, September 15, 2027 to the morning of Thursday, September 16, 2027.
+- Lodging tier: value.
+- Lodging: Red River Ranch (place_pzk9kvj3), Torrey.
+- Other candidates: 2 in set 1.
+- Weather and clothing, from seasonal averages, written Thursday, October 15, 2026.
+
+Day 4 (day_jdtpfkx8), Wednesday, September 15, 2027: Bryce Canyon City → Torrey. Starts 8:00 a.m., the usual start time.
+- Leg: 124 miles, 3 h 13 m of road time, 3 h 35 m of driving with the drive buffer.
+- Approval: drive hours, up to 6 hours of driving, because "the user wants all of Highway 12, with the stops along it". It applies.
+Schedule:
+- 8:00 a.m. to 8:06 a.m.: drive.
+- 8:06 a.m. to 9:06 a.m.: Stop 1 (stop_8j3ga9xn), meal: "breakfast". Near the Bryce Canyon City stay. Tier: value. Selected: Cowboy's Buffet & Steak Room (place_p25xrb3r), Bryce Canyon City, visit time 1 h.
+  - Other candidates: 2 in set 1.
+- 9:06 a.m. to 9:13 a.m.: drive.
+- 9:13 a.m. to 11:43 a.m.: Stop 2 (stop_8d7ekqqb), attraction: "a morning hike below the rim". Near the Bryce Canyon City stay. Selected: Queen's Garden and Navajo Loop Trail (place_tgscravr), Bryce Canyon City, visit time 2 h 30 m.
+  - Other candidates: 2 in set 1.
+- 11:43 a.m. to 12:44 p.m.: drive.
+- 12:44 p.m. to 1:44 p.m.: Stop 3 (stop_pjffeds3), meal: "lunch". Along the leg. Tier: value. Selected: Hell's Backbone Grill & Farm (place_39dymu2e), Boulder, detour 2 m when offered, visit time 1 h.
+  - Other candidates: 2 in set 1.
+- 1:44 p.m. to 2:39 p.m.: drive.
+- 2:39 p.m. to 6:09 p.m.: Stop 4 (stop_msrgdq58), attraction: "a waterfall hike". Along the leg. Selected: Lower Calf Creek Falls Trail (place_z783ydwh), Escalante, detour 3 m when offered, visit time 3 h 30 m.
+  - Other candidates: 2 in set 1.
+- 6:09 p.m. to 6:38 p.m.: drive.
+- 6:38 p.m. to 6:53 p.m.: Stop 5 (stop_sf95qwug), attraction: "the Hogsback". Along the leg. Selected: The Hogsback (place_fgd4khka), Boulder, detour 0 m when offered, visit time 15 m.
+  - Other candidates: 2 in set 1.
+- 6:53 p.m. to 7:46 p.m.: drive.
+- 7:46 p.m. to 8:46 p.m.: Stop 6 (stop_wmw83347), meal: "dinner". Near the Torrey stay. Set time: 7:00 p.m. Tier: value. Selected: Capitol Burger (place_jz96mu5e), Torrey, visit time 1 h.
+  - Other candidates: 2 in set 1, 3 in set 2.
+- 8:46 p.m. to 8:50 p.m.: drive.
+Arrives at Red River Ranch at 8:50 p.m.
+
+Stay 4 (stay_s7af7h69): Moab (place_pdbdz9tq), City. 3 nights, Days 5 to 7, from Thursday, September 16, 2027 to the morning of Sunday, September 19, 2027.
+- Lodging tier: midRange.
+- Lodging: Moab Springs Ranch (place_gqh22jmy), Moab.
+- Other candidates: 3 in set 1, 2 in set 2.
+- Weather and clothing, from seasonal averages, written Thursday, October 15, 2026.
+
+Day 5 (day_fyrydgfd), Thursday, September 16, 2027: Torrey → Moab. Starts 8:00 a.m., the usual start time.
+- Leg: 158 miles, 2 h 59 m of road time, 3 h 19 m of driving with the drive buffer.
+Schedule:
+- 8:00 a.m. to 8:07 a.m.: drive.
+- 8:07 a.m. to 9:07 a.m.: Stop 1 (stop_6rmy7eh3), meal: "breakfast". Near the Torrey stay. Tier: value. Selected: The Wild Rabbit Cafe (place_6wvqensw), Torrey, visit time 1 h.
+  - Other candidates: 2 in set 1.
+- 9:07 a.m. to 9:18 a.m.: drive.
+- 9:18 a.m. to 10:48 a.m.: Stop 2 (stop_swmqkedy), attraction: "a short hike in Capitol Reef". Along the leg. Selected: Hickman Natural Bridge Trail (place_ayamtr67), Torrey, detour 2 m when offered, visit time 1 h 30 m.
+  - Other candidates: 2 in set 1, 3 in set 2.
+- 10:48 a.m. to 11:41 a.m.: drive.
+- 11:41 a.m. to 12:41 p.m.: Stop 3 (stop_uyrcsz9t), meal: "lunch". Along the leg. Tier: value. Selected: Stan's Burger Shak (place_d6jrm9tg), Hanksville, detour 4 m when offered, visit time 1 h.
+  - Other candidates: 2 in set 1.
+- 12:41 p.m. to 1:17 p.m.: drive.
+- 1:17 p.m. to 2:47 p.m.: Stop 4 (stop_4drntamn), attraction: "Goblin Valley". Along the leg. Selected: Goblin Valley State Park (place_nxx4kfyv), Green River, detour 42 m when offered, visit time 1 h 30 m.
+  - Other candidates: 2 in set 1.
+- 2:47 p.m. to 5:07 p.m.: free time.
+- 5:07 p.m. to 6:30 p.m.: drive.
+- 6:30 p.m. to 7:30 p.m.: Stop 5 (stop_7dmt4gpg), meal: "dinner". Near the Moab stay. Set time: 6:30 p.m. Tier: value. Selected: Moab Brewery (place_6rp32aem), Moab, visit time 1 h.
+  - Other candidates: 2 in set 1, 3 in set 2.
+- 7:30 p.m. to 7:39 p.m.: drive.
+Arrives at Moab Springs Ranch at 7:39 p.m.
+
+Day 6 (day_8s2yhyfm), Friday, September 17, 2027: Moab. Starts 8:00 a.m., the usual start time.
+- Leg: 58 miles, 1 h 13 m of road time, 1 h 23 m of driving with the drive buffer.
+Schedule:
+- 8:00 a.m. to 8:06 a.m.: drive.
+- 8:06 a.m. to 9:06 a.m.: Stop 1 (stop_95j42uku), meal: "breakfast". Near the Moab stay. Tier: value. Selected: Love Muffin Cafe (place_cdqk34je), Moab, visit time 1 h.
+  - Other candidates: 2 in set 1.
+- 9:06 a.m. to 9:20 a.m.: drive.
+- 9:20 a.m. to 12:20 p.m.: Stop 2 (stop_3tm3hkxd), attraction: "the arch hike". Near the Moab stay. Selected: Delicate Arch Trail (place_j35x383c), Moab, visit time 3 h.
+  - Other candidates: 2 in set 1.
+- 12:20 p.m. to 12:37 p.m.: drive.
+- 12:37 p.m. to 1:37 p.m.: Stop 3 (stop_d9qgaz3n), meal: "lunch". Near the Moab stay. Tier: value. Selected: Milt's Stop & Eat (place_swe27vfy), Moab, visit time 1 h.
+  - Other candidates: 2 in set 1.
+- 1:37 p.m. to 1:57 p.m.: drive.
+- 1:57 p.m. to 3:12 p.m.: Stop 4 (stop_9qzvwcvf), attraction: "arches you can drive to". Near the Moab stay. Selected: The Windows Section (place_hmchbsth), Moab, visit time 1 h 15 m.
+  - Other candidates: 2 in set 1, 3 in set 2.
+- 3:12 p.m. to 3:23 p.m.: drive.
+- 3:23 p.m. to 4:23 p.m.: Stop 5 (stop_gnrrrxe8), attraction: "a museum while it's hot". Near the Moab stay. Selected: Moab Museum (place_36d5mhsf), Moab, visit time 1 h.
+  - Other candidates: 2 in set 1.
+- 4:23 p.m. to 6:21 p.m.: free time.
+- 6:21 p.m. to 6:30 p.m.: drive.
+- 6:30 p.m. to 7:30 p.m.: Stop 6 (stop_hrfpd9sa), meal: "dinner". Near the Moab stay. Set time: 6:30 p.m. Tier: value. Selected: Doughbird (place_etd688qd), Moab, visit time 1 h.
+  - Other candidates: 2 in set 1.
+- 7:30 p.m. to 7:36 p.m.: drive.
+Arrives at Moab Springs Ranch at 7:36 p.m.
+
+Day 7 (day_yq3msbn8), Saturday, September 18, 2027: Moab. Starts 8:00 a.m., the usual start time.
+- Leg: 96 miles, 1 h 54 m of road time, 2 h 8 m of driving with the drive buffer.
+Schedule:
+- 8:00 a.m. to 8:07 a.m.: drive.
+- 8:07 a.m. to 9:07 a.m.: Stop 1 (stop_36w66skn), meal: "breakfast". Near the Moab stay. Tier: value. Selected: Eklecticafe (place_5ws3zr79), Moab, visit time 1 h.
+  - Other candidates: 2 in set 1, 3 in set 2.
+- 9:07 a.m. to 9:54 a.m.: drive.
+- 9:54 a.m. to 11:54 a.m.: Stop 2 (stop_3ushuqxx), attraction: "the Island in the Sky rim". Near the Moab stay. Selected: Grand View Point Trail (place_yye4jdjd), Moab, visit time 2 h.
+  - Other candidates: 2 in set 1.
+- 11:54 a.m. to 12:14 p.m.: drive.
+- 12:14 p.m. to 1:14 p.m.: Stop 3 (stop_rq5cke2c), meal: "lunch". Near the Moab stay. Tier: value. Selected: Island in the Sky Visitor Center picnic area (place_y6b4bw7r), Moab, visit time 1 h.
+  - Other candidates: 2 in set 1.
+- 1:14 p.m. to 1:30 p.m.: drive.
+- 1:30 p.m. to 3:00 p.m.: Stop 4 (stop_enbkc7na), attraction: "the overlook everyone photographs". Near the Moab stay. Selected: Dead Horse Point State Park (place_vfn3m53x), Moab, visit time 1 h 30 m.
+  - Other candidates: 2 in set 1.
+- 3:00 p.m. to 5:59 p.m.: free time.
+- 5:59 p.m. to 6:30 p.m.: drive.
+- 6:30 p.m. to 7:30 p.m.: Stop 5 (stop_3uat7d8x), meal: "dinner". Near the Moab stay. Set time: 6:30 p.m. Tier: value. Selected: Pasta Jay's (place_ksyrvxs6), Moab, visit time 1 h.
+  - Other candidates: 2 in set 1.
+- 7:30 p.m. to 7:37 p.m.: drive.
+Arrives at Moab Springs Ranch at 7:37 p.m.
+
+Stay 5 (stay_yw668ua5): Cortez (place_6bky935j), City. 2 nights, Days 8 to 9, from Sunday, September 19, 2027 to the morning of Tuesday, September 21, 2027.
+- Lodging tier: midRange.
+- Lodging: Far View Lodge (place_fuanvfuq), Mesa Verde National Park.
+- Other candidates: 2 in set 1.
+- Weather and clothing, from seasonal averages, written Thursday, October 15, 2026.
+
+Day 8 (day_467xen8j), Sunday, September 19, 2027: Moab → Cortez. Starts 8:00 a.m., the usual start time.
+- Leg: 132 miles, 2 h 34 m of road time, 2 h 52 m of driving with the drive buffer.
+Schedule:
+- 8:00 a.m. to 8:06 a.m.: drive.
+- 8:06 a.m. to 9:06 a.m.: Stop 1 (stop_akyvh7fu), meal: "breakfast". Near the Moab stay. Tier: value. Selected: Red Rock Bakery & Cafe (place_q7mpyysk), Moab, visit time 1 h.
+  - Other candidates: 2 in set 1.
+- 9:06 a.m. to 9:42 a.m.: drive.
+- 9:42 a.m. to 10:02 a.m.: Stop 2 (stop_busy446k), attraction: "roadside arches". Along the leg. Selected: Wilson Arch (place_5chukhwt), La Sal, detour 0 m when offered, visit time 20 m.
+  - Other candidates: 2 in set 1.
+- 10:02 a.m. to 10:27 a.m.: drive.
+- 10:27 a.m. to 11:27 a.m.: Stop 3 (stop_ncfe62z6), meal: "lunch". Along the leg. Tier: value. Selected: MD Ranch Cookhouse (place_nm29zvf9), Monticello, detour 4 m when offered, visit time 1 h.
+  - Other candidates: 2 in set 1.
+- 11:27 a.m. to 12:28 p.m.: drive.
+- 12:28 p.m. to 2:28 p.m.: Stop 4 (stop_7mkdqgj5), attraction: "ancient towers". Along the leg. Selected: Hovenweep National Monument (place_bvm9seky), Montezuma Creek, detour 48 m when offered, visit time 2 h.
+  - Other candidates: 2 in set 1.
+- 2:28 p.m. to 5:57 p.m.: free time.
+- 5:57 p.m. to 6:30 p.m.: drive.
+- 6:30 p.m. to 7:30 p.m.: Stop 5 (stop_da83ksna), meal: "dinner". Near the Cortez stay. Set time: 6:30 p.m. Tier: value. Selected: The Farm Bistro (place_zenk4p9j), Cortez, visit time 1 h.
+  - Other candidates: 2 in set 1.
+- 7:30 p.m. to 7:41 p.m.: drive.
+Arrives at Far View Lodge at 7:41 p.m.
+
+Day 9 (day_2a9xg5n4), Monday, September 20, 2027: Cortez. Starts 8:00 a.m., the usual start time.
+- Leg: 74 miles, 1 h 34 m of road time.
+Schedule:
+- Time not known yet: drive.
+- Time not known yet: Stop 1 (stop_qxz6kgjd), meal: "breakfast". Near the Cortez stay. Tier: value. Selected: Far View Terrace Cafe (place_9yxszme5), Mesa Verde National Park, visit time 1 h.
+  - Other candidates: 2 in set 1.
+- Time not known yet: drive.
+- Time not known yet: Stop 2 (stop_p6se8zj7), attraction: "Cliff Palace ranger tour". Near the Cortez stay. Set time: 9:30 a.m. Selected: Cliff Palace (place_kmprav8b), Mesa Verde National Park, visit time 1 h 30 m.
+- Time not known yet: drive.
+- Time not known yet: Stop 3 (stop_9ypfp5dw), meal: "lunch". Near the Cortez stay. Tier: value. Selected: Spruce Tree Terrace Cafe (place_mw2e3xwf), Mesa Verde National Park, visit time 1 h.
+  - Other candidates: 2 in set 1.
+- Time not known yet: drive.
+- Time not known yet: Stop 4 (stop_xfp6xcu9), attraction: "more cliff dwellings". Near the Cortez stay. Selected: Mesa Top Loop Road (place_3pbuqeay), Mesa Verde National Park, visit time 1 h 30 m.
+  - Other candidates: 2 in set 1, 3 in set 2.
+- Time not known yet: drive.
+- Time not known yet: Stop 5 (stop_tfcx3jdz), attraction: "sunset on the mesa". Near the Cortez stay. Set time: 6:30 p.m. Selected: Park Point Overlook (place_8hf89fqp), Mesa Verde National Park, visit time 45 m.
+  - Other candidates: 2 in set 1.
+- Time not known yet: drive.
+- Time not known yet: Stop 6 (stop_mqa8f26r), meal: "dinner". Near the Cortez stay. Set time: 7:45 p.m. Tier: value. Selected: Metate Room Restaurant (place_zjsg3ycf), Mesa Verde National Park, visit time 1 h.
+  - Other candidates: 2 in set 1.
+- Time not known yet: drive.
+Arrival at Far View Lodge: time not known yet.
+
+Stay 6 (stay_fyq8sejg): Mexican Hat (place_6mnyj3k5), City. 1 night, Day 10, from Tuesday, September 21, 2027 to the morning of Wednesday, September 22, 2027.
+- Lodging tier: value.
+- Lodging: San Juan Inn (place_3njm3uk2), Mexican Hat.
+- Other candidates: 2 in set 1.
+- Weather and clothing, from seasonal averages, written Thursday, October 15, 2026.
+
+Day 10 (day_uvwbb89e), Tuesday, September 21, 2027: Cortez → Mexican Hat. Starts 8:00 a.m., the usual start time.
+- Leg: 118 miles, 2 h 40 m of road time, 2 h 59 m of driving with the drive buffer.
+Schedule:
+- 8:00 a.m. to 8:29 a.m.: drive.
+- 8:29 a.m. to 9:29 a.m.: Stop 1 (stop_xe7ssze8), meal: "breakfast". Near the Cortez stay. Tier: value. Selected: Pippo's Cafe (place_3waa5x22), Cortez, visit time 1 h.
+  - Other candidates: 2 in set 1.
+- 9:29 a.m. to 10:05 a.m.: drive.
+- 10:05 a.m. to 11:05 a.m.: Stop 2 (stop_543u5gvn), attraction: "a stop on the way into Utah". Along the leg. Selected: Bluff Fort Historic Site (place_k26tgsgk), Bluff, detour 1 m when offered, visit time 1 h.
+  - Other candidates: 2 in set 1.
+- 11:05 a.m. to 12:00 p.m.: drive.
+- 12:00 p.m. to 1:00 p.m.: Stop 3 (stop_sy46k3g4), meal: "lunch". Along the leg. Tier: value. Selected: Twin Rocks Cafe (place_ddzg2c83), Bluff, detour 4 m when offered, visit time 1 h.
+  - Other candidates: 2 in set 1.
+- 1:00 p.m. to 1:05 p.m.: drive.
+- 1:05 p.m. to 2:35 p.m.: Stop 4 (stop_mry5452c), attraction: "a dirt-road scenic drive". Along the leg. Selected: Valley of the Gods (place_s5q5hbxc), Mexican Hat, detour 14 m when offered, visit time 1 h 30 m.
+  - Other candidates: 2 in set 1.
+- 2:35 p.m. to 5:54 p.m.: free time.
+- 5:54 p.m. to 6:30 p.m.: drive.
+- 6:30 p.m. to 7:30 p.m.: Stop 5 (stop_fqn5abxa), meal: "dinner". Near the Mexican Hat stay. Set time: 6:30 p.m. Tier: value. Selected: Swingin' Steak (place_qkxqhs9h), Mexican Hat, visit time 1 h.
+  - Other candidates: 2 in set 1.
+- 7:30 p.m. to 7:48 p.m.: drive.
+Arrives at San Juan Inn at 7:48 p.m.
+
+Stay 7 (stay_m4bp9fvp): Page (place_35su86s6), City. 1 night, Day 11, from Wednesday, September 22, 2027 to the morning of Thursday, September 23, 2027.
+- Lodging tier: value.
+- Lodging: Hyatt Place Page/Lake Powell (place_juznz99t), Page.
+- Other candidates: 2 in set 1.
+- Weather and clothing, from seasonal averages, written Thursday, October 15, 2026.
+
+Day 11 (day_pktfd2sq), Wednesday, September 22, 2027: Mexican Hat → Page. Starts 8:00 a.m., the usual start time.
+- Leg: 168 miles, 2 h 59 m of road time, 3 h 20 m of driving with the drive buffer.
+Schedule:
+- 8:00 a.m. to 8:04 a.m.: drive.
+- 8:04 a.m. to 9:04 a.m.: Stop 1 (stop_cf7mqk75), meal: "breakfast". Near the Mexican Hat stay. Tier: value. Selected: Old Bridge Grille (place_x7gj9suw), Mexican Hat, visit time 1 h.
+  - Other candidates: 2 in set 1.
+- 9:04 a.m. to 9:42 a.m.: drive.
+- 9:42 a.m. to 9:57 a.m.: Stop 2 (stop_pgwj5mj5), attraction: "Forrest Gump Point". Along the leg. Selected: Forrest Gump Point (place_dbkm6nhz), Mexican Hat, detour 0 m when offered, visit time 15 m.
+  - Other candidates: 2 in set 1.
+- 9:57 a.m. to 10:22 a.m.: drive.
+- 10:22 a.m. to 1:22 p.m.: Stop 3 (stop_hfxxp7y3), attraction: "Monument Valley". Along the leg. Selected: Monument Valley Navajo Tribal Park (place_kbcxs76c), Oljato-Monument Valley, detour 10 m when offered, visit time 3 h.
+  - Other candidates: 2 in set 1.
+- 1:22 p.m. to 1:42 p.m.: drive.
+- 1:42 p.m. to 2:42 p.m.: Stop 4 (stop_jcukubct), meal: "lunch". Along the leg. Tier: value. Selected: The View Restaurant (place_knh5qjpt), Oljato-Monument Valley, detour 4 m when offered, visit time 1 h.
+  - Other candidates: 2 in set 1.
+- 2:42 p.m. to 3:15 p.m.: drive.
+- 3:15 p.m. to 4:30 p.m.: Stop 5 (stop_yz9gjnjq), attraction: "a quiet stop in the afternoon". Along the leg. Selected: Navajo National Monument (place_r3d95ges), Black Mesa, detour 42 m when offered, visit time 1 h 15 m.
+  - Other candidates: 2 in set 1.
+- 6:30 p.m.: Stop 6 (stop_3jthsvwd), meal: "dinner". Near the Page stay. Set time: 6:30 p.m. Tier: value. No place selected yet.
+  - Candidates: 3 in set 1.
+- Time not known yet: drive.
+Arrival at Hyatt Place Page/Lake Powell: time not known yet.
+
+Stay 8 (stay_8vrgg5zk): Tusayan (place_ateaqq2q), City. 2 nights, Days 12 to 13, from Thursday, September 23, 2027 to the morning of Saturday, September 25, 2027.
+- Lodging tier: midRange.
+- Lodging: none selected yet.
+- Lodging candidates: 3 in set 1, 3 in set 2.
+- Weather and clothing, from seasonal averages, written Thursday, October 15, 2026.
+
+Day 12 (day_9ddjqd7x), Thursday, September 23, 2027: Page → Tusayan. Starts 8:00 a.m., the usual start time.
+- Leg: 146 miles, 2 h 42 m of road time, 2 h 59 m of driving with the drive buffer.
+Schedule:
+- Time not known yet: Stop 1 (stop_ag6rqnqw), meal: "breakfast". Near the Page stay. Tier: value. No place selected yet.
+  - Candidates: 3 in set 1.
+- 9:30 a.m.: Stop 2 (stop_wxn42tbj), attraction: "a slot canyon tour". Near the Page stay. Set time: 9:30 a.m. No place selected yet.
+  - Candidates: 3 in set 1.
+- Time not known yet: Stop 3 (stop_36yfb7hu), attraction: "Horseshoe Bend". Near the Page stay. No place selected yet.
+  - Candidates: 3 in set 1.
+- Time not known yet: Stop 4 (stop_a4zhbk4v), meal: "lunch". Along the leg. Tier: value. No place selected yet.
+  - Candidates: 3 in set 1.
+- Time not known yet: Stop 5 (stop_53z97maj), attraction: "the east end of the South Rim". Along the leg. No place selected yet.
+  - Candidates: 3 in set 1, 3 in set 2.
+- 6:30 p.m.: Stop 6 (stop_x7jjx545), meal: "dinner". Near the Tusayan stay. Set time: 6:30 p.m. Tier: value. No place selected yet.
+  - Candidates: 3 in set 1.
+- Time not known yet: drive.
+Arrival at Tusayan: time not known yet.
+
+Day 13 (day_hxbbback), Friday, September 24, 2027: Tusayan. Starts 8:00 a.m., the usual start time.
+- Leg: 38 miles, 11 m of road time, 13 m of driving with the drive buffer.
+Schedule:
+- Time not known yet: Stop 1 (stop_vxd74yt5), meal: "breakfast". Near the Tusayan stay. Tier: value. No place selected yet.
+  - Candidates: 3 in set 1, 3 in set 2.
+- Time not known yet: Stop 2 (stop_tcftxe6g), attraction: "a hike below the rim". Near the Tusayan stay. No place selected yet.
+  - Candidates: 3 in set 1.
+- Time not known yet: Stop 3 (stop_x4jrfd7e), meal: "lunch". Near the Tusayan stay. Tier: value. No place selected yet.
+  - Candidates: 3 in set 1.
+- Time not known yet: Stop 4 (stop_asag7f7h), attraction: "the west rim viewpoints". Near the Tusayan stay. No place selected yet.
+  - Candidates: 3 in set 1.
+- 8:00 a.m. to 6:00 p.m.: free time.
+- 6:00 p.m.: Stop 5 (stop_52knu6e3), attraction: "sunset". Near the Tusayan stay. Set time: 6:00 p.m. No place selected yet.
+  - Candidates: 3 in set 1.
+- 6:00 p.m. to 7:26 p.m.: free time.
+- 7:26 p.m. to 7:30 p.m.: drive.
+- 7:30 p.m. to 8:30 p.m.: Stop 6 (stop_gwnkssct), meal: "dinner". Near the Tusayan stay. Set time: 7:30 p.m. Tier: value. Selected: El Tovar Dining Room (place_t3kvd69x), Grand Canyon Village, visit time 1 h.
+- 8:30 p.m. to 8:39 p.m.: drive.
+Arrives at Tusayan at 8:39 p.m.
+
+Day 14 (day_vfyy75zx), Saturday, September 25, 2027: Tusayan → Las Vegas. Last day. Starts 8:00 a.m., the usual start time.
+- Leg: 282 miles, 1 h 48 m of road time, 2 h of driving with the drive buffer.
+Schedule:
+- 8:00 a.m. to 8:04 a.m.: drive.
+- Time not known yet: Stop 1 (stop_yeehpyxq), meal: "breakfast". Near the Tusayan stay. Tier: value. No place selected yet.
+  - Candidates: 3 in set 1.
+- 8:04 a.m. to 9:04 a.m.: Stop 2 (stop_d47psvfk), meal: "lunch". Along the leg. Tier: value. Selected: Westside Lilo's Cafe (place_knvyw6zk), Seligman, detour 18 m when offered, visit time 1 h.
+  - Other candidates: 2 in set 1.
+- Time not known yet: Stop 3 (stop_xvdbzxss), attraction: "Hoover Dam on the way in". Along the leg. No candidates yet.
+- Time not known yet: drive.
+Arrival at Las Vegas: time not known yet.
+
+Rejected places, for the whole trip:
+- Big Horn Lodge (place_y22gmx84), Motel, 3.6 stars, $, Moab. Reason: "on Main Street, and the user wants quiet at night"
+- Coral Pink Sand Dunes State Park (place_yhrtbtjv), State park, 4.6 stars, $, Kanab. Reason: "too far off the route to Bryce"
+- Peekaboo Slot Canyon (place_98pc9ydc), Hiking area, 4.8 stars, $$$, Kanab. Reason: "one slot canyon tour is enough, and it's Antelope Canyon"
+- Circus Circus Las Vegas (place_p7yas3p7), Hotel, 3.8 stars, $, Las Vegas. Reason: "the user doesn't want to stay on the Strip"
+
+Check results:
+- Already known warning: You'd reach dinner at Capitol Burger at 7:46 p.m., but it's set for 7:00 p.m.
+- Already known warning: MD Ranch Cookhouse opens at 11:00 a.m. You'd get there at 10:27 a.m., with 1 h planned. Times are estimates from average drive times.
+- Already known warning, may be too early: Westside Lilo's Cafe is closed for the whole visit, on Saturday, September 25, 2027. You'd get there at 8:04 a.m., with 1 h planned. Times are estimates from average drive times. An earlier stop on this day has no place picked yet, so this time may be too early.

@@ -1,0 +1,637 @@
+The whole itinerary.
+Start place: Las Vegas (place_gcdphkn4), City.
+End place: Las Vegas (place_gcdphkn4), City.
+Start date: Sunday, September 12, 2027. 14 days, to Saturday, September 25, 2027. 29 h 39 m of road time in all, without the drive buffer.
+
+Stay 1 (stay_eyyrspqh): Springdale (place_cvp2c2r5), City. 2 nights, Days 1 to 2, from Sunday, September 12, 2027 to the morning of Tuesday, September 14, 2027.
+- Lodging tier: midRange, from the rule "stays of 2+ nights", set when the stay had 2 nights.
+- Lodging: Desert Pearl Inn (place_wq65qvfd).
+- Lodging candidates:
+  - Set 1: Desert Pearl Inn (place_wq65qvfd), Hotel, 4.8 stars, $$$, Springdale, selected. Why: "Big rooms with balconies on the Virgin River, a five-minute walk to the park shuttle, and in the mid-range tier for a 2-night stay."
+  - Set 1: Cable Mountain Lodge (place_mzjvr34y), Lodge, 4.6 stars, $$$, Springdale.
+  - Set 1: Cliffrose Springdale, Curio Collection by Hilton (place_hy3ahm5m), Hotel, 4.6 stars, $$$$, Springdale.
+  - Set 2: SpringHill Suites by Marriott Springdale Zion National Park (place_d29bwvxj), Hotel, 4.5 stars, $$, Springdale.
+  - Set 2: Bumbleberry Inn (place_v5hny7v9), Motel, 4.4 stars, $$, Springdale.
+  - Set 2: Zion Canyon Lodge (place_bptjuheu), Lodge, 4.3 stars, $$$, Springdale.
+- Weather and clothing, from seasonal averages, written Thursday, October 15, 2026: "Hot afternoons in the low 90s in the canyon, and nights in the low 60s. Monsoon storms are still possible into mid-September, and flash floods close The Narrows, so check the flow rate the morning of. Pack sun hats, a liter of water a person per hour of hiking, and shoes you can wade in."
+
+Day 1 (day_jjtxh2rz), Sunday, September 12, 2027: Las Vegas → Springdale. Starts 8:00 a.m., the usual start time.
+- Leg: 172 miles, 3 h 24 m of road time, 3 h 47 m of driving with the drive buffer.
+Schedule:
+- 8:00 a.m. to 8:14 a.m.: drive.
+- 8:14 a.m. to 9:14 a.m.: Stop 1 (stop_pe38yeq7), meal: "breakfast". Near the start place. Tier: value, from the rule "the trip default". Selected: The Egg & I (place_ytxpwm7r), visit time 1 h.
+  - Candidates:
+    - Set 1: The Egg & I (place_ytxpwm7r), Breakfast restaurant, 4.6 stars, $$, Las Vegas, selected. Why: "A local breakfast spot off the Strip, on the way to I-15, with big portions and a short wait on Sundays before 8."
+    - Set 1: Hash House A Go Go (place_yvmhuabx), American restaurant, 4.4 stars, $$, Las Vegas.
+    - Set 1: Babystacks Cafe (place_wh2dnbek), Breakfast restaurant, 4.5 stars, $, Las Vegas.
+- 9:14 a.m. to 10:18 a.m.: drive.
+- 10:18 a.m. to 12:18 p.m.: Stop 2 (stop_xbk5vz8f), attraction: "a first look at red rock on the way". Along the leg. Selected: Valley of Fire State Park (place_8md8fgje), visit time 2 h.
+  - Candidates:
+    - Set 1: Valley of Fire State Park (place_8md8fgje), State park, 4.8 stars, $, Overton, visit time 2 h, detour 38 m when offered, selected. Why: "Nevada's oldest state park, with Fire Wave and the Elephant Rock loop. Worth the detour as a first taste of red rock, and short walks fit a driving day."
+    - Set 1: Kolob Canyons Viewpoint (place_84xr6vhj), Scenic spot, 4.8 stars, New Harmony, visit time 45 m, detour 12 m when offered.
+    - Set 1: Red Cliffs Recreation Area (place_spj9yw4u), Park, 4.6 stars, $, Leeds, visit time 1 h, detour 6 m when offered.
+- 12:18 p.m. to 1:49 p.m.: drive.
+- 1:49 p.m. to 2:49 p.m.: Stop 3 (stop_mvtghgvk), meal: "lunch". Along the leg. Tier: value, from the rule "the trip default". Selected: Cliffside Restaurant (place_kegrf8d7), visit time 1 h.
+  - Candidates:
+    - Set 1: Cliffside Restaurant (place_kegrf8d7), American restaurant, 4.5 stars, $$, St. George, detour 6 m when offered, selected. Why: "Patio views over St. George from the old airport mesa, and a short hop off I-15."
+    - Set 1: Benja Thai & Sushi (place_5tedcbky), Thai restaurant, 4.6 stars, $$, St. George, detour 4 m when offered.
+    - Set 1: Larsen's Frostop Drive In (place_hkpnweqk), Hamburger restaurant, 4.6 stars, $, St. George, detour 9 m when offered.
+- 2:49 p.m. to 5:37 p.m.: free time.
+- 5:37 p.m. to 6:30 p.m.: drive.
+- 6:30 p.m. to 7:30 p.m.: Stop 4 (stop_uzrzufkk), meal: "dinner". Near the Springdale stay. Set time: 6:30 p.m. Tier: value, from the rule "the trip default". Selected: Whiptail Grill (place_87pcpgjs), visit time 1 h.
+  - Candidates:
+    - Set 1: Oscar's Cafe (place_fvvgeghd), Mexican restaurant, 4.5 stars, $$, Springdale.
+    - Set 1: Bit & Spur Restaurant & Saloon (place_cwpq3xh8), Mexican restaurant, 4.4 stars, $$, Springdale.
+    - Set 1: King's Landing Bistro (place_8a9cpcc8), Bistro, 4.6 stars, $$$, Springdale.
+    - Set 2: Whiptail Grill (place_87pcpgjs), Mexican restaurant, 4.5 stars, $$, Springdale, selected. Why: "Fish tacos and a small patio in an old gas station, an easy walk from the Desert Pearl. The user wanted something casual after the drive."
+    - Set 2: Zion Canyon Brew Pub (place_yttpfjzk), Brewpub, 4.3 stars, $$, Springdale.
+    - Set 2: Spotted Dog Cafe (place_s9yf4yhq), American restaurant, 4.4 stars, $$$, Springdale.
+- 7:30 p.m. to 7:35 p.m.: drive.
+Arrives at Desert Pearl Inn at 7:35 p.m.
+
+Day 2 (day_65hruwsc), Monday, September 13, 2027: Springdale. Starts 8:00 a.m., the usual start time.
+- Leg: 24 miles, 41 m of road time, 48 m of driving with the drive buffer.
+Schedule:
+- 8:00 a.m. to 8:04 a.m.: drive.
+- 8:04 a.m. to 9:04 a.m.: Stop 1 (stop_3d5zpu36), meal: "breakfast". Near the Springdale stay. Tier: value, from the rule "the trip default". Selected: Deep Creek Coffee Co. (place_csf7m4ys), visit time 1 h.
+  - Candidates:
+    - Set 1: Deep Creek Coffee Co. (place_csf7m4ys), Coffee shop, 4.7 stars, $, Springdale, selected. Why: "Opens at 6:30 with breakfast burritos to go, so the group can make an early shuttle."
+    - Set 1: Café Soleil (place_sye2rv65), Cafe, 4.5 stars, $$, Springdale.
+    - Set 1: MeMe's Cafe (place_b4649n9b), Cafe, 4.4 stars, $$, Springdale.
+- 9:04 a.m. to 9:09 a.m.: drive.
+- 9:09 a.m. to 1:09 p.m.: Stop 2 (stop_xny34bg7), attraction: "the big hike of the trip". Near the Springdale stay. Selected: The Narrows via Riverside Walk (place_jqam8jds), visit time 4 h.
+  - Candidates:
+    - Set 1: Angels Landing Trail (place_uthk5aja), Hiking area, 4.9 stars, Springdale, visit time 5 h.
+    - Set 1: The Narrows via Riverside Walk (place_jqam8jds), Hiking area, 4.9 stars, Springdale, visit time 4 h, selected. Why: "The user's top pick for the trip. Wading up the Virgin River, no permit for the bottom-up day hike. Morning light is best in the canyon."
+    - Set 1: Observation Point via East Mesa Trail (place_thk4z8dq), Hiking area, 4.8 stars, Orderville, visit time 4 h.
+    - Set 2: Emerald Pools Trail (place_fu5yq6xt), Hiking area, 4.6 stars, Springdale, visit time 2 h.
+    - Set 2: Watchman Trail (place_n3xzu8z6), Hiking area, 4.6 stars, Springdale, visit time 2 h 30 m.
+    - Set 2: Scout Lookout via West Rim Trail (place_ja4scywe), Hiking area, 4.8 stars, Springdale, visit time 4 h.
+- 1:09 p.m. to 1:23 p.m.: drive.
+- 1:23 p.m. to 2:23 p.m.: Stop 3 (stop_cmtf5hsk), meal: "lunch". Near the Springdale stay. Tier: value, from the rule "the trip default". Selected: Zion Pizza & Noodle Co. (place_m8naxktp), visit time 1 h.
+  - Candidates:
+    - Set 1: Zion Pizza & Noodle Co. (place_m8naxktp), Pizza restaurant, 4.3 stars, $$, Springdale, selected. Why: "Fast, filling, and right off the shuttle stop after a long morning in the river."
+    - Set 1: Thai Sapa (place_dtweegns), Thai restaurant, 4.4 stars, $$, Springdale.
+    - Set 1: FeelLove Coffee (place_km64jw9f), Cafe, 4.6 stars, $, Springdale.
+- 2:23 p.m. to 2:34 p.m.: drive.
+- 2:34 p.m. to 3:49 p.m.: Stop 4 (stop_xa3xcfxn), attraction: "an easy afternoon walk". Near the Springdale stay. Selected: Pa'rus Trail (place_fawx32ye), visit time 1 h 15 m.
+  - Candidates:
+    - Set 1: Pa'rus Trail (place_fawx32ye), Hiking area, 4.6 stars, Springdale, visit time 1 h 15 m, selected. Why: "Flat and paved along the river, with views of the Watchman. Easy legs after The Narrows."
+    - Set 1: Zion Human History Museum (place_hz4pkcjp), Museum, 4.5 stars, Springdale, visit time 45 m.
+    - Set 1: Canyon Overlook Trail (place_6kgfqfzu), Hiking area, 4.8 stars, Springdale, visit time 1 h.
+- 3:49 p.m. to 6:21 p.m.: free time.
+- 6:21 p.m. to 6:30 p.m.: drive.
+- 6:30 p.m. to 7:30 p.m.: Stop 5 (stop_3gxt8sdn), meal: "dinner". Near the Springdale stay. Set time: 6:30 p.m. Tier: value, from the rule "the trip default". Selected: Porter's Smokehouse & Grill (place_q3cz9nha), visit time 1 h.
+  - Candidates:
+    - Set 1: Switchback Grille (place_dnmz45vr), American restaurant, 4.3 stars, $$$, Springdale.
+    - Set 1: Red Rock Grill (place_5t6jerny), American restaurant, 4.0 stars, $$, Springdale.
+    - Set 1: Porter's Smokehouse & Grill (place_q3cz9nha), Barbecue restaurant, 4.4 stars, $$, Springdale, selected. Why: "Brisket and a beer garden, value tier, and walkable from the inn."
+- 7:30 p.m. to 7:35 p.m.: drive.
+Arrives at Desert Pearl Inn at 7:35 p.m.
+
+Stay 2 (stay_djyvhgsb): Bryce Canyon City (place_y7t6zuhr), City. 1 night, Day 3, from Tuesday, September 14, 2027 to the morning of Wednesday, September 15, 2027.
+- Lodging tier: value, from the rule "the trip default", set when the stay had 1 night.
+- Lodging: Best Western Plus Ruby's Inn (place_dnssxmfq).
+- Lodging candidates:
+  - Set 1: Best Western Plus Ruby's Inn (place_dnssxmfq), Hotel, 4.2 stars, $$, Bryce Canyon City, selected. Why: "On the park shuttle route, with a general store and restaurant on site, and in the value tier for a 1-night stay."
+  - Set 1: Bryce Canyon Grand Hotel (place_b2m2wrye), Hotel, 4.4 stars, $$, Bryce Canyon City.
+  - Set 1: Bryce View Lodge (place_nttk8ej9), Motel, 3.9 stars, $, Bryce Canyon City.
+- Weather and clothing, from seasonal averages, written Thursday, October 15, 2026: "At 8,000 feet, days are mild in the low 70s and nights drop near freezing, into the low 30s. Sunrise on the rim is cold and windy. Pack a warm jacket, a hat, and gloves for the viewpoints, and layers you can shed on the trail."
+
+Day 3 (day_9cazg9na), Tuesday, September 14, 2027: Springdale → Bryce Canyon City. Starts 8:00 a.m., the usual start time.
+- Leg: 86 miles, 1 h 47 m of road time, 2 h 1 m of driving with the drive buffer.
+Schedule:
+- 8:00 a.m. to 8:04 a.m.: drive.
+- 8:04 a.m. to 9:04 a.m.: Stop 1 (stop_pbukyvzz), meal: "breakfast". Near the Springdale stay. Tier: value, from the rule "the trip default". Selected: Café Soleil (place_fdqktv92), visit time 1 h.
+  - Candidates:
+    - Set 1: Café Soleil (place_fdqktv92), Cafe, 4.5 stars, $$, Springdale, selected. Why: "Was a candidate yesterday and the user wanted to try it before leaving. Good breakfast sandwiches."
+    - Set 1: Sol Foods Market Deli (place_2smbk6be), Deli, 4.3 stars, $, Springdale.
+    - Set 1: Perks Coffee & Tea (place_6ppgqj9y), Coffee shop, 4.6 stars, $, Springdale.
+- 9:04 a.m. to 9:20 a.m.: drive.
+- 9:20 a.m. to 9:40 a.m.: Stop 2 (stop_j7aw455a), attraction: "the east side of Zion on the way out". Along the leg. Selected: Checkerboard Mesa Viewpoint (place_n2pxnb95), visit time 20 m.
+  - Candidates:
+    - Set 1: Checkerboard Mesa Viewpoint (place_n2pxnb95), Scenic spot, 4.8 stars, Springdale, visit time 20 m, detour 2 m when offered, selected. Why: "A pullout right on the highway after the tunnel, with no detour. A quick look before the drive to Bryce."
+    - Set 1: East Rim Trailhead (place_n3jqxhe5), Hiking area, 4.7 stars, Springdale, visit time 1 h 30 m, detour 6 m when offered.
+    - Set 1: Zion Mountain Ranch Bison Herd (place_n79rcysa), Tourist attraction, 4.5 stars, Mt Carmel, visit time 20 m, detour 1 m when offered.
+- 9:40 a.m. to 10:13 a.m.: drive.
+- 10:13 a.m. to 11:13 a.m.: Stop 3 (stop_4gx5jmvz), meal: "lunch". Along the leg. Tier: value, from the rule "the trip default". Selected: Thunderbird Restaurant (place_xcm28rfn), visit time 1 h.
+  - Candidates:
+    - Set 1: Thunderbird Restaurant (place_xcm28rfn), American restaurant, 4.1 stars, $$, Mt Carmel, detour 4 m when offered, selected. Why: "Home of the 'ho-made pies', at the junction where the route turns north, so no detour."
+    - Set 1: Rocking V Cafe (place_2jdq9g5v), American restaurant, 4.6 stars, $$, Kanab, detour 34 m when offered.
+    - Set 1: Mt Carmel Junction Golden Hills Restaurant (place_fkyjgua5), Diner, 4.2 stars, $, Mt Carmel, detour 1 m when offered.
+- 11:13 a.m. to 12:00 p.m.: drive.
+- 12:00 p.m. to 12:45 p.m.: Stop 4 (stop_3e2a6ewz), attraction: "an afternoon walk among red hoodoos". Along the leg. Selected: Red Canyon Arches Trail (place_467w89hj), visit time 45 m.
+  - Candidates:
+    - Set 1: Red Canyon Arches Trail (place_467w89hj), Hiking area, 4.7 stars, Panguitch, visit time 45 m, detour 2 m when offered, selected. Why: "Bright red hoodoos right on Highway 12, a short loop, and a warm-up for Bryce tomorrow."
+    - Set 1: Mossy Cave Trail (place_xyr86kdh), Hiking area, 4.7 stars, Tropic, visit time 1 h, detour 22 m when offered.
+    - Set 1: Cascade Falls Trail (place_f5gcn26r), Hiking area, 4.6 stars, Duck Creek Village, visit time 1 h 30 m, detour 48 m when offered.
+- 12:45 p.m. to 6:29 p.m.: free time.
+- 6:29 p.m. to 6:45 p.m.: drive.
+- 6:45 p.m. to 7:45 p.m.: Stop 5 (stop_qgkvn4v9), attraction: "sunset over the amphitheater". Near the Bryce Canyon City stay. Set time: 6:45 p.m. Selected: Sunset Point (place_6e5zzcz3), visit time 1 h.
+  - Candidates:
+    - Set 1: Sunset Point (place_6e5zzcz3), Scenic spot, 4.9 stars, Bryce Canyon City, visit time 1 h, selected. Why: "Close to the lodging, and at sunset the hoodoos glow. Easy parking after 6."
+    - Set 1: Inspiration Point (place_a5errh7k), Scenic spot, 4.9 stars, Bryce Canyon City, visit time 45 m.
+    - Set 1: Bryce Point (place_nekzb2sd), Scenic spot, 4.9 stars, Bryce Canyon City, visit time 45 m.
+- 7:45 p.m. to 7:50 p.m.: drive.
+Arrives at Best Western Plus Ruby's Inn at 7:50 p.m.
+
+Stay 3 (stay_z7mfhwxn): Torrey (place_negfkd7m), City. 1 night, Day 4, from Wednesday, September 15, 2027 to the morning of Thursday, September 16, 2027.
+- Lodging tier: value, from the rule "the trip default", set when the stay had 1 night.
+- Lodging: Red River Ranch (place_pzk9kvj3).
+- Lodging candidates:
+  - Set 1: Red River Ranch (place_pzk9kvj3), Bed & breakfast, 4.8 stars, $$$, Torrey, selected. Why: "A quiet ranch on the Fremont River with dark skies for stargazing. The user asked for one splurge night, and this is it."
+  - Set 1: Capitol Reef Resort (place_p87tchgc), Resort hotel, 4.3 stars, $$, Torrey.
+  - Set 1: Broken Spur Inn & Steakhouse (place_cg34pv8s), Hotel, 4.2 stars, $$, Torrey.
+- Weather and clothing, from seasonal averages, written Thursday, October 15, 2026: "Warm, dry days near 80, and cool nights in the mid 40s. Little chance of rain. Torrey is a dark-sky community, so bring a warm layer for stargazing, and sun protection for the open trails in the park."
+
+Day 4 (day_jdtpfkx8), Wednesday, September 15, 2027: Bryce Canyon City → Torrey. Starts 8:00 a.m., the usual start time.
+- Leg: 124 miles, 3 h 13 m of road time, 3 h 35 m of driving with the drive buffer.
+- Approval: drive hours, up to 6 hours of driving, because "the user wants all of Highway 12, with the stops along it". It applies.
+Schedule:
+- 8:00 a.m. to 8:06 a.m.: drive.
+- 8:06 a.m. to 9:06 a.m.: Stop 1 (stop_8j3ga9xn), meal: "breakfast". Near the Bryce Canyon City stay. Tier: value, from the rule "the trip default". Selected: Cowboy's Buffet & Steak Room (place_p25xrb3r), visit time 1 h.
+  - Candidates:
+    - Set 1: Cowboy's Buffet & Steak Room (place_p25xrb3r), Buffet restaurant, 4.0 stars, $$, Bryce Canyon City, selected. Why: "In the hotel, opens at 6:30, and quick for an early start on the rim."
+    - Set 1: Bryce Canyon Coffee Company (place_reg3zhqm), Coffee shop, 4.7 stars, $, Bryce Canyon City.
+    - Set 1: Bryce Canyon Pines Restaurant (place_jbntd8d7), American restaurant, 4.3 stars, $$, Bryce.
+- 9:06 a.m. to 9:13 a.m.: drive.
+- 9:13 a.m. to 11:43 a.m.: Stop 2 (stop_8d7ekqqb), attraction: "a morning hike below the rim". Near the Bryce Canyon City stay. Selected: Queen's Garden and Navajo Loop Trail (place_tgscravr), visit time 2 h 30 m.
+  - Candidates:
+    - Set 1: Queen's Garden and Navajo Loop Trail (place_tgscravr), Hiking area, 4.9 stars, Bryce Canyon City, visit time 2 h 30 m, selected. Why: "The classic Bryce loop, down among the hoodoos and up through Wall Street. Three miles, done by late morning."
+    - Set 1: Fairyland Loop Trail (place_px3ttx4h), Hiking area, 4.9 stars, Bryce Canyon City, visit time 4 h 30 m.
+    - Set 1: Peekaboo Loop Trail (place_hhk9ym8a), Hiking area, 4.8 stars, Bryce Canyon City, visit time 3 h 30 m.
+- 11:43 a.m. to 12:44 p.m.: drive.
+- 12:44 p.m. to 1:44 p.m.: Stop 3 (stop_pjffeds3), meal: "lunch". Along the leg. Tier: value, from the rule "the trip default". Selected: Hell's Backbone Grill & Farm (place_39dymu2e), visit time 1 h.
+  - Candidates:
+    - Set 1: Hell's Backbone Grill & Farm (place_39dymu2e), Restaurant, 4.6 stars, $$$, Boulder, detour 2 m when offered, selected. Why: "A restaurant at 4.6 stars, a fit for the trip's pace and budget."
+    - Set 1: Escalante Outfitters Cafe (place_5dhc7tz5), Cafe, 4.5 stars, $, Escalante, detour 1 m when offered.
+    - Set 1: Circle D Eatery (place_xjm6mw4m), Barbecue restaurant, 4.3 stars, $$, Escalante, detour 1 m when offered.
+- 1:44 p.m. to 2:39 p.m.: drive.
+- 2:39 p.m. to 6:09 p.m.: Stop 4 (stop_msrgdq58), attraction: "a waterfall hike". Along the leg. Selected: Lower Calf Creek Falls Trail (place_z783ydwh), visit time 3 h 30 m.
+  - Candidates:
+    - Set 1: Lower Calf Creek Falls Trail (place_z783ydwh), Hiking area, 4.8 stars, $, Escalante, visit time 3 h 30 m, detour 3 m when offered, selected. Why: "A six-mile round trip to a 126-foot waterfall, with a cold pool at the end. The user asked for one swim stop."
+    - Set 1: Head of the Rocks Overlook (place_28gmz3sm), Scenic spot, 4.8 stars, Escalante, visit time 20 m, detour 0 m when offered.
+    - Set 1: Anasazi State Park Museum (place_6rgyx9hm), Museum, 4.5 stars, $, Boulder, visit time 45 m, detour 1 m when offered.
+- 6:09 p.m. to 6:38 p.m.: drive.
+- 6:38 p.m. to 6:53 p.m.: Stop 5 (stop_sf95qwug), attraction: "the Hogsback". Along the leg. Selected: The Hogsback (place_fgd4khka), visit time 15 m.
+  - Candidates:
+    - Set 1: The Hogsback (place_fgd4khka), Scenic spot, 4.9 stars, Boulder, visit time 15 m, detour 0 m when offered, selected. Why: "A narrow ridge with drops on both sides. Just a pullout, no detour."
+    - Set 1: Homestead Overlook (place_uz4ua7y7), Scenic spot, 4.8 stars, Boulder, visit time 15 m, detour 1 m when offered.
+    - Set 1: Larb Hollow Overlook (place_nubtyfb3), Scenic spot, 4.8 stars, Boulder, visit time 15 m, detour 0 m when offered.
+- 6:53 p.m. to 7:46 p.m.: drive.
+- 7:46 p.m. to 8:46 p.m.: Stop 6 (stop_wmw83347), meal: "dinner". Near the Torrey stay. Set time: 7:00 p.m. Tier: value, from the rule "the trip default". Selected: Capitol Burger (place_jz96mu5e), visit time 1 h.
+  - Candidates:
+    - Set 1: Hunt & Gather (place_z6zewy3a), New American restaurant, 4.6 stars, $$$, Torrey.
+    - Set 1: Capitol Burger (place_jz96mu5e), Food truck, 4.7 stars, $, Torrey, selected. Why: "Wagyu burgers from a truck, value tier, and quick after a long driving day."
+    - Set 1: Torrey Grill & BBQ (place_q5bd2ykd), Barbecue restaurant, 4.5 stars, $$, Torrey.
+    - Set 2: Rim Rock Restaurant (place_z79zuk3a), American restaurant, 4.0 stars, $$, Torrey.
+    - Set 2: Slacker's Burger Joint (place_er8g9h5w), Hamburger restaurant, 4.6 stars, $, Torrey.
+    - Set 2: The Wild Rabbit Cafe (place_9pdr5b7k), Cafe, 4.6 stars, $$, Torrey.
+- 8:46 p.m. to 8:50 p.m.: drive.
+Arrives at Red River Ranch at 8:50 p.m.
+
+Stay 4 (stay_s7af7h69): Moab (place_pdbdz9tq), City. 3 nights, Days 5 to 7, from Thursday, September 16, 2027 to the morning of Sunday, September 19, 2027.
+- Lodging tier: midRange, from the rule "stays of 2+ nights", set when the stay had 3 nights.
+- Lodging: Moab Springs Ranch (place_gqh22jmy).
+- Lodging candidates:
+  - Set 1: Hoodoo Moab, Curio Collection by Hilton (place_recmvbkw), Hotel, 4.6 stars, $$$, Moab.
+  - Set 1: Red Cliffs Lodge (place_4u8vhjex), Lodge, 4.4 stars, $$$, Moab.
+  - Set 1: Sorrel River Ranch Resort & Spa (place_nvj9xdpk), Resort hotel, 4.7 stars, $$$$, Moab.
+  - Set 2: Moab Springs Ranch (place_gqh22jmy), Lodge, 4.7 stars, $$$, Moab, selected. Why: "Townhouses with kitchens near the Arches entrance, away from the Main Street traffic the user wanted to avoid, in the mid-range tier for 3 nights."
+  - Set 2: Hyatt Place Moab (place_wnrtu469), Hotel, 4.5 stars, $$, Moab.
+  - Set 2: SpringHill Suites by Marriott Moab (place_a2ku64vx), Hotel, 4.6 stars, $$, Moab.
+- Weather and clothing, from seasonal averages, written Thursday, October 15, 2026: "Hot, dry days in the mid to high 80s, and nights in the mid 50s. Rare afternoon storms. The slickrock reflects heat, so start hikes by 8 a.m., carry three liters of water each, and wear grippy shoes. A light jacket for evenings on the rim at Dead Horse Point."
+
+Day 5 (day_fyrydgfd), Thursday, September 16, 2027: Torrey → Moab. Starts 8:00 a.m., the usual start time.
+- Leg: 158 miles, 2 h 59 m of road time, 3 h 19 m of driving with the drive buffer.
+Schedule:
+- 8:00 a.m. to 8:07 a.m.: drive.
+- 8:07 a.m. to 9:07 a.m.: Stop 1 (stop_6rmy7eh3), meal: "breakfast". Near the Torrey stay. Tier: value, from the rule "the trip default". Selected: The Wild Rabbit Cafe (place_6wvqensw), visit time 1 h.
+  - Candidates:
+    - Set 1: The Wild Rabbit Cafe (place_6wvqensw), Cafe, 4.6 stars, $$, Torrey, selected. Why: "Good coffee and pastries, open early, and the user liked the look of it last night."
+    - Set 1: Castlerock Coffee & Candy (place_rrc4xbbn), Coffee shop, 4.5 stars, $, Torrey.
+    - Set 1: Red River Ranch breakfast room (place_atm6whnd), Breakfast restaurant, 4.7 stars, $$, Torrey.
+- 9:07 a.m. to 9:18 a.m.: drive.
+- 9:18 a.m. to 10:48 a.m.: Stop 2 (stop_swmqkedy), attraction: "a short hike in Capitol Reef". Along the leg. Selected: Hickman Natural Bridge Trail (place_ayamtr67), visit time 1 h 30 m.
+  - Candidates:
+    - Set 1: Hickman Natural Bridge Trail (place_ayamtr67), Hiking area, 4.8 stars, Torrey, visit time 1 h 30 m, detour 2 m when offered, selected. Why: "A two-mile round trip to a 133-foot natural bridge, right off Highway 24, so it fits a moving day."
+    - Set 1: Cassidy Arch Trail (place_wn64uutq), Hiking area, 4.8 stars, Torrey, visit time 3 h, detour 28 m when offered.
+    - Set 1: Gifford Homestead (place_4ux4nnyn), Historical landmark, 4.7 stars, $, Torrey, visit time 30 m, detour 12 m when offered.
+    - Set 2: Capitol Gorge Trail (place_6wn24r3p), Hiking area, 4.7 stars, Torrey, visit time 1 h 30 m, detour 40 m when offered.
+    - Set 2: Petroglyph Panel Boardwalk (place_f6yxaxzc), Historical landmark, 4.6 stars, Torrey, visit time 20 m, detour 0 m when offered.
+    - Set 2: Panorama Point (place_nngnbgez), Scenic spot, 4.8 stars, Torrey, visit time 15 m, detour 2 m when offered.
+- 10:48 a.m. to 11:41 a.m.: drive.
+- 11:41 a.m. to 12:41 p.m.: Stop 3 (stop_uyrcsz9t), meal: "lunch". Along the leg. Tier: value, from the rule "the trip default". Selected: Stan's Burger Shak (place_d6jrm9tg), visit time 1 h.
+  - Candidates:
+    - Set 1: Stan's Burger Shak (place_d6jrm9tg), Hamburger restaurant, 4.4 stars, $, Hanksville, detour 4 m when offered, selected. Why: "The only quick lunch for 90 miles, with shakes and a gas station next door."
+    - Set 1: Duke's Slickrock Grill (place_rgej83yy), American restaurant, 4.3 stars, $$, Hanksville, detour 11 m when offered.
+    - Set 1: Blondie's Eatery & Gift (place_zujxzycm), Diner, 4.2 stars, $, Hanksville, detour 18 m when offered.
+- 12:41 p.m. to 1:17 p.m.: drive.
+- 1:17 p.m. to 2:47 p.m.: Stop 4 (stop_4drntamn), attraction: "Goblin Valley". Along the leg. Selected: Goblin Valley State Park (place_nxx4kfyv), visit time 1 h 30 m.
+  - Candidates:
+    - Set 1: Goblin Valley State Park (place_nxx4kfyv), State park, 4.8 stars, $, Green River, visit time 1 h 30 m, detour 42 m when offered, selected. Why: "Hundreds of mushroom-shaped hoodoos you can climb on. The kids will love it, and it's the best detour on this leg."
+    - Set 1: Little Wild Horse Canyon (place_yb6z8sxb), Hiking area, 4.8 stars, Green River, visit time 2 h 30 m, detour 52 m when offered.
+    - Set 1: Factory Butte Overlook (place_qpxcqs29), Scenic spot, 4.6 stars, Hanksville, visit time 20 m, detour 8 m when offered.
+- 2:47 p.m. to 5:07 p.m.: free time.
+- 5:07 p.m. to 6:30 p.m.: drive.
+- 6:30 p.m. to 7:30 p.m.: Stop 5 (stop_7dmt4gpg), meal: "dinner". Near the Moab stay. Set time: 6:30 p.m. Tier: value, from the rule "the trip default". Selected: Moab Brewery (place_6rp32aem), visit time 1 h.
+  - Candidates:
+    - Set 1: Desert Bistro (place_dsuhp365), Fine dining restaurant, 4.6 stars, $$$$, Moab.
+    - Set 1: Moab Brewery (place_6rp32aem), Brewpub, 4.4 stars, $$, Moab, selected. Why: "A big, easy brewpub with a kids' menu, and value tier. Good for the first night in Moab."
+    - Set 1: Sabaku Sushi (place_mj83hgmn), Sushi restaurant, 4.6 stars, $$$, Moab.
+    - Set 2: Josie Wilson's Restaurant (place_jjf2g22d), American restaurant, 4.7 stars, $$$, Moab.
+    - Set 2: Antica Forma (place_q62xs2kz), Pizza restaurant, 4.6 stars, $$, Moab.
+    - Set 2: The Spoke on Center (place_88mxt67k), Hamburger restaurant, 4.4 stars, $$, Moab.
+- 7:30 p.m. to 7:39 p.m.: drive.
+Arrives at Moab Springs Ranch at 7:39 p.m.
+
+Day 6 (day_8s2yhyfm), Friday, September 17, 2027: Moab. Starts 8:00 a.m., the usual start time.
+- Leg: 58 miles, 1 h 13 m of road time, 1 h 23 m of driving with the drive buffer.
+Schedule:
+- 8:00 a.m. to 8:06 a.m.: drive.
+- 8:06 a.m. to 9:06 a.m.: Stop 1 (stop_95j42uku), meal: "breakfast". Near the Moab stay. Tier: value, from the rule "the trip default". Selected: Love Muffin Cafe (place_cdqk34je), visit time 1 h.
+  - Candidates:
+    - Set 1: Love Muffin Cafe (place_cdqk34je), Cafe, 4.6 stars, $, Moab, selected. Why: "Breakfast burritos and coffee, quick service, on the way to the Arches entrance."
+    - Set 1: Jailhouse Cafe (place_p3ed9tn7), Breakfast restaurant, 4.5 stars, $$, Moab.
+    - Set 1: Moab Diner (place_92cfbugz), Diner, 4.4 stars, $$, Moab.
+- 9:06 a.m. to 9:20 a.m.: drive.
+- 9:20 a.m. to 12:20 p.m.: Stop 2 (stop_3tm3hkxd), attraction: "the arch hike". Near the Moab stay. Selected: Delicate Arch Trail (place_j35x383c), visit time 3 h.
+  - Candidates:
+    - Set 1: Delicate Arch Trail (place_j35x383c), Hiking area, 4.9 stars, $, Moab, visit time 3 h, selected. Why: "Utah's best-known arch. Three miles round trip with little shade, so it's first thing. The timed entry is booked for 8 to 9 a.m."
+    - Set 1: Devils Garden Trail (place_pxd26pb8), Hiking area, 4.8 stars, $, Moab, visit time 4 h.
+    - Set 1: Fiery Furnace (place_6hztpdxu), Hiking area, 4.9 stars, $$, Moab, visit time 3 h.
+- 12:20 p.m. to 12:37 p.m.: drive.
+- 12:37 p.m. to 1:37 p.m.: Stop 3 (stop_d9qgaz3n), meal: "lunch". Near the Moab stay. Tier: value, from the rule "the trip default". Selected: Milt's Stop & Eat (place_swe27vfy), visit time 1 h.
+  - Candidates:
+    - Set 1: Quesadilla Mobilla (place_7pgjg5qe), Food truck, 4.7 stars, $, Moab.
+    - Set 1: Milt's Stop & Eat (place_swe27vfy), Hamburger restaurant, 4.6 stars, $, Moab, selected. Why: "A 1954 burger stand with great shakes. Cheap, quick, and a Moab classic."
+    - Set 1: Peace Tree Cafe (place_d33g9sga), Cafe, 4.3 stars, $$, Moab.
+- 1:37 p.m. to 1:57 p.m.: drive.
+- 1:57 p.m. to 3:12 p.m.: Stop 4 (stop_9qzvwcvf), attraction: "arches you can drive to". Near the Moab stay. Selected: The Windows Section (place_hmchbsth), visit time 1 h 15 m.
+  - Candidates:
+    - Set 1: The Windows Section (place_hmchbsth), Scenic spot, 4.9 stars, $, Moab, visit time 1 h 15 m, selected. Why: "North and South Window and Turret Arch on one short loop, and Double Arch across the lot. Easy after the morning hike."
+    - Set 1: Balanced Rock (place_m2z27e8w), Scenic spot, 4.8 stars, $, Moab, visit time 30 m.
+    - Set 1: Park Avenue Trail (place_3fk5zerg), Hiking area, 4.8 stars, $, Moab, visit time 1 h.
+    - Set 2: Landscape Arch (place_xjasrs5f), Scenic spot, 4.9 stars, $, Moab, visit time 1 h.
+    - Set 2: Sand Dune Arch (place_m25893f9), Scenic spot, 4.7 stars, $, Moab, visit time 30 m.
+    - Set 2: Double Arch Trail (place_ykyfanan), Hiking area, 4.9 stars, $, Moab, visit time 30 m.
+- 3:12 p.m. to 3:23 p.m.: drive.
+- 3:23 p.m. to 4:23 p.m.: Stop 5 (stop_gnrrrxe8), attraction: "a museum while it's hot". Near the Moab stay. Selected: Moab Museum (place_36d5mhsf), visit time 1 h.
+  - Candidates:
+    - Set 1: Moab Museum (place_36d5mhsf), History museum, 4.6 stars, $, Moab, visit time 1 h, selected. Why: "Air-conditioned, an hour of local history and dinosaurs, during the hottest part of the day."
+    - Set 1: Moab Giants (place_eg6dh78z), Dinosaur museum, 4.4 stars, $$, Moab, visit time 1 h 30 m.
+    - Set 1: Moab Information Center (place_7j4tvx5t), Visitor center, 4.6 stars, Moab, visit time 20 m.
+- 4:23 p.m. to 6:21 p.m.: free time.
+- 6:21 p.m. to 6:30 p.m.: drive.
+- 6:30 p.m. to 7:30 p.m.: Stop 6 (stop_hrfpd9sa), meal: "dinner". Near the Moab stay. Set time: 6:30 p.m. Tier: value, from the rule "the trip default". Selected: Doughbird (place_etd688qd), visit time 1 h.
+  - Candidates:
+    - Set 1: Arches Thai (place_ukn4gmfy), Thai restaurant, 4.5 stars, $$, Moab.
+    - Set 1: Doughbird (place_etd688qd), American restaurant, 4.6 stars, $$, Moab, selected. Why: "Fried chicken and doughnuts, a short walk from the lodging, and value tier."
+    - Set 1: Zax Restaurant (place_zud3ysfp), Pizza restaurant, 4.0 stars, $$, Moab.
+- 7:30 p.m. to 7:36 p.m.: drive.
+Arrives at Moab Springs Ranch at 7:36 p.m.
+
+Day 7 (day_yq3msbn8), Saturday, September 18, 2027: Moab. Starts 8:00 a.m., the usual start time.
+- Leg: 96 miles, 1 h 54 m of road time, 2 h 8 m of driving with the drive buffer.
+Schedule:
+- 8:00 a.m. to 8:07 a.m.: drive.
+- 8:07 a.m. to 9:07 a.m.: Stop 1 (stop_36w66skn), meal: "breakfast". Near the Moab stay. Tier: value, from the rule "the trip default". Selected: Eklecticafe (place_5ws3zr79), visit time 1 h.
+  - Candidates:
+    - Set 1: Eklecticafe (place_5ws3zr79), Cafe, 4.6 stars, $, Moab, selected. Why: "Organic breakfast and a garden patio, on the way north out of town."
+    - Set 1: Moab's Pancake Haus (place_rvznh78e), Breakfast restaurant, 4.3 stars, $$, Moab.
+    - Set 1: Wicked Brew (place_rzmq84hs), Coffee shop, 4.6 stars, $, Moab.
+    - Set 2: Red Rock Bakery & Cafe (place_s9qgdhus), Bakery, 4.6 stars, $, Moab.
+    - Set 2: Sweet Cravings Bakery + Bistro (place_ee5xr8mx), Bakery, 4.7 stars, $, Moab.
+    - Set 2: Moab Coffee Roasters (place_nzwk7bcf), Coffee shop, 4.5 stars, $, Moab.
+- 9:07 a.m. to 9:54 a.m.: drive.
+- 9:54 a.m. to 11:54 a.m.: Stop 2 (stop_3ushuqxx), attraction: "the Island in the Sky rim". Near the Moab stay. Selected: Grand View Point Trail (place_yye4jdjd), visit time 2 h.
+  - Candidates:
+    - Set 1: Grand View Point Trail (place_yye4jdjd), Hiking area, 4.9 stars, $, Moab, visit time 2 h, selected. Why: "A flat two miles along the rim to the end of the mesa, with the White Rim 1,000 feet down."
+    - Set 1: Mesa Arch Trail (place_mxtez3ka), Hiking area, 4.9 stars, $, Moab, visit time 45 m.
+    - Set 1: Upheaval Dome Trail (place_k4mzuw6y), Hiking area, 4.6 stars, $, Moab, visit time 1 h 30 m.
+- 11:54 a.m. to 12:14 p.m.: drive.
+- 12:14 p.m. to 1:14 p.m.: Stop 3 (stop_rq5cke2c), meal: "lunch". Near the Moab stay. Tier: value, from the rule "the trip default". Selected: Island in the Sky Visitor Center picnic area (place_y6b4bw7r), visit time 1 h.
+  - Candidates:
+    - Set 1: Island in the Sky Visitor Center picnic area (place_y6b4bw7r), Picnic ground, 4.6 stars, Moab, selected. Why: "No food in the park. A packed lunch from the grocery at the picnic tables, with the rim close by."
+    - Set 1: Moab Garage Co. (place_5sbrq27n), Cafe, 4.6 stars, $, Moab.
+    - Set 1: Dead Horse Point Visitor Center (place_p9huum2t), Visitor center, 4.7 stars, $, Moab.
+- 1:14 p.m. to 1:30 p.m.: drive.
+- 1:30 p.m. to 3:00 p.m.: Stop 4 (stop_enbkc7na), attraction: "the overlook everyone photographs". Near the Moab stay. Selected: Dead Horse Point State Park (place_vfn3m53x), visit time 1 h 30 m.
+  - Candidates:
+    - Set 1: Dead Horse Point State Park (place_vfn3m53x), State park, 4.9 stars, $$, Moab, visit time 1 h 30 m, selected. Why: "The gooseneck of the Colorado 2,000 feet below, and on the way back from Island in the Sky."
+    - Set 1: Shafer Canyon Overlook (place_fmetgpjd), Scenic spot, 4.8 stars, $, Moab, visit time 20 m.
+    - Set 1: Green River Overlook (place_vak7h6y9), Scenic spot, 4.8 stars, $, Moab, visit time 20 m.
+- 3:00 p.m. to 5:59 p.m.: free time.
+- 5:59 p.m. to 6:30 p.m.: drive.
+- 6:30 p.m. to 7:30 p.m.: Stop 5 (stop_3uat7d8x), meal: "dinner". Near the Moab stay. Set time: 6:30 p.m. Tier: value, from the rule "the trip default". Selected: Pasta Jay's (place_ksyrvxs6), visit time 1 h.
+  - Candidates:
+    - Set 1: 98 Center (place_3y9t2guu), Asian fusion restaurant, 4.6 stars, $$$, Moab.
+    - Set 1: The Broken Oar (place_dcdx7w2t), American restaurant, 4.4 stars, $$, Moab.
+    - Set 1: Pasta Jay's (place_ksyrvxs6), Italian restaurant, 4.2 stars, $$, Moab, selected. Why: "Pasta for everyone, a patio on Main Street, and value tier."
+- 7:30 p.m. to 7:37 p.m.: drive.
+Arrives at Moab Springs Ranch at 7:37 p.m.
+
+Stay 5 (stay_yw668ua5): Cortez (place_6bky935j), City. 2 nights, Days 8 to 9, from Sunday, September 19, 2027 to the morning of Tuesday, September 21, 2027.
+- Lodging tier: midRange, from the rule "stays of 2+ nights", set when the stay had 2 nights.
+- Lodging: Far View Lodge (place_fuanvfuq).
+- Lodging candidates:
+  - Set 1: Retro Inn at Mesa Verde (place_m6aupv9r), Motel, 4.6 stars, $, Cortez.
+  - Set 1: Far View Lodge (place_fuanvfuq), Lodge, 4.3 stars, $$$, Mesa Verde National Park, selected. Why: "Inside Mesa Verde, 15 minutes from the cliff dwellings, with sunset views from every balcony. In the mid-range tier for 2 nights."
+  - Set 1: Holiday Inn Express & Suites Cortez (place_y3c39asb), Hotel, 4.4 stars, $$, Cortez.
+- Weather and clothing, from seasonal averages, written Thursday, October 15, 2026: "Mild days in the high 70s, and cool nights in the mid 40s, colder up on the mesa at 7,000 feet. Afternoon showers are possible. Pack layers, a rain shell, and sturdy shoes for the ladders on the ranger tours."
+
+Day 8 (day_467xen8j), Sunday, September 19, 2027: Moab → Cortez. Starts 8:00 a.m., the usual start time.
+- Leg: 132 miles, 2 h 34 m of road time, 2 h 52 m of driving with the drive buffer.
+Schedule:
+- 8:00 a.m. to 8:06 a.m.: drive.
+- 8:06 a.m. to 9:06 a.m.: Stop 1 (stop_akyvh7fu), meal: "breakfast". Near the Moab stay. Tier: value, from the rule "the trip default". Selected: Red Rock Bakery & Cafe (place_q7mpyysk), visit time 1 h.
+  - Candidates:
+    - Set 1: Red Rock Bakery & Cafe (place_q7mpyysk), Bakery, 4.6 stars, $, Moab, selected. Why: "Offered yesterday. Quick pastries and breakfast sandwiches on the way south."
+    - Set 1: Jailhouse Cafe (place_hf2zskjm), Breakfast restaurant, 4.5 stars, $$, Moab.
+    - Set 1: Moab Coffee Roasters (place_tgxfart3), Coffee shop, 4.5 stars, $, Moab.
+- 9:06 a.m. to 9:42 a.m.: drive.
+- 9:42 a.m. to 10:02 a.m.: Stop 2 (stop_busy446k), attraction: "roadside arches". Along the leg. Selected: Wilson Arch (place_5chukhwt), visit time 20 m.
+  - Candidates:
+    - Set 1: Wilson Arch (place_5chukhwt), Scenic spot, 4.6 stars, La Sal, visit time 20 m, detour 0 m when offered, selected. Why: "An arch right beside US-191, with a short scramble up to it."
+    - Set 1: Hole N" The Rock (place_mxs75pux), Tourist attraction, 4.3 stars, $$, Moab, visit time 45 m, detour 0 m when offered.
+    - Set 1: Looking Glass Rock (place_3b3ugqhv), Scenic spot, 4.6 stars, La Sal, visit time 20 m, detour 6 m when offered.
+- 10:02 a.m. to 10:27 a.m.: drive.
+- 10:27 a.m. to 11:27 a.m.: Stop 3 (stop_ncfe62z6), meal: "lunch". Along the leg. Tier: value, from the rule "the trip default". Selected: MD Ranch Cookhouse (place_nm29zvf9), visit time 1 h.
+  - Candidates:
+    - Set 1: MD Ranch Cookhouse (place_nm29zvf9), American restaurant, 4.5 stars, $$, Monticello, detour 4 m when offered, selected. Why: "Bison burgers and a ranch-house feel, right on the route through Monticello."
+    - Set 1: Granary Bar & Grill (place_w56285g2), Bar & grill, 4.3 stars, $$, Monticello, detour 11 m when offered.
+    - Set 1: Peace Tree Juice Cafe (place_484vyf55), Cafe, 4.4 stars, $, Monticello, detour 18 m when offered.
+- 11:27 a.m. to 12:28 p.m.: drive.
+- 12:28 p.m. to 2:28 p.m.: Stop 4 (stop_7mkdqgj5), attraction: "ancient towers". Along the leg. Selected: Hovenweep National Monument (place_bvm9seky), visit time 2 h.
+  - Candidates:
+    - Set 1: Hovenweep National Monument (place_bvm9seky), National monument, 4.8 stars, $, Montezuma Creek, visit time 2 h, detour 48 m when offered, selected. Why: "Square and round stone towers on the canyon rim, with almost no one there. The user wanted to see ruins without a tour."
+    - Set 1: Canyons of the Ancients Visitor Center & Museum (place_q48hngwq), Museum, 4.7 stars, $, Dolores, visit time 1 h 15 m, detour 14 m when offered.
+    - Set 1: Lowry Pueblo (place_k9bx4pqk), Historical landmark, 4.7 stars, Pleasant View, visit time 1 h, detour 34 m when offered.
+- 2:28 p.m. to 5:57 p.m.: free time.
+- 5:57 p.m. to 6:30 p.m.: drive.
+- 6:30 p.m. to 7:30 p.m.: Stop 5 (stop_da83ksna), meal: "dinner". Near the Cortez stay. Set time: 6:30 p.m. Tier: value, from the rule "the trip default". Selected: The Farm Bistro (place_zenk4p9j), visit time 1 h.
+  - Candidates:
+    - Set 1: The Farm Bistro (place_zenk4p9j), Bistro, 4.6 stars, $$, Cortez, selected. Why: "Ingredients from their own farm, a short menu, and value tier."
+    - Set 1: Main Street Brewery & Restaurant (place_dafjp6r8), Brewpub, 4.4 stars, $$, Cortez.
+    - Set 1: Tequila's Mexican Restaurant (place_u9bpba75), Mexican restaurant, 4.3 stars, $$, Cortez.
+- 7:30 p.m. to 7:41 p.m.: drive.
+Arrives at Far View Lodge at 7:41 p.m.
+
+Day 9 (day_2a9xg5n4), Monday, September 20, 2027: Cortez. Starts 8:00 a.m., the usual start time.
+- Leg: 74 miles, 1 h 34 m of road time.
+Schedule:
+- Time not known yet: drive.
+- Time not known yet: Stop 1 (stop_qxz6kgjd), meal: "breakfast". Near the Cortez stay. Tier: value, from the rule "the trip default". Selected: Far View Terrace Cafe (place_9yxszme5), visit time 1 h.
+  - Candidates:
+    - Set 1: Far View Terrace Cafe (place_9yxszme5), Cafeteria, 4.0 stars, $, Mesa Verde National Park, selected. Why: "Across the lot from the lodge, so the group can eat and still make the 9:30 tour."
+    - Set 1: Once Upon A Sandwich (place_75d6rcf5), Sandwich shop, 4.7 stars, $, Cortez.
+    - Set 1: Silver Bean (place_7kazxzuc), Coffee shop, 4.8 stars, $, Cortez.
+- Time not known yet: drive.
+- Time not known yet: Stop 2 (stop_p6se8zj7), attraction: "Cliff Palace ranger tour". Near the Cortez stay. Set time: 9:30 a.m. Selected: Cliff Palace (place_kmprav8b), visit time 1 h 30 m.
+  - Candidates:
+    - Set 1: Cliff Palace (place_kmprav8b), Historical landmark, 4.9 stars, $, Mesa Verde National Park, visit time 1 h 30 m, selected. Why: "The user's pick."
+- Time not known yet: drive.
+- Time not known yet: Stop 3 (stop_9ypfp5dw), meal: "lunch". Near the Cortez stay. Tier: value, from the rule "the trip default". Selected: Spruce Tree Terrace Cafe (place_mw2e3xwf), visit time 1 h.
+  - Candidates:
+    - Set 1: Spruce Tree Terrace Cafe (place_mw2e3xwf), Cafe, 3.9 stars, $, Mesa Verde National Park, selected. Why: "Next to the museum and the Spruce Tree House overlook, the only lunch on Chapin Mesa."
+    - Set 1: Far View Terrace Cafe (place_dwzyp8ky), Cafeteria, 4.0 stars, $, Mesa Verde National Park.
+    - Set 1: Metate Room Restaurant (place_nh72mve8), Southwestern restaurant, 4.5 stars, $$$, Mesa Verde National Park.
+- Time not known yet: drive.
+- Time not known yet: Stop 4 (stop_xfp6xcu9), attraction: "more cliff dwellings". Near the Cortez stay. Selected: Mesa Top Loop Road (place_3pbuqeay), visit time 1 h 30 m.
+  - Candidates:
+    - Set 1: Balcony House (place_s2vazwmn), Historical landmark, 4.9 stars, $, Mesa Verde National Park, visit time 1 h 30 m.
+    - Set 1: Spruce Tree House Overlook (place_4t34xgr5), Scenic spot, 4.7 stars, Mesa Verde National Park, visit time 30 m.
+    - Set 1: Mesa Top Loop Road (place_3pbuqeay), Scenic drive, 4.8 stars, Mesa Verde National Park, visit time 1 h 30 m, selected. Why: "Twelve pit houses and overlooks of Square Tower House and Sun Point, all short walks from the car. No ladders after the morning's tour."
+    - Set 2: Petroglyph Point Trail (place_guqjz3c4), Hiking area, 4.8 stars, Mesa Verde National Park, visit time 2 h 30 m.
+    - Set 2: Chapin Mesa Archeological Museum (place_98g9zdtk), Museum, 4.6 stars, Mesa Verde National Park, visit time 1 h.
+    - Set 2: Park Point Fire Lookout (place_866k3dkx), Scenic spot, 4.8 stars, Mesa Verde National Park, visit time 30 m.
+- Time not known yet: drive.
+- Time not known yet: Stop 5 (stop_tfcx3jdz), attraction: "sunset on the mesa". Near the Cortez stay. Set time: 6:30 p.m. Selected: Park Point Overlook (place_8hf89fqp), visit time 45 m.
+  - Candidates:
+    - Set 1: Park Point Overlook (place_8hf89fqp), Scenic spot, 4.8 stars, Mesa Verde National Park, visit time 45 m, selected. Why: "The highest point in the park, with a 360-degree view of four states at sunset."
+    - Set 1: Montezuma Valley Overlook (place_mbwsr9vq), Scenic spot, 4.7 stars, Mesa Verde National Park, visit time 30 m.
+    - Set 1: Geologic Overlook (place_3ypc5rfs), Scenic spot, 4.6 stars, Mesa Verde National Park, visit time 20 m.
+- Time not known yet: drive.
+- Time not known yet: Stop 6 (stop_mqa8f26r), meal: "dinner". Near the Cortez stay. Set time: 7:45 p.m. Tier: value, from the rule "the trip default". Selected: Metate Room Restaurant (place_zjsg3ycf), visit time 1 h.
+  - Candidates:
+    - Set 1: Metate Room Restaurant (place_zjsg3ycf), Southwestern restaurant, 4.5 stars, $$$, Mesa Verde National Park, selected. Why: "Bison and local corn dishes with big windows west over the valley. One step over value tier, and the user okayed it."
+    - Set 1: Nero's Italian Restaurant (place_x62yr8x2), Italian restaurant, 4.4 stars, $$, Cortez.
+    - Set 1: Loungin' Lizard (place_7rp6y44h), Bar & grill, 4.4 stars, $$, Cortez.
+- Time not known yet: drive.
+Arrival at Far View Lodge: time not known yet.
+
+Stay 6 (stay_fyq8sejg): Mexican Hat (place_6mnyj3k5), City. 1 night, Day 10, from Tuesday, September 21, 2027 to the morning of Wednesday, September 22, 2027.
+- Lodging tier: value, from the rule "the trip default", set when the stay had 1 night.
+- Lodging: San Juan Inn (place_3njm3uk2).
+- Lodging candidates:
+  - Set 1: San Juan Inn (place_3njm3uk2), Motel, 4.2 stars, $$, Mexican Hat, selected. Why: "On the San Juan River with a restaurant on site, 30 minutes from Monument Valley, and in the value tier for 1 night."
+  - Set 1: Mexican Hat Lodge (place_kbjg46a6), Motel, 4.0 stars, $$, Mexican Hat.
+  - Set 1: Goulding's Lodge (place_przv8w93), Lodge, 4.4 stars, $$$, Oljato-Monument Valley.
+- Weather and clothing, from seasonal averages, written Thursday, October 15, 2026: "Hot days in the high 80s and warm nights in the high 50s. Dry and windy, with blowing sand in the afternoon. Bring sunglasses, a buff for dust, and sun protection. Nights are clear and good for stars."
+
+Day 10 (day_uvwbb89e), Tuesday, September 21, 2027: Cortez → Mexican Hat. Starts 8:00 a.m., the usual start time.
+- Leg: 118 miles, 2 h 40 m of road time, 2 h 59 m of driving with the drive buffer.
+Schedule:
+- 8:00 a.m. to 8:29 a.m.: drive.
+- 8:29 a.m. to 9:29 a.m.: Stop 1 (stop_xe7ssze8), meal: "breakfast". Near the Cortez stay. Tier: value, from the rule "the trip default". Selected: Pippo's Cafe (place_3waa5x22), visit time 1 h.
+  - Candidates:
+    - Set 1: Pippo's Cafe (place_3waa5x22), Breakfast restaurant, 4.5 stars, $, Cortez, selected. Why: "Green chile breakfast burritos, on the way out of Cortez."
+    - Set 1: Silver Bean (place_yat599pb), Coffee shop, 4.8 stars, $, Cortez.
+    - Set 1: Once Upon A Sandwich (place_jmcyket4), Sandwich shop, 4.7 stars, $, Cortez.
+- 9:29 a.m. to 10:05 a.m.: drive.
+- 10:05 a.m. to 11:05 a.m.: Stop 2 (stop_543u5gvn), attraction: "a stop on the way into Utah". Along the leg. Selected: Bluff Fort Historic Site (place_k26tgsgk), visit time 1 h.
+  - Candidates:
+    - Set 1: Four Corners Monument (place_rha3rrd4), Monument, 4.0 stars, $, Teec Nos Pos, visit time 45 m, detour 26 m when offered.
+    - Set 1: Bluff Fort Historic Site (place_k26tgsgk), History museum, 4.8 stars, Bluff, visit time 1 h, detour 1 m when offered, selected. Why: "A rebuilt 1880 pioneer fort with free entry and shade, right in Bluff."
+    - Set 1: Sand Island Petroglyphs (place_dfk8xa9v), Historical landmark, 4.5 stars, Bluff, visit time 30 m, detour 4 m when offered.
+- 11:05 a.m. to 12:00 p.m.: drive.
+- 12:00 p.m. to 1:00 p.m.: Stop 3 (stop_sy46k3g4), meal: "lunch". Along the leg. Tier: value, from the rule "the trip default". Selected: Twin Rocks Cafe (place_ddzg2c83), visit time 1 h.
+  - Candidates:
+    - Set 1: Twin Rocks Cafe (place_ddzg2c83), Southwestern restaurant, 4.4 stars, $$, Bluff, detour 4 m when offered, selected. Why: "Navajo tacos under the Twin Rocks, next to the trading post."
+    - Set 1: Comb Ridge Eat & Drink (place_ev98ppsf), American restaurant, 4.6 stars, $$, Bluff, detour 11 m when offered.
+    - Set 1: Cottonwood Steakhouse (place_r5jew543), Steak house, 4.5 stars, $$$, Bluff, detour 18 m when offered.
+- 1:00 p.m. to 1:05 p.m.: drive.
+- 1:05 p.m. to 2:35 p.m.: Stop 4 (stop_mry5452c), attraction: "a dirt-road scenic drive". Along the leg. Selected: Valley of the Gods (place_s5q5hbxc), visit time 1 h 30 m.
+  - Candidates:
+    - Set 1: Valley of the Gods (place_s5q5hbxc), Scenic drive, 4.8 stars, Mexican Hat, visit time 1 h 30 m, detour 14 m when offered, selected. Why: "A 17-mile gravel loop through buttes like a small Monument Valley, with no fee and no crowds. Fine for a car when it's dry."
+    - Set 1: Goosenecks State Park (place_9axbdu4g), State park, 4.8 stars, $, Mexican Hat, visit time 30 m, detour 14 m when offered.
+    - Set 1: Moki Dugway (place_3y7eesvq), Scenic spot, 4.8 stars, Mexican Hat, visit time 1 h, detour 46 m when offered.
+- 2:35 p.m. to 5:54 p.m.: free time.
+- 5:54 p.m. to 6:30 p.m.: drive.
+- 6:30 p.m. to 7:30 p.m.: Stop 5 (stop_fqn5abxa), meal: "dinner". Near the Mexican Hat stay. Set time: 6:30 p.m. Tier: value, from the rule "the trip default". Selected: Swingin' Steak (place_qkxqhs9h), visit time 1 h.
+  - Candidates:
+    - Set 1: Swingin' Steak (place_qkxqhs9h), Steak house, 4.4 stars, $$, Mexican Hat, selected. Why: "Steaks grilled on a swinging grate over an open fire, at the lodging."
+    - Set 1: Old Bridge Grille (place_8xksg5w5), American restaurant, 4.1 stars, $$, Mexican Hat.
+    - Set 1: Mexican Hat Trading Post Cafe (place_4pgg97ad), Cafe, 3.9 stars, $, Mexican Hat.
+- 7:30 p.m. to 7:48 p.m.: drive.
+Arrives at San Juan Inn at 7:48 p.m.
+
+Stay 7 (stay_m4bp9fvp): Page (place_35su86s6), City. 1 night, Day 11, from Wednesday, September 22, 2027 to the morning of Thursday, September 23, 2027.
+- Lodging tier: value, from the rule "the trip default", set when the stay had 1 night.
+- Lodging: Hyatt Place Page/Lake Powell (place_juznz99t).
+- Lodging candidates:
+  - Set 1: Hyatt Place Page/Lake Powell (place_juznz99t), Hotel, 4.5 stars, $$, Page, selected. Why: "Close to the Antelope Canyon tour offices, with breakfast included, in the value tier for 1 night."
+  - Set 1: Lake Powell Resort (place_28pvg743), Resort hotel, 4.1 stars, $$$, Page.
+  - Set 1: Courtyard by Marriott Page at Lake Powell (place_xj29zjh9), Hotel, 4.3 stars, $$, Page.
+- Weather and clothing, from seasonal averages, written Thursday, October 15, 2026: "Hot days in the low 90s and nights in the mid 60s. Dry. Antelope Canyon is cooler inside but dusty, so leave bags behind and wear closed shoes. Arizona doesn't use daylight time, so Page is an hour behind Utah in September."
+
+Day 11 (day_pktfd2sq), Wednesday, September 22, 2027: Mexican Hat → Page. Starts 8:00 a.m., the usual start time.
+- Leg: 168 miles, 2 h 59 m of road time, 3 h 20 m of driving with the drive buffer.
+Schedule:
+- 8:00 a.m. to 8:04 a.m.: drive.
+- 8:04 a.m. to 9:04 a.m.: Stop 1 (stop_cf7mqk75), meal: "breakfast". Near the Mexican Hat stay. Tier: value, from the rule "the trip default". Selected: Old Bridge Grille (place_x7gj9suw), visit time 1 h.
+  - Candidates:
+    - Set 1: Old Bridge Grille (place_x7gj9suw), American restaurant, 4.1 stars, $$, Mexican Hat, selected. Why: "At the lodging, so the group can get on the road to Monument Valley early."
+    - Set 1: Mexican Hat Trading Post Cafe (place_y9yqdb49), Cafe, 3.9 stars, $, Mexican Hat.
+    - Set 1: Goulding's Stagecoach Dining Room (place_454hbrpf), American restaurant, 4.1 stars, $$, Oljato-Monument Valley.
+- 9:04 a.m. to 9:42 a.m.: drive.
+- 9:42 a.m. to 9:57 a.m.: Stop 2 (stop_pgwj5mj5), attraction: "Forrest Gump Point". Along the leg. Selected: Forrest Gump Point (place_dbkm6nhz), visit time 15 m.
+  - Candidates:
+    - Set 1: Forrest Gump Point (place_dbkm6nhz), Scenic spot, 4.7 stars, Mexican Hat, visit time 15 m, detour 0 m when offered, selected. Why: "The photo down the highway toward the monuments. A pullout, no detour."
+    - Set 1: Mexican Hat Rock (place_z2tz4z34), Scenic spot, 4.5 stars, Mexican Hat, visit time 15 m, detour 3 m when offered.
+    - Set 1: Monument Valley Overlook (place_s9jfpnst), Scenic spot, 4.6 stars, Oljato-Monument Valley, visit time 15 m, detour 0 m when offered.
+- 9:57 a.m. to 10:22 a.m.: drive.
+- 10:22 a.m. to 1:22 p.m.: Stop 3 (stop_hfxxp7y3), attraction: "Monument Valley". Along the leg. Selected: Monument Valley Navajo Tribal Park (place_kbcxs76c), visit time 3 h.
+  - Candidates:
+    - Set 1: Monument Valley Navajo Tribal Park (place_kbcxs76c), Tribal park, 4.8 stars, $$, Oljato-Monument Valley, visit time 3 h, detour 10 m when offered, selected. Why: "The 17-mile Valley Drive past the Mittens and John Ford's Point. The user wants a guided jeep tour, so this is the tour's start."
+    - Set 1: Goulding's Trading Post Museum (place_awd7s6sr), Museum, 4.5 stars, $, Oljato-Monument Valley, visit time 45 m, detour 12 m when offered.
+    - Set 1: Wildcat Trail (place_b2uc5axg), Hiking area, 4.8 stars, $$, Oljato-Monument Valley, visit time 2 h 30 m, detour 10 m when offered.
+- 1:22 p.m. to 1:42 p.m.: drive.
+- 1:42 p.m. to 2:42 p.m.: Stop 4 (stop_jcukubct), meal: "lunch". Along the leg. Tier: value, from the rule "the trip default". Selected: The View Restaurant (place_knh5qjpt), visit time 1 h.
+  - Candidates:
+    - Set 1: The View Restaurant (place_knh5qjpt), Southwestern restaurant, 4.0 stars, $$, Oljato-Monument Valley, detour 4 m when offered, selected. Why: "In the tribal park after the tour, with the Mittens out the window."
+    - Set 1: Amigo Cafe (place_vnqsrftr), Mexican restaurant, 4.5 stars, $, Kayenta, detour 2 m when offered.
+    - Set 1: Blue Coffee Pot Restaurant (place_7ds9sv89), Southwestern restaurant, 4.3 stars, $, Kayenta, detour 3 m when offered.
+- 2:42 p.m. to 3:15 p.m.: drive.
+- 3:15 p.m. to 4:30 p.m.: Stop 5 (stop_yz9gjnjq), attraction: "a quiet stop in the afternoon". Along the leg. Selected: Navajo National Monument (place_r3d95ges), visit time 1 h 15 m.
+  - Candidates:
+    - Set 1: Navajo National Monument (place_r3d95ges), National monument, 4.8 stars, Black Mesa, visit time 1 h 15 m, detour 42 m when offered, selected. Why: "The Betatakin cliff dwelling from a one-mile overlook trail, free, and almost never crowded."
+    - Set 1: Elephant Feet (place_ppewah8k), Scenic spot, 4.5 stars, Tonalea, visit time 15 m, detour 0 m when offered.
+    - Set 1: Glen Canyon Dam Overlook (place_xmacvjjh), Scenic spot, 4.7 stars, Page, visit time 20 m, detour 4 m when offered.
+- 6:30 p.m.: Stop 6 (stop_3jthsvwd), meal: "dinner". Near the Page stay. Set time: 6:30 p.m. Tier: value, from the rule "the trip default". No place selected yet.
+  - Candidates:
+    - Set 1: Big John's Texas BBQ (place_kr4fz8dp), Barbecue restaurant, 4.6 stars, $$, Page.
+    - Set 1: Bonkers Restaurant (place_9p9ehd98), American restaurant, 4.5 stars, $$, Page.
+    - Set 1: Into the Grand (place_mcst4v7k), Southwestern restaurant, 4.5 stars, $$, Page.
+- Time not known yet: drive.
+Arrival at Hyatt Place Page/Lake Powell: time not known yet.
+
+Stay 8 (stay_8vrgg5zk): Tusayan (place_ateaqq2q), City. 2 nights, Days 12 to 13, from Thursday, September 23, 2027 to the morning of Saturday, September 25, 2027.
+- Lodging tier: midRange, from the rule "stays of 2+ nights", set when the stay had 2 nights.
+- Lodging: none selected yet.
+- Lodging candidates:
+  - Set 1: The Grand Hotel at the Grand Canyon (place_rux735cu), Hotel, 4.2 stars, $$, Tusayan.
+  - Set 1: Holiday Inn Express Grand Canyon (place_7hjx8chn), Hotel, 4.3 stars, $$, Tusayan.
+  - Set 1: Grand Canyon Plaza Hotel (place_nbhuayu9), Hotel, 4.0 stars, $$, Tusayan.
+  - Set 2: Bright Angel Lodge (place_g8wjz5r7), Lodge, 4.3 stars, $$, Grand Canyon Village.
+  - Set 2: El Tovar Hotel (place_yf9455cv), Hotel, 4.5 stars, $$$$, Grand Canyon Village.
+  - Set 2: Yavapai Lodge (place_jsb6m7q5), Lodge, 4.2 stars, $$, Grand Canyon Village.
+- Weather and clothing, from seasonal averages, written Thursday, October 15, 2026: "Days in the low 70s on the rim at 7,000 feet, and nights in the low 40s. Inside the canyon it's 20 degrees hotter, near 95 at the river. Afternoon storms are possible. Pack a warm layer for sunrise and sunset, and plenty of water and salty snacks for any hike below the rim."
+
+Day 12 (day_9ddjqd7x), Thursday, September 23, 2027: Page → Tusayan. Starts 8:00 a.m., the usual start time.
+- Leg: 146 miles, 2 h 42 m of road time, 2 h 59 m of driving with the drive buffer.
+Schedule:
+- Time not known yet: Stop 1 (stop_ag6rqnqw), meal: "breakfast". Near the Page stay. Tier: value, from the rule "the trip default". No place selected yet.
+  - Candidates:
+    - Set 1: Hyatt Place breakfast (place_5dbgrhd4), Breakfast restaurant, 4.2 stars, $, Page.
+    - Set 1: Ranch House Grille (place_u8cpb4wc), Breakfast restaurant, 4.6 stars, $, Page.
+    - Set 1: Canyon Crepes Cafe (place_gh96tdch), Creperie, 4.5 stars, $, Page.
+- 9:30 a.m.: Stop 2 (stop_wxn42tbj), attraction: "a slot canyon tour". Near the Page stay. Set time: 9:30 a.m. No place selected yet.
+  - Candidates:
+    - Set 1: Upper Antelope Canyon (place_76ztawrv), Tourist attraction, 4.8 stars, $$$, Page, visit time 1 h 30 m.
+    - Set 1: Lower Antelope Canyon (place_kcsj3gbs), Tourist attraction, 4.8 stars, $$$, Page, visit time 1 h 30 m.
+    - Set 1: Antelope Canyon X (place_5tr6p76z), Tourist attraction, 4.9 stars, $$$, Page, visit time 2 h.
+- Time not known yet: Stop 3 (stop_36yfb7hu), attraction: "Horseshoe Bend". Near the Page stay. No place selected yet.
+  - Candidates:
+    - Set 1: Horseshoe Bend (place_g77vj4uq), Scenic spot, 4.8 stars, $, Page, visit time 1 h.
+    - Set 1: Waterholes Canyon (place_3nrp8k3f), Hiking area, 4.7 stars, $$, Page, visit time 1 h 30 m.
+    - Set 1: Lake Powell Scenic Overlook (place_8389bfm4), Scenic spot, 4.6 stars, Page, visit time 20 m.
+- Time not known yet: Stop 4 (stop_a4zhbk4v), meal: "lunch". Along the leg. Tier: value, from the rule "the trip default". No place selected yet.
+  - Candidates:
+    - Set 1: Cameron Trading Post Dining Room (place_9w2umgra), Southwestern restaurant, 4.5 stars, $$, Cameron, detour 4 m when offered.
+    - Set 1: The Gap Trading Post Cafe (place_nezp3uf8), Cafe, 3.9 stars, $, The Gap, detour 11 m when offered.
+    - Set 1: Bitter Springs Diner (place_drfd2m5q), Diner, 4.0 stars, $, Bitter Springs, detour 18 m when offered.
+- Time not known yet: Stop 5 (stop_53z97maj), attraction: "the east end of the South Rim". Along the leg. No place selected yet.
+  - Candidates:
+    - Set 1: Desert View Watchtower (place_fncf6qz2), Historical landmark, 4.8 stars, $, Grand Canyon Village, visit time 1 h, detour 2 m when offered.
+    - Set 1: Lipan Point (place_sbnrvh7v), Scenic spot, 4.9 stars, $, Grand Canyon Village, visit time 30 m, detour 1 m when offered.
+    - Set 1: Little Colorado River Gorge Tribal Park (place_u963f9x7), Scenic spot, 4.4 stars, $, Cameron, visit time 30 m, detour 2 m when offered.
+    - Set 2: Grandview Point (place_653uw4uw), Scenic spot, 4.9 stars, $, Grand Canyon Village, visit time 30 m, detour 3 m when offered.
+    - Set 2: Moran Point (place_7qfrpkea), Scenic spot, 4.8 stars, $, Grand Canyon Village, visit time 20 m, detour 2 m when offered.
+    - Set 2: Tusayan Museum and Ruin (place_2wupums9), Museum, 4.5 stars, $, Grand Canyon Village, visit time 45 m, detour 1 m when offered.
+- 6:30 p.m.: Stop 6 (stop_x7jjx545), meal: "dinner". Near the Tusayan stay. Set time: 6:30 p.m. Tier: value, from the rule "the trip default". No place selected yet.
+  - Candidates:
+    - Set 1: Arizona Steakhouse (place_qx95f2bg), Steak house, 4.2 stars, $$$, Grand Canyon Village.
+    - Set 1: Harvey House Cafe (place_bpwpstaj), American restaurant, 4.0 stars, $$, Grand Canyon Village.
+    - Set 1: We Cook Pizza & Pasta (place_p9ue9p6p), Pizza restaurant, 4.4 stars, $$, Tusayan.
+- Time not known yet: drive.
+Arrival at Tusayan: time not known yet.
+
+Day 13 (day_hxbbback), Friday, September 24, 2027: Tusayan. Starts 8:00 a.m., the usual start time.
+- Leg: 38 miles, 11 m of road time, 13 m of driving with the drive buffer.
+Schedule:
+- Time not known yet: Stop 1 (stop_vxd74yt5), meal: "breakfast". Near the Tusayan stay. Tier: value, from the rule "the trip default". No place selected yet.
+  - Candidates:
+    - Set 1: Harvey House Cafe (place_28y4jd4t), American restaurant, 4.0 stars, $$, Grand Canyon Village.
+    - Set 1: Canyon Village Market & Deli (place_jpm2u2qe), Deli, 4.1 stars, $, Grand Canyon Village.
+    - Set 1: Fred Harvey Burger (place_kqqe9wfn), Hamburger restaurant, 3.9 stars, $, Grand Canyon Village.
+    - Set 2: El Tovar Dining Room (place_a2gyabvx), Fine dining restaurant, 4.4 stars, $$$, Grand Canyon Village.
+    - Set 2: Yavapai Lodge Restaurant (place_5vpt6fsz), Cafeteria, 3.9 stars, $, Grand Canyon Village.
+    - Set 2: Maswik Food Court (place_2fvst3vj), Food court, 3.8 stars, $, Grand Canyon Village.
+- Time not known yet: Stop 2 (stop_tcftxe6g), attraction: "a hike below the rim". Near the Tusayan stay. No place selected yet.
+  - Candidates:
+    - Set 1: South Kaibab Trail to Ooh Aah Point (place_n75b7c4d), Hiking area, 4.9 stars, $, Grand Canyon Village, visit time 2 h.
+    - Set 1: Bright Angel Trail to 1.5 Mile Resthouse (place_qyktg9hw), Hiking area, 4.8 stars, $, Grand Canyon Village, visit time 3 h.
+    - Set 1: Rim Trail from Mather Point to Yavapai Point (place_9q6fxdzz), Hiking area, 4.8 stars, $, Grand Canyon Village, visit time 1 h 30 m.
+- Time not known yet: Stop 3 (stop_x4jrfd7e), meal: "lunch". Near the Tusayan stay. Tier: value, from the rule "the trip default". No place selected yet.
+  - Candidates:
+    - Set 1: El Tovar Dining Room (place_7uebz5k9), Fine dining restaurant, 4.4 stars, $$$, Grand Canyon Village.
+    - Set 1: Bright Angel Fountain (place_hd3zsnc6), Ice cream shop, 4.3 stars, $, Grand Canyon Village.
+    - Set 1: Canyon Village Market & Deli (place_9pqkefpk), Deli, 4.1 stars, $, Grand Canyon Village.
+- Time not known yet: Stop 4 (stop_asag7f7h), attraction: "the west rim viewpoints". Near the Tusayan stay. No place selected yet.
+  - Candidates:
+    - Set 1: Hermit Road (place_ywg4bugt), Scenic drive, 4.9 stars, $, Grand Canyon Village, visit time 3 h.
+    - Set 1: Grand Canyon Village Historic District (place_6uejcxev), Historical place, 4.7 stars, Grand Canyon Village, visit time 1 h.
+    - Set 1: Kolb Studio (place_snunbe4n), Art gallery, 4.6 stars, Grand Canyon Village, visit time 30 m.
+- 8:00 a.m. to 6:00 p.m.: free time.
+- 6:00 p.m.: Stop 5 (stop_52knu6e3), attraction: "sunset". Near the Tusayan stay. Set time: 6:00 p.m. No place selected yet.
+  - Candidates:
+    - Set 1: Hopi Point (place_uahcr3pw), Scenic spot, 4.9 stars, $, Grand Canyon Village, visit time 1 h.
+    - Set 1: Mather Point (place_dnzp7zna), Scenic spot, 4.8 stars, $, Grand Canyon Village, visit time 45 m.
+    - Set 1: Yavapai Point and Geology Museum (place_uv95g8q3), Scenic spot, 4.8 stars, $, Grand Canyon Village, visit time 45 m.
+- 6:00 p.m. to 7:26 p.m.: free time.
+- 7:26 p.m. to 7:30 p.m.: drive.
+- 7:30 p.m. to 8:30 p.m.: Stop 6 (stop_gwnkssct), meal: "dinner". Near the Tusayan stay. Set time: 7:30 p.m. Tier: value, from the rule "the trip default". Selected: El Tovar Dining Room (place_t3kvd69x), visit time 1 h.
+  - Candidates:
+    - Set 1: El Tovar Dining Room (place_t3kvd69x), Fine dining restaurant, 4.4 stars, $$$, Grand Canyon Village, selected. Why: "The user's pick."
+- 8:30 p.m. to 8:39 p.m.: drive.
+Arrives at Tusayan at 8:39 p.m.
+
+Day 14 (day_vfyy75zx), Saturday, September 25, 2027: Tusayan → Las Vegas. Last day. Starts 8:00 a.m., the usual start time.
+- Leg: 282 miles, 1 h 48 m of road time, 2 h of driving with the drive buffer.
+Schedule:
+- 8:00 a.m. to 8:04 a.m.: drive.
+- Time not known yet: Stop 1 (stop_yeehpyxq), meal: "breakfast". Near the Tusayan stay. Tier: value, from the rule "the trip default". No place selected yet.
+  - Candidates:
+    - Set 1: Canyon Village Market & Deli (place_kyrs73zq), Deli, 4.1 stars, $, Grand Canyon Village.
+    - Set 1: RP's Stage Stop (place_j3vq9xfq), Coffee shop, 4.6 stars, $, Tusayan.
+    - Set 1: Sophie's Mexican Kitchen (place_ncw95zv4), Mexican restaurant, 4.3 stars, $$, Tusayan.
+- 8:04 a.m. to 9:04 a.m.: Stop 2 (stop_d47psvfk), meal: "lunch". Along the leg. Tier: value, from the rule "the trip default". Selected: Westside Lilo's Cafe (place_knvyw6zk), visit time 1 h.
+  - Candidates:
+    - Set 1: Westside Lilo's Cafe (place_knvyw6zk), American restaurant, 4.5 stars, $$, Seligman, detour 18 m when offered, selected. Why: "Route 66 diner food and giant cinnamon rolls, a short detour onto the old highway."
+    - Set 1: Delgadillo's Snow Cap Drive-In (place_5afxp59t), Hamburger restaurant, 4.5 stars, $, Seligman, detour 18 m when offered.
+    - Set 1: Mr. D'z Route 66 Diner (place_9zd9xecd), Diner, 4.4 stars, $$, Kingman, detour 4 m when offered.
+- Time not known yet: Stop 3 (stop_xvdbzxss), attraction: "Hoover Dam on the way in". Along the leg. No candidates yet.
+- Time not known yet: drive.
+Arrival at Las Vegas: time not known yet.
+
+Rejected places, for the whole trip:
+- Big Horn Lodge (place_y22gmx84), Motel, 3.6 stars, $, Moab. Reason: "on Main Street, and the user wants quiet at night"
+- Coral Pink Sand Dunes State Park (place_yhrtbtjv), State park, 4.6 stars, $, Kanab. Reason: "too far off the route to Bryce"
+- Peekaboo Slot Canyon (place_98pc9ydc), Hiking area, 4.8 stars, $$$, Kanab. Reason: "one slot canyon tour is enough, and it's Antelope Canyon"
+- Circus Circus Las Vegas (place_p7yas3p7), Hotel, 3.8 stars, $, Las Vegas. Reason: "the user doesn't want to stay on the Strip"
+
+Check results:
+- Already known warning: You'd reach dinner at Capitol Burger at 7:46 p.m., but it's set for 7:00 p.m.
+- Already known warning: MD Ranch Cookhouse opens at 11:00 a.m. You'd get there at 10:27 a.m., with 1 h planned. Times are estimates from average drive times.
+- Already known warning, may be too early: Westside Lilo's Cafe is closed for the whole visit, on Saturday, September 25, 2027. You'd get there at 8:04 a.m., with 1 h planned. Times are estimates from average drive times. An earlier stop on this day has no place picked yet, so this time may be too early.
