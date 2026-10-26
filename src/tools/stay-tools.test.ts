@@ -198,7 +198,7 @@ describe("update_stay", () => {
     );
   });
 
-  it("adds a night, and records the new nights with a tier set in the same call", async () => {
+  it("adds a night, and sets the tier in the same call", async () => {
     const { updateStay, read, example } = await plannedMoab();
     const reply = textOf(
       await updateStay({
@@ -210,7 +210,7 @@ describe("update_stay", () => {
     expect(reply).toMatch(/It has 2 nights: Day 4 \(day_\w+\), Day 5/);
     expect(reply).toMatch(/Days added: Day 5 \(day_\w+\)\./);
     expect(await read(example.torrey.id)).toContain(
-      'Lodging tier: midRange, from the rule "stays of 2+ nights", set when the stay had 2 nights.',
+      'Lodging tier: midRange, from the rule "stays of 2+ nights".',
     );
   });
 

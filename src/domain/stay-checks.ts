@@ -6,18 +6,15 @@ import type { Stay } from "./stay.js";
 import { FORECAST_DAYS } from "./stays-service.js";
 
 // The checks about the trip as a whole and each stay: trip length vs the brief, weather
-// out of date, forecast now available, and stay tier set for different nights
-// (technical spec section 8).
+// out of date, and forecast now available (technical spec section 8).
 export function tripAndStayCheckResults(context: CheckContext): CheckResult[] {
   const tripLength = tripLengthResult(context);
   return [
     ...(tripLength === null ? [] : [tripLength]),
     ...context.itinerary.stays.flatMap((stay) =>
-      [
-        weatherResult(context, stay),
-        forecastResult(context, stay),
-        tierResult(stay),
-      ].filter((result) => result !== null),
+      [weatherResult(context, stay), forecastResult(context, stay)].filter(
+        (result) => result !== null,
+      ),
     ),
   ];
 }
@@ -69,19 +66,6 @@ function forecastResult(context: CheckContext, stay: Stay): CheckResult | null {
     "forecastNowAvailable",
     stay.id,
     `${townOf(stay)}'s weather text is seasonal averages, and its dates are now close enough for a forecast.`,
-  );
-}
-
-// A rule like "mid-range for stays of 2+ nights" depends on the nights.
-function tierResult(stay: Stay): CheckResult | null {
-  const setFor = stay.tierSetForNightCount;
-  if (setFor === stay.nightCount) {
-    return null;
-  }
-  return resultFor(
-    "stayTierSetForDifferentNights",
-    stay.id,
-    `${townOf(stay)}'s nights changed from ${String(setFor)} to ${String(stay.nightCount)}. Its tier was set for ${String(setFor)}.`,
   );
 }
 

@@ -45,7 +45,6 @@ function stayDocumentOf(stay: Stay): StayDocument {
     lodgingCandidates: stay.lodgingCandidates.map(candidateDocumentOf),
     tier: stay.tier,
     tierRule: stay.tierRule,
-    tierSetForNightCount: stay.tierSetForNightCount,
     days: stay.days.map((day) => ({
       ...dayDocumentOf(day),
       isRestDay: day.isRestDay,

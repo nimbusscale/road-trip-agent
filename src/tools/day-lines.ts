@@ -38,7 +38,7 @@ export function stayLines(
   const lodging = stay.lodging;
   return [
     `Stay ${String(order + 1)} (${stay.id}): ${placeLine(stay.place)}. ${nightsText(context, stay)}`,
-    `- Lodging tier: ${stay.tier}, from the rule "${stay.tierRule}", set when the stay had ${nightCountText(stay.tierSetForNightCount)}.`,
+    `- Lodging tier: ${stay.tier}, from the rule "${stay.tierRule}".`,
     lodging === null
       ? `- Lodging: ${stay.lodgingCandidates.length === 0 ? "no candidates yet" : "none selected yet"}.`
       : `- Lodging: ${placeText(lodging)} (${lodging.id}).`,

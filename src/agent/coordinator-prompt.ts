@@ -136,14 +136,13 @@ While building the skeleton:
 - For a must-see that's a road, such as the Big Sur coast, set waypoints on it.
 - When routePreference is scenic, set waypoints on scenic legs where the road is still open, before the days are filled in. Example: a leg from Half Moon Bay to Santa Cruz goes down Highway 1, not inland on US-101 and back to the coast on CA-92. A day with its own route type approval gets no scenic waypoints.`;
 
-// Technical spec 5.2 and section 9, and functional spec 6.2 for approvals.
+// Technical spec 5.2, and functional spec 6.2 for approvals.
 const DAYS = `## Days and approvals
 
 - restDaysText only records what the user asked for. Mark the day itself with update_day. Only a day that starts and ends at the same stay can be a rest day.
 - When the user agrees to a day that drives longer than comfortableDrivingInHours, approve it on that day with update_day, with the hours they agreed to and their reason. It isn't raised again unless a later change makes the day longer than that.
 - When the user approves fastest on a day, also clear the day's waypoints with set_waypoints and an empty list, in the same turn. Code doesn't read the route type, so waypoints left in place keep the day on the scenic road under a fastest label.
-- When the user agrees to a different start time for one day, such as for a sunrise hike, set it on that day with update_day.
-- When a stay's nights change, and its tier came from a rule that depends on nights, the check results give a note. Ask the user before changing the tier. When the rule gives the same tier for the new nights, set it again with update_stay without asking.`;
+- When the user agrees to a different start time for one day, such as for a sunrise hike, set it on that day with update_day.`;
 
 // Technical spec 5.2: before removing a stay or a night, after adding or moving a stay,
 // and after a stay or an end moves to another town.

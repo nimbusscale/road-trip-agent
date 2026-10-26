@@ -36,7 +36,6 @@ const staySchema = z.strictObject({
   lodgingCandidates: z.array(candidateSchema).readonly(),
   tier: z.enum(TIERS),
   tierRule: z.string(),
-  tierSetForNightCount: z.number(),
   days: z.array(stayDaySchema).readonly(),
   weatherText: weatherTextSchema.nullable(),
 });

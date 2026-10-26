@@ -26,7 +26,7 @@ export const ADD_STAY_DESCRIPTION =
   "Adds a stay, with one day for each of its nights, after the stay given or first. The place is usually a town. Needs the itinerary's start place, end place, and start date first. The reply gives the new stay's ID and its days' IDs, and lists the stops on any day that now starts or ends somewhere else.";
 
 export const UPDATE_STAY_DESCRIPTION =
-  "Changes a stay: its place, where it goes, its nights, or its lodging tier. Items not given are not changed. They're applied in that order, so a new tier records the new nights. Changing the nights adds or removes days at the end of the stay's days. Removing a night is refused while that day holds stops, and the error lists them. The reply gives the IDs of any days added, and lists the stops on any day that now starts or ends somewhere else.";
+  "Changes a stay: its place, where it goes, its nights, or its lodging tier. Items not given are not changed. Changing the nights adds or removes days at the end of the stay's days. Removing a night is refused while that day holds stops, and the error lists them. The reply gives the IDs of any days added, and lists the stops on any day that now starts or ends somewhere else.";
 
 export const REMOVE_STAY_DESCRIPTION =
   "Removes a stay and its days. Refused while any stop is on its days, or any stop anywhere is near it. The error lists those stops.";
