@@ -8,26 +8,21 @@ import {
 // What the chat view shows: the conversation as cards, and the reply as it streams in
 // (functional spec 10.1).
 
-// A turn's events for the raw view: all but the session and the reply's text.
-export type RawEvent = Exclude<ChatEvent, { name: "session" | "text" }>;
-
-export type CardBody =
-  | { kind: "user"; text: string }
-  // A part of a reply, or a whole one from a loaded session.
-  | { kind: "reply"; text: string }
-  | { kind: "raw"; event: RawEvent };
+export interface CardBody {
+  kind: "user" | "reply";
+  // For a reply, a part of it, or a whole one from a loaded session.
+  text: string;
+}
 
 export type Card = CardBody & {
   // For React's list keys.
   id: number;
-  // The ID of the card that started the card's turn. The raw view shows each part of a
-  // reply as its own card, in its place among the raw cards. Without it, the parts of
-  // one turn's reply are joined into one card.
+  // The ID of the card that started the card's turn. The parts of one turn's reply are
+  // joined into one card.
   turn: number;
 };
 
 export interface ChatState {
-  // Raw cards come only from the replies this tab streamed, and are kept only here.
   cards: Card[];
   // The turn the next card belongs to.
   turn: number;
@@ -107,17 +102,12 @@ function withEvent(state: ChatState, event: ChatEvent): ChatState {
         tool: null,
       };
     case "toolCall":
-      return {
-        ...withCard(state, { kind: "raw", event }),
-        tool: shortToolName(event.data.name),
-      };
+      return { ...state, tool: shortToolName(event.data.name) };
     case "ended":
       return {
-        ...endReply(withCard(state, { kind: "raw", event })),
+        ...endReply(state),
         error: event.data.failure === null ? null : NOT_FINISHED,
       };
-    default:
-      return withCard(state, { kind: "raw", event });
   }
 }
 
@@ -135,18 +125,11 @@ function shortToolName(name: string): string {
   return name.replace(/^mcp__[^_]+__/, "");
 }
 
-// The cards to show. With the raw view off, there are no raw cards, and the parts of
-// each reply are one card, as a reload shows them.
-export function shownCards(cards: readonly Card[], raw: boolean): Card[] {
-  if (raw) {
-    return [...cards];
-  }
+// The cards to show. The parts of each reply are one card, as a reload shows them.
+export function shownCards(cards: readonly Card[]): Card[] {
   const shown: Card[] = [];
   for (const card of cards) {
     const last = shown.at(-1);
-    if (card.kind === "raw") {
-      continue;
-    }
     if (
       card.kind === "reply" &&
       last?.kind === "reply" &&

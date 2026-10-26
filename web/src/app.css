@@ -63,33 +63,6 @@ body {
   text-align: left;
 }
 
-.card.raw {
-  align-self: flex-start;
-  border: 1px solid #dadce0;
-  font-size: 0.875rem;
-}
-
-.card.raw p {
-  margin: 0.25rem 0;
-}
-
-.card.raw pre {
-  margin: 0.25rem 0;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  font-size: 0.8125rem;
-}
-
-.raw-label {
-  color: #5f6368;
-  font-weight: 600;
-}
-
-.thinking {
-  font-family: inherit;
-  font-style: italic;
-}
-
 .boxed {
   padding: 0.5rem;
   background: #f8f9fa;

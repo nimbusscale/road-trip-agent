@@ -12,7 +12,11 @@ import {
   type Tracer,
 } from "@opentelemetry/api";
 
-import { toolResultText, type ToolResultBlock } from "./turn-event.js";
+import {
+  SYSTEM_MESSAGE_IDS,
+  toolResultText,
+  type ToolResultBlock,
+} from "./turn-event.js";
 import type { CallBlock, CallTokens } from "./worker-transcript.schema.js";
 
 // The spans of a turn's trace, in OpenInference's names, which Phoenix reads (systems
@@ -24,6 +28,38 @@ const TRACER_NAME = "road-trip-agent";
 // none set up, as in tests that don't trace, the spans go nowhere.
 export function tracer(): Tracer {
   return trace.getTracer(TRACER_NAME);
+}
+
+type SystemMessage = Extract<SDKMessage, { type: "system" }>;
+
+// An event on the turn's span for one of the coordinator's system messages, at the time
+// it arrived. init is the turn's start, with the model and the tools it was given. A
+// worker's span shows its task_started, and thinking token counts come many times a
+// second while the model thinks, so neither gets an event. An attribute can't hold a
+// nested object, so each other message's fields go in one, as JSON.
+export function addSystemEvent(
+  span: Span,
+  message: SystemMessage,
+  at: Date,
+): void {
+  switch (message.subtype) {
+    case "init":
+      span.addEvent(
+        "started",
+        { model: message.model, tools: message.tools },
+        at,
+      );
+      break;
+    case "task_started":
+    case "thinking_tokens":
+      break;
+    default: {
+      const data = Object.fromEntries(
+        Object.entries(message).filter(([key]) => !SYSTEM_MESSAGE_IDS.has(key)),
+      );
+      span.addEvent(message.subtype, { data: JSON.stringify(data) }, at);
+    }
+  }
 }
 
 // One model call: the blocks of one Claude API message, which the SDK sends one at a

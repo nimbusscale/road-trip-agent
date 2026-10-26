@@ -1,12 +1,11 @@
 import type { SDKMessage } from "@anthropic-ai/claude-agent-sdk";
 
-// What a coordinator turn hands the app, made from the Agent SDK's messages. The browser
-// chat and the terminal chat show these, so neither reads the SDK's own shapes, and a
-// test can fake a turn with them (DEVELOPMENT.md section 5).
+// What a coordinator turn hands the app, made from the Agent SDK's messages. The terminal
+// chat prints them all, and the browser chat gets the reply's text, the tool being
+// called, and the turn's end. So neither reads the SDK's own shapes, and a test can fake
+// a turn with them (DEVELOPMENT.md section 5).
 export type TurnEvent =
   | { kind: "started"; model: string; tools: readonly string[] }
-  // The message the model got, with the app's lines added (technical spec 5.2).
-  | { kind: "message"; text: string }
   // A summary of the model's thinking (technical spec 5.4).
   | { kind: "thinking"; text: string }
   | { kind: "text"; text: string }
@@ -73,13 +72,18 @@ function systemEvents(message: SystemMessage): TurnEvent[] {
 }
 
 // The fields every system message has, which say nothing about this one.
-const SYSTEM_MESSAGE_IDS = new Set(["type", "subtype", "uuid", "session_id"]);
+export const SYSTEM_MESSAGE_IDS = new Set([
+  "type",
+  "subtype",
+  "uuid",
+  "session_id",
+]);
 
 type ResultMessage = Extract<SDKMessage, { type: "result" }>;
 
 // Such as "error_during_execution: <the SDK's errors>". A "success" that's an error,
 // such as when the Claude API fails, carries the error's text in `result`.
-function failureOf(message: ResultMessage): string | null {
+export function failureOf(message: ResultMessage): string | null {
   if (message.subtype === "success") {
     return message.is_error ? `${message.subtype}: ${message.result}` : null;
   }
