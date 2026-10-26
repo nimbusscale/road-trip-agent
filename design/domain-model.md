@@ -269,6 +269,7 @@ classDiagram
         summaries : List~string~ #123;readOnly#125;
         links : List~string~ #123;readOnly#125;
         /shortLine : string
+        /town : string?
         fillName(name : string)
     }
 
@@ -886,6 +887,7 @@ A place is any real location: a town, hotel, restaurant, bar, attraction, friend
 | `summaries` | Stored | `List<string>`, read only | Google's summaries of the place, when it has them: editorial, generated, and from reviews. Only the review summary mentions downsides |
 | `links` | Stored | `List<string>`, read only | Its Google Maps page, and its reviews page when Google has one |
 | `shortLine` | Worked out | `string` | One line about the place, for the coordinator. See below |
+| `town` | Worked out | `string?` | The town the short line gives, from the address. Empty when the short line leaves it out (below). A whole itinerary read gives it for each selected place, in place of the short line (tool design 2.1) |
 
 **Name and type.** Both come from Google when the place is created. Cards show Google's name whenever Google has one. A name given by an agent is used only for a place Google has no name for, such as an address. A place is created from Google's answer before any agent picks it or names it, so that name comes later, with `fillName()`. The tools that offer or set a place always take a name, so the agent never has to decide whether to pass it (tool design 2.1). The first one given is kept. So a user's nickname, such as "the pink hotel," never replaces "Madonna Inn." An address has no type, such as Mike's house as the end place. That does no harm: the short line leaves it out.
 

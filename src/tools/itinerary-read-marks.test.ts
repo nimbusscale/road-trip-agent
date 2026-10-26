@@ -1,18 +1,25 @@
 import { describe, expect, it } from "vitest";
 
+import type { CandidateOffer } from "../domain/candidate.js";
 import {
   EXAMPLE_SETTINGS,
   OWNER,
   PLANNED_AT,
   placeNamed,
+  type Planning,
 } from "../domain/example-trip-parts.fake.js";
 import { FeasibilityChecker } from "../domain/feasibility-checker.js";
 import { fourteenDayExample } from "../domain/fourteen-day-example.fake.js";
 import { present, workerOffer } from "../domain/itinerary.fake.js";
 import { moabExample } from "../domain/moab-example.fake.js";
 import { RejectedPlace } from "../domain/rejected-place.js";
+import type { Stop } from "../domain/stop.js";
 import { newTrip } from "../domain/trip.js";
-import { TOO_LARGE_ERROR } from "./itinerary-tools.js";
+import {
+  MAXIMUM_REPLY_CHARACTERS,
+  SCOPED_TOO_LARGE_ERROR,
+  WHOLE_TOO_LARGE_ERROR,
+} from "./itinerary-tools.js";
 import { readerFor, textOf } from "./stored-trip.fake.js";
 
 // What read_itinerary marks, and when it refuses: candidates offered in sets, check
@@ -148,18 +155,55 @@ describe("read_itinerary's refusals", () => {
     expect(textOf(reply)).toMatch(error);
   });
 
-  // A 14-day trip with about 300 candidates comes to about 38,000 tokens whole, over
-  // the 25,000 that Claude Code returns (tool design 2.1).
-  it("refuses a whole read of a 14-day trip as too large, and still reads its days", async () => {
+  // A busy 14-day trip fits whole, since a whole read counts the candidates instead of
+  // listing them (tool design 2.1).
+  it("reads a 14-day trip whole, within the limit", async () => {
     const { trip } = fourteenDayExample();
     const read = await readerFor(trip);
     const whole = await read("all");
+    expect(whole.isError).toBeUndefined();
+    expect(textOf(whole)).toMatch(/^The whole itinerary\.\n/);
+    expect(textOf(whole).length).toBeLessThan(MAXIMUM_REPLY_CHARACTERS);
+  });
+
+  // After 20 more rounds of "more options" on every stop and stay, the whole read and
+  // a read of the Moab stay both go over the limit, but a read of one stop still fits.
+  it("refuses a whole read over the limit as unplannable, and a scoped read over it with a pointer to smaller reads", async () => {
+    const { trip, planning } = fourteenDayExample();
+    addMoreOptions(planning, 20);
+    const read = await readerFor(trip);
+    const whole = await read("all");
     expect(whole.isError).toBe(true);
-    expect(textOf(whole)).toBe(TOO_LARGE_ERROR);
-    const day = await read(present(trip.itinerary.days[6]).id);
-    expect(day.isError).toBeUndefined();
-    expect(textOf(day)).toMatch(
-      /^Day 7 \(day_[a-z2-9]{8}\), Saturday, September 18, 2027: Moab\./,
-    );
+    expect(textOf(whole)).toBe(WHOLE_TOO_LARGE_ERROR);
+    const moab = present(trip.itinerary.stays[3]);
+    const stay = await read(moab.id);
+    expect(stay.isError).toBe(true);
+    expect(textOf(stay)).toBe(SCOPED_TOO_LARGE_ERROR);
+    const stop = await read(present(moab.days[0]?.stops[0]).id);
+    expect(stop.isError).toBeUndefined();
   });
 });
+
+// Adds `rounds` more sets of three candidates to every stop and stay, as a worker
+// would for "more options".
+function addMoreOptions(planning: Planning, rounds: number): void {
+  const { itinerary, services } = planning;
+  let count = 0;
+  const offers = (stop: Stop | null): CandidateOffer[] =>
+    [1, 2, 3].map(() => {
+      count += 1;
+      return {
+        ...workerOffer(placeNamed(`More option ${String(count)}`)),
+        visitTimeInMinutes: stop?.kind === "attraction" ? 60 : null,
+        detourTimeInMinutes: stop?.searchArea === "alongLeg" ? 10 : null,
+      };
+    });
+  for (let round = 0; round < rounds; round += 1) {
+    for (const stay of itinerary.stays) {
+      services.stays.addLodgingCandidates(itinerary, stay, offers(null));
+    }
+    for (const stop of itinerary.days.flatMap((day) => day.stops)) {
+      services.stops.addCandidates(itinerary, stop, offers(stop));
+    }
+  }
+}

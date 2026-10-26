@@ -59,13 +59,16 @@ The app adds lines to the start of some user messages. The user didn't write the
 - "${RESUMED_LINE}" It's on the first message after a resume.
 - "${FORGOTTEN_LINE}" It's on the first message after the user does that.`;
 
-// Technical spec 3.1 and 5.2.
+// Technical spec 3.1 and 5.2, with two of the rules in 5.2's "What a whole read gives".
+// The third, on "More options" and the tier buttons, comes with those actions (#62).
 const SESSION_START = `## Reading the trip brief, the itinerary, and memory
 
 - At the start of a session, before your first reply, read the trip brief, the whole itinerary, and memory.
 - After a resume, read all three again before changing anything. Another session may have changed the trip, and a session of another trip may have changed user memory.
 - Read memory again whenever you aren't sure you still have it, such as after a long conversation was summarized. Don't read it back after your own changes, since those calls are already in the conversation.
-- In your first reply, briefly mention warnings that are still open, whether they're marked new or already known, such as "Still open from last time: the trip is 4 days, and you asked for 5."`;
+- In your first reply, briefly mention warnings that are still open, whether they're marked new or already known, such as "Still open from last time: the trip is 4 days, and you asked for 5."
+- Before you talk through a stop's or stay's options, or recommend one, read that stop or stay. A whole read only counts its candidates.
+- When the user asks why a place was picked, read its stop, or its stay if it's the lodging. When they ask about a stay's weather or what to pack, such as "What should I pack for Moab?", read the stay. A whole read leaves out the rationale and the weather text.`;
 
 // Functional spec 5.2, and domain model 3.2 for what each item means. The input
 // descriptions say only how to pass each value (tool design, section 4).
