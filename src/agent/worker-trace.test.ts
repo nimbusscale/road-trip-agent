@@ -12,9 +12,11 @@ import {
   text,
   toolResult,
   toolUse,
+} from "./fake-sdk-messages.schema.js";
+import {
   transcriptCall,
   transcriptLine,
-} from "./fake-sdk-messages.schema.js";
+} from "./fake-worker-transcript.schema.js";
 import {
   runTrace,
   secondsOf,
