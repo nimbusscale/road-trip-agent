@@ -34,9 +34,10 @@ type SystemMessage = Extract<SDKMessage, { type: "system" }>;
 
 // An event on the turn's span for one of the coordinator's system messages, at the time
 // it arrived. init is the turn's start, with the model and the tools it was given. A
-// worker's span shows its task_started, and thinking token counts come many times a
-// second while the model thinks, so neither gets an event. An attribute can't hold a
-// nested object, so each other message's fields go in one, as JSON.
+// worker's span shows its task_started, a status of "requesting" comes as each model
+// call starts, which has its own span, and thinking token counts come many times a
+// second while the model thinks, so none of them gets an event. An attribute can't hold
+// a nested object, so each other message's fields go in one, as JSON.
 export function addSystemEvent(
   span: Span,
   message: SystemMessage,
@@ -53,13 +54,21 @@ export function addSystemEvent(
     case "task_started":
     case "thinking_tokens":
       break;
-    default: {
-      const data = Object.fromEntries(
-        Object.entries(message).filter(([key]) => !SYSTEM_MESSAGE_IDS.has(key)),
-      );
-      span.addEvent(message.subtype, { data: JSON.stringify(data) }, at);
-    }
+    case "status":
+      if (message.status !== "requesting") {
+        addDataEvent(span, message, at);
+      }
+      break;
+    default:
+      addDataEvent(span, message, at);
   }
+}
+
+function addDataEvent(span: Span, message: SystemMessage, at: Date): void {
+  const data = Object.fromEntries(
+    Object.entries(message).filter(([key]) => !SYSTEM_MESSAGE_IDS.has(key)),
+  );
+  span.addEvent(message.subtype, { data: JSON.stringify(data) }, at);
 }
 
 // One model call: the blocks of one Claude API message, which the SDK sends one at a

@@ -249,6 +249,17 @@ export function thinkingTokens(estimated: number): SDKMessage {
   };
 }
 
+// What Claude Code is doing: about to call the model, or compacting the conversation.
+export function status(value: "requesting" | "compacting"): SDKMessage {
+  return {
+    type: "system",
+    subtype: "status",
+    status: value,
+    uuid: randomUUID(),
+    session_id: SESSION_ID,
+  };
+}
+
 export function successResult(reply: string): SDKMessage {
   return {
     ...resultFields(),
@@ -300,42 +311,5 @@ function resultFields(): Omit<
     permission_denials: [],
     uuid: randomUUID(),
     session_id: SESSION_ID,
-  };
-}
-
-// A line of a worker's transcript, as getSubagentMessages() gives it, written at the
-// given second past noon.
-export function transcriptLine(
-  type: string,
-  second: number,
-  message: unknown,
-): unknown {
-  return {
-    type,
-    uuid: randomUUID(),
-    session_id: SESSION_ID,
-    parent_tool_use_id: null,
-    parent_agent_id: null,
-    timestamp: new Date(Date.UTC(2026, 9, 25, 12, 0, second)).toISOString(),
-    message,
-  };
-}
-
-// The message on a transcript line from the model: one block of one call.
-export function transcriptCall(
-  id: string,
-  output: number,
-  content: readonly unknown[],
-): unknown {
-  return {
-    id,
-    model: "claude-fake-2",
-    usage: {
-      input_tokens: 2000,
-      cache_read_input_tokens: 0,
-      cache_creation_input_tokens: 0,
-      output_tokens: output,
-    },
-    content,
   };
 }

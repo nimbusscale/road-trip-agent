@@ -11,6 +11,7 @@ import {
   messageStart,
   messageStop,
   SESSION_ID,
+  status,
   successResult,
   text,
   thinking,
@@ -92,19 +93,25 @@ describe("TurnTrace", () => {
   it("puts each of the SDK's other system messages on the turn's span, such as a retry", async () => {
     await runTrace([
       messageStart("call-1"),
+      status("requesting"),
       thinkingTokens(40),
       apiRetry(),
+      status("compacting"),
       assistant("call-1", [text("Hi.")]),
       successResult("Hi."),
     ]);
     const events = spanNamed("coordinator.turn").events;
-    // Thinking token counts get no event.
-    expect(events.map((event) => event.name)).toEqual(["api_retry"]);
+    // Thinking token counts get no event, and nor does a model call's start, which has
+    // its own span.
+    expect(events.map((event) => event.name)).toEqual(["api_retry", "status"]);
+    expect(events[1]?.attributes).toEqual({
+      data: JSON.stringify({ status: "compacting" }),
+    });
     const [retry] = events;
     expect(retry?.attributes).toEqual({
       data: JSON.stringify(API_RETRY_FIELDS),
     });
-    expect(retry === undefined ? null : secondsOf(retry.time)).toBe(3);
+    expect(retry === undefined ? null : secondsOf(retry.time)).toBe(4);
   });
 
   it("puts the full reason a turn failed in its status", async () => {
