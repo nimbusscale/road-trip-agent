@@ -6,7 +6,7 @@ The problem: a whole read of a busy 14-day trip is 34,498 tokens. That's over Cl
 
 **Where it stands.** The proposal has two parts:
 
-- **Version N of the whole read (section 5).** It gives the picked place on each stop and stay, with only its town from the short line, and a count of the other candidates, by set. It leaves out the picked place's rationale, type, rating, and price, and each stay's weather text, which the itinerary view already shows the user. A busy 14-day trip goes from 34,498 tokens to 15,883. The same trip with nothing picked goes from 26,324 tokens to 10,025. Both are under the tool's 40,000-character limit, so the limit can stay (section 10).
+- **Version O of the whole read (section 5).** It gives the picked place on each stop and stay, with only its town from the short line, and a count of the other candidates, by set. It leaves out the picked place's rationale, type, rating, and price, and each stay's weather text, which the itinerary view already shows the user. It keeps each tier, but not the rule that produced it. A busy 14-day trip goes from 34,498 tokens to 15,291. The same trip with nothing picked goes from 26,324 tokens to 9,433. Both are under the tool's 40,000-character limit, so the limit can stay (section 10).
 - **A new tool, `find_in_trip`, that searches the trip's own places by name (section 6).** With no candidate names in the whole read, it's how the coordinator finds the stop or stay a place belongs to, when the user names one.
 
 One thing is still open: whether `select_user_place` should say when the place is already a candidate on another stop or stay (section 6).
@@ -63,7 +63,7 @@ That suggests a rule for what a whole read carries:
 - What the coordinator needs for the three cases in 2.1.
 - Enough to recognize what the user is talking about.
 
-Details the view already shows come from another call, when the user asks about them. Version N follows the rule. It has no candidate names, rationale, or weather text, and gives only the town from a picked place's short line. It keeps the rejected places, which are small and not in the view.
+Details the view already shows come from another call, when the user asks about them. Version O follows the rule. It has no candidate names, rationale, weather text, or tier rules, and gives only the town from a picked place's short line. It keeps the rejected places, which are small and not in the view.
 
 **The hard part is recognizing what the user means.** The user is looking at the view, so they'll name things they see there, such as "the Desert Pearl," "Tuesday's dinner," or "why Whiptail?" The coordinator has to work out which stop or stay is meant. A day or a picked place is easy to find in the read. A candidate that isn't picked is not, once the read has no candidate names. Section 6 covers how it finds one.
 
@@ -107,17 +107,18 @@ Each version is the busy trip's whole read with one or more changes.
 | L with candidate names by set, in place of the counts | 45,495 | 22,859 | −34% |
 | L with candidate names and IDs by set, in place of the counts | 48,827 | 24,793 | −28% |
 | M. L, without the picked place's rationale or each stay's weather text | 31,742 | 17,198 | −50% |
-| **N. M, with only the town from the picked place's short line. The current proposal** | **29,474** | **15,883** | **−54%** |
+| N. M, with only the town from the picked place's short line | 29,474 | 15,883 | −54% |
+| **O. N, with each tier but not the rule that produced it, or the nights a stay's tier was set for. The current proposal** | **27,582** | **15,291** | **−56%** |
 
 Short dates means "Sun Sep 12" instead of "Sunday, September 12, 2027". It and dropping "the usual start time" each save about 1% of the characters. Their tokens weren't counted on their own.
 
-L, M, and N save little over J on candidates in the busy trip, since only one of its stops has candidates and nothing picked. Counting those matters on a trip with less picked:
+L to O save little over J on candidates in the busy trip, since only one of its stops has candidates and nothing picked. Counting those matters on a trip with less picked:
 
-| State | Today | J | L | M | N |
-|---|---|---|---|---|---|
-| Nothing picked, one set for each item | 47,064 characters, 24,078 tokens | about the same as today | not measured | not measured | not measured |
-| Nothing picked, with the second sets | 51,047 characters, 26,324 tokens | about the same as today | 22,806 characters, 10,820 tokens | 20,856 characters, 10,064 tokens | 20,781 characters, 10,025 tokens |
-| Stay 8 open | 63,905 characters, 33,165 tokens | not measured | not measured | 30,083 characters, 16,039 tokens | 28,205 characters, 14,947 tokens |
+| State | Today | J | L | M | N | O |
+|---|---|---|---|---|---|---|
+| Nothing picked, one set for each item | 47,064 characters, 24,078 tokens | about the same as today | not measured | not measured | not measured | not measured |
+| Nothing picked, with the second sets | 51,047 characters, 26,324 tokens | about the same as today | 22,806 characters, 10,820 tokens | 20,856 characters, 10,064 tokens | 20,781 characters, 10,025 tokens | 18,889 characters, 9,433 tokens |
+| Stay 8 open | 63,905 characters, 33,165 tokens | not measured | not measured | 30,083 characters, 16,039 tokens | 28,205 characters, 14,947 tokens | 26,313 characters, 14,355 tokens |
 
 With names in place of the counts, the nothing-picked read is 13,698 tokens. With names and IDs, it's 16,420.
 
@@ -125,7 +126,7 @@ Versions A to K don't make the nothing-picked read smaller. With no place picked
 
 ---
 
-## 5. The current proposal (version N)
+## 5. The current proposal (version O)
 
 It changes only the whole read. Reads of a day, stay, or stop stay as they are. `itinerary-read-size/slim-read-proposed.txt` is the trip with Stay 8 open, in this format, so it shows both picked and undecided items. `full-read-14-stay-8-open.txt` is the same state in today's format.
 
@@ -137,6 +138,7 @@ It changes only the whole read. Reads of a day, stay, or stop stay as they are. 
 - A picked place with no other candidates gets no count line, such as a place the user named.
 - The picked place's rationale isn't in the read.
 - Each stay's weather line keeps where it came from and when it was written, but not its text. Example: "Weather and clothing, from seasonal averages, written Thursday, October 15, 2026." That's what the forecast note works from.
+- Each meal and lodging keeps its tier, but not the rule that produced it, or the nights a stay's tier was set for. Example: "Tier: value." in place of `Tier: value, from the rule "the trip default".` On 2026-10-26, Joe decided that a change to the rules or to a stay's nights applies only to tiers set after it, and nothing already set is revisited (#148). So the coordinator has no use for the rule in a whole read. The option cards show the rule from what's stored, and a worker brief for "More options" comes after a stop read, which keeps the rule.
 
 A picked stop today:
 
@@ -158,6 +160,7 @@ Proposed:
 A picked lodging, proposed:
 
 ```
+- Lodging tier: midRange.
 - Lodging: Desert Pearl Inn (place_…), Springdale.
 - Other candidates: 2 in set 1, 3 in set 2.
 ```
@@ -165,7 +168,7 @@ A picked lodging, proposed:
 A stop with nothing picked, proposed:
 
 ```
-- 6:30 p.m.: Stop 4 (stop_…), meal: "dinner". Near the Springdale stay. Set time: 6:30 p.m. Tier: value, from the rule "the trip default". No place selected yet.
+- 6:30 p.m.: Stop 4 (stop_…), meal: "dinner". Near the Springdale stay. Set time: 6:30 p.m. Tier: value. No place selected yet.
   - Candidates: 3 in set 1, 3 in set 2.
 ```
 
@@ -220,7 +223,7 @@ It's a new tool. `find_in_trip` is a working name, kept far from `find_place` so
 
 ## 7. What the review found, and how the proposal changed
 
-The review looked at version F. It found four problems. They led to version J, and versions L, M, and N keep all four fixes. The review didn't look at L, M, or N.
+The review looked at version F. It found four problems. They led to version J, and versions L to O keep all four fixes. The review didn't look at L to O.
 
 **1. The meal tier cut (D) can't be built reliably. The proposal now drops it.** It would hide a meal's tier when it's the trip default. But code has no reliable way to tell what the trip default is:
 
@@ -229,7 +232,7 @@ The review looked at version F. It found four problems. They led to version J, a
 - A text match would go wrong in a real case. Say the user raises the default from value to mid-range after the meals are filled. The meals keep value, but the read still hides their tier. So the coordinator assumes mid-range, and briefs "more options" at the wrong tier.
 - Stays would still show their tier, so a missing tier on a meal could read as "this meal has no tier."
 
-It saved only about 640 tokens.
+It saved only about 640 tokens. Version O keeps every meal's tier and drops only the rule, from every meal and stay alike, so a missing tier can't be misread.
 
 **2. The picked place's detour time was dropped. The proposal now keeps it.** When a day drives too long, technical spec 5.2 has the coordinator offer two or three trade-offs. The detour times show which stop costs the most driving. Without them, it would need a stop read for each stop along the leg. Keeping them costs about 600 characters.
 
@@ -260,7 +263,7 @@ It saved only about 640 tokens.
 
 The fill round sends workers for the whole trip at once (technical spec 4.2, step 4). So every long trip passes through a state with almost nothing picked, right after the fill. A person isn't likely to leave a trip that way for long. But a session can end partway through the picking, and the next one then starts with a whole read of a trip that's partly picked.
 
-In version J, a partly picked trip lies between 21,000 tokens (busy) and 26,324 (nothing picked), so it's near or over the limit. In version N, it lies between 10,025 and 15,883. With Stay 8 open, it's 14,947 (section 4). Each pick makes the read longer in N, since the picked place's line is longer than a count. So the busy trip is close to the largest a whole read gets.
+In version J, a partly picked trip lies between 21,000 tokens (busy) and 26,324 (nothing picked), so it's near or over the limit. In version O, it lies between 9,433 and 15,291. With Stay 8 open, it's 14,355 (section 4). Each pick makes the read longer in O, since the picked place's line is longer than a count. So the busy trip is close to the largest a whole read gets.
 
 The tool still needs its refusal for a read that's too large, for a trip denser than this one. Today its error says to read the trip a stay at a time. But a stay read is the largest scoped read, since it gives every candidate's full details. On this trip, the 3-night Moab stay reads at 25,582 characters. Day reads are smaller, at about 5,200 characters each at most (#54). So the error could point to day reads instead.
 
@@ -268,9 +271,9 @@ The tool still needs its refusal for a read that's too large, for a trip denser 
 
 ## 10. The tool's character limit
 
-The tool can't count tokens, so it refuses a reply over 40,000 characters, which is about 21,000 tokens at 1.89 characters a token (tool design 2.1). Version N is 29,474 characters, so the limit can stay as it is. Versions J and L, at about 41,500 characters, would have needed it raised.
+The tool can't count tokens, so it refuses a reply over 40,000 characters, which is about 21,000 tokens at 1.89 characters a token (tool design 2.1). Version O is 27,582 characters, so the limit can stay as it is. Versions J and L, at about 41,500 characters, would have needed it raised.
 
-Fewer IDs for their length means more characters per token. The measured reads ran from 1.83 to 2.13 characters a token. The densest are version I at 1.83, and versions M and N at 1.85 and 1.86. At 1.83, 40,000 characters is about 21,900 tokens, still under 25,000.
+Fewer IDs for their length means more characters per token. The measured reads ran from 1.80 to 2.13 characters a token. The densest is version O at 1.80, then version I at 1.83. At 1.80, 40,000 characters is about 22,200 tokens, still under 25,000.
 
 ---
 
@@ -280,17 +283,18 @@ Fewer IDs for their length means more characters per token. The measured reads r
 - **Tool design 2.1, the size paragraphs.** "A whole read of a long trip is refused" would no longer be true of a trip like this one. The fallback would change, if it points to day reads (section 9).
 - **Tool design 2.1, a new row for `find_in_trip` (section 6.2),** with its description, input, and reply.
 - **Technical spec 5.1,** the coordinator's tools: it would add `find_in_trip`, next to "find a named place".
-- **Technical spec 7.2, "Reading the itinerary".** It says the read returns "the name and short line for every selected place and every candidate". It also says every selected place comes with its rationale, and that in a new session this is all the coordinator knows about the trip's places. In version N, the read gives only the selected places, each with its town, and counts for the rest, with no rationale.
+- **Technical spec 7.2, "Reading the itinerary".** It says the read returns "the name and short line for every selected place and every candidate". It also says every selected place comes with its rationale, and that in a new session this is all the coordinator knows about the trip's places. In version O, the read gives only the selected places, each with its town, and counts for the rest, with no rationale.
+- **Technical spec 9, and the domain model's stay tier and nights.** #148 removes the note about a stay's tier set for different nights, and states the rule that nothing already set is revisited.
 - **Technical spec 5.2.** It could say what each whole read is for, as in section 2.1, so the instructions don't lean on the read for candidates.
 - **The tool's description, `READ_ITINERARY_DESCRIPTION` in `src/tools/itinerary-tools.ts`.** "Candidates are listed in the order offered, with their set" would be wrong for a whole read, and the count lines need explaining. `src/agent/coordinator.view.md` is a snapshot of it, so `npm run agent-views` updates it.
 - **The coordinator's instructions.** They should say to use `find_in_trip` before `find_place` when the user names a place. They should also say to read the stop or stay before recommending one of its options, or "More options", "Higher tier", or "Lower tier" (section 8).
-- **Tests.** `src/tools/itinerary-read-marks.test.ts` has a test that a whole read of `fourteenDayExample` is refused as too large. In the new format it would probably fit, and the test would fail. A new test should pin both count lines, the folded stop line, and the weather line without its text.
+- **Tests.** `src/tools/itinerary-read-marks.test.ts` has a test that a whole read of `fourteenDayExample` is refused as too large. In the new format it would probably fit, and the test would fail. A new test should pin both count lines, the folded stop line, the weather line without its text, and the tier lines without their rules.
 
 ---
 
 ## 12. Fine as is
 
-The review checked these for version F, and found they don't change. Each still holds for version N:
+The review checked these for version F, and found they don't change. Each still holds for version O:
 
 - Fill briefs (technical spec 4.2): the stops they cover are still empty, so there are no candidates to hide.
 - The weather worker's brief (technical spec 5.3): it needs only stay IDs, town names, and place IDs, which stay.

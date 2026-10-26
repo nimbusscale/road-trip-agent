@@ -1,7 +1,7 @@
 # Rewrites the realistic whole read into slimmer versions, to measure what each change
 # to its format would save (research/itinerary-read-size.md). Writes one file per
 # version, named by its letter in the doc's section 3, and prints each one's characters
-# and IDs. It also runs on the nothing-picked read, where only versions L, M, and N, and the L versions with names, change it.
+# and IDs. It also runs on the nothing-picked read, where only versions L to O, and the L versions with names, change it.
 #   python3 research/itinerary-read-size/variants.py \
 #     research/itinerary-read-size/full-read-14-realistic.txt <output folder>
 import re, sys, os
@@ -118,6 +118,12 @@ def no_weather_text(lines):
     return [re.sub(r'(- Weather and clothing, from [^,]+, written [^:]+): ".*?"', r"\1.", l) for l in lines]
 
 
+def no_tier_rules(lines):
+    """Keeps each tier, without the rule that produced it or the nights it was set for."""
+    lines = [re.sub(r'(Tier: [a-zA-Z]+), from the rule "[^"]*"\.', r"\1.", l) for l in lines]
+    return [re.sub(r"^(- Lodging tier: [a-zA-Z]+), from the rule .*$", r"\1.", l) for l in lines]
+
+
 def no_usual_start(lines):
     return [l.replace(" Starts 8:00 a.m., the usual start time.", "") for l in lines]
 
@@ -152,6 +158,11 @@ versions = {
     ),
     "N-M-picked-place-town-only": no_weather_text(
         slim_candidates(base, keep_why=False, keep_detour=True, others="by_set", undecided="count", town_only=True)
+    ),
+    "O-N-no-tier-rules": no_tier_rules(
+        no_weather_text(
+            slim_candidates(base, keep_why=False, keep_detour=True, others="by_set", undecided="count", town_only=True)
+        )
     ),
     "L-with-names": slim_candidates(base, keep_detour=True, others="by_set", undecided="count", listing="names"),
     "L-with-names-and-ids": slim_candidates(
