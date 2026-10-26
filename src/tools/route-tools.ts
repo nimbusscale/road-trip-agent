@@ -50,7 +50,7 @@ export function computeRouteTool(
               : await keptLines(session, found);
           return textReply([
             ...lines,
-            `Drive times are Google's averages, without the drive buffer. The schedule and the daily driving check add ${String(session.settings.driveBufferPercent)}% to each drive.`,
+            `Road times are Google's averages, without the drive buffer. The schedule and the daily driving check add ${String(session.settings.driveBufferPercent)}% to each drive.`,
             ...matchLines(found),
           ]);
         }),

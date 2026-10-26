@@ -48,7 +48,14 @@ describe("createTripServer", () => {
       "update_stay",
       "remove_stay",
       "update_day",
+      "add_stops",
+      "update_stop",
+      "move_stop",
+      "remove_stops",
       "set_waypoints",
+      "select_candidate",
+      "select_user_place",
+      "reject_places",
     ]);
     expect(
       tools.every((each) => each.inputSchema.additionalProperties === false),

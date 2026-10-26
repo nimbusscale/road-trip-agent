@@ -1,4 +1,5 @@
 import { clockText } from "../domain/check-text.js";
+import { ScheduleTime } from "../domain/schedule-time.js";
 import { TimeOfDay } from "../domain/time-of-day.js";
 
 const MINUTES_IN_HOUR = 60;
@@ -25,4 +26,25 @@ export function timeOfDayFromClockText(text: string): TimeOfDay {
 
 export function clockTextOf(time: TimeOfDay): string {
   return clockText(time.hours * MINUTES_IN_HOUR + time.minutes);
+}
+
+// A time after midnight ends with this, as a read writes it, such as "1:00 a.m. the next
+// day", so it can't be read as an early start (tool design 2.1).
+export const NEXT_DAY_TEXT = " the next day";
+
+// A stop's set time: a clock time, which can end with NEXT_DAY_TEXT.
+export function isScheduleTimeText(text: string): boolean {
+  return CLOCK_TIME_TEXT.test(withoutNextDay(text));
+}
+
+// The tool's input schema has checked the text with isScheduleTimeText().
+export function scheduleTimeFromText(text: string): ScheduleTime {
+  const time = withoutNextDay(text);
+  return new ScheduleTime(timeOfDayFromClockText(time), time !== text);
+}
+
+function withoutNextDay(text: string): string {
+  return text.endsWith(NEXT_DAY_TEXT)
+    ? text.slice(0, -NEXT_DAY_TEXT.length)
+    : text;
 }
