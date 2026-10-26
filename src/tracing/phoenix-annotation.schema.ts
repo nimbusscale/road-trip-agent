@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 import type { RatingRequest } from "../shared/rating.schema.js";
 
 // A rating, with the user who made it.
@@ -46,3 +48,40 @@ function annotationOf({ rating, note, userId }: Rating): AnnotationData {
     },
   };
 }
+
+// The query that asks Phoenix for one session's rating by one user.
+export function sessionRatingQuery(
+  agentSessionId: string,
+  userId: string,
+): string {
+  return new URLSearchParams({
+    session_ids: agentSessionId,
+    identifier: userId,
+    include_annotation_names: "rating",
+  }).toString();
+}
+
+// Phoenix's reply to GET /v1/projects/<project>/session_annotations, filtered to one
+// session's rating by one user, so it holds at most one. Its fields that aren't used
+// are left out. A label other than up or down, such as from a rating made in Phoenix's
+// own UI under the same name and identifier, counts as no rating.
+export const sessionRatingReplySchema = z
+  .object({
+    data: z.array(
+      z.object({
+        result: z
+          .object({
+            label: z.string().nullable(),
+            explanation: z.string().nullable(),
+          })
+          .nullable(),
+      }),
+    ),
+  })
+  .transform(({ data }): RatingRequest | null => {
+    const result = data[0]?.result;
+    if (result?.label !== "up" && result?.label !== "down") {
+      return null;
+    }
+    return { rating: result.label, note: result.explanation ?? "" };
+  });

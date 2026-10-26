@@ -1,3 +1,4 @@
+import type { RatingRequest } from "../shared/rating.schema.js";
 import type { Rating } from "./phoenix-annotation.schema.js";
 import { RatingNotSavedError, type Ratings } from "./phoenix-ratings.js";
 
@@ -22,6 +23,22 @@ export class FakeRatings implements Ratings {
     rating: Rating,
   ): Promise<void> =>
     this.#save({ kind: "session", id: agentSessionId, rating });
+
+  // The user's last rating of the session, as Phoenix keeps only that one.
+  readonly sessionRating = (
+    agentSessionId: string,
+    userId: string,
+  ): Promise<RatingRequest | null> => {
+    const last = this.saved.findLast(
+      ({ kind, id, rating }) =>
+        kind === "session" && id === agentSessionId && rating.userId === userId,
+    );
+    return Promise.resolve(
+      last === undefined
+        ? null
+        : { rating: last.rating.rating, note: last.rating.note },
+    );
+  };
 
   #save(saved: SavedRating): Promise<void> {
     if (!this.reachable) {

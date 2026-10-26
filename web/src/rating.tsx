@@ -1,16 +1,42 @@
 import { useState } from "react";
 
-import type { RatingRequest } from "../../src/shared/rating.schema";
+import {
+  type RatingRequest,
+  sessionRatingResponseSchema,
+} from "../../src/shared/rating.schema";
 import { callApiForChange, messageOf } from "./api-client";
+import { useApi } from "./use-api";
 
 type Thumb = RatingRequest["rating"];
 
 const THUMBS: readonly Thumb[] = ["up", "down"];
 
+// The session's thumbs start with the user's last rating of it, and its note. A turn's
+// have none to start with, since only turns the page streamed have them (functional
+// spec 10.1).
+export function SessionRating({ sessionId }: { sessionId: string }) {
+  const path = `/api/sessions/${sessionId}/rating`;
+  const loaded = useApi(path, sessionRatingResponseSchema);
+  if (loaded.status === "loading") {
+    return null;
+  }
+  return (
+    <Rating
+      path={path}
+      startsAs={loaded.status === "loaded" ? loaded.data.rating : null}
+    />
+  );
+}
+
+interface RatingProps {
+  path: string;
+  startsAs: RatingRequest | null;
+}
+
 // A thumbs up and down for a turn or a session. Either opens a box for a note, and the
 // rating is saved with it. A new rating replaces the last (functional spec 10.1).
-export function Rating({ path }: { path: string }) {
-  const [saved, setSaved] = useState<Thumb | null>(null);
+export function Rating({ path, startsAs }: RatingProps) {
+  const [saved, setSaved] = useState(startsAs);
   const [draft, setDraft] = useState<RatingRequest | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -21,7 +47,7 @@ export function Rating({ path }: { path: string }) {
     void callApiForChange(path, { method: "PUT", body: request })
       .then(
         () => {
-          setSaved(request.rating);
+          setSaved(request);
           setDraft(null);
         },
         (failure: unknown) => {
@@ -39,9 +65,9 @@ export function Rating({ path }: { path: string }) {
         <ThumbButton
           key={thumb}
           thumb={thumb}
-          chosen={(draft?.rating ?? saved) === thumb}
+          chosen={(draft ?? saved)?.rating === thumb}
           onChoose={() => {
-            setDraft({ rating: thumb, note: draft?.note ?? "" });
+            setDraft({ rating: thumb, note: (draft ?? saved)?.note ?? "" });
           }}
         />
       ))}

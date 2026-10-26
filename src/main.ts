@@ -32,7 +32,7 @@ function start(): void {
     isPhoenixReachable: () => isPhoenixReachable(env.phoenixUrl),
     verifyToken: createSupabaseTokenVerifier(env.supabaseUrl),
     chat: chatDependencies(env, pool, settings),
-    ratings: phoenixRatings(env.phoenixUrl),
+    ratings: phoenixRatings(env.phoenixUrl, env.phoenixProject),
   });
   const server = serve(
     { fetch: api.fetch, hostname: env.appHost, port: APP_PORT },

@@ -3,6 +3,7 @@ import { type Context, Hono } from "hono";
 
 import {
   ratingRequestSchema,
+  type SessionRatingResponse,
   turnRatingParamsSchema,
 } from "../shared/rating.schema.js";
 import type { Ratings } from "../tracing/phoenix-ratings.js";
@@ -16,12 +17,23 @@ const turnParams = zValidator("param", turnRatingParamsSchema, refused);
 // Rating a chat turn, or the whole session, with a thumbs up or down and a note
 // (functional spec 10.1). The rating goes to Phoenix, where the turn's trace is
 // (systems design section 10). Each replaces the user's earlier rating of the same
-// turn or session.
+// turn or session. The session's can be read back, so the page starts with it.
 export function ratingRoutes(chat: ChatDependencies, ratings: Ratings): Hono {
   const routes = new Hono();
   const readers = { trips: chat.trips.reader, sessions: chat.sessions.reader };
 
   // Phoenix knows the session by its agent session ID, which the server looks up.
+  routes.get("/sessions/:sessionId/rating", async (context) => {
+    const { session } = await sessionOf(context);
+    const body: SessionRatingResponse = {
+      rating: await ratings.sessionRating(
+        session.agentSessionId,
+        context.get("user").userId,
+      ),
+    };
+    return context.json(body);
+  });
+
   routes.put("/sessions/:sessionId/rating", ratingBody, async (context) => {
     const { session } = await sessionOf(context);
     await ratings.rateSession(session.agentSessionId, {

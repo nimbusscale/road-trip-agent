@@ -14,7 +14,7 @@ import { Link } from "./link";
 import { MemoryPanel } from "./memory-panel";
 import { sessionLink, traceLink } from "./phoenix-links";
 import { PlanDownloads } from "./plan-downloads";
-import { Rating } from "./rating";
+import { Rating, SessionRating } from "./rating";
 import { ReplyText } from "./reply-text";
 import { type ChatStart, useChat } from "./use-chat";
 
@@ -121,7 +121,7 @@ function SessionTools({
       </p>
       {memoryShown ? <MemoryPanel sessionId={sessionId} busy={busy} /> : null}
       <p className="turn-row">
-        This session: <Rating path={`/api/sessions/${sessionId}/rating`} />
+        This session: <SessionRating sessionId={sessionId} />
         {agentSessionId === null ? null : (
           <PhoenixLink href={sessionLink(agentSessionId)}>
             View session
@@ -184,6 +184,7 @@ function TurnRow({
       {streamed.failed ? "The reply didn't finish. " : null}
       <Rating
         path={`/api/sessions/${sessionId}/turns/${streamed.spanId}/rating`}
+        startsAs={null}
       />
       <PhoenixLink href={traceLink(streamed.spanId)}>View trace</PhoenixLink>
     </p>

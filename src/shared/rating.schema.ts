@@ -10,6 +10,14 @@ export const ratingRequestSchema = z.object({
 
 export type RatingRequest = z.infer<typeof ratingRequestSchema>;
 
+// The reply to GET /api/sessions/<session ID>/rating: the user's rating of the session,
+// so the page starts with it, or null when there's none, or Phoenix can't be reached.
+export const sessionRatingResponseSchema = z.object({
+  rating: ratingRequestSchema.nullable(),
+});
+
+export type SessionRatingResponse = z.infer<typeof sessionRatingResponseSchema>;
+
 // A turn's rating names its turn span, by its OpenTelemetry span ID: 16 hex
 // characters. It isn't checked against the session (systems design section 4).
 export const turnRatingParamsSchema = z.object({

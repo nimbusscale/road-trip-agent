@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { FAKE_SPAN_ID } from "../agent/run-turn.fake.js";
 import { TEST_USER_ID } from "../auth/test-tokens.js";
 import { errorResponseSchema } from "../shared/error.schema.js";
+import { sessionRatingResponseSchema } from "../shared/rating.schema.js";
 import {
   type ChatApi,
   chatApi,
@@ -57,10 +58,27 @@ describe("rating a turn or a session", () => {
     ]);
   });
 
+  it("reads back the user's last rating of the session, or null when there's none", async () => {
+    const chat = await chatApi(PLANNING);
+    const { sessionId } = await startTrip(chat);
+    const path = `/api/sessions/${sessionId}/rating`;
+    const before = await chat.asUser("GET", path);
+    await chat.asUser("PUT", path, { rating: "down", note: "Too long." });
+    await chat.asUser("PUT", path, { rating: "up", note: "Better now." });
+    const after = await chat.asUser("GET", path);
+    expect(sessionRatingResponseSchema.parse(await before.json())).toEqual({
+      rating: null,
+    });
+    expect(sessionRatingResponseSchema.parse(await after.json())).toEqual({
+      rating: { rating: "up", note: "Better now." },
+    });
+  });
+
   it("refuses a rating of another user's session, as if it weren't there", async () => {
     const chat = await chatApi(PLANNING);
     const { sessionId } = await startTrip(chat);
     const responses = await Promise.all([
+      chat.asOtherUser("GET", `/api/sessions/${sessionId}/rating`),
       chat.asOtherUser("PUT", `/api/sessions/${sessionId}/rating`, {
         rating: "up",
         note: "",
@@ -71,7 +89,9 @@ describe("rating a turn or a session", () => {
         { rating: "up", note: "" },
       ),
     ]);
-    expect(responses.map((response) => response.status)).toEqual([404, 404]);
+    expect(responses.map((response) => response.status)).toEqual([
+      404, 404, 404,
+    ]);
     expect(chat.ratings.saved).toEqual([]);
   });
 
