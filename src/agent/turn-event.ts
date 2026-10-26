@@ -1,10 +1,13 @@
 import type { SDKMessage } from "@anthropic-ai/claude-agent-sdk";
 
 // What a coordinator turn hands the app, made from the Agent SDK's messages. The terminal
-// chat prints them all, and the browser chat gets the reply's text, the tool being
-// called, and the turn's end. So neither reads the SDK's own shapes, and a test can fake
+// chat prints them all, and the browser chat gets the turn span's ID, the reply's text,
+// the tool being called, and the turn's end. So neither reads the SDK's own shapes, and a test can fake
 // a turn with them (DEVELOPMENT.md section 5).
 export type TurnEvent =
+  // The turn span's ID, first, before the SDK runs. So a turn that fails at once has
+  // one too.
+  | { kind: "traced"; spanId: string }
   | { kind: "started"; model: string; tools: readonly string[] }
   // A summary of the model's thinking (technical spec 5.4).
   | { kind: "thinking"; text: string }

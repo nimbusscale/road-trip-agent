@@ -8,6 +8,8 @@ import type {
 import type { RunTurn } from "./coordinator.js";
 import type { TurnEvent, TurnUsage } from "./turn-event.js";
 
+export const FAKE_SPAN_ID = "0123456789abcdef";
+
 const FAKE_USAGE: TurnUsage = {
   modelCalls: 2,
   inputTokens: 12000,
@@ -47,6 +49,7 @@ export class FakeSdk {
         { uuid: randomUUID(), ...line },
       ]);
     };
+    yield { kind: "traced", spanId: FAKE_SPAN_ID };
     await save({ type: "user", message: { role: "user", content: message } });
     yield { kind: "started", model: "claude-fake-1", tools: [] };
     yield* this.beforeReply;

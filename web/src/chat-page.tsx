@@ -1,16 +1,28 @@
-import { type KeyboardEvent, type SubmitEvent, useState } from "react";
+import {
+  Fragment,
+  type KeyboardEvent,
+  type SubmitEvent,
+  useState,
+} from "react";
 
-import { type ChatState, shownCards } from "./chat-state";
+import {
+  type ChatState,
+  shownConversation,
+  type StreamedTurn,
+} from "./chat-state";
 import { Link } from "./link";
 import { MemoryPanel } from "./memory-panel";
+import { sessionLink, traceLink } from "./phoenix-links";
 import { PlanDownloads } from "./plan-downloads";
+import { Rating } from "./rating";
 import { ReplyText } from "./reply-text";
 import { type ChatStart, useChat } from "./use-chat";
 
 // The chat view: the conversation as cards, the reply as it streams in, and a box for
 // the next message (functional spec 10.1). Opened from "New trip", it's the form that
 // describes the trip, and its first message starts the trip. Once the session exists,
-// "Memory" shows memory, and the plan can be downloaded.
+// "Memory" shows memory, the plan can be downloaded, and the session can be rated and
+// opened in Phoenix. So can each turn the page streamed.
 export function ChatPage({ start }: { start: ChatStart }) {
   const { state, tripId, sessionId, send } = useChat(start);
   const [draft, setDraft] = useState("");
@@ -35,7 +47,12 @@ export function ChatPage({ start }: { start: ChatStart }) {
         )}
       </p>
       {tripId === null || sessionId === null ? null : (
-        <SessionTools tripId={tripId} sessionId={sessionId} busy={busy} />
+        <SessionTools
+          tripId={tripId}
+          sessionId={sessionId}
+          agentSessionId={state.agentSessionId}
+          busy={busy}
+        />
       )}
       {start.page === "newTrip" && state.cards.length === 0 ? (
         <p>
@@ -43,7 +60,7 @@ export function ChatPage({ start }: { start: ChatStart }) {
           long. A rough idea is fine.
         </p>
       ) : null}
-      <Conversation state={state} busy={busy} />
+      <Conversation state={state} sessionId={sessionId} busy={busy} />
       {state.error === null ? null : <p role="alert">{state.error}</p>}
       <MessageForm
         draft={draft}
@@ -79,10 +96,16 @@ function Toggle({ label, checked, onChange }: ToggleProps) {
 interface SessionToolsProps {
   tripId: string;
   sessionId: string;
+  agentSessionId: string | null;
   busy: boolean;
 }
 
-function SessionTools({ tripId, sessionId, busy }: SessionToolsProps) {
+function SessionTools({
+  tripId,
+  sessionId,
+  agentSessionId,
+  busy,
+}: SessionToolsProps) {
   const [memoryShown, setMemoryShown] = useState(false);
   return (
     <>
@@ -97,33 +120,73 @@ function SessionTools({ tripId, sessionId, busy }: SessionToolsProps) {
         </span>
       </p>
       {memoryShown ? <MemoryPanel sessionId={sessionId} busy={busy} /> : null}
+      <p className="turn-row">
+        This session: <Rating path={`/api/sessions/${sessionId}/rating`} />
+        {agentSessionId === null ? null : (
+          <PhoenixLink href={sessionLink(agentSessionId)}>
+            View session
+          </PhoenixLink>
+        )}
+      </p>
     </>
+  );
+}
+
+// Opens Phoenix in a new tab.
+function PhoenixLink({ href, children }: { href: string; children: string }) {
+  return (
+    <a href={href} target="_blank" rel="noreferrer">
+      {children}
+    </a>
   );
 }
 
 interface ConversationProps {
   state: ChatState;
+  sessionId: string | null;
   busy: boolean;
 }
 
-function Conversation({ state, busy }: ConversationProps) {
+function Conversation({ state, sessionId, busy }: ConversationProps) {
   return (
     <div className="conversation">
-      {shownCards(state.cards).map((card) =>
-        card.kind === "reply" ? (
-          <ReplyText key={card.id} text={card.text} />
-        ) : (
-          <p key={card.id} className={`card ${card.kind}`}>
-            {card.text}
-          </p>
-        ),
-      )}
+      {shownConversation(state).map(({ card, turnRow }) => (
+        <Fragment key={card.id}>
+          {card.kind === "reply" ? (
+            <ReplyText text={card.text} />
+          ) : (
+            <p className={`card ${card.kind}`}>{card.text}</p>
+          )}
+          {turnRow === null || sessionId === null ? null : (
+            <TurnRow sessionId={sessionId} streamed={turnRow} />
+          )}
+        </Fragment>
+      ))}
       {busy ? (
         <p className="working">
           {state.tool === null ? "Working…" : `Working: ${state.tool}…`}
         </p>
       ) : null}
     </div>
+  );
+}
+
+// The thumbs and "View trace" under a turn the page streamed (functional spec 10.1).
+function TurnRow({
+  sessionId,
+  streamed,
+}: {
+  sessionId: string;
+  streamed: StreamedTurn;
+}) {
+  return (
+    <p className="turn-row">
+      {streamed.failed ? "The reply didn't finish. " : null}
+      <Rating
+        path={`/api/sessions/${sessionId}/turns/${streamed.spanId}/rating`}
+      />
+      <PhoenixLink href={traceLink(streamed.spanId)}>View trace</PhoenixLink>
+    </p>
   );
 }
 

@@ -119,7 +119,11 @@ async function startSession(
   const turn = await chat.turns.begin({ session, userId }, text);
   return streamTurn(context, turn, {
     name: "session",
-    data: { tripId, sessionId: session.id },
+    data: {
+      tripId,
+      sessionId: session.id,
+      agentSessionId: session.agentSessionId,
+    },
   });
 }
 

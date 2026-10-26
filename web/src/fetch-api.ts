@@ -2,7 +2,7 @@ import { supabase } from "./supabase";
 
 export interface ApiRequest {
   signal?: AbortSignal;
-  method?: "GET" | "POST" | "DELETE";
+  method?: "GET" | "POST" | "PUT" | "DELETE";
   // Sent as JSON.
   body?: unknown;
 }

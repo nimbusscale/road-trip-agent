@@ -14,10 +14,15 @@ import {
 import type { ErrorResponse } from "../shared/error.schema.js";
 import type { HealthResponse } from "../shared/health.schema.js";
 import type { MeResponse } from "../shared/me.schema.js";
+import {
+  RatingNotSavedError,
+  type Ratings,
+} from "../tracing/phoenix-ratings.js";
 import type { ChatDependencies } from "./chat-dependencies.js";
 import { memoryRoutes } from "./memory-routes.js";
 import { SessionNotFoundError } from "./owned.js";
 import { planDownloadRoutes } from "./plan-download-routes.js";
+import { ratingRoutes } from "./rating-routes.js";
 import { requireSignIn } from "./require-sign-in.js";
 import { sessionRoutes } from "./session-routes.js";
 import { tripRoutes } from "./trip-routes.js";
@@ -27,6 +32,7 @@ export interface ApiDependencies {
   isPhoenixReachable: () => Promise<boolean>;
   verifyToken: VerifyToken;
   chat: ChatDependencies;
+  ratings: Ratings;
 }
 
 export function createApi(dependencies: ApiDependencies) {
@@ -59,6 +65,7 @@ export function createApi(dependencies: ApiDependencies) {
   api.route("/", sessionRoutes(dependencies.chat));
   api.route("/", memoryRoutes(dependencies.chat));
   api.route("/", planDownloadRoutes(dependencies.chat));
+  api.route("/", ratingRoutes(dependencies.chat, dependencies.ratings));
 
   api.onError((error, context) => {
     const status = statusOf(error);
@@ -92,6 +99,9 @@ function statusOf(error: Error): ContentfulStatusCode {
   }
   if (error instanceof RuleError) {
     return 400;
+  }
+  if (error instanceof RatingNotSavedError) {
+    return 503;
   }
   return 500;
 }

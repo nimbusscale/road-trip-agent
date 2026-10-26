@@ -93,6 +93,12 @@ export class TurnTrace {
     this.#context = trace.setSpan(context.active(), this.#turn);
   }
 
+  // The turn span's ID, which the chat's "View trace" link and a turn's rating use
+  // (systems design section 10).
+  get spanId(): string {
+    return this.#turn.spanContext().spanId;
+  }
+
   // A worker's messages carry the ID of the Agent call that started it.
   record(message: SDKMessage): void {
     if (

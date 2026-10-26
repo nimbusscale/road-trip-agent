@@ -1,6 +1,7 @@
 import { createTestSigner } from "../auth/test-tokens.js";
 import { createTokenVerifier } from "../auth/token-verifier.js";
 import { ChatEventParser } from "../shared/chat-event-parser.js";
+import { FakeRatings } from "../tracing/phoenix-ratings.fake.js";
 import type { ChatEvent } from "../shared/session.schema.js";
 import { createApi } from "./api.js";
 import { type ChatSetUp, chatSetUp } from "./chat.fake.js";
@@ -19,16 +20,19 @@ export interface ChatApi extends ChatSetUp {
   // The test user, and a second user who owns nothing.
   asUser: Caller;
   asOtherUser: Caller;
+  ratings: FakeRatings;
 }
 
 export async function chatApi(now: Date): Promise<ChatApi> {
   const signer = await createTestSigner();
   const setUp = chatSetUp(now);
+  const ratings = new FakeRatings();
   const api = createApi({
     isDatabaseReachable: () => Promise.resolve(true),
     isPhoenixReachable: () => Promise.resolve(true),
     verifyToken: createTokenVerifier(signer.verifierOptions),
     chat: setUp.chat,
+    ratings,
   });
   const callerFor =
     (token: string): Caller =>
@@ -47,6 +51,7 @@ export async function chatApi(now: Date): Promise<ChatApi> {
     ...setUp,
     asUser: callerFor(await signer.sign()),
     asOtherUser: callerFor(await signer.sign({ sub: OTHER_USER_ID })),
+    ratings,
   };
 }
 
@@ -59,6 +64,7 @@ export async function eventsOf(response: Response): Promise<ChatEvent[]> {
 export function openedSession(events: readonly ChatEvent[]): {
   tripId: string;
   sessionId: string;
+  agentSessionId: string;
 } {
   const [first] = events;
   if (first?.name !== "session") {

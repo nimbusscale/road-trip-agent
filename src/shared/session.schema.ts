@@ -24,8 +24,11 @@ export type ShownMessage = z.infer<typeof shownMessageSchema>;
 // A resumed session: its conversation so far. While a turn is still running, such as
 // after the tab was closed partway through a reply, the browser asks again until it
 // ends.
+// `agentSessionId` is the session's ID in Phoenix, for the "View session" link (systems
+// design section 10).
 export const sessionResponseSchema = z.object({
   sessionId: z.string(),
+  agentSessionId: z.string(),
   tripId: z.string(),
   messages: z.array(shownMessageSchema),
   turnRunning: z.boolean(),
@@ -37,7 +40,14 @@ export type SessionResponse = z.infer<typeof sessionResponseSchema>;
 // turn's other steps are in its trace (systems design section 10).
 export const chatEventSchemas = {
   // First, when the message started a trip or a session.
-  session: z.object({ tripId: z.string(), sessionId: z.string() }),
+  session: z.object({
+    tripId: z.string(),
+    sessionId: z.string(),
+    agentSessionId: z.string(),
+  }),
+  // The turn span's ID, for the turn's rating and "View trace" link. It comes before
+  // the reply.
+  traced: z.object({ spanId: z.string() }),
   // A part of the coordinator's reply.
   text: z.object({ text: z.string() }),
   // A tool the coordinator called, by its full name, such as
@@ -55,6 +65,7 @@ function eventSchema<Name extends ChatEventName>(name: Name) {
 
 export const chatEventSchema = z.discriminatedUnion("name", [
   eventSchema("session"),
+  eventSchema("traced"),
   eventSchema("text"),
   eventSchema("toolCall"),
   eventSchema("ended"),

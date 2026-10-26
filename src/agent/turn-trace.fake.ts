@@ -50,8 +50,10 @@ export function useTestTracer(): void {
 export async function runTrace(
   messages: readonly SDKMessage[],
   readWorkerTranscript: ReadWorkerTranscript = NO_WORKERS,
-): Promise<void> {
-  await recordAll(messages, readWorkerTranscript).end();
+): Promise<TurnTrace> {
+  const turnTrace = recordAll(messages, readWorkerTranscript);
+  await turnTrace.end();
+  return turnTrace;
 }
 
 // The turn's messages, and then the SDK throws the error.

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { RESUMED_LINE } from "../agent/app-lines.js";
+import { FAKE_SPAN_ID } from "../agent/run-turn.fake.js";
 import { TEST_USER_ID } from "../auth/test-tokens.js";
 import { exampleMoabTrip } from "../domain/itinerary.fake.js";
 import { Session } from "../persistence/session.js";
@@ -39,6 +40,7 @@ describe("the chat's turns", () => {
     );
     expect(events.map((event) => event.name)).toEqual([
       "session",
+      "traced",
       "text",
       "text",
       "ended",
@@ -47,9 +49,9 @@ describe("the chat's turns", () => {
     expect(call?.message).toBe(
       "Today is Thursday, October 15, 2026.\n\nPlan a trip to Utah",
     );
-    expect(call?.options.sessionId).toBe(
-      chat.sessionStore.rows[0]?.agentSessionId,
-    );
+    const agentSessionId = chat.sessionStore.rows[0]?.agentSessionId;
+    expect(call?.options.sessionId).toBe(agentSessionId);
+    expect(openedSession(events).agentSessionId).toBe(agentSessionId);
     expect(call?.options.resume).toBeUndefined();
   });
 
@@ -81,6 +83,7 @@ describe("the chat's turns", () => {
     ]);
     expect(sessionResponseSchema.parse(await resumed.json())).toEqual({
       sessionId,
+      agentSessionId,
       tripId: chat.sessionStore.rows[0]?.tripId,
       messages: [
         { role: "user", text: "Plan a trip to Utah" },
@@ -93,7 +96,7 @@ describe("the chat's turns", () => {
   });
 
   // The turn's other steps are in its trace (systems design section 10).
-  it("streams only the reply's text, the tool being called, and the turn's end", async () => {
+  it("streams only the turn's span ID, the reply's text, the tool being called, and the turn's end", async () => {
     const chat = await chatApi(PLANNING);
     const sessionId = await startTrip(chat);
     chat.sdk.beforeReply = [
@@ -117,6 +120,7 @@ describe("the chat's turns", () => {
     chat.sdk.replyParts = ["Five days it is."];
     const events = await eventsOf(await send(chat, sessionId, "Five days."));
     expect(events).toEqual([
+      { name: "traced", data: { spanId: FAKE_SPAN_ID } },
       { name: "toolCall", data: { name: "mcp__trip__update_trip_brief" } },
       { name: "text", data: { text: "Five days it is." } },
       { name: "ended", data: { failure: null } },

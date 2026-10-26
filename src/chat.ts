@@ -178,12 +178,11 @@ async function nextText(terminal: Terminal): Promise<string | null> {
 
 function printEvent(event: TurnEvent, terminal: Terminal): void {
   switch (event.kind) {
+    case "traced":
+      console.log(`  [trace] turn span ${event.spanId}`);
+      break;
     case "started":
-      if (!terminal.initShown) {
-        console.log(`Model: ${event.model}`);
-        console.log(`Tools: ${event.tools.join(", ")}`);
-        terminal.initShown = true;
-      }
+      printStarted(event, terminal);
       break;
     case "thinking":
       console.log(
@@ -209,6 +208,17 @@ function printEvent(event: TurnEvent, terminal: Terminal): void {
     case "ended":
       printEnded(event, terminal);
       break;
+  }
+}
+
+function printStarted(
+  event: Extract<TurnEvent, { kind: "started" }>,
+  terminal: Terminal,
+): void {
+  if (!terminal.initShown) {
+    console.log(`Model: ${event.model}`);
+    console.log(`Tools: ${event.tools.join(", ")}`);
+    terminal.initShown = true;
   }
 }
 

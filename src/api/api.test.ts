@@ -8,6 +8,7 @@ import {
 import { createTokenVerifier } from "../auth/token-verifier.js";
 import { healthResponseSchema } from "../shared/health.schema.js";
 import { meResponseSchema } from "../shared/me.schema.js";
+import { FakeRatings } from "../tracing/phoenix-ratings.fake.js";
 import { createApi } from "./api.js";
 import { chatSetUp } from "./chat.fake.js";
 
@@ -21,6 +22,7 @@ describe("GET /api/health", () => {
       isPhoenixReachable: () => Promise.resolve(phoenix),
       verifyToken: NO_ONE_SIGNED_IN,
       chat: CHAT,
+      ratings: new FakeRatings(),
     });
   }
 
@@ -64,6 +66,7 @@ describe("GET /api/me", () => {
       isPhoenixReachable: () => Promise.resolve(true),
       verifyToken: createTokenVerifier(signer.verifierOptions),
       chat: CHAT,
+      ratings: new FakeRatings(),
     });
     token = await signer.sign();
   });
