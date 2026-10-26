@@ -7,7 +7,7 @@ The problem: a whole read of a busy 14-day trip is 34,498 tokens. That's over Cl
 **Where it stands.** The proposal has two parts:
 
 - **Version M of the whole read (section 5).** It gives the picked place on each stop and stay, and only a count of the other candidates, by set. It leaves out the picked place's rationale and each stay's weather text, which the itinerary view already shows the user. A busy 14-day trip goes from 34,498 tokens to 17,198. The same trip with nothing picked goes from 26,324 tokens to 10,064. Both are under the tool's 40,000-character limit, so the limit can stay (section 10).
-- **A new tool that searches the trip's own places by name (section 6).** With no candidate names in the whole read, it's how the coordinator finds the stop or stay a place belongs to, when the user names one.
+- **A new tool, `find_in_trip`, that searches the trip's own places by name (section 6).** With no candidate names in the whole read, it's how the coordinator finds the stop or stay a place belongs to, when the user names one.
 
 One thing is still open: whether `select_user_place` should say when the place is already a candidate on another stop or stay (section 6).
 
@@ -17,7 +17,8 @@ One thing is still open: whether `select_user_place` should say when the place i
 
 - **The trip measured** is a realistic version of the 14-day loop from Las Vegas that #54 measured. It has 8 stays, 3 to 6 stops a day, and 275 candidates. The places have real names, such as The Narrows and Cliff Palace, with types, ratings, and towns that read like Google's. Each selected place has its own rationale. Nearly everything is picked. One stop has candidates but no place picked, one stop has no candidates yet, and there are four rejected places and three open warnings. Its whole read is `itinerary-read-size/full-read-14-realistic.txt`.
 - **The same trip with nothing picked** shows the state right after workers fill the days, before the user chooses. It's the same trip, built with no lodging or stop place selected. Only the two stops the user named have a place. Its whole read is `itinerary-read-size/full-read-14-nothing-picked.txt`.
-- **How the reads were made:** a script builds the trip through the services, like the example trips, and prints it with `wholeLines`, the code `read_itinerary` uses. It skips the tool's size limit. The script is `scratch/realistic-itinerary.ts`, which is git-ignored. `NOTHING_PICKED=1` builds the trip with nothing picked, and `ONE_SET=1` keeps only each item's first set. `STAY_READS=1` also prints each stay's read, with `stayScopeLines`.
+- **The same trip with Stay 8 open** shows a trip partway through the picking. Stay 8, the last stay, has no lodging picked, and neither do the stops on its days, Days 12 and 13, or Day 14's breakfast near it. The one stop the user named there, dinner at El Tovar, keeps its place. Its whole read is `itinerary-read-size/full-read-14-stay-8-open.txt`.
+- **How the reads were made:** a script builds the trip through the services, like the example trips, and prints it with `wholeLines`, the code `read_itinerary` uses. It skips the tool's size limit. The script is `scratch/realistic-itinerary.ts`, which is git-ignored. `NOTHING_PICKED=1` builds the trip with nothing picked, `OPEN_STAY=8` builds it with Stay 8 open, and `ONE_SET=1` keeps only each item's first set. Apart from the place, stop, day, and stay IDs, which are random, each build gives the same read. `STAY_READS=1` also prints each stay's read, with `stayScopeLines`.
 - **How each change was measured:** `itinerary-read-size/variants.py` rewrites the read's text into each slimmer version. So these are mockups of the formats, not code changes. Each version keeps the same IDs and places.
 - **How tokens were counted:** the same way as in tool design 2.1. The text goes to `claude-opus-5-5`, the coordinator's model, through the Agent SDK. The count is its input tokens less those of a one-word prompt. Counting version J a second time gave the same 21,000 tokens.
 - **The review.** A fresh agent, with no chat history or memory, compared an earlier proposal (version F in section 4) with the design docs, the code, and the tests. Section 7 covers what it found and how the proposal changed.
@@ -109,12 +110,13 @@ Each version is the busy trip's whole read with one or more changes.
 
 Short dates means "Sun Sep 12" instead of "Sunday, September 12, 2027". It and dropping "the usual start time" each save about 1% of the characters. Their tokens weren't counted on their own.
 
-L and M save little over J on candidates in the busy trip, since only one of its stops has candidates and nothing picked. Counting those matters on the trip with nothing picked:
+L and M save little over J on candidates in the busy trip, since only one of its stops has candidates and nothing picked. Counting those matters on a trip with less picked:
 
 | State | Today | J | L | M |
 |---|---|---|---|---|
 | Nothing picked, one set for each item | 47,064 characters, 24,078 tokens | about the same as today | not measured | not measured |
 | Nothing picked, with the second sets | 51,047 characters, 26,324 tokens | about the same as today | 22,806 characters, 10,820 tokens | 20,856 characters, 10,064 tokens |
+| Stay 8 open | 63,905 characters, 33,165 tokens | not measured | not measured | 30,083 characters, 16,039 tokens |
 
 With names in place of the counts, the nothing-picked read is 13,698 tokens. With names and IDs, it's 16,420.
 
@@ -124,7 +126,7 @@ Versions A to K don't make the nothing-picked read smaller. With no place picked
 
 ## 5. The current proposal (version M)
 
-It changes only the whole read. Reads of a day, stay, or stop stay as they are. `itinerary-read-size/slim-read-proposed.txt` is the busy trip in this format.
+It changes only the whole read. Reads of a day, stay, or stop stay as they are. `itinerary-read-size/slim-read-proposed.txt` is the trip with Stay 8 open, in this format, so it shows both picked and undecided items. `full-read-14-stay-8-open.txt` is the same state in today's format.
 
 **What changes:**
 
@@ -179,29 +181,29 @@ A wrong guess fails quietly. `select_user_place` takes a stop or stay ID. It ref
 |---|---|---|
 | Put the candidate names back in the whole read, in place of the counts | On every whole read, about 2,000 tokens with names only, or about 3,900 with names and IDs, on the busy trip. On the nothing-picked trip, about 2,900 and 5,600 (section 4) | Most of the names are never mentioned. Without IDs, picking a lodging candidate by name takes a stay read, the only read that holds it. On this trip a stay read is 4,090 to 12,154 tokens, more than the IDs would cost. With IDs, the busy read is 24,793 tokens, at the limit |
 | `find_place`, then a new `read_itinerary` scope by place ID that gives the stops and stays holding it | About 500 tokens a lookup, a guess not measured, and a paid Google call | Google searches the whole world, not the trip. A typo, such as "Desert Rose" for "Desert Pearl," can return a real Desert Rose somewhere, and never the Desert Pearl Inn |
-| **A search of the trip's own places by name. The proposal** | One call, and a small reply. Not measured | A second tool for "a place the user names" |
+| **`find_in_trip`, a search of the trip's own places by name. The proposal** | One call, and a small reply. Not measured | A second tool for "a place the user names" |
 
 Names in the read cost tokens on every session start and resume, and they stay in context all session. A lookup costs tokens only when the user names a place. So a lookup comes out ahead unless the user names many candidates in one session, and most candidates are never named.
 
-### 6.2 The search of the trip's places
+### 6.2 `find_in_trip`
 
 It's a new tool. `find_in_trip` is a working name, kept far from `find_place` so the two are hard to mix up.
 
 - **What it searches:** every place in the trip. That's the candidates, the selected places, the rejected places, the start and end places, and the stays' towns. Code already loads every place with the trip (persistence design: `EditableTrip` holds every place loaded with the trip). So the search runs in TypeScript, with no new table or Postgres extension.
 - **How it matches:** by string similarity, meaning how many letters and word pieces two names share. Not by vector search. Vector search matches meaning, and a typo is a spelling problem. An embedding of "Desert Rose" could land closer to a "Rose Garden" than to the Desert Pearl Inn.
 - **Input:** only the text the user said, such as "Desert Rose." No stay or day to narrow it. The coordinator often won't know the stay, and an optional input goes against tool design section 4.
-- **Reply:** the closest few places, best first. Each gives its name, place ID, short line, and where it sits in the trip. Examples: "Lodging candidate for Stay 1, Springdale (stay_…), set 1, not selected." "Selected for Day 1, Stop 4 (stop_…)." "Rejected: the user doesn't want to stay on the Strip." A candidate could also give its rationale, so "why Whiptail?" takes no stay read.
+- **Reply:** the closest few places, best first. Each gives its name, place ID, short line, and where it sits in the trip. Examples: "Lodging candidate for Stay 1, Springdale (stay_…), set 1, not selected." "Selected for Day 1, Stop 4 (stop_…)." "Rejected: the user doesn't want to stay on the Strip."
 - **No cutoff for a match.** It always returns the closest few, and the coordinator judges. When none is an exact match, it asks the user, such as "Did you mean the Desert Pearl Inn?" That keeps a fiddly threshold out of code, and leaves the judgment with the agent, where an evaluation can watch it.
 - **Its own tool, not a `read_itinerary` scope.** Tool design 2.1 says the scopes are IDs, not a query language, so a bad request gets an error instead of quietly returning nothing. A search by name is a query.
 
 ### 6.3 What to watch
 
-- **Two tools for a place the user names.** This is the risk that comes with this approach. The coordinator's instructions have to say to search the trip first, and to use `find_place` only for a place that isn't in the trip. An evaluation should check that it picks the right tool.
+- **Two tools for a place the user names.** This is the risk that comes with this approach. The coordinator's instructions have to say to use `find_in_trip` first, and `find_place` only for a place that isn't in the trip. An evaluation should check that it picks the right tool.
 - **A close match that isn't what the user meant.** Say the user wants a new restaurant, Desert Rose Grill, and the search returns the Desert Pearl Inn as the closest. The coordinator has to notice the match isn't exact and ask. This comes with any approach that takes a name the user typed, Google's included. Only exact matching avoids it, and exact matching fails on a typo.
 
 ### 6.4 Still open
 
-`select_user_place` could say in its reply when the place is already a candidate on another stop or stay, and name it. It shouldn't refuse the call, since the same place can be a candidate on two stops on purpose (tool design 2.1). That would make a wrong guess visible, to the coordinator and in a trace. With the trip search, a wrong guess should be rarer, so this may not be needed.
+`select_user_place` could say in its reply when the place is already a candidate on another stop or stay, and name it. It shouldn't refuse the call, since the same place can be a candidate on two stops on purpose (tool design 2.1). That would make a wrong guess visible, to the coordinator and in a trace. With `find_in_trip`, a wrong guess should be rarer, so this may not be needed.
 
 ---
 
@@ -231,13 +233,13 @@ It saved only about 640 tokens.
 
 ## 8. Trade-offs that remain
 
-- **In a new session, the coordinator knows no candidate's name.** Picking one by name goes through the trip search (section 6). These requests take one stop or stay read each:
+- **In a new session, the coordinator knows no candidate's name.** Picking one by name goes through `find_in_trip` (section 6). These requests take one stop or stay read each:
   - "What else was offered?", or recommending one of an item's options.
   - Offering again a place passed over for a date reason (technical spec 5.2).
   - Checking whether another candidate is open on the stop's date (technical spec 7.2).
 
   A Select click on an option card isn't affected, since its message carries the place's line and IDs (technical spec 7.2).
-- **The rationale and the weather text take another call.** For "why did we pick that?", the trip search could give the rationale (section 6.2). Otherwise it takes a stop read, or a stay read for lodging. "What should I pack for Moab?" takes a stay read. On this trip, a stay read is 4,090 to 12,154 tokens, since it gives every candidate in full for every stop on the stay's days. The user sees both in the view, so these questions should be rare.
+- **The rationale and the weather text take another call.** "Why did we pick that?" takes a stop read, or a stay read for lodging. "What should I pack for Moab?" takes a stay read. On this trip, a stay read is 4,090 to 12,154 tokens, since it gives every candidate in full for every stop on the stay's days. The user sees both in the view, so these questions should be rare.
 - **"More options", "Higher tier", and "Lower tier" need a stop read first.** A worker brief lists the candidates already offered, as places to leave out (technical spec 5.3). If the coordinator writes the brief from the count alone, the worker will likely find the same top places again. Code refuses a repeat ("…is already one of the candidates"), so the cost is a wasted worker call, not a broken trip. The instructions for the refine round should say to read the stop first. Those instructions aren't written yet.
 - **A whole read and a day read of the same day will look different.** The day read still lists every candidate. That makes traces harder to compare, and a model might think something changed between the two reads. In code, both use `dayLines(…, "short")` in `src/tools/itinerary-lines.ts`, so this needs a third level of detail, not a change to "short".
 
@@ -247,7 +249,7 @@ It saved only about 640 tokens.
 
 The fill round sends workers for the whole trip at once (technical spec 4.2, step 4). So every long trip passes through a state with almost nothing picked, right after the fill. A person isn't likely to leave a trip that way for long. But a session can end partway through the picking, and the next one then starts with a whole read of a trip that's partly picked.
 
-In version J, a partly picked trip lies between 21,000 tokens (busy) and 26,324 (nothing picked), so it's near or over the limit. In version M, it lies between 10,064 and 17,198. A partly picked trip wasn't measured, but each pick makes the read longer in M, since the picked place's line is longer than a count. So the busy trip is close to the largest a whole read gets.
+In version J, a partly picked trip lies between 21,000 tokens (busy) and 26,324 (nothing picked), so it's near or over the limit. In version M, it lies between 10,064 and 17,198. With Stay 8 open, it's 16,039 (section 4). Each pick makes the read longer in M, since the picked place's line is longer than a count. So the busy trip is close to the largest a whole read gets.
 
 The tool still needs its refusal for a read that's too large, for a trip denser than this one. Today its error says to read the trip a stay at a time. But a stay read is the largest scoped read, since it gives every candidate's full details. On this trip, the 3-night Moab stay reads at 25,582 characters. Day reads are smaller, at about 5,200 characters each at most (#54). So the error could point to day reads instead.
 
@@ -265,12 +267,12 @@ Fewer IDs for their length means more characters per token. The measured reads r
 
 - **Tool design 2.1, the `read_itinerary` row.** It says a read gives "every stored property of each item it covers", and for each stop and stay "every candidate, in the order offered, each with its set number and its visit and detour times." It also says a scoped read returns "the same details for its part only". A day read would now return more than the whole read does.
 - **Tool design 2.1, the size paragraphs.** "A whole read of a long trip is refused" would no longer be true of a trip like this one. The fallback would change, if it points to day reads (section 9).
-- **Tool design 2.1, a new row for the trip search (section 6.2),** with its description, input, and reply.
-- **Technical spec 5.1,** the coordinator's tools: it would add the trip search, next to "find a named place".
+- **Tool design 2.1, a new row for `find_in_trip` (section 6.2),** with its description, input, and reply.
+- **Technical spec 5.1,** the coordinator's tools: it would add `find_in_trip`, next to "find a named place".
 - **Technical spec 7.2, "Reading the itinerary".** It says the read returns "the name and short line for every selected place and every candidate". It also says every selected place comes with its rationale, and that in a new session this is all the coordinator knows about the trip's places. In version M, the read gives only the selected places and counts for the rest, with no rationale.
 - **Technical spec 5.2.** It could say what each whole read is for, as in section 2.1, so the instructions don't lean on the read for candidates.
 - **The tool's description, `READ_ITINERARY_DESCRIPTION` in `src/tools/itinerary-tools.ts`.** "Candidates are listed in the order offered, with their set" would be wrong for a whole read, and the count lines need explaining. `src/agent/coordinator.view.md` is a snapshot of it, so `npm run agent-views` updates it.
-- **The coordinator's instructions.** They should say to search the trip before `find_place` when the user names a place. They should also say to read the stop or stay before recommending one of its options, or "More options", "Higher tier", or "Lower tier" (section 8).
+- **The coordinator's instructions.** They should say to use `find_in_trip` before `find_place` when the user names a place. They should also say to read the stop or stay before recommending one of its options, or "More options", "Higher tier", or "Lower tier" (section 8).
 - **Tests.** `src/tools/itinerary-read-marks.test.ts` has a test that a whole read of `fourteenDayExample` is refused as too large. In the new format it would probably fit, and the test would fail. A new test should pin both count lines, the folded stop line, and the weather line without its text.
 
 ---
@@ -290,9 +292,8 @@ The review checked these for version F, and found they don't change. Each still 
 
 ## 13. Not measured
 
-- **The trip search's reply.** It gives a few places with their IDs and where they sit, so likely a few hundred tokens.
+- **`find_in_trip`'s reply.** It gives a few places with their IDs and where they sit, so likely a few hundred tokens.
 - **A smaller stay read.** A stay read is the only read that holds a stay's lodging and weather text, and it's large because it gives every candidate on the stay's days in full.
 - **Fewer IDs.** Version B has 191 IDs, at about 5 tokens each, so about 1,000 tokens. The coordinator needs each one to act on its item, so there isn't much to cut.
 - **JSON instead of text.** Repeating each key and its quotes on every item would likely cost more.
-- **A partly picked trip.** It lies between the busy and nothing-picked reads (section 9).
 - **The largest busy trip.** Since 14 days is the longest trip allowed (technical spec section 10), a trip like this one is close to the largest a whole read gets once most items are picked.
