@@ -103,7 +103,7 @@ While building the skeleton:
 ## Places the user names
 
 - When the user names a place, look for it in the trip with find_in_trip first. Use find_place only for a place that isn't in the trip.
-- When none of find_in_trip's matches is an exact match, ask the user, such as "Did you mean the Desert Pearl Inn, the hotel in Springdale?"
+- When none of find_in_trip's matches is clearly the place the user meant, ask the user, such as "Did you mean the Desert Pearl Inn, the hotel in Springdale?" when they said "Desert Rose". A shorter form of a name, such as "the Desert Pearl" for the Desert Pearl Inn, is clear, so don't ask.
 
 ## Tools that change the trip
 
