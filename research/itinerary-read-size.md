@@ -23,12 +23,16 @@ The problem: a whole read of a busy 14-day trip is 34,498 tokens. That's over Cl
 
 ## 2. Why the coordinator reads the whole trip
 
+There are two questions here, and they have different answers. When does the coordinator read the whole trip, and what does it need then? And what does the read carry for later in the session, in case the user asks?
+
+### 2.1 When it reads the whole trip
+
 Technical spec 5.2 has the coordinator read the whole itinerary in three cases. Here is what each one needs from the read.
 
 | Case | What the coordinator needs |
 |---|---|
-| **The start of a session** | The open warnings, to mention in its first reply. The forecast notes, to offer a weather rerun. And a picture of the trip: its dates and ends, its stays and days, what's picked on each stop and stay, and why |
-| **After a resume** | What changed since the transcript ends. Another session may have changed the trip, or a worker may have saved candidates before a restart cut off the turn ([persistence design](../design/persistence.md), section 7). Also the open warnings |
+| **The start of a session** | The open warnings, to mention in its first reply. The forecast notes, to offer a weather rerun. And the trip as it stands: its dates and ends, its stays and days, the schedule, what's picked on each stop and stay, and what's still open |
+| **After a resume** | The same as at the start of a session: the trip as it stands now. A list of what changed wouldn't do instead, since the coordinator would then have to merge it with an old read far back in its transcript and its own writes since. What's different is that the conversation is back. So the coordinator also has to spot what the conversation never heard about. The main case is candidates a worker saved before a restart cut off the turn ([persistence design](../design/persistence.md), section 7). #147 asks whether to give it a list of changes as well, once an evaluation shows it needs one |
 | **"What's left to decide?"** | Which stops and lodging are empty or proposed, the open warnings, and the approved exceptions |
 
 None of the three needs every candidate's name and short line:
@@ -37,7 +41,27 @@ None of the three needs every candidate's name and short line:
 - For an item that isn't picked yet, the coordinator needs to know it's undecided, and how many options it has. To talk through the options, it reads that stop or stay.
 - After a resume, it needs to notice new candidates, not read them. A count by set shows that a stop that was empty now has a set, or that a picked stop has a new one.
 
-**Why a whole read lists every candidate today.** Technical spec 7.2 says a whole read gives "the name and short line for every selected place and every candidate". It says that in a new session, this is all the coordinator knows about the trip's places. With every name in context, the coordinator can follow along when the user names a candidate, such as "let's do the Desert Pearl instead," and select it without another call. That's useful, but it isn't one of the three jobs above. Without it, the coordinator reads the stop or stay first, which is one call (section 7).
+### 2.2 What the read carries for later
+
+The read at the start of a session is also the coordinator's background for the rest of the session. Today it carries four things for that, each in case the user asks about it:
+
+| What | Why it's in the read | Where the user sees it without asking | Size in the busy read |
+|---|---|---|---|
+| The candidates not picked, with their short lines | So the coordinator can follow along when the user names one, such as "let's do the Desert Pearl instead" (technical spec 7.2) | The option cards, shown for every stop and stay with nothing selected (functional spec 7.5) | 20,813 characters, 31% (section 3) |
+| The picked place's rationale | To answer "why did we pick that?" (technical spec 7.2) | The itinerary view (functional spec 7.6) | About 2,900 tokens (version G in section 4) |
+| Each stay's weather and clothing text | To answer what to pack | The itinerary view (functional spec 9.6) | About 700 tokens (version E) |
+| The rejected places, with their reasons | To answer about a place the user turned down | Not in the view. But `find_place` marks a rejected place with the user's reason | 4 lines |
+
+The itinerary view sits next to the chat (functional spec section 9). #57 builds it, and #62 builds the option cards. So the user can see the first three without asking the coordinator.
+
+That suggests a rule for what a whole read carries:
+
+- What the coordinator needs for the three cases in 2.1.
+- Enough to recognize what the user is talking about.
+
+Details the view already shows would come from a scoped read, when the user asks about them. Version L follows the rule for candidates. It still carries the rationale and the weather text. Dropping both would save about 3,600 more tokens, going by versions E and G, but that wasn't measured on L.
+
+**The hard part is recognizing what the user means.** The user is looking at the view, so they'll name things they see there, such as "the Desert Pearl," "Tuesday's dinner," or "why Whiptail?" The coordinator has to work out which stop or stay is meant, and then read it. A day or a picked place is easy to find in the read. A candidate that isn't picked is not, once the read has no candidate names. That's an open question in #129.
 
 ---
 
@@ -126,7 +150,7 @@ A stop with nothing picked, proposed:
 
 **What stays:**
 
-- Each of the three cases in section 2 still has what it needs. "What's left to decide?" sees every stop and stay with no place picked, and how many options each has.
+- Each of the three cases in section 2.1 still has what it needs. "What's left to decide?" sees every stop and stay with no place picked, and how many options each has.
 - The schedule's drive lines, each meal's tier, and each stay's weather text.
 - Everything outside candidates: the trip's dates and ends, stays, legs, approvals, rejected places, and check results. So the parts that only a whole read shows stay in reach. These are the check results about the trip itself, such as its length, plus the start and end places, the dates, and the rejected places. Reading a stay at a time loses them (#129, last open question).
 - A read scoped to a stop or stay still gives every candidate in full. So the coordinator can always get them with a call it already has.
@@ -194,7 +218,7 @@ Fewer IDs means more characters per token. The measured reads ran from 1.83 to 2
 - **Tool design 2.1, the `read_itinerary` row.** It says a read gives "every stored property of each item it covers", and for each stop and stay "every candidate, in the order offered, each with its set number and its visit and detour times." It also says a scoped read returns "the same details for its part only". A day read would now return more than the whole read does.
 - **Tool design 2.1, the size paragraphs.** "A whole read of a long trip is refused" would no longer be true of a trip like this one. The 40,000-character limit would change (section 9). So would the fallback, if it points to day reads (section 8).
 - **Technical spec 7.2, "Reading the itinerary".** It says the read returns "the name and short line for every selected place and every candidate," and that in a new session this is all the coordinator knows about the trip's places. In version L, the read gives only the selected places, and counts for the rest.
-- **Technical spec 5.2.** It could say what each whole read is for, as in section 2, so the instructions don't lean on the read for candidates.
+- **Technical spec 5.2.** It could say what each whole read is for, as in section 2.1, so the instructions don't lean on the read for candidates.
 - **The tool's description, `READ_ITINERARY_DESCRIPTION` in `src/tools/itinerary-tools.ts`.** "Candidates are listed in the order offered, with their set" would be wrong for a whole read, and the count lines need explaining. `src/agent/coordinator.view.md` is a snapshot of it, so `npm run agent-views` updates it.
 - **The coordinator's instructions.** They should say to read the stop or stay before picking an option by name, recommending one, or "More options", "Higher tier", or "Lower tier" (section 7).
 - **Tests.** `src/tools/itinerary-read-marks.test.ts` has a test that a whole read of `fourteenDayExample` is refused as too large. In the new format it would probably fit, and the test would fail. A new test should pin both count lines and the folded stop line.
