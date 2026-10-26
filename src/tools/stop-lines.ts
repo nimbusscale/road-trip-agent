@@ -13,12 +13,15 @@ import type { Stop } from "../domain/stop.js";
 import type { ReadContext } from "./read-context.js";
 
 // How read_itinerary shows a stop, its candidates, and approvals (tool design 2.1). Each
-// place is its name, ID, and short line, never its full record (technical spec 7.2).
+// place is its name, ID, and short line, never its full record (technical spec 7.2). A
+// whole read gives a selected place only its town in place of the short line.
 
-// Short: each candidate's set, place, and times, with the selected one's rationale, for
-// a whole read or a day. Full: every stored property of every candidate, for a read
+// Slim: for a whole read, the selected place folded into its stop's or lodging line,
+// with only its town, and the other candidates counted by set, with no rationale or
+// tier rule. Short: each candidate's set, place, and times, with the selected one's
+// rationale, for a day. Full: every stored property of every candidate, for a read
 // scoped to a stay or a stop.
-export type Detail = "short" | "full";
+export type Detail = "slim" | "short" | "full";
 
 const SEARCH_AREA_TEXT = {
   alongLeg: "Along the leg",
@@ -38,6 +41,13 @@ export function placeLine(place: Place): string {
   return shortLine === "" ? named : `${named}, ${shortLine}`;
 }
 
+// A selected place in a whole read, such as "Milt's Stop & Eat (place_…), Moab". The
+// stop's line already says what kind of place it is (tool design 2.1).
+export function pickedPlaceText(place: Place): string {
+  const named = `${placeText(place)} (${place.id})`;
+  return place.town === null ? named : `${named}, ${place.town}`;
+}
+
 // The stop's line, then its candidates and approvals, indented under it. `times` is
 // its arrival and end from the day's schedule, such as "12:00 p.m. to 12:45 p.m.".
 export function stopLines(
@@ -48,9 +58,16 @@ export function stopLines(
 ): string[] {
   const order = context.calendar.orderOf(context.itinerary, stop);
   return [
-    `- ${times}: Stop ${String(order + 1)} (${stop.id}), ${stop.kind}: "${stop.purpose}". ${stopFacts(stop)}`,
+    `- ${times}: Stop ${String(order + 1)} (${stop.id}), ${stop.kind}: "${stop.purpose}". ${stopFacts(stop, detail)}`,
     ...indented(
-      candidateLines(stop.candidates, stop.selectedPlace, detail, "Candidates"),
+      detail === "slim"
+        ? countLines(stop.candidates, stop.selectedPlace, "Candidates")
+        : candidateLines(
+            stop.candidates,
+            stop.selectedPlace,
+            detail,
+            "Candidates",
+          ),
     ),
     ...indented(
       stop.approvals.map((approval) => approvalLine(context, stop, approval)),
@@ -58,7 +75,7 @@ export function stopLines(
   ];
 }
 
-function stopFacts(stop: Stop): string {
+function stopFacts(stop: Stop, detail: Detail): string {
   const area =
     stop.searchArea === "nearStay"
       ? `Near the ${stop.searchAreaStay === null ? "" : placeText(stop.searchAreaStay.place)} stay`
@@ -70,19 +87,71 @@ function stopFacts(stop: Stop): string {
     );
   }
   if (stop.tier !== null && stop.tierRule !== null) {
-    facts.push(`Tier: ${stop.tier}, from the rule "${stop.tierRule}".`);
-  }
-  const place = stop.selectedPlace;
-  if (place !== null && stop.visitTimeInMinutes !== null) {
     facts.push(
-      `Selected: ${placeText(place)} (${place.id}), visit time ${durationText(stop.visitTimeInMinutes)}.`,
-    );
-  } else {
-    facts.push(
-      stop.status === "empty" ? "No candidates yet." : "No place selected yet.",
+      detail === "slim"
+        ? `Tier: ${stop.tier}.`
+        : `Tier: ${stop.tier}, from the rule "${stop.tierRule}".`,
     );
   }
+  facts.push(selectionText(stop, detail));
   return facts.join(" ");
+}
+
+// A whole read gives the selected place's town, and its candidate's detour time, since
+// it lists no candidates (tool design 2.1).
+function selectionText(stop: Stop, detail: Detail): string {
+  const place = stop.selectedPlace;
+  const visit = stop.visitTimeInMinutes;
+  if (place === null || visit === null) {
+    return stop.status === "empty"
+      ? "No candidates yet."
+      : "No place selected yet.";
+  }
+  if (detail !== "slim") {
+    return `Selected: ${placeText(place)} (${place.id}), visit time ${durationText(visit)}.`;
+  }
+  const detour =
+    stop.candidates.find((candidate) => candidate.place.id === place.id)
+      ?.detourTimeInMinutes ?? null;
+  const parts = [
+    pickedPlaceText(place),
+    ...(detour === null ? [] : [detourText(detour)]),
+    `visit time ${durationText(visit)}`,
+  ];
+  return `Selected: ${parts.join(", ")}.`;
+}
+
+function detourText(minutes: number): string {
+  return `detour ${durationText(minutes)} when offered`;
+}
+
+// For a whole read: a line that counts the candidates by set, in set order, such as
+// "- Candidates: 3 in set 1, 2 in set 2." Once a place is selected, it counts only the
+// others, as "Other candidates", and skips a set left with none. Empty when there's
+// nothing to count: the stop's or stay's line says so (tool design 2.1).
+export function countLines(
+  candidates: readonly Candidate[],
+  selected: Place | null,
+  label: string,
+): string[] {
+  const counts = new Map<number, number>();
+  for (const candidate of candidates) {
+    if (candidate.place.id !== selected?.id) {
+      counts.set(
+        candidate.setNumber,
+        (counts.get(candidate.setNumber) ?? 0) + 1,
+      );
+    }
+  }
+  if (counts.size === 0) {
+    return [];
+  }
+  const sets = [...counts]
+    .sort(([first], [second]) => first - second)
+    .map(([set, count]) => `${String(count)} in set ${String(set + 1)}`);
+  return [
+    `- ${selected === null ? label : "Other candidates"}: ${sets.join(", ")}.`,
+  ];
 }
 
 // In the order offered, each with its set, counted from 1 as people count (domain model
@@ -119,9 +188,7 @@ function candidateText(
     parts.push(`visit time ${durationText(candidate.visitTimeInMinutes)}`);
   }
   if (candidate.detourTimeInMinutes !== null) {
-    parts.push(
-      `detour ${durationText(candidate.detourTimeInMinutes)} when offered`,
-    );
+    parts.push(detourText(candidate.detourTimeInMinutes));
   }
   if (isSelected) {
     parts.push("selected");

@@ -22,15 +22,27 @@ import type { TripSession } from "./trip-session.js";
 
 // Claude Code cuts off a tool result over 25,000 tokens, and the coordinator has no
 // tool to read the rest (tool design 2.1). The tool can't count tokens without calling
-// the API, so it counts characters. A full read of a 14-day trip came to 1.89
-// characters a token, as the API counts them for the coordinator's model. So 40,000
-// characters is about 21,000 tokens, which leaves room for text with more IDs in it.
+// the API, so it counts characters. Measured on 2026-10-26, reads of a 14-day trip ran
+// from 1.80 to 2.13 characters a token, as the API counts them for the coordinator's
+// model. At 1.80, 40,000 characters is about 22,200 tokens, still under 25,000. That
+// trip's whole read, with nearly everything picked, was 27,582 characters.
 export const MAXIMUM_REPLY_CHARACTERS = 40_000;
 
-export const TOO_LARGE_ERROR =
+// A whole read has no fallback: no scoped read shows what only the whole read does,
+// such as the check results about the trip's length (tool design 2.1).
+export const WHOLE_TOO_LARGE_ERROR =
+  "Can't read the itinerary: it's too large to read, so this trip can't be planned any further.";
+
+export const SCOPED_TOO_LARGE_ERROR =
   "Can't read the itinerary: it's too large to return. Read one day, stay, or stop at a time instead.";
 
-export const READ_ITINERARY_DESCRIPTION = `Reads the itinerary: the whole trip, or one day, stay, or stop. Give "${WHOLE_ITINERARY}" for the whole trip. A day gives the day, its leg, its schedule, and its stops with their candidates. A stay gives the stay, its lodging, its days and their stops, and stops on other days whose search area is the stay. A stop gives the stop and every candidate it has had. Every read stays in the conversation, and older reads go out of date, so read only the part a question is about. Each place shows as its name, place ID, and a short line of facts. Candidates are listed in the order offered, with their set. A selected place comes with its rationale. A read of a stay or stop also gives every candidate's rationale, notes, how it was found, and tier. A whole read also lists the places the user rejected. Each read ends with the current feasibility check results for what it covers, each marked new or already known. Schedule times are estimates, from average drive times plus a buffer, and visit times. A whole read of a long trip can be too large to return, and then the reply is an error: read it a stay at a time instead.`;
+export const READ_ITINERARY_DESCRIPTION = `Reads the itinerary: the whole trip, or one day, stay, or stop. Give "${WHOLE_ITINERARY}" for the whole trip. Every read stays in the conversation, and older reads go out of date, so read only the part a question is about. Each place shows as its name, place ID, and a short line of facts, except where a whole read gives less.
+
+A day gives the day, its leg, its schedule, and its stops with their candidates. A stay gives the stay, its lodging and every lodging candidate, its weather and clothing text, its days and their stops, and stops on other days whose search area is the stay. A stop gives the stop and every candidate it has had. These reads list candidates in the order offered, with their set. A selected place comes with its rationale. A read of a stay or stop also gives every candidate's rationale, notes, how it was found, and tier.
+
+The whole trip gives its start and end places, its dates, each stay and day with its leg, schedule, and stops, and the places the user rejected. It lists no candidates. Each selected place shows on its stop's or lodging line, as its name, place ID, and town. The other candidates are only counted by set, such as "Other candidates: 2 in set 1." It leaves out every rationale, each stay's weather and clothing text, and the rule behind each tier.
+
+Each read ends with the current feasibility check results for what it covers, each marked new or already known. Schedule times are estimates, from average drive times plus a buffer, and visit times.`;
 
 export function readItineraryTool(session: TripSession): StrictToolDefinition {
   return {
@@ -67,7 +79,7 @@ export function readItineraryTool(session: TripSession): StrictToolDefinition {
             },
             scope,
           );
-          return textReply(withinLimit(lines));
+          return textReply(withinLimit(lines, scope));
         }),
     ),
     annotations: { readOnlyHint: true },
@@ -95,10 +107,14 @@ function linesFor(context: ReadContext, scope: string): string[] {
   );
 }
 
-function withinLimit(lines: readonly string[]): string[] {
+function withinLimit(lines: readonly string[], scope: string): string[] {
   const length = lines.reduce((total, line) => total + line.length + 1, 0);
   if (length > MAXIMUM_REPLY_CHARACTERS) {
-    throw new RuleError(TOO_LARGE_ERROR);
+    throw new RuleError(
+      scope === WHOLE_ITINERARY
+        ? WHOLE_TOO_LARGE_ERROR
+        : SCOPED_TOO_LARGE_ERROR,
+    );
   }
   return [...lines];
 }

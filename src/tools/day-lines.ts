@@ -16,7 +16,9 @@ import type { ReadContext } from "./read-context.js";
 import {
   approvalLine,
   candidateLines,
+  countLines,
   type Detail,
+  pickedPlaceText,
   placeLine,
   stopLines,
 } from "./stop-lines.js";
@@ -28,28 +30,42 @@ export function dayNumber(context: ReadContext, day: Day): string {
   return `Day ${String(context.calendar.orderOf(context.itinerary, day) + 1)}`;
 }
 
-// The stay's line, then its tier, lodging, candidates, and weather text.
+// The stay's line, then its tier, lodging, candidates, and weather text. A whole read
+// gives the tier without its rule, the lodging with its town, a count of the other
+// candidates, and the weather line without its text (tool design 2.1).
 export function stayLines(
   context: ReadContext,
   stay: Stay,
   detail: Detail,
 ): string[] {
   const order = context.calendar.orderOf(context.itinerary, stay);
-  const lodging = stay.lodging;
+  const isSlim = detail === "slim";
   return [
     `Stay ${String(order + 1)} (${stay.id}): ${placeLine(stay.place)}. ${nightsText(context, stay)}`,
-    `- Lodging tier: ${stay.tier}, from the rule "${stay.tierRule}".`,
-    lodging === null
-      ? `- Lodging: ${stay.lodgingCandidates.length === 0 ? "no candidates yet" : "none selected yet"}.`
-      : `- Lodging: ${placeText(lodging)} (${lodging.id}).`,
-    ...candidateLines(
-      stay.lodgingCandidates,
-      lodging,
-      detail,
-      "Lodging candidates",
-    ),
-    weatherLine(context, stay),
+    isSlim
+      ? `- Lodging tier: ${stay.tier}.`
+      : `- Lodging tier: ${stay.tier}, from the rule "${stay.tierRule}".`,
+    lodgingLine(stay, isSlim),
+    ...(isSlim
+      ? countLines(stay.lodgingCandidates, stay.lodging, "Lodging candidates")
+      : candidateLines(
+          stay.lodgingCandidates,
+          stay.lodging,
+          detail,
+          "Lodging candidates",
+        )),
+    weatherLine(context, stay, isSlim),
   ];
+}
+
+function lodgingLine(stay: Stay, isSlim: boolean): string {
+  const lodging = stay.lodging;
+  if (lodging === null) {
+    return `- Lodging: ${stay.lodgingCandidates.length === 0 ? "no candidates yet" : "none selected yet"}.`;
+  }
+  return isSlim
+    ? `- Lodging: ${pickedPlaceText(lodging)}.`
+    : `- Lodging: ${placeText(lodging)} (${lodging.id}).`;
 }
 
 // Such as "3 nights, Days 1 to 3, from Sunday, October 10, 2027 to the morning of
@@ -75,8 +91,14 @@ function nightCountText(nights: number): string {
 }
 
 // The weather worker's text, marked out of date when the stay's place, dates, or
-// activities no longer match the ones it was written for (domain model 4.1).
-function weatherLine(context: ReadContext, stay: Stay): string {
+// activities no longer match the ones it was written for (domain model 4.1). A whole
+// read leaves the text out, and keeps where it came from and when, which is what the
+// forecast note works from (technical spec section 8).
+function weatherLine(
+  context: ReadContext,
+  stay: Stay,
+  isSlim: boolean,
+): string {
   const text = stay.weatherText;
   if (text === null) {
     return "- Weather and clothing: none yet.";
@@ -85,7 +107,10 @@ function weatherLine(context: ReadContext, stay: Stay): string {
   const outOfDate = context.calendar.isWeatherOutOfDate(context.itinerary, stay)
     ? " Out of date: the stay's place, dates, or activities have changed since it was written."
     : "";
-  return `- Weather and clothing, from ${label}, written ${text.writtenOnDate.longText}: "${text.guidance}"${outOfDate}`;
+  const written = `- Weather and clothing, from ${label}, written ${text.writtenOnDate.longText}`;
+  return isSlim
+    ? `${written}.${outOfDate}`
+    : `${written}: "${text.guidance}"${outOfDate}`;
 }
 
 // The day's line, its leg and approvals, then its schedule, with each stop in it.

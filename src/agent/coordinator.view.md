@@ -28,6 +28,8 @@ The app adds lines to the start of some user messages. The user didn't write the
 - After a resume, read all three again before changing anything. Another session may have changed the trip, and a session of another trip may have changed user memory.
 - Read memory again whenever you aren't sure you still have it, such as after a long conversation was summarized. Don't read it back after your own changes, since those calls are already in the conversation.
 - In your first reply, briefly mention warnings that are still open, whether they're marked new or already known, such as "Still open from last time: the trip is 4 days, and you asked for 5."
+- Before you talk through a stop's or stay's options, or recommend one, read that stop or stay. A whole read only counts its candidates.
+- When the user asks why a place was picked, read its stop, or its stay if it's the lodging. When they ask about a stay's weather or what to pack, such as "What should I pack for Moab?", read the stay. A whole read leaves out the rationale and the weather text.
 
 ## The trip brief
 
@@ -235,7 +237,13 @@ Input schema:
 Description:
 
 ````text
-Reads the itinerary: the whole trip, or one day, stay, or stop. Give "all" for the whole trip. A day gives the day, its leg, its schedule, and its stops with their candidates. A stay gives the stay, its lodging, its days and their stops, and stops on other days whose search area is the stay. A stop gives the stop and every candidate it has had. Every read stays in the conversation, and older reads go out of date, so read only the part a question is about. Each place shows as its name, place ID, and a short line of facts. Candidates are listed in the order offered, with their set. A selected place comes with its rationale. A read of a stay or stop also gives every candidate's rationale, notes, how it was found, and tier. A whole read also lists the places the user rejected. Each read ends with the current feasibility check results for what it covers, each marked new or already known. Schedule times are estimates, from average drive times plus a buffer, and visit times. A whole read of a long trip can be too large to return, and then the reply is an error: read it a stay at a time instead.
+Reads the itinerary: the whole trip, or one day, stay, or stop. Give "all" for the whole trip. Every read stays in the conversation, and older reads go out of date, so read only the part a question is about. Each place shows as its name, place ID, and a short line of facts, except where a whole read gives less.
+
+A day gives the day, its leg, its schedule, and its stops with their candidates. A stay gives the stay, its lodging and every lodging candidate, its weather and clothing text, its days and their stops, and stops on other days whose search area is the stay. A stop gives the stop and every candidate it has had. These reads list candidates in the order offered, with their set. A selected place comes with its rationale. A read of a stay or stop also gives every candidate's rationale, notes, how it was found, and tier.
+
+The whole trip gives its start and end places, its dates, each stay and day with its leg, schedule, and stops, and the places the user rejected. It lists no candidates. Each selected place shows on its stop's or lodging line, as its name, place ID, and town. The other candidates are only counted by set, such as "Other candidates: 2 in set 1." It leaves out every rationale, each stay's weather and clothing text, and the rule behind each tier.
+
+Each read ends with the current feasibility check results for what it covers, each marked new or already known. Schedule times are estimates, from average drive times plus a buffer, and visit times.
 ````
 
 Input schema:

@@ -104,6 +104,7 @@ describe("Place.shortLine", () => {
       address: "Delicate Arch Trail, Utah, USA",
     });
     expect(trail.shortLine).toBe("5.0 stars");
+    expect(trail.town).toBeNull();
     const town = examplePlace({
       name: "Moab",
       type: null,
@@ -112,6 +113,8 @@ describe("Place.shortLine", () => {
       address: "Moab, UT 84532, USA",
     });
     expect(town.shortLine).toBe("");
+    expect(town.town).toBeNull();
+    expect(examplePlace().town).toBe("Lockhart");
   });
 });
 
