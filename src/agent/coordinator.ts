@@ -69,7 +69,7 @@ export function coordinatorOptions(
     model: settings.coordinatorModel,
     systemPrompt: coordinatorPrompt(settings),
     // Adaptive is the SDK's default for the model. Asking for a summary changes only
-    // what comes back, for the browser chat's raw view (technical spec 5.4).
+    // what comes back, so the turn's trace shows the summaries (technical spec 5.4).
     thinking: { type: "adaptive", display: "summarized" },
     // The stream events give each model call's start and its final tokens, for the
     // turn's trace (systems design section 10). turnEventsOf() leaves them out.
@@ -145,6 +145,10 @@ export const runTurnWithSdk: RunTurn = async function* (
       }
       yield* turnEventsOf(sdkMessage);
     }
+  } catch (error) {
+    // The caller still ends the turn with the error (coordinator-turns.ts).
+    turnTrace.recordThrown(error);
+    throw error;
   } finally {
     turnEnded.resolve(undefined);
     await turnTrace.end();

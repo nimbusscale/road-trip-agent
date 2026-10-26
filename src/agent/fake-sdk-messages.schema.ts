@@ -10,6 +10,11 @@ import type { SDKMessage } from "@anthropic-ai/claude-agent-sdk";
 type AssistantMessage = Extract<SDKMessage, { type: "assistant" }>;
 type Content = AssistantMessage["message"]["content"];
 type Usage = AssistantMessage["message"]["usage"];
+type SuccessResult = Extract<SDKMessage, { subtype: "success" }>;
+type ErrorResult = Exclude<
+  Extract<SDKMessage, { type: "result" }>,
+  SuccessResult
+>;
 
 export const SESSION_ID = "c0ffee00-0000-4000-8000-000000000001";
 
@@ -192,12 +197,83 @@ export function taskStarted(
   };
 }
 
+export function init(model: string, tools: string[]): SDKMessage {
+  return {
+    type: "system",
+    subtype: "init",
+    apiKeySource: "none",
+    claude_code_version: "",
+    cwd: "",
+    tools,
+    mcp_servers: [],
+    model,
+    permissionMode: "dontAsk",
+    slash_commands: [],
+    output_style: "",
+    skills: [],
+    plugins: [],
+    uuid: randomUUID(),
+    session_id: SESSION_ID,
+  };
+}
+
+// The fields of a retry that say what happened: the Claude API was overloaded, and the
+// SDK waits half a second to try again.
+export const API_RETRY_FIELDS = {
+  attempt: 1,
+  max_retries: 10,
+  retry_delay_ms: 500,
+  error_status: 529,
+  error: "overloaded",
+  no_response: { waited_ms: 30000, retry_wait_ms: 60000 },
+} as const;
+
+export function apiRetry(): SDKMessage {
+  return {
+    type: "system",
+    subtype: "api_retry",
+    ...API_RETRY_FIELDS,
+    uuid: randomUUID(),
+    session_id: SESSION_ID,
+  };
+}
+
+export function thinkingTokens(estimated: number): SDKMessage {
+  return {
+    type: "system",
+    subtype: "thinking_tokens",
+    estimated_tokens: estimated,
+    estimated_tokens_delta: estimated,
+    uuid: randomUUID(),
+    session_id: SESSION_ID,
+  };
+}
+
 export function successResult(reply: string): SDKMessage {
   return {
-    type: "result",
+    ...resultFields(),
     subtype: "success",
     result: reply,
     is_error: false,
+  } satisfies SuccessResult;
+}
+
+export function errorResult(errors: string[]): SDKMessage {
+  return {
+    ...resultFields(),
+    subtype: "error_during_execution",
+    is_error: true,
+    errors,
+  } satisfies ErrorResult;
+}
+
+// The fields a failed result has too.
+function resultFields(): Omit<
+  SuccessResult,
+  "subtype" | "result" | "is_error"
+> {
+  return {
+    type: "result",
     duration_ms: 1000,
     duration_api_ms: 900,
     num_turns: 1,

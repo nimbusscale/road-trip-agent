@@ -186,7 +186,7 @@ Workers never see raw user memory or anything about the user beyond their worker
 
 ### 5.4 Thinking
 
-**The coordinator's thinking comes back as a summary.** The model decides when and how much to think, which is the Agent SDK's default for it (adaptive thinking). Without a summary, the SDK returns each thinking block with no text, only the encrypted form the API needs to go on with the conversation. The summary changes only what's returned, not how much the model thinks or what it costs. The browser chat's raw view shows it (functional spec 10.1).
+**The coordinator's thinking comes back as a summary.** The model decides when and how much to think, which is the Agent SDK's default for it (adaptive thinking). Without a summary, the SDK returns each thinking block with no text, only the encrypted form the API needs to go on with the conversation. The summary changes only what's returned, not how much the model thinks or what it costs. The turn's trace shows it, in each model call's span (systems design section 10).
 
 ---
 

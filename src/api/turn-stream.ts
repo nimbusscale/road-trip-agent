@@ -21,7 +21,10 @@ export function streamTurn(
       if (stream.aborted) {
         return;
       }
-      await stream.writeSSE(sseOf(chatEventOf(event)));
+      const chatEvent = chatEventOf(event);
+      if (chatEvent !== null) {
+        await stream.writeSSE(sseOf(chatEvent));
+      }
     }
   });
 }
@@ -30,42 +33,18 @@ function sseOf(event: ChatEvent): { event: string; data: string } {
   return { event: event.name, data: JSON.stringify(event.data) };
 }
 
-// Every event goes to the browser. The raw view shows all but the text, and the cards
-// are kept only in the tab (functional spec 10.1).
-function chatEventOf(event: TurnEvent): ChatEvent {
+// Null for an event the browser doesn't use. The chat shows the reply, and the tool
+// being called while it runs (functional spec 10.1). The turn's other steps are in its
+// trace (systems design section 10).
+function chatEventOf(event: TurnEvent): ChatEvent | null {
   switch (event.kind) {
-    case "started":
-      return {
-        name: "started",
-        data: { model: event.model, tools: [...event.tools] },
-      };
-    case "message":
-    case "thinking":
     case "text":
-      return { name: event.kind, data: { text: event.text } };
+      return { name: "text", data: { text: event.text } };
     case "toolCall":
-      return {
-        name: "toolCall",
-        data: { name: event.name, input: event.input },
-      };
-    case "toolReply":
-      return {
-        name: "toolReply",
-        data: { text: event.text, isError: event.isError },
-      };
-    case "system":
-      return {
-        name: "system",
-        data: { subtype: event.subtype, data: event.data },
-      };
+      return { name: "toolCall", data: { name: event.name } };
     case "ended":
-      return {
-        name: "ended",
-        data: {
-          failure: event.failure,
-          durationMs: event.durationMs,
-          usage: event.usage,
-        },
-      };
+      return { name: "ended", data: { failure: event.failure } };
+    default:
+      return null;
   }
 }

@@ -51,6 +51,23 @@ export async function runTrace(
   messages: readonly SDKMessage[],
   readWorkerTranscript: ReadWorkerTranscript = NO_WORKERS,
 ): Promise<void> {
+  await recordAll(messages, readWorkerTranscript).end();
+}
+
+// The turn's messages, and then the SDK throws the error.
+export async function runThrowingTrace(
+  messages: readonly SDKMessage[],
+  error: Error,
+): Promise<void> {
+  const turnTrace = recordAll(messages, NO_WORKERS);
+  turnTrace.recordThrown(error);
+  await turnTrace.end();
+}
+
+function recordAll(
+  messages: readonly SDKMessage[],
+  readWorkerTranscript: ReadWorkerTranscript,
+): TurnTrace {
   vi.setSystemTime(atSecond(0));
   const turnTrace = new TurnTrace({
     message: MESSAGE,
@@ -62,7 +79,7 @@ export async function runTrace(
     vi.setSystemTime(atSecond(index + 1));
     turnTrace.record(message);
   }
-  await turnTrace.end();
+  return turnTrace;
 }
 
 function atSecond(second: number): Date {

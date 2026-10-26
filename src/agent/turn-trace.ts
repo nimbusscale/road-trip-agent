@@ -12,6 +12,7 @@ import {
 } from "@opentelemetry/api";
 
 import {
+  addSystemEvent,
   callBlocksOf,
   endModelCall,
   endToolSpan,
@@ -21,7 +22,7 @@ import {
   textOutput,
   tracer,
 } from "./trace-spans.js";
-import { toolResultsOf, toolResultText } from "./turn-event.js";
+import { failureOf, toolResultsOf, toolResultText } from "./turn-event.js";
 import {
   endWorker,
   type ReadWorkerTranscript,
@@ -51,10 +52,11 @@ interface ToolCall {
 }
 
 // The trace of one coordinator turn, made from the SDK's messages (systems design
-// section 10). The turn's span holds the message the model got and the reply. Under
-// it, in order, is a span for each model call, with its thinking, text, tool calls, and
-// tokens, and a span for each tool call. A worker's spans go under the Agent tool call
-// that started it.
+// section 10). The turn's span holds the message the model got and the reply, and an
+// event for the turn's start and for each of the SDK's other system messages, such as a
+// retry. Under it, in order, is a span for each model call, with its thinking, text,
+// tool calls, and tokens, and a span for each tool call. A worker's spans go under the
+// Agent tool call that started it.
 //
 // A model call's span runs from its message_start event to its last block or event,
 // so the coordinator's options turn on the SDK's stream events. A block's tokens are
@@ -71,6 +73,8 @@ export class TurnTrace {
   #call: ModelCall | undefined;
   #stepEndedAt: Date;
   #hasResult = false;
+  // The text of the error the SDK threw, if it did.
+  #thrown: string | undefined;
 
   constructor(given: TurnTraceGiven) {
     this.#given = given;
@@ -115,10 +119,16 @@ export class TurnTrace {
         if (message.subtype === "task_started") {
           this.#startWorker(message);
         }
+        addSystemEvent(this.#turn, message, new Date());
         break;
       default:
         break;
     }
+  }
+
+  // The SDK threw. The error's text goes in the turn's status, in place of the result's.
+  recordThrown(error: unknown): void {
+    this.#thrown = String(error);
   }
 
   // Ends every span still open, such as when the turn failed before its result. Each
@@ -141,7 +151,12 @@ export class TurnTrace {
       span.end();
     }
     this.#tools.clear();
-    if (!this.#hasResult) {
+    if (this.#thrown !== undefined) {
+      this.#turn.setStatus({
+        code: SpanStatusCode.ERROR,
+        message: this.#thrown,
+      });
+    } else if (!this.#hasResult) {
       this.#turn.setStatus({
         code: SpanStatusCode.ERROR,
         message: "The turn ended with no result.",
@@ -257,10 +272,11 @@ export class TurnTrace {
     if (result.subtype === "success") {
       this.#turn.setAttributes(textOutput(result.result));
     }
+    const failure = failureOf(result);
     this.#turn.setStatus(
-      result.subtype === "success" && !result.is_error
+      failure === null
         ? { code: SpanStatusCode.OK }
-        : { code: SpanStatusCode.ERROR, message: result.subtype },
+        : { code: SpanStatusCode.ERROR, message: failure },
     );
   }
 

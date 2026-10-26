@@ -2,7 +2,11 @@ import type { SDKMessage } from "@anthropic-ai/claude-agent-sdk";
 import { describe, expect, it } from "vitest";
 
 import {
+  API_RETRY_FIELDS,
+  apiRetry,
   assistant,
+  errorResult,
+  init,
   messageDelta,
   messageStart,
   messageStop,
@@ -10,11 +14,13 @@ import {
   successResult,
   text,
   thinking,
+  thinkingTokens,
   toolResult,
   toolUse,
 } from "./fake-sdk-messages.schema.js";
 import {
   MESSAGE,
+  runThrowingTrace,
   runTrace,
   secondsOf,
   spanNamed,
@@ -26,9 +32,11 @@ import {
 
 useTestTracer();
 
-// One model call that thinks and asks for a tool, the tool's result, and a second
-// model call that replies. Each message comes a second after the one before it.
+// The turn's start, one model call that thinks and asks for a tool, the tool's result,
+// and a second model call that replies. Each message comes a second after the one
+// before it.
 const ONE_TOOL_TURN: readonly SDKMessage[] = [
+  init("claude-fake-1", ["mcp__trip__read_trip_brief", "Agent"]),
   messageStart("call-1"),
   assistant("call-1", [thinking("They want Boston.")]),
   assistant("call-1", [
@@ -70,6 +78,58 @@ describe("TurnTrace", () => {
     expect(turn.status.code).toBe(1);
   });
 
+  it("puts the turn's start on its span, with the model and the tools", async () => {
+    await runTrace(ONE_TOOL_TURN);
+    const [started] = spanNamed("coordinator.turn").events;
+    expect(started?.name).toBe("started");
+    expect(started?.attributes).toEqual({
+      model: "claude-fake-1",
+      tools: ["mcp__trip__read_trip_brief", "Agent"],
+    });
+    expect(started === undefined ? null : secondsOf(started.time)).toBe(1);
+  });
+
+  it("puts each of the SDK's other system messages on the turn's span, such as a retry", async () => {
+    await runTrace([
+      messageStart("call-1"),
+      thinkingTokens(40),
+      apiRetry(),
+      assistant("call-1", [text("Hi.")]),
+      successResult("Hi."),
+    ]);
+    const events = spanNamed("coordinator.turn").events;
+    // Thinking token counts get no event.
+    expect(events.map((event) => event.name)).toEqual(["api_retry"]);
+    const [retry] = events;
+    expect(retry?.attributes).toEqual({
+      data: JSON.stringify(API_RETRY_FIELDS),
+    });
+    expect(retry === undefined ? null : secondsOf(retry.time)).toBe(3);
+  });
+
+  it("puts the full reason a turn failed in its status", async () => {
+    await runTrace([
+      messageStart("call-1"),
+      errorResult(["API Error: 529 Overloaded", "Gave up after 10 tries."]),
+    ]);
+    expect(spanNamed("coordinator.turn").status).toEqual({
+      code: 2,
+      message:
+        "error_during_execution: API Error: 529 Overloaded: Gave up after 10 tries.",
+    });
+  });
+
+  it("puts the error's text in the turn's status when the SDK throws", async () => {
+    await runThrowingTrace(
+      [messageStart("call-1")],
+      new Error("Claude Code process exited with code 1"),
+    );
+    expect(spanNamed("coordinator.turn").status).toEqual({
+      code: 2,
+      message: "Error: Claude Code process exited with code 1",
+    });
+  });
+
   it("puts a model call's thinking, tool calls, and final tokens on its span", async () => {
     await runTrace(ONE_TOOL_TURN);
     expect(spanNamed("coordinator.model_call").attributes).toMatchObject({
@@ -108,9 +168,9 @@ describe("TurnTrace", () => {
     };
     // The first call runs from message_start to message_stop. The tool runs from
     // its call to its result. The second call starts at message_start.
-    expect(times("coordinator.model_call")).toEqual([1, 5]);
-    expect(times("mcp__trip__read_trip_brief")).toEqual([3, 6]);
-    expect(times("coordinator.model_call", 1)).toEqual([7, 10]);
+    expect(times("coordinator.model_call")).toEqual([2, 6]);
+    expect(times("mcp__trip__read_trip_brief")).toEqual([4, 7]);
+    expect(times("coordinator.model_call", 1)).toEqual([8, 11]);
   });
 
   it("starts a model call when the last tool result arrived, when no stream event came", async () => {

@@ -209,10 +209,6 @@ function printEvent(event: TurnEvent, terminal: Terminal): void {
     case "ended":
       printEnded(event, terminal);
       break;
-    // The message the model got. The user typed it, and the app's lines are in
-    // technical spec 5.2.
-    default:
-      break;
   }
 }
 

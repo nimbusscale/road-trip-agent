@@ -4,19 +4,16 @@ import { type ChatState, shownCards } from "./chat-state";
 import { Link } from "./link";
 import { MemoryPanel } from "./memory-panel";
 import { PlanDownloads } from "./plan-downloads";
-import { RawCard } from "./raw-card";
 import { ReplyText } from "./reply-text";
 import { type ChatStart, useChat } from "./use-chat";
 
 // The chat view: the conversation as cards, the reply as it streams in, and a box for
 // the next message (functional spec 10.1). Opened from "New trip", it's the form that
-// describes the trip, and its first message starts the trip. "Raw" adds each turn's
-// steps to the conversation. Once the session exists, "Memory" shows memory, and the
-// plan can be downloaded.
+// describes the trip, and its first message starts the trip. Once the session exists,
+// "Memory" shows memory, and the plan can be downloaded.
 export function ChatPage({ start }: { start: ChatStart }) {
   const { state, tripId, sessionId, send } = useChat(start);
   const [draft, setDraft] = useState("");
-  const [raw, setRaw] = useState(false);
   const busy = state.sending || state.turnRunning;
 
   function submit(): void {
@@ -36,7 +33,6 @@ export function ChatPage({ start }: { start: ChatStart }) {
         ) : (
           <Link to={{ page: "trip", tripId }}>Back to the trip</Link>
         )}
-        <Toggle label="Raw" checked={raw} onChange={setRaw} />
       </p>
       {tripId === null || sessionId === null ? null : (
         <SessionTools tripId={tripId} sessionId={sessionId} busy={busy} />
@@ -47,7 +43,7 @@ export function ChatPage({ start }: { start: ChatStart }) {
           long. A rough idea is fine.
         </p>
       ) : null}
-      <Conversation state={state} raw={raw} busy={busy} />
+      <Conversation state={state} busy={busy} />
       {state.error === null ? null : <p role="alert">{state.error}</p>}
       <MessageForm
         draft={draft}
@@ -107,18 +103,14 @@ function SessionTools({ tripId, sessionId, busy }: SessionToolsProps) {
 
 interface ConversationProps {
   state: ChatState;
-  raw: boolean;
   busy: boolean;
 }
 
-function Conversation({ state, raw, busy }: ConversationProps) {
+function Conversation({ state, busy }: ConversationProps) {
   return (
     <div className="conversation">
-      {shownCards(state.cards, raw).map((card) =>
-        card.kind === "raw" ? (
-          <RawCard key={card.id} event={card.event} />
-        ) : card.kind === "reply" && !raw ? (
-          // With "Raw" on, a reply shows the Markdown exactly as the coordinator wrote it.
+      {shownCards(state.cards).map((card) =>
+        card.kind === "reply" ? (
           <ReplyText key={card.id} text={card.text} />
         ) : (
           <p key={card.id} className={`card ${card.kind}`}>

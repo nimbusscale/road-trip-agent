@@ -8,7 +8,7 @@ import type {
 import type { RunTurn } from "./coordinator.js";
 import type { TurnEvent, TurnUsage } from "./turn-event.js";
 
-export const FAKE_USAGE: TurnUsage = {
+const FAKE_USAGE: TurnUsage = {
   modelCalls: 2,
   inputTokens: 12000,
   cachedInputTokens: 9000,
