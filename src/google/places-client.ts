@@ -3,10 +3,8 @@ import { newId } from "../ids/new-id.js";
 import { googleErrorBodySchema } from "./google-error.schema.js";
 import { isTimeoutError, jsonBodyOf } from "./json-body.js";
 import {
-  alongRouteResponseSchema,
   type NameMatch,
   nameMatchResponseSchema,
-  type RouteSummary,
   textSearchResponseSchema,
 } from "./places-text-search.schema.js";
 
@@ -34,10 +32,6 @@ export const FIELD_MASK = [
   "places.reviewSummary",
 ].join(",");
 
-// A search along a route adds each place's drive from the route's start, and on to its
-// end (Google design 2.1).
-export const ALONG_ROUTE_FIELD_MASK = `${FIELD_MASK},routingSummaries`;
-
 // For a plain name, only enough to route by it and show what it matched. These fields
 // make it a Pro call, not an Enterprise one (Google design section 5).
 export const NAME_MATCH_FIELD_MASK = [
@@ -60,20 +54,6 @@ export interface NearPoint {
   latitude: number;
   longitude: number;
   radiusInMeters: number;
-}
-
-// A route to search along: Google's encoded route line, and where it starts, which the
-// drives in each place's summary start from.
-export interface RouteToSearch {
-  routeLine: string;
-  start: { latitude: number; longitude: number };
-}
-
-// A place found along a route, with its drives from the route's start and on to its end.
-// The route is null when Google gave none for the place.
-export interface PlaceAlongRoute {
-  place: Place;
-  route: RouteSummary | null;
 }
 
 export interface PlacesClientOptions {
@@ -125,32 +105,19 @@ export class PlacesClient {
     });
   }
 
-  // Places along a route, in Google's order. Each new place gets a new ID, as in
-  // searchText().
+  // Places along a route, given as Google's encoded route line, in Google's order. No
+  // routing summaries: Google's drives to and from each place skip the route's
+  // waypoints, so they'd give wrong detours (Google design 2.4).
   async searchAlongRoute(
     textQuery: string,
-    route: RouteToSearch,
+    routeLine: string,
     maximumResults: number,
-  ): Promise<PlaceAlongRoute[]> {
-    const body = await this.#post(
-      {
-        textQuery,
-        pageSize: pageSizeOf(maximumResults),
-        searchAlongRouteParameters: {
-          polyline: { encodedPolyline: route.routeLine },
-        },
-        routingParameters: { origin: route.start },
-      },
-      ALONG_ROUTE_FIELD_MASK,
-    );
-    const parsed = alongRouteResponseSchema.safeParse(body);
-    if (!parsed.success) {
-      throw new GooglePlacesError(misunderstood(parsed.error.message));
-    }
-    return parsed.data.map(({ facts, route: summary }) => ({
-      place: new Place({ id: newId("place"), ...facts }),
-      route: summary,
-    }));
+  ): Promise<Place[]> {
+    return this.#places({
+      textQuery,
+      pageSize: pageSizeOf(maximumResults),
+      searchAlongRouteParameters: { polyline: { encodedPolyline: routeLine } },
+    });
   }
 
   async #places(request: object): Promise<Place[]> {

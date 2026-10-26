@@ -5,7 +5,6 @@ import type { PlaceFields } from "../domain/place.js";
 import type { PriceLevel } from "../domain/price-level.js";
 import { TimeOfDay } from "../domain/time-of-day.js";
 import { WEEKDAYS } from "../domain/weekday.js";
-import { secondsSchema } from "./routes.schema.js";
 
 // A Places API (New) Text Search response, with the fields in FIELD_MASK
 // (places-client.ts). Google leaves out any field a place doesn't have, and returns {}
@@ -32,9 +31,6 @@ const priceLevelSchema = z
 
 // Google's types for a street address, a building, or a unit in one.
 const ADDRESS_TYPES = new Set(["street_address", "premise", "subpremise"]);
-
-const SECONDS_PER_MINUTE = 60;
-const METERS_PER_MILE = 1609.344;
 
 const LAST_WEEKDAY = WEEKDAYS.length - 1;
 const LAST_HOUR = 23;
@@ -110,46 +106,6 @@ const googlePlaceSchema = googlePlaceFieldsSchema.transform(factsOf);
 export const textSearchResponseSchema = z
   .object({ places: z.array(googlePlaceSchema).default([]) })
   .transform((response) => response.places);
-
-// A drive in a place's routing summary. Google leaves out a value that's zero.
-const summaryDriveSchema = z
-  .object({
-    duration: secondsSchema.default(0),
-    distanceMeters: z.number().nonnegative().default(0),
-  })
-  .transform((drive) => ({
-    driveTimeInMinutes: Math.round(drive.duration / SECONDS_PER_MINUTE),
-    distanceInMiles: drive.distanceMeters / METERS_PER_MILE,
-  }));
-
-export type SummaryDrive = z.output<typeof summaryDriveSchema>;
-
-// The drive from the route's start to the place, then from the place to the route's
-// end. Google gives an empty summary for a place it has none for.
-const routingSummarySchema = z
-  .object({ legs: z.array(summaryDriveSchema).default([]) })
-  .transform(({ legs }) => {
-    const [fromStart, toEnd] = legs;
-    return legs.length === 2 && fromStart !== undefined && toEnd !== undefined
-      ? { fromStart, toEnd }
-      : null;
-  });
-
-export type RouteSummary = NonNullable<z.output<typeof routingSummarySchema>>;
-
-// A search along a route, with ALONG_ROUTE_FIELD_MASK's fields (places-client.ts).
-// Each routing summary is for the place at the same position (Google design 2.3).
-export const alongRouteResponseSchema = z
-  .object({
-    places: z.array(googlePlaceSchema).default([]),
-    routingSummaries: z.array(routingSummarySchema).default([]),
-  })
-  .transform(({ places, routingSummaries }) =>
-    places.map((facts, index) => ({
-      facts,
-      route: routingSummaries[index] ?? null,
-    })),
-  );
 
 // A response with only NAME_MATCH_FIELD_MASK's fields (places-client.ts), for the plain
 // names compute_route takes (tool design 2.4). The best match, or null when there's

@@ -328,59 +328,5 @@
         "languageCode": "en-US"
       }
     }
-  ],
-  "routingSummaries": [
-    {
-      "legs": [
-        {
-          "duration": "219s",
-          "distanceMeters": 1089
-        },
-        {
-          "duration": "8659s",
-          "distanceMeters": 229115
-        }
-      ],
-      "directionsUri": "https://www.google.com/maps/dir/36.5973,-121.8978/''/35.28277,-120.65963/data=!4m7!4m6!1m0!1m2!1m1!1s0x808de41880edf8cd:0xdc0b163254a641c7!1m0!3e0"
-    },
-    {
-      "legs": [
-        {
-          "duration": "786s",
-          "distanceMeters": 7034
-        },
-        {
-          "duration": "8981s",
-          "distanceMeters": 236687
-        }
-      ],
-      "directionsUri": "https://www.google.com/maps/dir/36.5973,-121.8978/''/35.28277,-120.65963/data=!4m7!4m6!1m0!1m2!1m1!1s0x808de63e9f6e7203:0x780df1dca60587e0!1m0!3e0"
-    },
-    {
-      "legs": [
-        {
-          "duration": "2343s",
-          "distanceMeters": 36348
-        },
-        {
-          "duration": "9073s",
-          "distanceMeters": 181008
-        }
-      ],
-      "directionsUri": "https://www.google.com/maps/dir/36.5973,-121.8978/''/35.28277,-120.65963/data=!4m7!4m6!1m0!1m2!1m1!1s0x808d93004a6a12c5:0x1e749d81500de68c!1m0!3e0"
-    },
-    {
-      "legs": [
-        {
-          "duration": "8461s",
-          "distanceMeters": 228233
-        },
-        {
-          "duration": "95s",
-          "distanceMeters": 524
-        }
-      ],
-      "directionsUri": "https://www.google.com/maps/dir/36.5973,-121.8978/''/35.28277,-120.65963/data=!4m7!4m6!1m0!1m2!1m1!1s0x80ecf1dac59f2577:0xcde0b4c9948dea39!1m0!3e0"
-    }
   ]
 }

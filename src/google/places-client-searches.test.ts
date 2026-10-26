@@ -2,11 +2,7 @@ import { readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
-import {
-  ALONG_ROUTE_FIELD_MASK,
-  FIELD_MASK,
-  PlacesClient,
-} from "./places-client.js";
+import { FIELD_MASK, PlacesClient } from "./places-client.js";
 
 // The searches near a point and along a route (Google design 2.1), over responses
 // Google gave on 2026-10-26: hotels and tri-tip near San Luis Obispo, and state parks
@@ -69,70 +65,28 @@ describe("PlacesClient.searchNear", () => {
   });
 });
 
-const ROUTE = {
-  routeLine: "_p~iF~ps|U_ulLnnqC",
-  start: { latitude: 36.5973, longitude: -121.8978 },
-};
+const ROUTE_LINE = "_p~iF~ps|U_ulLnnqC";
 
 describe("PlacesClient.searchAlongRoute", () => {
-  it("sends the route line and its start, and asks for each place's routing summary", async () => {
+  it("sends the route line, with every field a place keeps and no routing summaries", async () => {
     const { client, sent } = clientFor(
       savedResponse("along-big-sur-state-parks"),
     );
-    await client.searchAlongRoute("state park", ROUTE, 30);
-    expect(ALONG_ROUTE_FIELD_MASK).toBe(`${FIELD_MASK},routingSummaries`);
-    expect(sent[0]?.headers).toMatchObject({
-      "X-Goog-FieldMask": ALONG_ROUTE_FIELD_MASK,
-    });
+    const places = await client.searchAlongRoute("state park", ROUTE_LINE, 30);
+    expect(sent[0]?.headers).toMatchObject({ "X-Goog-FieldMask": FIELD_MASK });
     expect(sent[0]?.body).toEqual({
       textQuery: "state park",
       pageSize: 20,
       searchAlongRouteParameters: {
-        polyline: { encodedPolyline: "_p~iF~ps|U_ulLnnqC" },
-      },
-      routingParameters: {
-        origin: { latitude: 36.5973, longitude: -121.8978 },
+        polyline: { encodedPolyline: ROUTE_LINE },
       },
     });
-  });
-
-  it("pairs each place with its drives from the route's start and on to its end, in minutes and miles", async () => {
-    const { client } = clientFor(savedResponse("along-big-sur-state-parks"));
-    const [molera] = await client.searchAlongRoute("state park", ROUTE, 20);
-    expect(molera?.place.name).toBe("Andrew Molera State Park");
-    // 41,750 meters in 2,602 seconds, then 175,607 meters in 8,813 seconds.
-    expect(molera?.route?.fromStart.driveTimeInMinutes).toBe(43);
-    expect(molera?.route?.fromStart.distanceInMiles).toBeCloseTo(25.94, 2);
-    expect(molera?.route?.toEnd.driveTimeInMinutes).toBe(147);
-    expect(molera?.route?.toEnd.distanceInMiles).toBeCloseTo(109.12, 2);
-  });
-
-  it("gives a place Google has no routing summary for no route, and a missing value 0", async () => {
-    const { client } = clientFor(
-      JSON.stringify({
-        places: [googlePlace("first"), googlePlace("second")],
-        routingSummaries: [{}, { legs: [{ duration: "0s" }, {}] }],
-      }),
-    );
-    const [first, second] = await client.searchAlongRoute("park", ROUTE, 20);
-    expect(first?.route).toBeNull();
-    expect(second?.route).toEqual({
-      fromStart: { driveTimeInMinutes: 0, distanceInMiles: 0 },
-      toEnd: { driveTimeInMinutes: 0, distanceInMiles: 0 },
-    });
+    expect(places[0]?.name).toBe("Andrew Molera State Park");
+    expect(places).toHaveLength(6);
   });
 
   it("returns no places when nothing matches", async () => {
     const { client } = clientFor("{}");
-    expect(await client.searchAlongRoute("park", ROUTE, 20)).toEqual([]);
+    expect(await client.searchAlongRoute("park", ROUTE_LINE, 20)).toEqual([]);
   });
 });
-
-function googlePlace(id: string): object {
-  return {
-    id,
-    displayName: { text: id },
-    formattedAddress: "Big Sur, CA 93920, USA",
-    location: { latitude: 36.27, longitude: -121.81 },
-  };
-}

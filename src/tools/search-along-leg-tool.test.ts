@@ -9,7 +9,7 @@ import { moabExample } from "../domain/moab-example.fake.js";
 import { examplePlace } from "../domain/place.fake.js";
 import { RejectedPlace } from "../domain/rejected-place.js";
 import type { Trip } from "../domain/trip.js";
-import { ALONG_ROUTE_FIELD_MASK } from "../google/places-client.js";
+import { FIELD_MASK } from "../google/places-client.js";
 import { routesResponseSchema } from "../google/routes.schema.js";
 import { setUp } from "../persistence/trip-writer.fake.js";
 import { fakePlacesAccess } from "./places-session.fake.js";
@@ -78,13 +78,11 @@ function namesIn(reply: ToolReply): string[] {
 }
 
 describe("search_along_leg", () => {
-  it("sends the leg's route line and where it starts, from the trip, not the model", async () => {
+  it("sends the leg's route line from the trip, not the model", async () => {
     const planning = plannedDay2();
     const { search, sent } = await searchFor(planning.trip, STATE_PARKS);
     await search({ dayId: planning.day2.id, query: "state park" });
-    expect(sent[0]?.headers).toMatchObject({
-      "X-Goog-FieldMask": ALONG_ROUTE_FIELD_MASK,
-    });
+    expect(sent[0]?.headers).toMatchObject({ "X-Goog-FieldMask": FIELD_MASK });
     expect(sent.map((each) => each.body)).toEqual([
       {
         textQuery: "state park",
@@ -92,16 +90,13 @@ describe("search_along_leg", () => {
         searchAlongRouteParameters: {
           polyline: { encodedPolyline: BIG_SUR_ROUTE.polyline.encodedPolyline },
         },
-        routingParameters: {
-          origin: { latitude: 36.5973, longitude: -121.8978 },
-        },
       },
     ]);
   });
 
-  // Google's drives to Estero Bluffs and Harmony Headlands skip the coast, so their
-  // distances would put Estero Bluffs first. The route line puts them as the drive
-  // reaches them (Google design 2.4).
+  // Google gives Andrew Molera first. Its fastest drives to Estero Bluffs and Harmony
+  // Headlands skip the coast, so they'd put Estero Bluffs first. The route line puts
+  // them as the drive reaches them (Google design 2.4).
   it("puts places in the order the drive reaches them, by the leg's route line, and keeps Point Lobos", async () => {
     const planning = plannedDay2();
     const { search } = await searchFor(planning.trip, STATE_PARKS);
@@ -124,7 +119,7 @@ describe("search_along_leg", () => {
     ]);
     // China Cove is in Point Lobos, about 5 miles from Monterey.
     expect(lines).toContain(
-      "Type: none. Address: Point Lobos State Natural Reserve, 62 CA-1, Carmel, CA 93923, USA. About 16 m and 11.1 miles into the drive. Detour: about 0 m.",
+      "Type: none. Address: Point Lobos State Natural Reserve, 62 CA-1, Carmel, CA 93923, USA. About 16 m and 11.1 miles into the drive. 0.2 miles off the route.",
     );
     expect(lines).toContain("Hours: Friday, May 14, 2027: 8:00 AM – 7:00 PM.");
     expect(textOf(reply)).not.toContain("Left out");
@@ -148,34 +143,23 @@ describe("search_along_leg", () => {
     ]);
   });
 
-  it("works out the detour from Google's drives to and from the place, less the leg's drive time", async () => {
-    // A leg of 107 minutes. Andrew Molera is 43 minutes from the start, then 147 to the
-    // end: 83 minutes more.
-    const planning = plannedDay2([7, 100]);
-    const { search } = await searchFor(planning.trip, STATE_PARKS);
-    const reply = await search({
-      dayId: planning.day2.id,
-      query: "state park",
-    });
-    expect(textOf(reply)).toContain(
-      "Address: 45500 CA-1, Big Sur, CA 93920, USA. About 23 m and 29.9 miles into the drive. Detour: about 1 h 23 m.",
-    );
-  });
-
-  it("says the detour isn't known when Google gives a place no drives", async () => {
+  it("gives how far a place is off the route, as the crow flies to the route line's nearest point", async () => {
+    // Carmel Valley Village, inland from Carmel, up a valley road.
     const planning = plannedDay2();
     const body = JSON.stringify({
-      ...JSON.parse(STATE_PARKS),
-      routingSummaries: [],
+      places: [
+        {
+          id: "ChIJcarmelvalley",
+          displayName: { text: "Carmel Valley Village" },
+          formattedAddress: "Carmel Valley, CA 93924, USA",
+          location: { latitude: 36.4822, longitude: -121.7322 },
+        },
+      ],
     });
     const { search } = await searchFor(planning.trip, body);
-    const reply = await search({
-      dayId: planning.day2.id,
-      query: "state park",
-    });
-    expect(namesIn(reply)).toHaveLength(6);
+    const reply = await search({ dayId: planning.day2.id, query: "village" });
     expect(textOf(reply)).toContain(
-      "About 16 m and 11.1 miles into the drive. Detour: not known.",
+      "Address: Carmel Valley, CA 93924, USA. About 12 m and 8.2 miles into the drive. 10.6 miles off the route.",
     );
   });
 
