@@ -42,7 +42,7 @@ A day gives the day, its leg, its schedule, and its stops with their candidates.
 
 The whole trip gives its start and end places, its dates, each stay and day with its leg, schedule, and stops, and the places the user rejected. It lists no candidates. Each selected place shows on its stop's or lodging line, as its name, place ID, and town. The other candidates are only counted by set, such as "Other candidates: 2 in set 1." It leaves out every rationale, each stay's weather and clothing text, and the rule behind each tier.
 
-Each read ends with the current feasibility check results for what it covers, each marked new or already known. Schedule times are estimates, from average drive times plus a buffer, and visit times.`;
+Each read ends with the current feasibility check results for what it covers, each marked new or already known.`;
 
 export function readItineraryTool(session: TripSession): StrictToolDefinition {
   return {

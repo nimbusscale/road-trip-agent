@@ -107,7 +107,7 @@ The trip brief holds the items below. The agent establishes each one, whether or
 | Focus | Yes | What the trip is about, such as a region, a route, or a theme. Examples: "Pacific Coast Highway," "Texas barbecue," "somewhere warm with good hiking" |
 | Trip length | Yes | Number of days. Maximum 14 days |
 | Interests and must-sees | Yes | Includes why they matter to the user. Asked even when the user gives a precise route |
-| Comfortable driving hours per day | Yes | Expressed in hours, not miles. A default for the trip, not a hard limit. A day can go over it when the user agrees. The app has a daily driving maximum that no day can go over, even with the user's agreement. The agent also has a recommended figure. When the user gives more than that, the agent confirms it and pushes back, since more means most of the day in the car, with little time to see anything |
+| Comfortable driving hours per day | Yes | Expressed in hours, not miles. A default for the trip, not a hard limit. A day can go over it when the user agrees. The app has a daily driving maximum that no day can go over, even with the user's agreement. The agent also has a recommended figure. When the user gives more than that, the agent checks that they mean it, and pushes back, since more means most of the day in the car, with little time to see anything |
 | Route preference | Yes | Scenic or fastest. A default for the trip. A leg can differ when the user agrees |
 | Rest days | No | Days with no driving, in the user's words, such as "one day off in Moab." The agent decides which days |
 | Usual start time | No | When the party usually gets going each day. Defaults to 8 a.m. A day can start at another time when the user agrees, such as for a sunrise hike |

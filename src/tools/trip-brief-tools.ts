@@ -20,7 +20,7 @@ export const READ_TRIP_BRIEF_DESCRIPTION =
   'Reads the trip brief. Returns every item, one per line. An item with no value yet shows as "not set".';
 
 export const UPDATE_TRIP_BRIEF_DESCRIPTION =
-  "Changes one or more items in the trip brief. Items not given are not changed. Each item given replaces its old value. An item can be changed, but never emptied. If an item is refused, the error says which item and why, with the limit when there is one. The reply doesn't repeat the items. Its feasibility check results also include the trip-wide ones already known.";
+  "Changes one or more items in the trip brief. Items not given are not changed. Each item given replaces its old value. An item can be changed, but never emptied. If an item is refused, none of the items given is saved, so send the others again. The error says which item and why, with the limit when there is one. The reply doesn't repeat the items.";
 
 export function readTripBriefTool(session: TripSession): StrictToolDefinition {
   return {

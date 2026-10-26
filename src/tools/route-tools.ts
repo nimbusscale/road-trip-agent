@@ -19,7 +19,7 @@ import { readReplyOrReadableError, textReply } from "./tool-reply.js";
 // The coordinator's rough routing tool (tool design 2.4). It saves nothing.
 
 export const COMPUTE_ROUTE_DESCRIPTION =
-  'Works out a rough route through points in order, for planning, such as a sketch of the trip. One call can cover the whole trip. A stop is where the party stops, such as a town that might become a stay. A pass-through point steers the route without stopping, so it doesn\'t split the drive time between the stops on either side. "fastest" puts the stops between the first and the last in the fastest order, and can\'t take pass-through points. To get both, call with "fastest", then with "keep" and the pass-through points added. A plain name can match the wrong place, so the reply gives what each one matched. Returns the drive time and distance between each stop and the next, and in all. It saves nothing to the trip.';
+  'Works out a rough route through points in order, for planning, such as a sketch of the trip. One call can cover the whole trip. Each point is a stopover, such as a town that might become a stay, or a waypoint. The road time is split at each stopover, not at a waypoint. "fastest" puts the stopovers between the first and the last in the fastest order, and can\'t take waypoints. To get both, call with "fastest", then with "keep" and the waypoints added. A plain name can match the wrong place, so the reply gives what each one matched. Returns the road time and distance between each stopover and the next, and in all. It saves nothing to the trip.';
 
 // A point once its place is known. A plain name keeps what it matched, for the reply.
 interface FoundPoint {
@@ -59,20 +59,20 @@ export function computeRouteTool(
   };
 }
 
-// Google can't pick an order and steer through pass-through points in one call (Google
+// Google can't pick an order and steer through waypoints in one call (Google
 // design 2.1).
 function refuseBadPoints(
   points: readonly RouteInputPoint[],
   isFastest: boolean,
 ): void {
-  if (points[0]?.kind !== "stop" || points.at(-1)?.kind !== "stop") {
+  if (points[0]?.kind !== "stopover" || points.at(-1)?.kind !== "stopover") {
     throw new RuleError(
-      "The first and the last points are stops, not pass-through points.",
+      "The first and the last points are stopovers, not waypoints.",
     );
   }
-  if (isFastest && points.some((point) => point.kind === "passThrough")) {
+  if (isFastest && points.some((point) => point.kind === "waypoint")) {
     throw new RuleError(
-      'Google can\'t put stops in the fastest order and steer through pass-through points in one call. Call with "fastest" and no pass-through points, then with "keep" and the pass-through points added.',
+      'Google can\'t put stopovers in the fastest order and steer through waypoints in one call. Call with "fastest" and no waypoints, then with "keep" and the waypoints added.',
     );
   }
 }
@@ -83,7 +83,7 @@ async function foundPoint(
   session: RoutingSession,
   point: RouteInputPoint,
 ): Promise<FoundPoint> {
-  const isPassThrough = point.kind === "passThrough";
+  const isPassThrough = point.kind === "waypoint";
   if (point.place.startsWith(ID_PREFIXES.place)) {
     const place = await session.places.get(session.tripId, point.place);
     return { place, isPassThrough, label: placeText(place), plainName: null };
@@ -135,12 +135,12 @@ async function fastestLines(
   ];
   const isSame = best.order.every((at, index) => at === index);
   return [
-    `Route, in the fastest order. ${isSame ? "It's the order given." : "Google changed the order of the stops between the first and the last."}`,
+    `Route, in the fastest order. ${isSame ? "It's the order given." : "Google changed the order of the stopovers between the first and the last."}`,
     ...segmentLines(ordered, best.route),
   ];
 }
 
-// One line for each stop to the next, naming the pass-through points between them.
+// One line for each stopover to the next, naming the waypoints between them.
 function segmentLines(
   points: readonly FoundPoint[],
   route: FoundRoute,

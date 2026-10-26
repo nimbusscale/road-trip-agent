@@ -66,15 +66,15 @@ async function routing() {
 }
 
 describe("compute_route", () => {
-  it("routes the points in the order given, with a pass-through point that doesn't split the time, and gives what each plain name matched", async () => {
+  it("routes the points in the order given, with a waypoint that doesn't split the time, and gives what each plain name matched", async () => {
     const { compute, fixture, sent, grandJunction, torrey } = await routing();
     fixture.routeFinder.driveTimesFor = () => [111, 140];
     const reply = await compute({
       points: [
-        { place: grandJunction.id, kind: "stop" },
-        { place: "Dewey Bridge, UT", kind: "passThrough" },
-        { place: "Moab, UT", kind: "stop" },
-        { place: torrey.id, kind: "stop" },
+        { place: grandJunction.id, kind: "stopover" },
+        { place: "Dewey Bridge, UT", kind: "waypoint" },
+        { place: "Moab, UT", kind: "stopover" },
+        { place: torrey.id, kind: "stopover" },
       ],
       order: "keep",
     });
@@ -102,7 +102,7 @@ describe("compute_route", () => {
     expect(fixture.store.places.rows).toHaveLength(2);
   });
 
-  it("puts the stops between the first and the last in the fastest order", async () => {
+  it("puts the stopovers between the first and the last in the fastest order", async () => {
     const { compute, fixture, grandJunction, torrey } = await routing();
     fixture.routeFinder.bestOrderFor = () => ({
       order: [1, 0],
@@ -110,15 +110,15 @@ describe("compute_route", () => {
     });
     const reply = await compute({
       points: [
-        { place: grandJunction.id, kind: "stop" },
-        { place: torrey.id, kind: "stop" },
-        { place: "Moab, UT", kind: "stop" },
-        { place: grandJunction.id, kind: "stop" },
+        { place: grandJunction.id, kind: "stopover" },
+        { place: torrey.id, kind: "stopover" },
+        { place: "Moab, UT", kind: "stopover" },
+        { place: grandJunction.id, kind: "stopover" },
       ],
       order: "fastest",
     });
     expect(reply.split("\n").slice(0, 5)).toEqual([
-      "Route, in the fastest order. Google changed the order of the stops between the first and the last.",
+      "Route, in the fastest order. Google changed the order of the stopovers between the first and the last.",
       "- Grand Junction → Moab, UT: 1 h, 25 miles.",
       "- Moab, UT → Torrey: 1 h 30 m, 25 miles.",
       "- Torrey → Grand Junction: 30 m, 25 miles.",
@@ -126,37 +126,37 @@ describe("compute_route", () => {
     ]);
   });
 
-  it("refuses the fastest order with a pass-through point, and a pass-through point at either end", async () => {
+  it("refuses the fastest order with a waypoint, and a waypoint at either end", async () => {
     const { compute, grandJunction, torrey } = await routing();
     expect(
       await compute({
         points: [
-          { place: grandJunction.id, kind: "stop" },
-          { place: "Dewey Bridge, UT", kind: "passThrough" },
-          { place: torrey.id, kind: "stop" },
+          { place: grandJunction.id, kind: "stopover" },
+          { place: "Dewey Bridge, UT", kind: "waypoint" },
+          { place: torrey.id, kind: "stopover" },
         ],
         order: "fastest",
       }),
     ).toBe(
-      'Google can\'t put stops in the fastest order and steer through pass-through points in one call. Call with "fastest" and no pass-through points, then with "keep" and the pass-through points added.',
+      'Google can\'t put stopovers in the fastest order and steer through waypoints in one call. Call with "fastest" and no waypoints, then with "keep" and the waypoints added.',
     );
     expect(
       await compute({
         points: [
-          { place: grandJunction.id, kind: "stop" },
-          { place: torrey.id, kind: "passThrough" },
+          { place: grandJunction.id, kind: "stopover" },
+          { place: torrey.id, kind: "waypoint" },
         ],
         order: "keep",
       }),
-    ).toBe("The first and the last points are stops, not pass-through points.");
+    ).toBe("The first and the last points are stopovers, not waypoints.");
   });
 
   it("refuses a plain name Google has no match for, an ID of another kind, and another trip's place", async () => {
     const { compute, grandJunction } = await routing();
-    const stop = { place: grandJunction.id, kind: "stop" };
+    const stop = { place: grandJunction.id, kind: "stopover" };
     expect(
       await compute({
-        points: [stop, { place: "Nowhere, UT", kind: "stop" }],
+        points: [stop, { place: "Nowhere, UT", kind: "stopover" }],
         order: "keep",
       }),
     ).toBe(
@@ -164,13 +164,13 @@ describe("compute_route", () => {
     );
     expect(
       await compute({
-        points: [stop, { place: "stay_k7m2x9qa", kind: "stop" }],
+        points: [stop, { place: "stay_k7m2x9qa", kind: "stopover" }],
         order: "keep",
       }),
     ).toBe("stay_k7m2x9qa is a stay ID, not a place ID.");
     expect(
       await compute({
-        points: [stop, { place: "place_k7m2x9qa", kind: "stop" }],
+        points: [stop, { place: "place_k7m2x9qa", kind: "stopover" }],
         order: "keep",
       }),
     ).toBe("This trip has no place place_k7m2x9qa.");
