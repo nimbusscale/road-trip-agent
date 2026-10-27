@@ -94,7 +94,7 @@ describe("the itinerary view", () => {
   it("shows the free time before a dinner with a set time, and the drives with their lengths", () => {
     const day1 = dayNumbered(sanFranciscoView(), 1);
     const kinds = day1.schedule.map((entry) => entry.kind);
-    expect(kinds.slice(-4)).toEqual(["freeTime", "drive", "stop", "drive"]);
+    expect(kinds.slice(-4)).toEqual(["drive", "freeTime", "stop", "drive"]);
     expect(day1.schedule[0]).toMatchObject({
       kind: "drive",
       startTime: "8:00 a.m.",
