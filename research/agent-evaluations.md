@@ -349,7 +349,7 @@ The turn with two workers, from Phoenix's API. The times are seconds into the mi
 
 #### Setup
 
-- **The code was a small project in `scratch/worker-spike/`,** which is gitignored, so it isn't in the repo. Everything it showed is below.
+- **The code is in `worker-spike/` on the [`spike/worker-182`](https://github.com/nimbusscale/road-trip-agent/tree/spike/worker-182/worker-spike) branch,** which never gets a PR. Its README says how to run each check below.
 - **Versions:** `@anthropic-ai/claude-agent-sdk` 0.3.301, the app's. Coordinator on `claude-opus-5-5`, worker on `claude-haiku-5-5`.
 - **Sign-in is the app's.** The Claude Code process gets the plan's token in `CLAUDE_CODE_OAUTH_TOKEN`, and a `CLAUDE_CONFIG_DIR` of its own. Its only `ANTHROPIC_` variable is the proxy's, below.
 - **The coordinator** has a short system prompt, the `Agent` tool, and one fake tool of its own, `mcp__trip__read_itinerary`.
@@ -622,6 +622,7 @@ createServer(async (req, res) => {
 ```
 
 - **The spike's server took any request on its port.** Any process that can reach the port can call the worker's tools. In the app, the server has to tell which trip a call is for, so the URL or a header in the definition can carry a key made for the turn.
+- **An HTTP server's config takes `headers`,** beside `url`, in `McpHttpServerConfig` in 0.3.301's `sdk.d.ts`. The spike didn't send any, so it didn't check that they reach the server on every call.
 - **`@modelcontextprotocol/sdk` 1.32.1** is the app's version. The spike added it for the transport.
 
 #### What this means for #60
