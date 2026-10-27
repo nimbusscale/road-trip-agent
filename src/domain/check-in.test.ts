@@ -76,15 +76,25 @@ describe("a day with a check-in before an evening event", () => {
   it("is at that night's stay, wherever it moves, and has the place from the moment it's added", () => {
     const { itinerary, calendar, services, barHarbor, day1, checkIn } =
       checkInDay();
-    const day2 = present(barHarbor.days[1]);
     expect(checkIn.status).toBe("selected");
+    expect(calendar.placeOf(itinerary, checkIn)).toBe(BAR_HARBOR);
+    // Day 3 starts at Bar Harbor and ends at Camden, so only the night's stay gives
+    // Camden.
+    const camden = services.stays.addStay(itinerary, {
+      place: CAMDEN,
+      nightCount: 1,
+      tier: "value",
+      tierRule: "the trip default",
+      after: barHarbor,
+    });
+    const day3 = present(camden.days[0]);
     services.stops.moveStop(itinerary, checkIn, {
-      toDay: day2,
+      toDay: day3,
       after: null,
       setTime: null,
     });
-    expect(calendar.placeOf(itinerary, checkIn)).toBe(BAR_HARBOR);
-    expect(calendar.hasLeg(itinerary, day2)).toBe(true);
+    expect(calendar.placeOf(itinerary, checkIn)).toBe(CAMDEN);
+    expect(calendar.hasLeg(itinerary, day3)).toBe(true);
     expect(day1.stops).not.toContain(checkIn);
   });
 
@@ -156,6 +166,7 @@ describe("the check-in's rules", () => {
   });
 });
 
+const CAMDEN = placeAt("Camden", 44.2098, -69.0648);
 const PIE_PLACE = placeAt("Pie place", 43.9, -69.9);
 const DESSERT_PLACE = placeAt("Dessert place", 44.388, -68.204);
 
