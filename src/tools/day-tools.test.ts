@@ -117,6 +117,7 @@ describe("set_waypoints", () => {
       `Set 1 waypoint on Day 1 (${dayId}):\n- ${placeLine(dewey)}. Reason: "steer onto UT-128".`,
     );
     expect(set).toContain(`- Day 1 (${dayId}): 30 m → 2 h, 25 miles.`);
+    expect(set).not.toContain("wasn't routed again");
     const routed = trip.fixture.routeFinder.routes.at(-1);
     expect(routed?.through.map((point) => point.isPassThrough)).toEqual([true]);
     expect(await trip.read(dayId)).toContain(
@@ -126,6 +127,27 @@ describe("set_waypoints", () => {
     expect(cleared).toContain(`Cleared the waypoints on Day 1 (${dayId}).`);
     expect(cleared).toContain(`- Day 1 (${dayId}): 2 h → 1 h 40 m, 25 miles.`);
     expect(await trip.read(dayId)).not.toContain("Waypoint:");
+  });
+
+  it("gives the road time when only a reason changes, though the leg isn't routed again", async () => {
+    const trip = await moabDayOne();
+    const { dayId, dewey } = trip;
+    await trip.setWaypoints({
+      dayId,
+      waypoints: [{ placeId: dewey.id, reason: "UT-128" }],
+    });
+    const routeCount = trip.fixture.routeFinder.routes.length;
+    const reply = textOf(
+      await trip.setWaypoints({
+        dayId,
+        waypoints: [{ placeId: dewey.id, reason: "steer onto UT-128" }],
+      }),
+    );
+    expect(reply).toContain(
+      `The leg on Day 1 (${dayId}) wasn't routed again, since its places didn't change. Road time, without the drive buffer: 2 h, 25 miles.`,
+    );
+    expect(reply).not.toContain("Road time changed");
+    expect(trip.fixture.routeFinder.routes).toHaveLength(routeCount);
   });
 
   it("refuses a waypoint without a reason", async () => {

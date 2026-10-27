@@ -72,6 +72,7 @@ export function setWaypointsTool(session: TripSession): StrictToolDefinition {
                   ...waypointLines(day.waypoints),
                 ],
           touchedIds: [day.id],
+          roadTimeDay: day,
         };
       }),
   );
