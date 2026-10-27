@@ -4,6 +4,11 @@ import type { StopKind } from "./stop-kind.js";
 
 // A stop's own rules that don't need the stop itself (domain model 3.7).
 
+// Selecting a place for a check-in is a mistake for selecting the stay's lodging, so the
+// error says where to go instead.
+export const CHECK_IN_HAS_NO_CANDIDATES =
+  "A check-in has no candidates. Its place is where the party sleeps that night. To pick the hotel, select it for the stay instead.";
+
 // Such as "a check-in", for an error.
 export const KIND_TEXT: Record<StopKind, string> = {
   meal: "a meal",

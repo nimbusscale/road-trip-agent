@@ -104,6 +104,32 @@ describe("select_user_place", () => {
       `Nothing was changed. The user rejected Milt's for this trip, because "too greasy". A rejection can't be taken back.`,
     );
   });
+
+  it("refuses a check-in, with or without a visit time, and says to select the hotel for the stay", async () => {
+    const { addStops, selectUserPlace, example } = await plannedMoab();
+    const day4 = present(example.torrey.days[0]);
+    const added = textOf(
+      await addStops({
+        dayId: day4.id,
+        after: "first",
+        stops: [{ kind: "checkIn", purpose: "check in", setTime: "none" }],
+      }),
+    );
+    const checkInId = present(/\((stop_\w+)\), checkIn/.exec(added))[1] ?? "";
+    const hotel = present(example.torrey.lodging);
+    for (const visitTimeInMinutes of [120, undefined]) {
+      const reply = await selectUserPlace({
+        stopOrStayId: checkInId,
+        placeId: hotel.id,
+        name: "Torrey hotel",
+        reason: "we're staying there",
+        visitTimeInMinutes,
+      });
+      expect(textOf(reply)).toBe(
+        "Nothing was changed. A check-in has no candidates. Its place is where the party sleeps that night. To pick the hotel, select it for the stay instead.",
+      );
+    }
+  });
 });
 
 describe("select_candidate", () => {

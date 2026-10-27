@@ -19,6 +19,7 @@ import type { SearchArea } from "./search-area.js";
 import type { Stay } from "./stay.js";
 import type { StopKind } from "./stop-kind.js";
 import {
+  CHECK_IN_HAS_NO_CANDIDATES,
   checkedVisitTime,
   KIND_TEXT,
   noPlaceForVisitTime,
@@ -89,9 +90,7 @@ export class Stop {
     },
     addCandidates: (offers) => {
       if (this.kind === "checkIn") {
-        throw new RuleError(
-          "A check-in has no candidates. Its place is where the party sleeps that night.",
-        );
+        throw new RuleError(CHECK_IN_HAS_NO_CANDIDATES);
       }
       const tiering =
         this.#tier === null || this.#tierRule === null
