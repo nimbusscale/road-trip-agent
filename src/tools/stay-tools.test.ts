@@ -94,8 +94,6 @@ describe("add_stay", () => {
       placeId: trip.place("Moab").id,
       after: "first",
       nightCount: 3,
-      tier: "midRange",
-      tierRule: "stays of 2+ nights",
     });
     expect(textOf(reply)).toBe(
       "Nothing was changed. A stay can be added once the itinerary has its start place, end place, and start date. It still needs its start place, end place, start date.",
@@ -110,8 +108,6 @@ describe("add_stay", () => {
         placeId: trip.place("Moab").id,
         after: "first",
         nightCount: 3,
-        tier: "midRange",
-        tierRule: "stays of 2+ nights",
       }),
     );
     const [day1, day2, day3, lastDay] = await trip.days();
@@ -132,8 +128,6 @@ describe("add_stay", () => {
         placeId: trip.place("Torrey").id,
         after: moabStayId,
         nightCount: 1,
-        tier: "value",
-        tierRule: "the default tier",
       }),
     );
     expect(torrey).toMatch(
@@ -200,26 +194,20 @@ describe("update_stay", () => {
     );
   });
 
-  it("adds a night, and sets the tier in the same call", async () => {
+  it("adds a night, and gives the new day's ID", async () => {
     const { updateStay, read, example } = await plannedMoab();
     const reply = textOf(
-      await updateStay({
-        stayId: example.torrey.id,
-        nightCount: 2,
-        tier: { tier: "midRange", tierRule: "stays of 2+ nights" },
-      }),
+      await updateStay({ stayId: example.torrey.id, nightCount: 2 }),
     );
     expect(reply).toMatch(/It has 2 nights: Day 4 \(day_\w+\), Day 5/);
     expect(reply).toMatch(/Days added: Day 5 \(day_\w+\)\./);
-    expect(await read(example.torrey.id)).toContain(
-      'Lodging tier: midRange, from the rule "stays of 2+ nights".',
-    );
+    expect(await read(example.torrey.id)).toContain("2 nights, Days 4 to 5,");
   });
 
   it("refuses a call with nothing to change", async () => {
     const { updateStay, example } = await plannedMoab();
     expect(textOf(await updateStay({ stayId: example.moab.id }))).toBe(
-      "Nothing was changed. Give at least one change: placeId, after, nightCount, or tier.",
+      "Nothing was changed. Give at least one change: placeId, after, or nightCount.",
     );
   });
 });
@@ -240,8 +228,6 @@ describe("remove_stay", () => {
       placeId: trip.place("Torrey").id,
       after: "first",
       nightCount: 1,
-      tier: "value",
-      tierRule: "the default tier",
     });
     const [torreyDay] = await trip.days();
     const stayId = present(

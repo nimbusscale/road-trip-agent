@@ -8,7 +8,6 @@ import {
 import type { Place } from "./place.js";
 import { RuleError } from "./rule-error.js";
 import { StayDay } from "./stay-day.js";
-import { pickedTierRule, type Tier } from "./tier.js";
 import { VIA_SERVICE } from "./via-service.js";
 import type { WeatherText } from "./weather-text.js";
 
@@ -16,8 +15,6 @@ import type { WeatherText } from "./weather-text.js";
 export interface NewStayFields {
   place: Place;
   nightCount: number;
-  tier: Tier;
-  tierRule: string;
 }
 
 export interface StayFields {
@@ -25,8 +22,6 @@ export interface StayFields {
   place: Place;
   lodging: Place | null;
   lodgingCandidates: readonly Candidate[];
-  tier: Tier;
-  tierRule: string;
   days: readonly StayDay[];
   weatherText: WeatherText | null;
 }
@@ -52,17 +47,12 @@ export class Stay {
   place: Place;
   #lodging: Place | null;
   #lodgingCandidates: Candidate[];
-  #tier: Tier;
-  #tierRule: string;
   #days: StayDay[];
   #weatherText: WeatherText | null;
 
   readonly [VIA_SERVICE]: StayChanges = {
     addLodgingCandidates: (offers) => {
-      const set = newCandidateSet(this.#lodgingCandidates, offers, {
-        tier: this.#tier,
-        tierRule: this.#tierRule,
-      });
+      const set = newCandidateSet(this.#lodgingCandidates, offers);
       set.forEach(refuseUnfitLodging);
       this.#lodgingCandidates.push(...set);
       return set;
@@ -84,8 +74,6 @@ export class Stay {
   constructor(fields: StayFields) {
     this.id = fields.id;
     this.place = fields.place;
-    this.#tier = fields.tier;
-    this.#tierRule = checkedTierRule(fields.tierRule);
     if (fields.days.length < 1) {
       throw new RuleError("A stay holds at least one day.");
     }
@@ -110,14 +98,6 @@ export class Stay {
     return Object.freeze([...this.#lodgingCandidates]);
   }
 
-  get tier(): Tier {
-    return this.#tier;
-  }
-
-  get tierRule(): string {
-    return this.#tierRule;
-  }
-
   // One for each night, in order.
   get days(): readonly StayDay[] {
     return Object.freeze([...this.#days]);
@@ -136,24 +116,13 @@ export class Stay {
     return this.#lodging ?? this.place;
   }
 
-  // A later change to the nights or the rules leaves it as it is (technical spec
-  // section 9).
-  setTier(tier: Tier, tierRule: string): void {
-    this.#tierRule = checkedTierRule(tierRule);
-    this.#tier = tier;
-  }
-
-  // Selects one of the stay's candidates as its lodging. A candidate offered at another
-  // tier sets the stay's tier to it. One the user named has no tier, so the tier stays.
+  // Selects one of the stay's candidates as its lodging.
   selectCandidate(place: Place): void {
-    const candidate = this.#selectLodging(place);
-    if (candidate.tier !== null && candidate.tier !== this.#tier) {
-      this.setTier(candidate.tier, pickedTierRule(candidate.tier));
-    }
+    this.#selectLodging(place);
   }
 
   // Places are matched by ID, like everywhere else in the trip.
-  #selectLodging(place: Place): Candidate {
+  #selectLodging(place: Place): void {
     const candidate = this.#lodgingCandidates.find(
       (each) => each.place.id === place.id,
     );
@@ -163,7 +132,6 @@ export class Stay {
       );
     }
     this.#lodging = candidate.place;
-    return candidate;
   }
 
   #setNightCount(nightCount: number): StayDay[] {
@@ -186,8 +154,6 @@ export function newStay(fields: NewStayFields): Stay {
     place: fields.place,
     lodging: null,
     lodgingCandidates: [],
-    tier: fields.tier,
-    tierRule: fields.tierRule,
     days,
     weatherText: null,
   });
@@ -212,21 +178,21 @@ export function checkedNightCount(nightCount: number): number {
   return nightCount;
 }
 
-function checkedTierRule(tierRule: string): string {
-  if (tierRule.trim() === "") {
-    throw new RuleError("A stay's tier needs the rule that produced it.");
-  }
-  return tierRule;
-}
-
-// Visit and detour times are for stops (domain model 3.5).
+// Visit and detour times are for stops. The worker that found a lodging candidate
+// judges its tier (domain model 3.5).
 function refuseUnfitLodging(candidate: Candidate): void {
+  const name = candidate.place.name ?? candidate.place.id;
   if (
     candidate.visitTimeInMinutes !== null ||
     candidate.detourTimeInMinutes !== null
   ) {
     throw new RuleError(
-      `${candidate.place.name ?? candidate.place.id} doesn't fit as lodging: a lodging candidate has no visit time or detour time.`,
+      `${name} doesn't fit as lodging: a lodging candidate has no visit time or detour time.`,
+    );
+  }
+  if (candidate.isFoundByWorker && candidate.tier === null) {
+    throw new RuleError(
+      `${name} doesn't fit as lodging: a lodging candidate a worker found has a tier.`,
     );
   }
 }

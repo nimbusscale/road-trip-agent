@@ -12,7 +12,6 @@ import type { ScheduleTime } from "./schedule-time.js";
 import type { Stay } from "./stay.js";
 import { StayDay } from "./stay-day.js";
 import { newCheckIn, type Stop } from "./stop.js";
-import { pickedTierRule } from "./tier.js";
 import { VIA_SERVICE } from "./via-service.js";
 
 export type StopsSettings = Pick<
@@ -138,8 +137,8 @@ export class StopsService {
   }
 
   // Selecting the place that's already selected changes nothing. Otherwise the stop
-  // gets the visit time, and a meal the tier of the candidate the user picked. The
-  // stop removes its opening hours approval itself, since it was for the old place.
+  // gets the visit time. The stop removes its opening hours approval itself, since it
+  // was for the old place.
   selectCandidate(stop: Stop, place: Place): void {
     if (stop.selectedPlace?.id === place.id) {
       return;
@@ -155,13 +154,6 @@ export class StopsService {
     const visitTimeInMinutes =
       candidate.visitTimeInMinutes ?? this.#settings.mealVisitMinutes;
     stop[VIA_SERVICE].selectCandidate(place, visitTimeInMinutes);
-    if (
-      stop.kind === "meal" &&
-      candidate.tier !== null &&
-      candidate.tier !== stop.tier
-    ) {
-      stop.setTier(candidate.tier, pickedTierRule(candidate.tier));
-    }
   }
 
   // Records how many minutes of the visit now fall within the place's opening hours.

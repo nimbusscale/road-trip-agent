@@ -21,7 +21,7 @@ function withEmptyMeal() {
 }
 
 describe("StopsService.addCandidates", () => {
-  it("adds one set, with the stop's tier for the ones a worker found", () => {
+  it("adds one set, with the tier each worker candidate came with", () => {
     const { itinerary, services, lunch } = withEmptyMeal();
     services.stops.addCandidates(itinerary, lunch, [
       workerOffer(placeNamed("Quesadilla Mobilla")),
@@ -30,7 +30,7 @@ describe("StopsService.addCandidates", () => {
     expect(lunch.status).toBe("proposed");
     expect(lunch.candidates.map((each) => [each.setNumber, each.tier])).toEqual(
       [
-        [0, "value"],
+        [0, "midRange"],
         [0, null],
       ],
     );
@@ -83,16 +83,13 @@ describe("StopsService.addCandidates", () => {
 });
 
 describe("StopsService.selectCandidate", () => {
-  it("gives a meal the meal visit time, and the tier of the candidate the user picked", () => {
+  it("gives a meal the meal visit time", () => {
     const { itinerary, services, lunch } = withEmptyMeal();
-    const posh = placeNamed("Desert Bistro");
-    services.stops.addCandidates(itinerary, lunch, [workerOffer(posh)]);
-    lunch.setTier("midRange", "the user asked for something nicer");
-    services.stops.selectCandidate(lunch, posh);
-    expect(lunch.selectedPlace).toBe(posh);
+    const bistro = placeNamed("Desert Bistro");
+    services.stops.addCandidates(itinerary, lunch, [workerOffer(bistro)]);
+    services.stops.selectCandidate(lunch, bistro);
+    expect(lunch.selectedPlace).toBe(bistro);
     expect(lunch.visitTimeInMinutes).toBe(60);
-    expect(lunch.tier).toBe("value");
-    expect(lunch.tierRule).toBe("the user picked a value option");
   });
 
   it("gives an attraction the candidate's visit time, and removes an opening hours approval", () => {
@@ -103,7 +100,6 @@ describe("StopsService.selectCandidate", () => {
     services.stops.addCandidates(itinerary, stops.milts, [userOffer(rays)]);
     services.stops.selectCandidate(stops.milts, rays);
     expect(stops.milts.approvals).toEqual([]);
-    expect(stops.milts.tier).toBe("value");
     const sunset = placeNamed("Delicate Arch at sunset");
     services.stops.addCandidates(itinerary, stops.delicateArch, [
       { ...userOffer(sunset), visitTimeInMinutes: 200 },

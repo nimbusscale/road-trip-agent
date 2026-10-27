@@ -124,8 +124,6 @@ export function meal(plan: StopPlan): Stop {
     searchArea: plan.searchArea,
     searchAreaStay: plan.stay ?? null,
     setTime: plan.setTime ?? null,
-    tier: "value",
-    tierRule: "the trip default",
   });
 }
 
@@ -136,8 +134,6 @@ export function attraction(plan: StopPlan): Stop {
     searchArea: plan.searchArea,
     searchAreaStay: plan.stay ?? null,
     setTime: plan.setTime ?? null,
-    tier: null,
-    tierRule: null,
   });
 }
 

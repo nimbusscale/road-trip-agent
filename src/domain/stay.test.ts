@@ -15,8 +15,6 @@ import { WeatherText } from "./weather-text.js";
 const MOAB_FIELDS: NewStayFields = {
   place: namedPlace("Moab"),
   nightCount: 3,
-  tier: "midRange",
-  tierRule: "stays of 2+ nights",
 };
 
 function moabWith(...names: string[]): Stay {
@@ -39,11 +37,10 @@ describe("creating a stay", () => {
     expect(new Set(moab.days.map((day) => day.id)).size).toBe(3);
   });
 
-  it("refuses fewer than 1 night, or an empty rule", () => {
+  it("refuses fewer than 1 night", () => {
     expect(() => newStay({ ...MOAB_FIELDS, nightCount: 0 })).toThrow(
       "at least 1",
     );
-    expect(() => newStay({ ...MOAB_FIELDS, tierRule: " " })).toThrow(RuleError);
     const moab = newStay(MOAB_FIELDS);
     expect(() => new Stay({ ...storedFieldsOf(moab), days: [] })).toThrow(
       "at least one day",
@@ -59,17 +56,6 @@ describe("creating a stay", () => {
   });
 });
 
-describe("Stay.setTier", () => {
-  it("sets the tier and its rule, and refuses an empty rule", () => {
-    const moab = newStay(MOAB_FIELDS);
-    moab.setTier("value", "one-night stays");
-    expect([moab.tier, moab.tierRule]).toEqual(["value", "one-night stays"]);
-    expect(() => {
-      moab.setTier("posh", "");
-    }).toThrow(RuleError);
-  });
-});
-
 describe("Stay.selectCandidate", () => {
   it("takes only one of the stay's candidates", () => {
     expect(() => {
@@ -77,23 +63,14 @@ describe("Stay.selectCandidate", () => {
     }).toThrow("isn't one of the stay's lodging candidates");
   });
 
-  it("sets the stay's tier to a candidate offered at another tier", () => {
-    const moab = moabWith("Moab hotel");
-    moab.setTier("posh", "last night is special");
-    moab.selectCandidate(present(moab.lodgingCandidates[0]).place);
-    expect([moab.tier, moab.tierRule]).toEqual([
-      "midRange",
-      "the user picked a mid-range option",
-    ]);
-  });
-
-  it("keeps the stay's tier for a place the user named", () => {
+  it("selects a place the user named, which has no tier", () => {
     const moab = newStay(MOAB_FIELDS);
     const [friends] = moab[VIA_SERVICE].addLodgingCandidates([
       userOffer(namedPlace("A friend's house")),
     ]);
     moab.selectCandidate(present(friends).place);
-    expect(moab.tierRule).toBe("stays of 2+ nights");
+    expect(moab.lodging).toBe(present(friends).place);
+    expect(present(friends).tier).toBeNull();
   });
 });
 
@@ -112,6 +89,17 @@ describe("a stay's lodging candidates", () => {
     expect(() =>
       newStay(MOAB_FIELDS)[VIA_SERVICE].addLodgingCandidates([timed]),
     ).toThrow("no visit time or detour time");
+  });
+
+  it("each have a tier when a worker found them", () => {
+    const untiered = { ...workerOffer(namedPlace("A")), tier: null };
+    expect(() =>
+      newStay(MOAB_FIELDS)[VIA_SERVICE].addLodgingCandidates([untiered]),
+    ).toThrow("a lodging candidate a worker found has a tier");
+    const [upscale] = newStay(MOAB_FIELDS)[VIA_SERVICE].addLodgingCandidates([
+      { ...workerOffer(namedPlace("B")), tier: "upscale" },
+    ]);
+    expect(upscale?.tier).toBe("upscale");
   });
 
   it("clear the lodging when its candidate is removed", () => {
@@ -181,8 +169,6 @@ function storedFieldsOf(stay: Stay): ConstructorParameters<typeof Stay>[0] {
     place: stay.place,
     lodging: stay.lodging,
     lodgingCandidates: stay.lodgingCandidates,
-    tier: stay.tier,
-    tierRule: stay.tierRule,
     days: stay.days,
     weatherText: stay.weatherText,
   };

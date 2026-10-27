@@ -31,10 +31,10 @@ describe("coordinatorPrompt", () => {
     expect(prompt).toContain(MEMORY_CHANGE_RULE);
   });
 
-  // Functional spec 5.2: budget posture is the default tier plus any rules.
-  it("doesn't ask for budget rules from a user who has none", () => {
+  // Functional spec 5.2: lodging preferences are required, like meal preferences.
+  it("asks for every item but the rest days and the usual start time", () => {
     expect(prompt).toContain(
-      "Each is required, except restDaysText, usualStartTime, and budgetRulesText.",
+      "Each is required, except restDaysText and usualStartTime.",
     );
   });
 
@@ -52,9 +52,8 @@ describe("coordinatorPrompt", () => {
       "routePreference",
       "restDaysText",
       "usualStartTime",
-      "defaultTier",
-      "budgetRulesText",
       "mealPreferencesText",
+      "lodgingPreferencesText",
     ]) {
       expect(prompt).toContain(`- ${item}: `);
     }

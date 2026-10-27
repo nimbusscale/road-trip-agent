@@ -87,8 +87,6 @@ function layOutSpringdale(
   const springdale = services.stays.addStay(itinerary, {
     place: placeNamed("Springdale"),
     nightCount: 1,
-    tier: "midRange",
-    tierRule: "the trip default",
     after: null,
   });
   services.stays.addLodgingCandidates(itinerary, springdale, [
@@ -112,8 +110,6 @@ function layOutCortez(planning: Planning, places: SmallTrip["places"]): void {
   const cortez = services.stays.addStay(itinerary, {
     place: placeNamed("Cortez"),
     nightCount: 1,
-    tier: "value",
-    tierRule: "the trip default",
     after: present(itinerary.stays[0]),
   });
   const southRim = attraction({
@@ -129,12 +125,13 @@ function layOutCortez(planning: Planning, places: SmallTrip["places"]): void {
   services.stops.addCandidates(itinerary, southRim, [
     {
       ...workerOffer(places.desertView),
+      tier: null,
       visitTimeInMinutes: 45,
       detourTimeInMinutes: 20,
     },
   ]);
   services.stops.addCandidates(itinerary, dwellings, [
-    { ...workerOffer(places.cliffPalace), visitTimeInMinutes: 120 },
+    { ...workerOffer(places.cliffPalace), tier: null, visitTimeInMinutes: 120 },
   ]);
   services.stops.selectCandidate(dwellings, places.cliffPalace);
 }

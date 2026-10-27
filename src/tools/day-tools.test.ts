@@ -177,8 +177,6 @@ describe("set_waypoints", () => {
       placeId: trip.place("Moab").id,
       after: "first",
       nightCount: 2,
-      tier: "midRange",
-      tierRule: "stays of 2+ nights",
     });
     const [day1, day2] = await trip.days();
     const dewey = { placeId: trip.place("Dewey Bridge").id, reason: "UT-128" };
@@ -263,8 +261,6 @@ async function moabDayOne() {
     placeId: trip.place("Moab").id,
     after: "first",
     nightCount: 1,
-    tier: "value",
-    tierRule: "the default tier",
   });
   const [day1] = await trip.days();
   trip.fixture.routeFinder.driveTimesFor = (path) =>

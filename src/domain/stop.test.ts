@@ -10,8 +10,6 @@ import { VIA_SERVICE } from "./via-service.js";
 const MOAB = newStay({
   place: namedPlace("Moab"),
   nightCount: 3,
-  tier: "midRange",
-  tierRule: "2+ nights",
 });
 const DINNER: NewStopFields = {
   kind: "meal",
@@ -19,15 +17,11 @@ const DINNER: NewStopFields = {
   searchArea: "nearStay",
   searchAreaStay: MOAB,
   setTime: null,
-  tier: "value",
-  tierRule: "the trip default",
 };
 const HIKE: NewStopFields = {
   ...DINNER,
   kind: "attraction",
   purpose: "a long hike in Arches",
-  tier: null,
-  tierRule: null,
 };
 const APPROVAL = new OpeningHoursApproval({
   reason: "we'll eat fast",
@@ -63,37 +57,34 @@ describe("creating a stop", () => {
       RuleError,
     );
   });
-
-  it("gives a meal a tier and rule, and an attraction neither", () => {
-    expect(() => newStop({ ...DINNER, tier: null })).toThrow("A meal stop");
-    expect(() => newStop({ ...DINNER, tierRule: " " })).toThrow("A meal stop");
-    expect(() => newStop({ ...HIKE, tier: "posh" })).toThrow("A meal stop");
-    expect(newStop(HIKE).status).toBe("empty");
-  });
-});
-
-describe("Stop.setTier", () => {
-  it("sets a meal's tier, and refuses an attraction or an empty rule", () => {
-    const dinner = newStop(DINNER);
-    dinner.setTier("posh", "last night is special");
-    expect([dinner.tier, dinner.tierRule]).toEqual([
-      "posh",
-      "last night is special",
-    ]);
-    expect(() => {
-      dinner.setTier("value", "");
-    }).toThrow(RuleError);
-    expect(() => {
-      newStop(HIKE).setTier("value", "cheap");
-    }).toThrow("Only a meal stop has a tier");
-  });
 });
 
 describe("a stop's candidates", () => {
-  it("get the stop's tier and rule, and make it proposed", () => {
-    const dinner = dinnerWith("Milt's");
+  it("keep the tier the worker judged, and make it proposed", () => {
+    const dinner = newStop(DINNER);
+    dinner[VIA_SERVICE].addCandidates([
+      { ...workerOffer(namedPlace("Milt's")), tier: "value" },
+    ]);
     expect(dinner.candidates[0]?.tier).toBe("value");
     expect(dinner.status).toBe("proposed");
+  });
+
+  it("have a tier exactly when the stop is a meal and a worker found them", () => {
+    const untiered = { ...workerOffer(namedPlace("Milt's")), tier: null };
+    expect(() =>
+      newStop(DINNER)[VIA_SERVICE].addCandidates([untiered]),
+    ).toThrow("a meal's candidate a worker found has a tier");
+    const tieredHike = {
+      ...workerOffer(namedPlace("Arches")),
+      visitTimeInMinutes: 240,
+    };
+    expect(() =>
+      newStop(HIKE)[VIA_SERVICE].addCandidates([tieredHike]),
+    ).toThrow("an attraction's candidates have no tier");
+    const [named] = newStop(DINNER)[VIA_SERVICE].addCandidates([
+      userOffer(namedPlace("Mom's diner")),
+    ]);
+    expect(named?.tier).toBeNull();
   });
 
   it("fit the stop's kind: an attraction's have a visit time, and a meal's none", () => {

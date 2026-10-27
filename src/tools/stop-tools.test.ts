@@ -27,8 +27,6 @@ describe("add_stops", () => {
             purpose: "ice cream",
             searchArea: example.moab.id,
             setTime: "9:00 p.m.",
-            tier: "value",
-            tierRule: "the default tier",
           },
         ],
       }),
@@ -38,7 +36,7 @@ describe("add_stops", () => {
     );
     const day = await read(day1.id);
     expect(day).toMatch(
-      /Stop 4 \(stop_\w+\), meal: "ice cream"\. Near the Moab stay\. Set time: 9:00 p\.m\. Tier: value, from the rule "the default tier"\. No candidates yet\./,
+      /Stop 4 \(stop_\w+\), meal: "ice cream"\. Near the Moab stay\. Set time: 9:00 p\.m\. No candidates yet\./,
     );
   });
 
@@ -144,7 +142,7 @@ describe("add_stops", () => {
 });
 
 describe("update_stop", () => {
-  it("changes a visit time, and refuses a tier for an attraction and a call with no change", async () => {
+  it("changes a visit time, and refuses a call with no change", async () => {
     const { updateStop, read, example } = await plannedMoab();
     const towers = example.stops.fisherTowers;
     const reply = textOf(
@@ -154,18 +152,8 @@ describe("update_stop", () => {
       /^Changed Day 1, Stop 2 \(stop_\w+\), attraction: "towers"\./,
     );
     expect(await read(towers.id)).toContain("visit time 5 h.");
-    expect(
-      textOf(
-        await updateStop({
-          stopId: towers.id,
-          tier: { tier: "posh", tierRule: "the default tier" },
-        }),
-      ),
-    ).toBe(
-      "Nothing was changed. Only a meal stop has a tier. This one is an attraction.",
-    );
     expect(textOf(await updateStop({ stopId: towers.id }))).toBe(
-      "Nothing was changed. Give at least one change: setTime, visitTimeInMinutes, tier, approveOpeningHours, or removeApproval.",
+      "Nothing was changed. Give at least one change: setTime, visitTimeInMinutes, approveOpeningHours, or removeApproval.",
     );
   });
 

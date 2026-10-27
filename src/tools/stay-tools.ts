@@ -26,7 +26,7 @@ import type { TripSession } from "./trip-session.js";
 // "Where an item goes").
 export const ADD_STAY_DESCRIPTION = `Adds a stay, with one day for each of its nights. Give after the ID of the stay it follows, or "${FIRST}" to put it before every other stay. The place is usually a town. The itinerary's start place, end place, and start date must be set before a stay can be added. The reply gives the new stay's ID and its days' IDs, and lists the stops on any day that now starts or ends somewhere else.`;
 
-export const UPDATE_STAY_DESCRIPTION = `Changes a stay: its place, where it goes, its nights, or its lodging tier. Items not given are not changed. To move it, give after the ID of the stay it now follows, or "${FIRST}" to put it before every other stay. Changing the nights adds or removes days at the end of the stay's days. Removing a night is refused while that day holds stops, and the error lists them. The reply gives the IDs of any days added, and lists the stops on any day that now starts or ends somewhere else.`;
+export const UPDATE_STAY_DESCRIPTION = `Changes a stay: its place, where it goes, or its nights. Items not given are not changed. To move it, give after the ID of the stay it now follows, or "${FIRST}" to put it before every other stay. Changing the nights adds or removes days at the end of the stay's days. Removing a night is refused while that day holds stops, and the error lists them. The reply gives the IDs of any days added, and lists the stops on any day that now starts or ends somewhere else.`;
 
 export const REMOVE_STAY_DESCRIPTION =
   "Removes a stay and its days. Refused while any stop is on its days, or while a stop on another day has this stay as its search area. The error lists those stops.";
@@ -36,15 +36,13 @@ export function addStayTool(session: TripSession): StrictToolDefinition {
     "add_stay",
     ADD_STAY_DESCRIPTION,
     ADD_STAY_INPUT,
-    ({ placeId, after, nightCount, tier, tierRule }) =>
+    ({ placeId, after, nightCount }) =>
       itineraryWriteReply(session, ({ trip, services, placeOf }) => {
         const itinerary = trip.itinerary;
         refuseWrongKind(placeId, "place");
         const stay = services.stays.addStay(itinerary, {
           place: placeOf(placeId),
           nightCount,
-          tier,
-          tierRule,
           after: stayAfter(itinerary, after),
         });
         return {
@@ -88,15 +86,15 @@ export function removeStayTool(session: TripSession): StrictToolDefinition {
   );
 }
 
-// In the order tool design 2.1 gives: place, position, nights, then tier.
+// In the order tool design 2.1 gives: place, position, then nights.
 function updateStay(
   input: UpdateStayInput,
   { trip, services, placeOf }: ChangeContext,
 ): ChangeOutcome {
-  const { placeId, after, nightCount, tier } = input;
+  const { placeId, after, nightCount } = input;
   refuseNoChange(
-    [placeId, after, nightCount, tier],
-    "Give at least one change: placeId, after, nightCount, or tier.",
+    [placeId, after, nightCount],
+    "Give at least one change: placeId, after, or nightCount.",
   );
   const itinerary = trip.itinerary;
   const stay = stayIn(itinerary, input.stayId);
@@ -112,9 +110,6 @@ function updateStay(
     nightCount === undefined
       ? []
       : services.stays.setNightCount(itinerary, stay, nightCount);
-  if (tier !== undefined) {
-    stay.setTier(tier.tier, tier.tierRule);
-  }
   const removed = dayIdsBefore.filter(
     (id) => !stay.days.some((day) => day.id === id),
   );

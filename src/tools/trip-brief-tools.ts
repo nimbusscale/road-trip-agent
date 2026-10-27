@@ -82,9 +82,8 @@ export function tripBriefLines(brief: TripBrief): string[] {
     `routePreference: ${brief.routePreference ?? NOT_SET}`,
     `restDaysText: ${brief.restDaysText ?? NOT_SET}`,
     `usualStartTime: ${clockTextOf(brief.usualStartTime)}`,
-    `defaultTier: ${brief.defaultTier ?? NOT_SET}`,
-    `budgetRulesText: ${brief.budgetRulesText ?? NOT_SET}`,
     `mealPreferencesText: ${brief.mealPreferencesText ?? NOT_SET}`,
+    `lodgingPreferencesText: ${brief.lodgingPreferencesText ?? NOT_SET}`,
   ];
 }
 
@@ -113,11 +112,13 @@ function applyItems(
   whenGiven(items.usualStartTime, (value) => {
     brief.usualStartTime = timeOfDayFromClockText(value);
   });
-  whenGiven(items.defaultTier, (value) => (brief.defaultTier = value));
-  whenGiven(items.budgetRulesText, (value) => (brief.budgetRulesText = value));
   whenGiven(
     items.mealPreferencesText,
     (value) => (brief.mealPreferencesText = value),
+  );
+  whenGiven(
+    items.lodgingPreferencesText,
+    (value) => (brief.lodgingPreferencesText = value),
   );
 }
 

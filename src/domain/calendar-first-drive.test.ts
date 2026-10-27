@@ -63,8 +63,6 @@ function oneNightIn(town: string): Stay {
   return newStay({
     place: placeNamed(town),
     nightCount: 1,
-    tier: "value",
-    tierRule: "the trip default",
   });
 }
 

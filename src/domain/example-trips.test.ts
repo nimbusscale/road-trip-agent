@@ -46,7 +46,6 @@ describe("the example trips, built through the services", () => {
     const itinerary = trip.itinerary;
     expect(itinerary.stays).toEqual([moab, torrey]);
     expect([moab.nightCount, torrey.nightCount]).toEqual([3, 1]);
-    expect([moab.tier, torrey.tier]).toEqual(["midRange", "value"]);
     const days = shapeOf(calendar, itinerary);
     expect(days.map((day) => [day.date, day.location])).toEqual([
       ["2027-10-10", "Grand Junction → Moab"],

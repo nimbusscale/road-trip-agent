@@ -1,7 +1,6 @@
 import { z } from "zod";
 
 import { ROUTE_TYPES } from "../domain/route-type.js";
-import { TIERS } from "../domain/tier.js";
 import type { TripBriefSettings } from "../domain/trip-brief-service.js";
 import { CLOCK_TIME_ERROR, CLOCK_TIME_TEXT } from "./clock-time.js";
 
@@ -45,9 +44,11 @@ export function updateTripBriefInput(limits: TripBriefSettings) {
       .regex(CLOCK_TIME_TEXT, { error: CLOCK_TIME_ERROR })
       .optional()
       .describe('A clock time, such as "8:00 a.m.".'),
-    defaultTier: z.enum(TIERS).optional(),
-    budgetRulesText: z.string().optional().describe("In the user's words."),
     mealPreferencesText: z.string().optional().describe("In the user's words."),
+    lodgingPreferencesText: z
+      .string()
+      .optional()
+      .describe("In the user's words."),
   });
 }
 

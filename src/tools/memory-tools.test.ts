@@ -49,7 +49,11 @@ describe("read_memory", () => {
   it("leaves out another user's memory and another trip's memory", async () => {
     const store = new FakeMemoryStore();
     const own = toolsFor(store, USER_A, TRIP_1);
-    await added(toolsFor(store, USER_B, TRIP_2), "user", "Posh hotels only.");
+    await added(
+      toolsFor(store, USER_B, TRIP_2),
+      "user",
+      "Upscale hotels only.",
+    );
     await added(toolsFor(store, USER_B, TRIP_2), "trip", "Skip I-35.");
     await added(toolsFor(store, USER_A, TRIP_2), "trip", "Slow mornings.");
     const chains = await added(own, "user", "We never eat at chains.");
@@ -149,14 +153,14 @@ describe("update_memory_item", () => {
     const otherUsers = await added(
       toolsFor(store, USER_B, TRIP_1),
       "user",
-      "Posh hotels only.",
+      "Upscale hotels only.",
     );
     const tools = toolsFor(store, USER_A, TRIP_1);
     const missing = await tools.update({ itemId: MISSING_ID, text: "Cheap." });
     const other = await tools.update({ itemId: otherUsers, text: "Cheap." });
     expect(errorText(missing)).toBe(NO_SUCH_ITEM);
     expect(errorText(other)).toBe(NO_SUCH_ITEM);
-    expect(store.rows[0]?.text).toBe("Posh hotels only.");
+    expect(store.rows[0]?.text).toBe("Upscale hotels only.");
   });
 
   it("refuses the user's own item from another trip", async () => {
@@ -222,7 +226,7 @@ describe("forget_memory_item", () => {
     const otherUsers = await added(
       toolsFor(store, USER_B, TRIP_1),
       "user",
-      "Posh hotels only.",
+      "Upscale hotels only.",
     );
     const tools = toolsFor(store, USER_A, TRIP_1);
     expect(errorText(await tools.forget({ itemId: MISSING_ID }))).toBe(

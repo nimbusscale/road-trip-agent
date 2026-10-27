@@ -10,7 +10,6 @@ import type { ScheduleTime } from "../domain/schedule-time.js";
 import type { Stay } from "../domain/stay.js";
 import { StayDay } from "../domain/stay-day.js";
 import type { Stop } from "../domain/stop.js";
-import { TIER_WORDS } from "../domain/tier.js";
 import type { Trip } from "../domain/trip.js";
 import type {
   ItineraryResponse,
@@ -46,8 +45,7 @@ export function itineraryViewOf(
 }
 
 function summaryOf(trip: Trip): ShownSummary {
-  const { itinerary, tripBrief } = trip;
-  const defaultTier = tripBrief.defaultTier;
+  const { itinerary } = trip;
   return {
     name: trip.name,
     startDate: itinerary.startDate?.toText() ?? null,
@@ -57,8 +55,6 @@ function summaryOf(trip: Trip): ShownSummary {
     totalDriveTime: durationText(itinerary.totalDriveTimeInMinutes),
     dayCount: itinerary.dayCount,
     stayCount: itinerary.stays.length,
-    defaultTier: defaultTier === null ? null : TIER_WORDS[defaultTier],
-    budgetRules: tripBrief.budgetRulesText,
   };
 }
 

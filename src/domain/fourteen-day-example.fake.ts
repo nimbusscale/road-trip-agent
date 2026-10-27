@@ -76,6 +76,7 @@ function offer(place: Place, stop: Stop | null): CandidateOffer {
     howFound: "google",
     sourceLink: `https://maps.google.com/?cid=${String(9_000_000 + placeCount)}`,
     notesText: placeCount % 2 === 0 ? NOTES : null,
+    tier: isAttraction ? null : "midRange",
     visitTimeInMinutes: isAttraction ? 90 : null,
     detourTimeInMinutes: stop?.searchArea === "alongLeg" ? 12 : null,
   };
@@ -133,8 +134,6 @@ function addStay(
       address: `${town}, UT, USA`,
     }),
     nightCount,
-    tier: nightCount >= 2 ? "midRange" : "value",
-    tierRule: nightCount >= 2 ? "stays of 2+ nights" : "the trip default",
     after,
   });
   for (const offers of setsOf(town, null)) {

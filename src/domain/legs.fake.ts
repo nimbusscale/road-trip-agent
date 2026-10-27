@@ -82,8 +82,6 @@ function addStay(planning: Planning, place: Place, after: Stay | null): Stay {
   return planning.services.stays.addStay(planning.itinerary, {
     place,
     nightCount: 1,
-    tier: "value",
-    tierRule: "the trip default",
     after,
   });
 }

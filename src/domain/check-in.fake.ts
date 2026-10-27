@@ -48,8 +48,6 @@ export function checkInDay(): CheckInDay {
   const barHarbor = services.stays.addStay(itinerary, {
     place: BAR_HARBOR,
     nightCount: 2,
-    tier: "midRange",
-    tierRule: "the trip default",
     after: null,
   });
   const day1 = present(barHarbor.days[0]);

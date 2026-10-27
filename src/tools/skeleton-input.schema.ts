@@ -2,7 +2,6 @@ import { z } from "zod";
 
 import type { Settings } from "../config/settings.schema.js";
 import { ROUTE_TYPES } from "../domain/route-type.js";
-import { TIERS } from "../domain/tier.js";
 import { CLOCK_TIME_ERROR, CLOCK_TIME_TEXT } from "./clock-time.js";
 import { FIRST } from "./trip-items.js";
 
@@ -44,11 +43,6 @@ const nightCount = z
   .positive()
   .describe("A whole number of nights, at least 1.");
 
-// What the rule means is in the coordinator's instructions (tool design, section 4).
-const tierRule = z
-  .string()
-  .describe('In a few words, such as "the default tier".');
-
 const reason = z.string().describe("The user's reason, in a few words.");
 
 export const UPDATE_ITINERARY_INPUT = z.strictObject({
@@ -61,8 +55,6 @@ export const ADD_STAY_INPUT = z.strictObject({
   placeId,
   after,
   nightCount,
-  tier: z.enum(TIERS),
-  tierRule,
 });
 
 export const UPDATE_STAY_INPUT = z.strictObject({
@@ -70,7 +62,6 @@ export const UPDATE_STAY_INPUT = z.strictObject({
   placeId: placeId.optional(),
   after: after.optional(),
   nightCount: nightCount.optional(),
-  tier: z.strictObject({ tier: z.enum(TIERS), tierRule }).optional(),
 });
 
 export const REMOVE_STAY_INPUT = z.strictObject({ stayId });

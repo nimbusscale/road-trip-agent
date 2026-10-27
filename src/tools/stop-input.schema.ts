@@ -1,7 +1,6 @@
 import { z } from "zod";
 
 import type { SearchArea } from "../domain/search-area.js";
-import { TIERS } from "../domain/tier.js";
 import { CLOCK_TIME_ERROR, isScheduleTimeText } from "./clock-time.js";
 import { FIRST } from "./trip-items.js";
 
@@ -57,11 +56,6 @@ const visitTimeInMinutes = z
   })
   .describe("A whole number of minutes, such as 90.");
 
-// What the rule means is in the coordinator's instructions (tool design, section 4).
-const tierRule = z
-  .string()
-  .describe('In a few words, such as "the default tier".');
-
 const reason = z.string().describe("The user's reason, in a few words.");
 
 const searchArea = z
@@ -76,17 +70,8 @@ const purpose = z
     'In a few words, such as "dessert" or "a long hike, about 5 hours".',
   );
 
-const newMeal = z.strictObject({
-  kind: z.literal("meal"),
-  purpose,
-  searchArea,
-  setTime,
-  tier: z.enum(TIERS),
-  tierRule,
-});
-
-const newAttraction = z.strictObject({
-  kind: z.literal("attraction"),
+const newMealOrAttraction = z.strictObject({
+  kind: z.enum(["meal", "attraction"]),
   purpose,
   searchArea,
   setTime,
@@ -103,7 +88,7 @@ export const ADD_STOPS_INPUT = z.strictObject({
   dayId,
   after,
   stops: z
-    .array(z.discriminatedUnion("kind", [newMeal, newAttraction, newCheckIn]))
+    .array(z.discriminatedUnion("kind", [newMealOrAttraction, newCheckIn]))
     .min(1)
     .describe("In the order they go on the day."),
 });
@@ -112,7 +97,6 @@ export const UPDATE_STOP_INPUT = z.strictObject({
   stopId,
   setTime: setTime.optional(),
   visitTimeInMinutes: visitTimeInMinutes.optional(),
-  tier: z.strictObject({ tier: z.enum(TIERS), tierRule }).optional(),
   approveOpeningHours: z.strictObject({ reason }).optional(),
   removeApproval: z.enum(["openingHours"]).optional(),
 });

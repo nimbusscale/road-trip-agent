@@ -184,13 +184,6 @@ describe("the stay checks", () => {
     expect(on("2027-10-06")).toEqual(["forecastNowAvailable"]);
     expect(on("2027-10-10")).toEqual([]);
   });
-
-  it("says nothing about a stay's tier when its nights change", () => {
-    const { itinerary, services, checker, torrey } = moab();
-    services.stays.setNightCount(itinerary, torrey, 2);
-    expect(checksAbout(checker.workOut(itinerary), torrey.id)).toEqual([]);
-    expect(torrey.tier).toBe("value");
-  });
 });
 
 describe("FeasibilityChecker.compare", () => {

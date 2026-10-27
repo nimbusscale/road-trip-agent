@@ -20,8 +20,6 @@ function stayIn(name: string, nightCount = 1): Stay {
   return newStay({
     place: namedPlace(name),
     nightCount,
-    tier: "value",
-    tierRule: "the trip default",
   });
 }
 

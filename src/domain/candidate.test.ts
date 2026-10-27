@@ -6,13 +6,9 @@ import {
   newCandidateSet,
 } from "./candidate.js";
 import { namedPlace, userOffer, workerOffer } from "./itinerary.fake.js";
-import { RuleError } from "./rule-error.js";
 
-const MIDRANGE = { tier: "midRange", tierRule: "2+ nights" } as const;
 const HOTEL: CandidateFields = {
   ...workerOffer(namedPlace("Hotel Van Zandt")),
-  tier: "midRange",
-  tierRule: "2+ nights",
   setNumber: 0,
 };
 
@@ -21,15 +17,6 @@ describe("Candidate", () => {
     expect(() => new Candidate({ ...HOTEL, rationale: " " })).toThrow(
       "rationale",
     );
-  });
-
-  it("has a tier and its rule together, or neither", () => {
-    expect(() => new Candidate({ ...HOTEL, tierRule: null })).toThrow(
-      RuleError,
-    );
-    expect(
-      new Candidate({ ...HOTEL, tier: null, tierRule: null }).tier,
-    ).toBeNull();
   });
 
   it("has a source link exactly when a worker found it", () => {
@@ -42,7 +29,6 @@ describe("Candidate", () => {
           ...HOTEL,
           howFound: "specifiedByUser",
           tier: null,
-          tierRule: null,
         }),
     ).toThrow("source link");
   });
@@ -58,7 +44,6 @@ describe("Candidate", () => {
           ...named,
           howFound: "specifiedByUser",
           tier: null,
-          tierRule: null,
           detourTimeInMinutes: 5,
         }),
     ).toThrow("the user named");
@@ -79,42 +64,47 @@ describe("Candidate", () => {
 
 describe("newCandidateSet", () => {
   it("holds 1 to 3 candidates", () => {
-    expect(() => newCandidateSet([], [], MIDRANGE)).toThrow("1 to 3");
+    expect(() => newCandidateSet([], [])).toThrow("1 to 3");
     const four = ["A", "B", "C", "D"].map((name) =>
       workerOffer(namedPlace(name)),
     );
-    expect(() => newCandidateSet([], four, MIDRANGE)).toThrow("1 to 3");
+    expect(() => newCandidateSet([], four)).toThrow("1 to 3");
   });
 
   it("numbers each set one more than the highest set the holder has", () => {
-    const first = newCandidateSet([], [workerOffer(namedPlace("A"))], MIDRANGE);
+    const first = newCandidateSet([], [workerOffer(namedPlace("A"))]);
     expect(first.map((each) => each.setNumber)).toEqual([0]);
-    const second = newCandidateSet(
-      first,
-      [workerOffer(namedPlace("B")), workerOffer(namedPlace("C"))],
-      MIDRANGE,
-    );
+    const second = newCandidateSet(first, [
+      workerOffer(namedPlace("B")),
+      workerOffer(namedPlace("C")),
+    ]);
     expect(second.map((each) => each.setNumber)).toEqual([1, 1]);
   });
 
   it("refuses a place the holder already has, or one given twice", () => {
     const place = namedPlace("A");
-    const first = newCandidateSet([], [workerOffer(place)], MIDRANGE);
+    const first = newCandidateSet([], [workerOffer(place)]);
+    expect(() => newCandidateSet(first, [workerOffer(place)])).toThrow(
+      "already one of the candidates",
+    );
     expect(() =>
-      newCandidateSet(first, [workerOffer(place)], MIDRANGE),
-    ).toThrow("already one of the candidates");
-    expect(() =>
-      newCandidateSet([], [workerOffer(place), userOffer(place)], MIDRANGE),
+      newCandidateSet([], [workerOffer(place), userOffer(place)]),
     ).toThrow("already one of the candidates");
   });
 
-  it("gives the holder's tier and rule to one a worker found, and none to one the user named", () => {
-    const [found, named] = newCandidateSet(
+  it("keeps each offer's own tier", () => {
+    const [value, upscale, named] = newCandidateSet(
       [],
-      [workerOffer(namedPlace("A")), userOffer(namedPlace("B"))],
-      MIDRANGE,
+      [
+        { ...workerOffer(namedPlace("A")), tier: "value" },
+        { ...workerOffer(namedPlace("B")), tier: "upscale" },
+        userOffer(namedPlace("C")),
+      ],
     );
-    expect([found?.tier, found?.tierRule]).toEqual(["midRange", "2+ nights"]);
-    expect([named?.tier, named?.tierRule]).toEqual([null, null]);
+    expect([value?.tier, upscale?.tier, named?.tier]).toEqual([
+      "value",
+      "upscale",
+      null,
+    ]);
   });
 });

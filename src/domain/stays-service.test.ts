@@ -33,8 +33,6 @@ function addStay(
   return planning.services.stays.addStay(planning.itinerary, {
     place: placeNamed(town),
     nightCount,
-    tier: "value",
-    tierRule: "the trip default",
     after,
   });
 }
@@ -76,20 +74,11 @@ describe("StaysService.addStay", () => {
     expect(townsOf(planning)).toEqual(["Moab"]);
   });
 
-  it("refuses by the stay's own rules: fewer than 1 night, or an empty rule", () => {
+  it("refuses by the stay's own rules: fewer than 1 night", () => {
     const planning = readyToAddStays();
     expect(() => addStay(planning, "Moab", 0)).toThrow(
       "A stay has a whole number of nights, at least 1.",
     );
-    expect(() =>
-      planning.services.stays.addStay(planning.itinerary, {
-        place: placeNamed("Moab"),
-        nightCount: 1,
-        tier: "value",
-        tierRule: "",
-        after: null,
-      }),
-    ).toThrow("A stay's tier needs the rule that produced it.");
   });
 
   it("refuses an `after` that isn't one of the itinerary's stays", () => {
@@ -202,16 +191,16 @@ describe("StaysService.removeStay", () => {
 });
 
 describe("StaysService.addLodgingCandidates", () => {
-  it("adds one set, with the stay's tier for the ones a worker found", () => {
+  it("adds one set, with the tier each candidate came with", () => {
     const { trip, services, torrey } = moabExample();
     services.stays.addLodgingCandidates(trip.itinerary, torrey, [
-      workerOffer(placeNamed("Red Sands Hotel")),
-      workerOffer(placeNamed("Capitol Reef Resort")),
+      { ...workerOffer(placeNamed("Red Sands Hotel")), tier: "value" },
+      { ...workerOffer(placeNamed("Capitol Reef Resort")), tier: "upscale" },
     ]);
     const added = torrey.lodgingCandidates.slice(1);
     expect(added.map((each) => [each.setNumber, each.tier])).toEqual([
       [1, "value"],
-      [1, "value"],
+      [1, "upscale"],
     ]);
   });
 

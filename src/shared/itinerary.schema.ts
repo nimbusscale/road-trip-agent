@@ -49,9 +49,6 @@ export const shownSummarySchema = z.object({
   totalDriveTime: z.string(),
   dayCount: z.number(),
   stayCount: z.number(),
-  // Such as "mid-range". Null until the trip brief has them.
-  defaultTier: z.string().nullable(),
-  budgetRules: z.string().nullable(),
 });
 
 export type ShownSummary = z.infer<typeof shownSummarySchema>;

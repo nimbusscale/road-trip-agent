@@ -38,7 +38,7 @@ export const READ_ITINERARY_DESCRIPTION = `Reads the itinerary: the whole trip, 
 
 A day gives the day, its leg, its schedule, and its stops with their candidates. A stay gives the stay, its lodging and every lodging candidate, its weather and clothing text, its days and their stops, and stops on other days whose search area is the stay. A stop gives the stop and every candidate it has had. These reads list candidates in the order offered, with their set. A selected place comes with its rationale. A read of a stay or stop also gives every candidate's rationale, notes, how it was found, and tier.
 
-The whole trip gives its start and end places, its dates, each stay and day with its leg, schedule, and stops, and the places the user rejected. It lists no candidates. Each selected place shows on its stop's or lodging line, as its name, place ID, and town. The other candidates are only counted by set, such as "Other candidates: 2 in set 1." It leaves out every rationale, each stay's weather and clothing text, and the rule behind each tier.
+The whole trip gives its start and end places, its dates, each stay and day with its leg, schedule, and stops, and the places the user rejected. It lists no candidates. Each selected place shows on its stop's or lodging line, as its name, place ID, and town. The other candidates are only counted by set, such as "Other candidates: 2 in set 1." It leaves out every rationale, each stay's weather and clothing text, and each candidate's tier.
 
 Each read ends with the current feasibility check results for what it covers, each marked new or already known.`;
 

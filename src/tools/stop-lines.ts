@@ -18,7 +18,7 @@ import type { ReadContext } from "./read-context.js";
 
 // Slim: for a whole read, the selected place folded into its stop's or lodging line,
 // with only its town, and the other candidates counted by set, with no rationale or
-// tier rule. Short: each candidate's set, place, and times, with the selected one's
+// tier. Short: each candidate's set, place, and times, with the selected one's
 // rationale, for a day. Full: every stored property of every candidate, for a read
 // scoped to a stay or a stop.
 export type Detail = "slim" | "short" | "full";
@@ -83,16 +83,9 @@ function stopFacts(context: ReadContext, stop: Stop, detail: Detail): string {
     stop.searchArea === "nearStay"
       ? `Near the ${stop.searchAreaStay === null ? "" : placeText(stop.searchAreaStay.place)} stay`
       : SEARCH_AREA_TEXT[stop.searchArea];
-  const facts = [`${area}.`, ...setTimeFacts(stop)];
-  if (stop.tier !== null && stop.tierRule !== null) {
-    facts.push(
-      detail === "slim"
-        ? `Tier: ${stop.tier}.`
-        : `Tier: ${stop.tier}, from the rule "${stop.tierRule}".`,
-    );
-  }
-  facts.push(selectionText(stop, detail));
-  return facts.join(" ");
+  return [`${area}.`, ...setTimeFacts(stop), selectionText(stop, detail)].join(
+    " ",
+  );
 }
 
 // A check-in has no search area or candidates. Its place is where the party sleeps that
@@ -218,14 +211,12 @@ function candidateText(
   return isSelected ? `${text} Why: "${candidate.rationale}"` : text;
 }
 
-// Every other stored property: the rationale, the tier it was offered at, how it was
+// Every other stored property: the rationale, the tier the worker judged, how it was
 // found, and the notes.
 function fullFacts(candidate: Candidate): string {
   const facts = [`Why: "${candidate.rationale}"`];
-  if (candidate.tier !== null && candidate.tierRule !== null) {
-    facts.push(
-      `Offered at tier ${candidate.tier}, from the rule "${candidate.tierRule}".`,
-    );
+  if (candidate.tier !== null) {
+    facts.push(`Tier: ${candidate.tier}.`);
   }
   facts.push(
     candidate.howFound === "specifiedByUser"

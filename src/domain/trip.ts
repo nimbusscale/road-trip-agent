@@ -71,9 +71,8 @@ export function newTrip(owner: User, now: Date): Trip {
       routePreference: null,
       restDaysText: null,
       usualStartTime: DEFAULT_USUAL_START_TIME,
-      defaultTier: null,
-      budgetRulesText: null,
       mealPreferencesText: null,
+      lodgingPreferencesText: null,
     }),
     itinerary: new Itinerary({
       id: newId("itinerary"),

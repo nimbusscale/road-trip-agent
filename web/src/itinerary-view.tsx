@@ -61,7 +61,7 @@ function Itinerary({ view }: { view: ItineraryResponse }) {
 }
 
 function Summary({ summary }: { summary: ShownSummary }) {
-  const { startPlace, endPlace, defaultTier, budgetRules } = summary;
+  const { startPlace, endPlace } = summary;
   return (
     <section>
       <h3>Trip summary</h3>
@@ -76,9 +76,6 @@ function Summary({ summary }: { summary: ShownSummary }) {
         {countText(summary.dayCount, "day")},{" "}
         {countText(summary.stayCount, "stay")}, {summary.totalDriveTime} of
         driving
-        <br />
-        Budget: {defaultTier ?? "not set yet"}
-        {budgetRules === null ? null : `. Rules: ${budgetRules}`}
       </p>
     </section>
   );

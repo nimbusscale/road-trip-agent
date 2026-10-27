@@ -110,8 +110,6 @@ function addStay(
   const stay = planning.services.stays.addStay(planning.itinerary, {
     place: placeNamed(town),
     nightCount,
-    tier: nightCount >= 2 ? "midRange" : "value",
-    tierRule: nightCount >= 2 ? "stays of 2+ nights" : "the trip default",
     after,
   });
   lodgeAt(planning, stay, placeNamed(`${town} hotel`));

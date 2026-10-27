@@ -1,7 +1,6 @@
 import { keptText, keptValue, startingValue } from "./keeps-value.js";
 import type { RouteType } from "./route-type.js";
 import { RuleError } from "./rule-error.js";
-import type { Tier } from "./tier.js";
 import { EIGHT_A_M, type TimeOfDay } from "./time-of-day.js";
 import { VIA_SERVICE } from "./via-service.js";
 
@@ -16,9 +15,8 @@ export interface TripBriefFields {
   routePreference: RouteType | null;
   restDaysText: string | null;
   usualStartTime: TimeOfDay;
-  defaultTier: Tier | null;
-  budgetRulesText: string | null;
   mealPreferencesText: string | null;
+  lodgingPreferencesText: string | null;
 }
 
 export const DEFAULT_USUAL_START_TIME = EIGHT_A_M;
@@ -35,9 +33,8 @@ export class TripBrief {
   #comfortableDrivingInHours: number | null;
   #routePreference: RouteType | null;
   #restDaysText: string | null;
-  #defaultTier: Tier | null;
-  #budgetRulesText: string | null;
   #mealPreferencesText: string | null;
+  #lodgingPreferencesText: string | null;
   // Never empty. A TimeOfDay is always a valid time, so it has no rules to run here.
   usualStartTime: TimeOfDay;
 
@@ -76,14 +73,13 @@ export class TripBrief {
       keptItemText("restDaysText"),
     );
     this.usualStartTime = fields.usualStartTime;
-    this.#defaultTier = fields.defaultTier;
-    this.#budgetRulesText = startingValue(
-      fields.budgetRulesText,
-      keptItemText("budgetRulesText"),
-    );
     this.#mealPreferencesText = startingValue(
       fields.mealPreferencesText,
       keptItemText("mealPreferencesText"),
+    );
+    this.#lodgingPreferencesText = startingValue(
+      fields.lodgingPreferencesText,
+      keptItemText("lodgingPreferencesText"),
     );
   }
 
@@ -135,22 +131,6 @@ export class TripBrief {
     this.#restDaysText = keptText(value, itemName("restDaysText"));
   }
 
-  get defaultTier(): Tier | null {
-    return this.#defaultTier;
-  }
-
-  set defaultTier(value: Tier | null) {
-    this.#defaultTier = keptValue(value, itemName("defaultTier"));
-  }
-
-  get budgetRulesText(): string | null {
-    return this.#budgetRulesText;
-  }
-
-  set budgetRulesText(value: string | null) {
-    this.#budgetRulesText = keptText(value, itemName("budgetRulesText"));
-  }
-
   get mealPreferencesText(): string | null {
     return this.#mealPreferencesText;
   }
@@ -159,6 +139,17 @@ export class TripBrief {
     this.#mealPreferencesText = keptText(
       value,
       itemName("mealPreferencesText"),
+    );
+  }
+
+  get lodgingPreferencesText(): string | null {
+    return this.#lodgingPreferencesText;
+  }
+
+  set lodgingPreferencesText(value: string | null) {
+    this.#lodgingPreferencesText = keptText(
+      value,
+      itemName("lodgingPreferencesText"),
     );
   }
 }

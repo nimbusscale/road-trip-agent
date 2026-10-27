@@ -120,8 +120,6 @@ function view(): ItineraryResponse {
       totalDriveTime: "5 h",
       dayCount: 2,
       stayCount: 2,
-      defaultTier: null,
-      budgetRules: null,
     },
     stays: [
       {

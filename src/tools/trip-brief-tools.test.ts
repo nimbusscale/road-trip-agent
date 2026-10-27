@@ -59,9 +59,8 @@ describe("read_trip_brief", () => {
         "routePreference: not set",
         "restDaysText: not set",
         "usualStartTime: 8:00 a.m.",
-        "defaultTier: not set",
-        "budgetRulesText: not set",
         "mealPreferencesText: not set",
+        "lodgingPreferencesText: not set",
       ].join("\n"),
     );
   });
@@ -79,9 +78,8 @@ describe("update_trip_brief", () => {
       routePreference: "scenic",
       restDaysText: "no rest day",
       usualStartTime: "7:30 a.m.",
-      defaultTier: "midRange",
-      budgetRulesText: "posh for the last night",
       mealPreferencesText: "local seafood over hotel breakfast",
+      lodgingPreferencesText: "a B&B in one of the towns",
     });
     expect(reply.isError).toBeUndefined();
     expect(textOf(reply)).toMatch(/^Changed the trip brief\.\n/);
@@ -95,9 +93,8 @@ describe("update_trip_brief", () => {
         "routePreference: scenic",
         "restDaysText: no rest day",
         "usualStartTime: 7:30 a.m.",
-        "defaultTier: midRange",
-        "budgetRulesText: posh for the last night",
         "mealPreferencesText: local seafood over hotel breakfast",
+        "lodgingPreferencesText: a B&B in one of the towns",
       ].join("\n"),
     );
   });
