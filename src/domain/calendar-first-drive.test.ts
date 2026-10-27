@@ -19,10 +19,9 @@ import { TimeOfDay } from "./time-of-day.js";
 import { newTrip } from "./trip.js";
 import { VIA_SERVICE } from "./via-service.js";
 
-// The day's first drive leaves at the day's start time, so the wait for the first
-// selected stop's set time comes after it (domain model 4.1, "How the schedule is
-// worked out"). Later waits stay before the drive on, as the example trips show in
-// calendar-schedule.test.ts.
+// Every drive leaves as soon as the party can, so each wait for a set time comes after
+// the drive, before the stop (domain model 4.1, "How the schedule is worked out"). The
+// day's first drive leaves at the day's start time.
 
 // A day of a trip from Natick to Bar Harbor. It starts at 10:00 a.m., or the time
 // given, and its only selected stop is an alumni event set for 6:00 p.m., 5 h 25 m away
@@ -103,40 +102,7 @@ describe("a day's first drive", () => {
     ]);
   });
 
-  it("leaves the later wait before the drive on, once the stop before it has a place", () => {
-    const lunch = meal({ purpose: "lunch", searchArea: "alongLeg" });
-    const { trip, calendar, day, schedule } = barHarborDay(() => [lunch]);
-    pick(planningFor(trip), lunch, placeNamed("Moody's Diner"));
-    routeDay(calendar, trip.itinerary, day, [180, 115, 5]);
-    expect(schedule()).toEqual([
-      "drive: 10:00 a.m. to 1:18 p.m.",
-      "stop Moody's Diner: 1:18 p.m. to 2:18 p.m.",
-      "freeTime: 2:18 p.m. to 3:53 p.m.",
-      "drive: 3:53 p.m. to 6:00 p.m.",
-      "stop College of the Atlantic: 6:00 p.m. to 9:00 p.m.",
-      "drive: 9:00 p.m. to 9:06 p.m.",
-    ]);
-  });
-});
-
-describe("a day's first drive, after a stop with no place near where the day starts", () => {
-  it("leaves after one near the start place, whose time falls before the drive has to leave", () => {
-    const breakfast = meal({
-      purpose: "breakfast",
-      searchArea: "nearStartPlace",
-      setTime: at("11:00"),
-    });
-    expect(barHarborDay(() => [breakfast]).schedule()).toEqual([
-      "freeTime: 10:00 a.m. to 11:00 a.m.",
-      "stop breakfast: 11:00 a.m. to 11:00 a.m.",
-      "drive: 11:00 a.m. to 4:25 p.m.",
-      "freeTime: 4:25 p.m. to 6:00 p.m.",
-      "stop College of the Atlantic: 6:00 p.m. to 9:00 p.m.",
-      "drive: 9:00 p.m. to 9:06 p.m.",
-    ]);
-  });
-
-  it("leaves after one near the stay the party slept at, and still passes a stop along the leg", () => {
+  it("is followed by an empty stop near the stay the party slept at whose time falls during it", () => {
     const { schedule } = barHarborDay(
       (portland) => [
         meal({
@@ -145,66 +111,31 @@ describe("a day's first drive, after a stop with no place near where the day sta
           stay: present(portland),
           setTime: at("08:00"),
         }),
-        meal({
-          purpose: "lunch",
-          searchArea: "alongLeg",
-          setTime: at("12:00"),
-        }),
       ],
       { startTime: "07:00", afterPortland: true },
     );
     expect(schedule()).toEqual([
-      "freeTime: 7:00 a.m. to 8:00 a.m.",
+      "drive: 7:00 a.m. to 12:25 p.m.",
       "stop breakfast: 8:00 a.m. to 8:00 a.m.",
-      "drive: 8:00 a.m. to 1:25 p.m.",
-      "stop lunch: 12:00 p.m. to 12:00 p.m.",
-      "freeTime: 1:25 p.m. to 6:00 p.m.",
+      "freeTime: 12:25 p.m. to 6:00 p.m.",
       "stop College of the Atlantic: 6:00 p.m. to 9:00 p.m.",
       "drive: 9:00 p.m. to 9:06 p.m.",
     ]);
   });
+});
 
-  it("leaves after one with no time, at the day's start time", () => {
-    const breakfast = meal({
-      purpose: "breakfast",
-      searchArea: "nearStartPlace",
-    });
-    expect(barHarborDay(() => [breakfast]).schedule()).toEqual([
-      "stop breakfast: null to null",
-      "drive: 10:00 a.m. to 3:25 p.m.",
-      "freeTime: 3:25 p.m. to 6:00 p.m.",
-      "stop College of the Atlantic: 6:00 p.m. to 9:00 p.m.",
-      "drive: 9:00 p.m. to 9:06 p.m.",
-    ]);
-  });
-
-  it("doesn't leave after one with no time that follows one whose time would miss the arrival", () => {
-    const breakfast = meal({
-      purpose: "breakfast",
-      searchArea: "nearStartPlace",
-      setTime: at("13:00"),
-    });
-    const coffee = meal({ purpose: "coffee", searchArea: "nearStartPlace" });
-    expect(barHarborDay(() => [breakfast, coffee]).schedule()).toEqual([
-      "drive: 10:00 a.m. to 3:25 p.m.",
-      "stop breakfast: 1:00 p.m. to 1:00 p.m.",
-      "stop coffee: null to null",
-      "freeTime: 3:25 p.m. to 6:00 p.m.",
-      "stop College of the Atlantic: 6:00 p.m. to 9:00 p.m.",
-      "drive: 9:00 p.m. to 9:06 p.m.",
-    ]);
-  });
-
-  it("leaves at the day's start time when waiting for it would miss the arrival", () => {
-    const breakfast = meal({
-      purpose: "breakfast",
-      searchArea: "nearStartPlace",
-      setTime: at("13:00"),
-    });
-    expect(barHarborDay(() => [breakfast]).schedule()).toEqual([
-      "drive: 10:00 a.m. to 3:25 p.m.",
-      "stop breakfast: 1:00 p.m. to 1:00 p.m.",
-      "freeTime: 3:25 p.m. to 6:00 p.m.",
+describe("a later drive in the day", () => {
+  it("leaves when the stop before it ends, with the wait for the next stop's set time after it", () => {
+    const lunch = meal({ purpose: "lunch", searchArea: "alongLeg" });
+    const { trip, calendar, day, schedule } = barHarborDay(() => [lunch]);
+    pick(planningFor(trip), lunch, placeNamed("Moody's Diner"));
+    // 2 h and 2 h 30 m with the 10% buffer.
+    routeDay(calendar, trip.itinerary, day, [109, 136, 5]);
+    expect(schedule()).toEqual([
+      "drive: 10:00 a.m. to 12:00 p.m.",
+      "stop Moody's Diner: 12:00 p.m. to 1:00 p.m.",
+      "drive: 1:00 p.m. to 3:30 p.m.",
+      "freeTime: 3:30 p.m. to 6:00 p.m.",
       "stop College of the Atlantic: 6:00 p.m. to 9:00 p.m.",
       "drive: 9:00 p.m. to 9:06 p.m.",
     ]);

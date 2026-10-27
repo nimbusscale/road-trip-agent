@@ -100,13 +100,13 @@ describe("the example trips' schedules, with made-up drive times", () => {
     expect(arrival(calendar, itinerary, day5)).toBe("1:45 p.m.");
   });
 
-  it("show a later wait in the day, before a set time, as free time before the drive on", () => {
+  it("show a later wait in the day, before a set time, as free time after the drive", () => {
     const { trip, calendar } = sanFranciscoExample();
     const day1 = present(trip.itinerary.days[0]);
     const entries = calendar.scheduleOf(trip.itinerary, day1).slice(-4);
     expect(entries.map(describeEntry)).toEqual([
-      "freeTime: 4:55 p.m. to 6:16 p.m.",
-      "drive: 6:16 p.m. to 7:00 p.m.",
+      "drive: 4:55 p.m. to 5:39 p.m.",
+      "freeTime: 5:39 p.m. to 7:00 p.m.",
       "stop The Whaling Station: 7:00 p.m. to 8:00 p.m.",
       "drive: 8:00 p.m. to 8:06 p.m.",
     ]);
@@ -131,8 +131,8 @@ describe("a day's schedule", () => {
       calendar.scheduleOf(itinerary, day2).slice(-6).map(describeEntry),
     ).toEqual([
       "stop Piedras Blancas elephant seal rookery: 2:35 p.m. to 3:35 p.m.",
-      "freeTime: 3:35 p.m. to 5:30 p.m.",
-      "drive: 5:30 p.m. to 6:30 p.m.",
+      "drive: 3:35 p.m. to 4:35 p.m.",
+      "freeTime: 4:35 p.m. to 6:30 p.m.",
       "stop tri-tip: 6:30 p.m. to 6:30 p.m.",
       "stop Copper Café, Madonna Inn: 6:30 p.m. to 7:30 p.m.",
       "drive: 7:30 p.m. to 7:36 p.m.",
@@ -151,11 +151,11 @@ describe("a day's schedule", () => {
     const entries = calendar.scheduleOf(itinerary, day2);
     expect(entries.slice(6, -1).map(describeEntry)).toEqual([
       "stop Love Muffin Cafe: 10:20 a.m. to 11:20 a.m.",
-      "freeTime: 11:20 a.m. to 12:00 p.m.",
+      "drive: 11:20 a.m. to 11:42 a.m.",
+      "freeTime: 11:42 a.m. to 12:00 p.m.",
       "stop burgers: 12:00 p.m. to 12:00 p.m.",
-      "freeTime: 12:00 p.m. to 6:38 p.m.",
-      "drive: 6:38 p.m. to 7:00 p.m.",
       "stop a hike: null to null",
+      "freeTime: 12:00 p.m. to 7:00 p.m.",
       "stop Desert Bistro: 7:00 p.m. to 8:00 p.m.",
     ]);
     const starts = entries.flatMap((entry) =>
@@ -170,8 +170,8 @@ describe("a day's schedule", () => {
     const entries = calendar.scheduleOf(trip.itinerary, day4).slice(-5);
     expect(entries.map(describeEntry)).toEqual([
       "stop Capitol Gorge: 2:40 p.m. to 4:40 p.m.",
-      "freeTime: 4:40 p.m. to 12:35 a.m., next day",
-      "drive: 12:35 a.m., next day to 1:00 a.m., next day",
+      "drive: 4:40 p.m. to 5:05 p.m.",
+      "freeTime: 5:05 p.m. to 1:00 a.m., next day",
       "stop Panorama Point: 1:00 a.m., next day to 2:00 a.m., next day",
       "drive: 2:00 a.m., next day to 2:15 a.m., next day",
     ]);

@@ -37,6 +37,7 @@ export function coordinatorPrompt(settings: CoordinatorPromptSettings): string {
     DAYS,
     STAY_CHANGES,
     LAYING_OUT_DAYS,
+    FREE_TIME,
     PLACES_THE_USER_NAMES,
     SELECTIONS,
     REJECTIONS,
@@ -148,7 +149,7 @@ What the lines of a read mean:
 - A day's line gives its date and where it runs, such as "Moab → Torrey", or one town when it stays put. Its start time is "the usual start time", from the trip brief, or "the day's own start time", set on that day.
 - The leg line gives the miles, the road time, and the driving with the drive buffer. A line under it gives each waypoint, with its reason. "No leg" means the day doesn't drive.
 - The schedule lists the drives, stops, and free time in order. Its times are estimates, from average drive times plus the buffer, and visit times. A time after midnight says "the next day".
-- Free time is time nothing is planned for, such as a wait for a stop's set time. The day's first drive leaves at the day's start time, so a wait for the first stop comes after that drive, where it ends. The exception is a stop with no place yet near where the day starts, such as a breakfast near the stay the party slept at: the first drive leaves after it, if it still arrives in time. Any later wait comes before the drive on, where the party already is.
+- Free time is time nothing is planned for, such as a wait for a stop's set time. Each drive leaves as soon as it can: the day's first at the day's start time, and each later one when the stop before it ends. So free time comes after the drive, just before the stop with the set time, and the party spends it there.
 - A stop's line gives its time in the schedule, its number, whether it's a meal or an attraction, its purpose, and its search area, such as "Along the leg" or "Near the Springdale stay". A meal also gives its tier.
 - "Set time: 7:00 p.m." means the stop is fixed at that time, such as for a dinner reservation. A stop with no set time follows the one before it.
 - A stop with no selected place takes no time in the schedule, since there's nowhere to drive to yet. So the times after it may be too early.
@@ -208,7 +209,7 @@ const DAYS = `## Days and approvals
 - restDaysText only records what the user asked for. Mark the day itself with update_day.
 - When the user agrees to a day that drives longer than comfortableDrivingInHours, approve it on that day with update_day, with the hours they agreed to and their reason. It isn't raised again unless a later change makes the day longer than that.
 - When the user approves fastest on a day, update_day clears the day's waypoints, and its reply lists each one with its reason. In the same turn, put back with set_waypoints each one whose reason is a must-see or the user's request, with the same reason. Drop the ones that only kept the drive on a scenic road, and tell the user in one line which road the day no longer takes, such as "Day 3 now takes US-101 instead of the coast."
-- When the user agrees to a different start time for one day, such as for a sunrise hike, set it on that day with update_day.`;
+- When the user agrees to a different start time for one day, such as for a sunrise hike or to skip a long wait, set it on that day with update_day.`;
 
 // Technical spec 5.2: before removing a stay or a night, after adding or moving a stay,
 // and after a stay or an end moves to another town. Which day removing a night takes is
@@ -231,6 +232,24 @@ const LAYING_OUT_DAYS = `## Laying out days
 - Each meal takes a tier, and the rule that produced it, in a few words, the same way as a stay: the budget rule in budgetRulesText that covers the meal, or "the default tier" when none does. A rule can cover a kind of meal, such as "upscale coffee, we'll pay for a good espresso". When it's unclear whether a rule covers a meal, ask, such as whether "mid-range for stays of 2+ nights" covers dinner in Moab on the day the party arrives. A meal whose place the user names still takes a tier, for when they later ask for more options.
 - When you add a stop whose purpose says how long, tell the user roughly what it will push later in the day, such as a lunch place that may be closed by then. The check results can't see it until a place is selected.
 - After a late night, such as stargazing at 1 a.m., offer a later start the next day.`;
+
+// Technical spec 5.2, "Free time". Code puts every wait after the drive (domain model
+// 4.1), and the coordinator decides with the user where it's best spent.
+const FREE_TIME = `## Free time
+
+Every wait in the schedule comes after the drive, so the party arrives early. That's not always what the user wants. After a long drive, they may like time to check in and walk around town. Before a short hop, such as to breakfast, they would rather wait at the hotel. Where the time is best spent is the user's call.
+
+When a day has a lot of free time before a set time, such as an hour at a café before breakfast, or hours in town before an evening event, raise it with the user. Say how much there is and where it falls. Then offer concrete choices, with times and places from the trip:
+
+- Leave later: give the new start time, and the party spends the time where it slept.
+- Fill the time: suggest one or two things to see or do that fit the user's interests, such as coffee or a walk downtown before leaving, a longer visit at a stop, or a new stop on the way.
+- Arrive early: keep the plan, and say when the party would arrive.
+
+Example: "If you leave Asheville at 9:00, you'll reach Charleston at 1:30 and have about 5½ hours before dinner. You could leave at 11:00 instead, stop for lunch and a walk in Greenville on the way, or keep the plan and have the afternoon in Charleston."
+
+- A stop with no place yet takes no time in the schedule, so allow for the time it will take when you judge how much free time there is.
+- Change the day's start time or a visit time, or add a stop, only once the user agrees.
+- When the user chooses to arrive early, save that to trip memory, so it isn't raised again.`;
 
 // Technical spec 5.2, "When the user names a place", and 7.1. A whole read lists no
 // other candidate's name, so a guess at which stop or stay holds the place would fail
