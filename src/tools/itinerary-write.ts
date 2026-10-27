@@ -25,6 +25,9 @@ export interface ChangeOutcome {
   // The IDs of the stops, days, and stays the call names, and those the change returned
   // as changed.
   readonly touchedIds: readonly string[];
+  // A day whose road time the reply gives even when its leg isn't routed again, as
+  // set_waypoints' does (tool design 2.1). Other changes leave it out.
+  readonly roadTimeDay?: Day;
 }
 
 // Where a day starts and ends, by its towns: the stays' places, not their lodging, as
@@ -64,6 +67,7 @@ export function itineraryWriteReply(
       ...outcome.lines,
       ...movedLines(calendar, itinerary, moved),
       ...legChangeLines(itinerary, result.legChanges),
+      ...notRoutedLines(itinerary, outcome.roadTimeDay, result.legChanges),
       ...(result.checkComparison === null
         ? []
         : checkResultLines(result.checkComparison, touchedIds)),
@@ -156,6 +160,27 @@ function legChangeLines(
       ({ day, oldLeg, newLeg }) =>
         `- ${dayName(itinerary, day)}: ${legText(oldLeg)} → ${legText(newLeg)}${newLeg === null ? "" : `, ${String(newLeg.distanceInMiles)} miles`}.`,
     ),
+  ];
+}
+
+// Such as "The leg on Day 1 (day_…) wasn't routed again, since its places didn't
+// change. Road time, without the drive buffer: 2 h, 25 miles." Without it, a reply with
+// no road time could read as a waypoint that adds nothing (technical spec 4.2).
+function notRoutedLines(
+  itinerary: Itinerary,
+  day: Day | undefined,
+  legChanges: readonly LegChange[],
+): string[] {
+  const leg = day?.leg ?? null;
+  if (
+    day === undefined ||
+    leg === null ||
+    legChanges.some((legChange) => legChange.day.id === day.id)
+  ) {
+    return [];
+  }
+  return [
+    `The leg on ${dayName(itinerary, day)} wasn't routed again, since its places didn't change. Road time, without the drive buffer: ${durationText(leg.driveTimeInMinutes)}, ${String(leg.distanceInMiles)} miles.`,
   ];
 }
 
