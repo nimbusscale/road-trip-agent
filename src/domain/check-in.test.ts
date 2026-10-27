@@ -170,24 +170,32 @@ const CAMDEN = placeAt("Camden", 44.2098, -69.0648);
 const PIE_PLACE = placeAt("Pie place", 43.9, -69.9);
 const DESSERT_PLACE = placeAt("Dessert place", 44.388, -68.204);
 
+// Day 1 with pie after lunch, and dessert after the event, so each side of the
+// check-in has two stops. Lunch, pie, the check-in, the event, dessert, then the stay.
+function twoStopsEachSide() {
+  const planning = checkInDay();
+  const { itinerary, services, day1, lunch, event, barHarbor, finder } =
+    planning;
+  const pie = attraction({ purpose: "pie", searchArea: "alongLeg" });
+  const dessert = attraction({
+    purpose: "dessert",
+    searchArea: "nearStay",
+    stay: barHarbor,
+    setTime: at("20:30"),
+  });
+  services.stops.addStops(itinerary, day1, [pie], lunch);
+  services.stops.addStops(itinerary, day1, [dessert], event);
+  pick(planning, pie, PIE_PLACE, 30);
+  pick(planning, dessert, DESSERT_PLACE, 30);
+  finder.driveTimesFor = () => [150, 20, 100, 8, 5, 8];
+  return { ...planning, pie, dessert };
+}
+
 describe("the stop-order check on a day with a check-in", () => {
   it("keeps the check-in in its place, and orders only the stops before it and after it, each on their own", async () => {
-    const planning = checkInDay();
-    const { trip, itinerary, calendar, services, legs, finder } = planning;
-    const { day1, lunch, checkIn, event, barHarbor } = planning;
-    const pie = attraction({ purpose: "pie", searchArea: "alongLeg" });
-    const dessert = attraction({
-      purpose: "dessert",
-      searchArea: "nearStay",
-      stay: barHarbor,
-      setTime: at("20:30"),
-    });
-    services.stops.addStops(itinerary, day1, [pie], lunch);
-    services.stops.addStops(itinerary, day1, [dessert], event);
-    pick(planning, pie, PIE_PLACE, 30);
-    pick(planning, dessert, DESSERT_PLACE, 30);
-    // Lunch, pie, the check-in, the event, dessert, then the stay.
-    finder.driveTimesFor = () => [150, 20, 100, 8, 5, 8];
+    const planning = twoStopsEachSide();
+    const { trip, itinerary, calendar, legs, finder } = planning;
+    const { day1, lunch, checkIn, event, pie, dessert } = planning;
     // Pie first saves 40 minutes before the check-in. After it, the order holds.
     finder.bestOrderFor = (path) =>
       path.to === BAR_HARBOR && path.from === NATICK
@@ -216,6 +224,30 @@ describe("the stop-order check on a day with a check-in", () => {
     ).toBe(
       "On Day 1, a faster order saves about 40 minutes: Pie place, then Lunch place, then Bar Harbor, then College of the Atlantic, then Dessert place.",
     );
+  });
+
+  it("works out the saving after the check-in from the leg's segments after it", async () => {
+    const {
+      itinerary,
+      legs,
+      finder,
+      day1,
+      lunch,
+      checkIn,
+      event,
+      pie,
+      dessert,
+    } = twoStopsEachSide();
+    // Dessert before the event saves 3 minutes: 18 against the event, dessert, and the
+    // drive back, 8 + 5 + 8. Before the check-in, the order holds.
+    finder.bestOrderFor = (path) =>
+      path.from === BAR_HARBOR
+        ? { order: [1, 0], driveTimes: [6, 5, 7] }
+        : null;
+    await legs.updateLegs(itinerary);
+    const leg = present(day1.leg);
+    expect(leg.stopsInBestOrder).toEqual([lunch, pie, checkIn, dessert, event]);
+    expect(leg.timeSavedInMinutes).toBe(3);
   });
 
   it("asks Google for no order when neither side of the check-in has two stops", async () => {
