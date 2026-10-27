@@ -88,11 +88,17 @@ export const legSchema = z.strictObject({
   routedWaypointIds: idListSchema,
 });
 
+// A waypoint has no id, so it's stored inside its day, with its place as an ID.
+const waypointSchema = z.strictObject({
+  placeId: z.string(),
+  reason: z.string(),
+});
+
 export const daySchema = z.strictObject({
   id: z.string(),
   ownStartTime: timeOfDaySchema.nullable(),
   stops: z.array(stopSchema).readonly(),
-  waypointIds: idListSchema,
+  waypoints: z.array(waypointSchema).readonly(),
   leg: legSchema.nullable(),
   approvals: z.array(dayApprovalSchema).readonly(),
 });

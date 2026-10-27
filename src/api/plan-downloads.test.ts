@@ -71,6 +71,15 @@ describe("the plan's downloads", () => {
     }
   });
 
+  it("gives each waypoint with its reason, under its leg, in both downloads", async () => {
+    const { trip } = moabExample();
+    const downloads = await downloadsOf(trip);
+    const waypoint =
+      /\n- Leg: [^\n]+\n {2}- Waypoint: Dewey Bridge \(place_\w+\), [^\n]+\. Reason: "steer onto UT-128"\.\n/;
+    expect(await downloads.download("slim")).toMatch(waypoint);
+    expect(await downloads.download("full")).toMatch(waypoint);
+  });
+
   it("has no size limit, unlike a read", async () => {
     const { trip, services, moab } = moabExample();
     // Sets of 3, the most a set holds.

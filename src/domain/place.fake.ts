@@ -2,6 +2,7 @@ import { newId } from "../ids/new-id.js";
 import { OpeningPeriod } from "./opening-period.js";
 import { Place, type PlaceFields } from "./place.js";
 import { TimeOfDay } from "./time-of-day.js";
+import { Waypoint } from "./waypoint.js";
 
 // A place for tests: Smitty's Market, open Monday 7 a.m. to 6 p.m., with a new ID.
 // Tests change the fields they care about.
@@ -46,4 +47,12 @@ export function exampleAddress(): Place {
     weekdayHoursLines: [],
     summaries: [],
   });
+}
+
+// A waypoint at the place. Most tests only need it to steer the route.
+export function exampleWaypoint(
+  place: Place,
+  reason = "steer onto the scenic road",
+): Waypoint {
+  return new Waypoint({ place, reason });
 }

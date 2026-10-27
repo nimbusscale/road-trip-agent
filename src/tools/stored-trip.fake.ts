@@ -52,7 +52,7 @@ function placesIn(itinerary: Itinerary): Place[] {
     ...(stay.weatherText === null ? [] : [stay.weatherText.writtenForPlace]),
   ]);
   const days = itinerary.days.flatMap((day) => [
-    ...day.waypoints,
+    ...day.waypoints.map((waypoint) => waypoint.place),
     ...day.stops.flatMap((stop) =>
       stop.candidates.map((candidate) => candidate.place),
     ),

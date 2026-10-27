@@ -61,7 +61,10 @@ function dayDocumentOf(day: Day): DayDocument {
     id: day.id,
     ownStartTime: day.ownStartTime?.toText() ?? null,
     stops: day.stops.map(stopDocumentOf),
-    waypointIds: idsOf(day.waypoints),
+    waypoints: day.waypoints.map((waypoint) => ({
+      placeId: waypoint.place.id,
+      reason: waypoint.reason,
+    })),
     leg: day.leg === null ? null : legDocumentOf(day.leg),
     approvals: day.approvals.map(dayApprovalDocumentOf),
   };

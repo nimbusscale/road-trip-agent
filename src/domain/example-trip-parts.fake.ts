@@ -243,7 +243,7 @@ export function routeDayAlong(
       routedFromPlace: from,
       routedToPlace: to,
       routedStopPlaces: day.stops.flatMap((stop) => stop.selectedPlace ?? []),
-      routedWaypoints: day.waypoints,
+      routedWaypoints: day.waypoints.map((waypoint) => waypoint.place),
     }),
   );
 }

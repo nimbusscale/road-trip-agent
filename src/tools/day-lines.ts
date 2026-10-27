@@ -11,6 +11,7 @@ import type { ScheduleTime } from "../domain/schedule-time.js";
 import type { Stay } from "../domain/stay.js";
 import { StayDay } from "../domain/stay-day.js";
 import type { Stop } from "../domain/stop.js";
+import type { Waypoint } from "../domain/waypoint.js";
 import { clockTextOf } from "./clock-time.js";
 import type { ReadContext } from "./read-context.js";
 import {
@@ -124,7 +125,7 @@ export function dayLines(
 ): string[] {
   return [
     dayHeader(context, day),
-    legLine(context, day),
+    ...legLines(context, day),
     ...day.approvals.map((approval) => approvalLine(context, day, approval)),
     ...scheduleLines(context, day, detail),
   ];
@@ -151,22 +152,30 @@ export function dayHeader(context: ReadContext, day: Day): string {
 
 // The leg's road time is without the drive buffer. The driving with it is what the
 // schedule and the daily driving check use (domain model 4.1). The route line never
-// goes to the model (Google design 2.3).
-function legLine(context: ReadContext, day: Day): string {
+// goes to the model (Google design 2.3). A line under it gives each waypoint, with its
+// reason.
+function legLines(context: ReadContext, day: Day): string[] {
   const leg = day.leg;
   if (leg === null) {
-    return "- No leg.";
+    return ["- No leg."];
   }
   const driving = context.calendar.drivingInMinutesOf(context.itinerary, day);
   const withBuffer =
     driving === null
       ? ""
       : `, ${durationText(driving)} of driving with the drive buffer`;
-  const waypoints =
-    day.waypoints.length === 0
-      ? ""
-      : ` Waypoints: ${day.waypoints.map(placeLine).join("; ")}.`;
-  return `- Leg: ${String(leg.distanceInMiles)} miles, ${durationText(leg.driveTimeInMinutes)} of road time${withBuffer}.${waypoints}`;
+  return [
+    `- Leg: ${String(leg.distanceInMiles)} miles, ${durationText(leg.driveTimeInMinutes)} of road time${withBuffer}.`,
+    ...day.waypoints.map(
+      (waypoint) => `  - Waypoint: ${waypointText(waypoint)}`,
+    ),
+  ];
+}
+
+// Such as 'Belfast (place_…), City, Belfast. Reason: "steer onto US-1".' Also in the
+// replies of the tools that set or clear waypoints.
+export function waypointText(waypoint: Waypoint): string {
+  return `${placeLine(waypoint.place)}. Reason: "${waypoint.reason}".`;
 }
 
 // In time order: drives, free time, and stops, with the arrival where the party sleeps,

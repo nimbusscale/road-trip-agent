@@ -125,6 +125,7 @@ describe("read_itinerary's whole read", () => {
   it("folds each selected place into its stop line, with its detour time when it has one, and counts only the other candidates", async () => {
     const lines = await wholeLinesOf(moabWithChoicesLeft());
     expect(blockOf(lines, "Day 1 ").slice(2)).toEqual([
+      `  - Waypoint: Dewey Bridge (place_…), ${SHORT}. Reason: "steer onto UT-128".`,
       "Schedule:",
       "- 8:00 a.m.: drive.",
       '- 8:00 a.m. to 9:00 a.m.: Stop 1 (stop_…), meal: "breakfast". Near the start place. Tier: value. Selected: Grand Junction café (place_…), Lockhart, visit time 1 h.',

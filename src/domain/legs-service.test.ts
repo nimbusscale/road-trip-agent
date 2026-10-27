@@ -9,6 +9,7 @@ import {
   planningFor,
 } from "./example-trip-parts.fake.js";
 import { present } from "./itinerary.fake.js";
+import { exampleWaypoint } from "./place.fake.js";
 import {
   addNepentheLunch,
   BIG_SUR,
@@ -72,7 +73,7 @@ describe("LegsService.updateLegs: which days have a leg", () => {
     const { itinerary, services, moab, legs, finder } = await settledMoab();
     const day2 = present(moab.days[1]);
     const oldLeg = present(day2.leg);
-    day2.setWaypoints([placeNamed("Arches viewpoint")]);
+    day2.setWaypoints([exampleWaypoint(placeNamed("Arches viewpoint"))]);
     day2.stops.forEach((stop, index) => {
       services.stops.setStopTime(
         itinerary,
@@ -127,7 +128,7 @@ describe("LegsService.updateLegs: re-routing", () => {
     const planning = sanFranciscoDay2();
     const { itinerary, day2, legs } = planning;
     await legs.updateLegs(itinerary);
-    day2.setWaypoints([BIG_SUR]);
+    day2.setWaypoints([exampleWaypoint(BIG_SUR)]);
     await legs.updateLegs(itinerary);
     addNepentheLunch(planning, "afterBreakfast");
     const changes = await legs.updateLegs(itinerary);
@@ -135,7 +136,7 @@ describe("LegsService.updateLegs: re-routing", () => {
     const leg = present(day2.leg);
     expect(leg.routedStopPlaces).toEqual([FIRST_AWAKENINGS, NEPENTHE]);
     expect(leg.routedWaypoints).toEqual([BIG_SUR]);
-    expect(day2.waypoints).toEqual([BIG_SUR]);
+    expect(day2.waypoints.map((waypoint) => waypoint.place)).toEqual([BIG_SUR]);
   });
 
   it("refuses when a call to Google fails, and changes no leg", async () => {
@@ -156,7 +157,7 @@ describe("LegsService.updateLegs: waypoints", () => {
   it("on San Francisco Day 2, with only First Awakenings selected, puts the Big Sur waypoint between First Awakenings and San Luis Obispo", async () => {
     const { itinerary, day2, legs, finder } = sanFranciscoDay2();
     await legs.updateLegs(itinerary);
-    day2.setWaypoints([BIG_SUR]);
+    day2.setWaypoints([exampleWaypoint(BIG_SUR)]);
     forgetCalls(finder);
     await legs.updateLegs(itinerary);
     expect(finder.routes).toHaveLength(1);
@@ -171,7 +172,11 @@ describe("LegsService.updateLegs: waypoints", () => {
   it("skips a waypoint that's the same place as the leg's start or end, but remembers it", async () => {
     const { itinerary, day2, legs, finder } = sanFranciscoDay2();
     await legs.updateLegs(itinerary);
-    day2.setWaypoints([MONTEREY, BIG_SUR, SAN_LUIS_OBISPO]);
+    day2.setWaypoints([
+      exampleWaypoint(MONTEREY),
+      exampleWaypoint(BIG_SUR),
+      exampleWaypoint(SAN_LUIS_OBISPO),
+    ]);
     forgetCalls(finder);
     await legs.updateLegs(itinerary);
     expect(namesOf(finder.routes[0])).toEqual([

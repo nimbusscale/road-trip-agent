@@ -150,7 +150,7 @@ export class LegsService {
       to,
       stops,
       stopPlaces: stops.flatMap((stop) => stop.selectedPlace ?? []),
-      waypoints: day.waypoints,
+      waypoints: day.waypoints.map((waypoint) => waypoint.place),
     };
   }
 

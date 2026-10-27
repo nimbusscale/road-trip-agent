@@ -20,6 +20,7 @@ import type { Stay } from "./stay.js";
 import type { Stop } from "./stop.js";
 import { newTrip, type Trip } from "./trip.js";
 import type { TripServices } from "./trip-services.js";
+import { Waypoint } from "./waypoint.js";
 
 // Three days on the road, San Francisco to Mike's house in Los Angeles (domain model
 // 5.1), for tests, built through the services. The drive times and visit times are made
@@ -58,7 +59,12 @@ export function sanFranciscoExample(): SanFranciscoExample {
   );
   const day2 = sanLuisObispo.days[0];
   routeDay(calendar, itinerary, day2, DAY_2_SEGMENTS);
-  day2?.setWaypoints([placeNamed("Big Sur village")]);
+  day2?.setWaypoints([
+    new Waypoint({
+      place: placeNamed("Big Sur village"),
+      reason: "steer onto Highway 1",
+    }),
+  ]);
   routeDay(calendar, itinerary, itinerary.lastDay, [218]);
   services.days.approveRouteType(
     itinerary.lastDay,

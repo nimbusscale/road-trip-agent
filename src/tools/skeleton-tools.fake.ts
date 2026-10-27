@@ -85,9 +85,14 @@ export async function newMoabTrip(): Promise<
   const { id: tripId } = await fixture.writer.startTrip(OWNER);
   const stored = await fixture.store.places.addPlaces(
     tripId,
-    ["Grand Junction", "Salt Lake City", "Moab", "Torrey", "Dewey Bridge"].map(
-      (name) => placeNamed(name),
-    ),
+    [
+      "Grand Junction",
+      "Salt Lake City",
+      "Moab",
+      "Torrey",
+      "Dewey Bridge",
+      "Fisher Towers",
+    ].map((name) => placeNamed(name)),
   );
   const session = { ...fixture, tripId };
   return {

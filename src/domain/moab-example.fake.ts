@@ -22,6 +22,7 @@ import type { Stop } from "./stop.js";
 import { TimeOfDay } from "./time-of-day.js";
 import { newTrip, type Trip } from "./trip.js";
 import type { TripServices } from "./trip-services.js";
+import { Waypoint } from "./waypoint.js";
 
 // A three-night stay with a rest day: Grand Junction to Salt Lake City through Moab
 // (domain model 5.2), for tests, built through the services. The drive times and visit
@@ -70,7 +71,7 @@ export function moabExample(): MoabExample {
   const [day1, day2] = moab.days;
   const day4 = torrey.days[0];
   routeDay(calendar, itinerary, day1, [0, 100, 27, 2]);
-  day1?.setWaypoints([placeNamed("Dewey Bridge")]);
+  day1?.setWaypoints([deweyBridge()]);
   routeDay(calendar, itinerary, day2, [22, 9, 27, 5, 13, 13, 5]);
   routeDay(calendar, itinerary, day4, [104, 77, 18, 22, 13]);
   if (day4 !== undefined) {
@@ -90,6 +91,14 @@ export function moabExample(): MoabExample {
     torrey,
     stops: { fisherTowers, delicateArch, milts, gifford, panoramaPoint },
   };
+}
+
+// It keeps Day 1 on UT-128 along the river (domain model 5.2).
+function deweyBridge(): Waypoint {
+  return new Waypoint({
+    place: placeNamed("Dewey Bridge"),
+    reason: "steer onto UT-128",
+  });
 }
 
 function addStay(

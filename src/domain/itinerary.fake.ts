@@ -18,6 +18,7 @@ import { TimeOfDay } from "./time-of-day.js";
 import { newTrip, type Trip } from "./trip.js";
 import type { User } from "./user.js";
 import { VIA_SERVICE } from "./via-service.js";
+import { Waypoint } from "./waypoint.js";
 import { ActivityRecord, WeatherText } from "./weather-text.js";
 
 // A trip for tests, like the Moab example (domain model 5.2), with something of every
@@ -123,7 +124,9 @@ function routeDay1(day1: StayDay, places: ExamplePlaces): void {
       routedWaypoints: [places.deweyBridge],
     }),
   );
-  day1.setWaypoints([places.deweyBridge]);
+  day1.setWaypoints([
+    new Waypoint({ place: places.deweyBridge, reason: "steer onto UT-128" }),
+  ]);
 }
 
 function approveDays(trip: Trip, torrey: Stay): void {

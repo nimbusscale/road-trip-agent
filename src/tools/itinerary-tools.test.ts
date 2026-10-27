@@ -155,8 +155,11 @@ describe("read_itinerary on the Moab trip", () => {
       "Day 4 (day_…), Wednesday, October 13, 2027: Moab → Torrey",
       "Day 5 (day_…), Thursday, October 14, 2027: Torrey → Salt Lake City. Last day",
     ]);
-    expect(lines).toContain(
-      `- Leg: 100 miles, 2 h 9 m of road time, 2 h 23 m of driving with the drive buffer. Waypoints: Dewey Bridge (place_…), ${SHORT}.`,
+    const leg = lines.indexOf(
+      "- Leg: 100 miles, 2 h 9 m of road time, 2 h 23 m of driving with the drive buffer.",
+    );
+    expect(lines[leg + 1]).toBe(
+      `  - Waypoint: Dewey Bridge (place_…), ${SHORT}. Reason: "steer onto UT-128".`,
     );
     expect(lines).toContain("Rejected places: none.");
     const results = lines.slice(lines.indexOf("Check results:") + 1);
