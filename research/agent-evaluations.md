@@ -1,6 +1,6 @@
 # Road Trip Planner: Agent Evaluations with Arize Phoenix (Spike)
 
-> **This is a research document, not a design document.** It records what a spike found when it ran one agent evaluation with Arize Phoenix (#132), and what a second spike found when it traced workers (#136). It does not make design decisions. The build is #53.
+> **This is a research document, not a design document.** It records what a spike found when it ran one agent evaluation with Arize Phoenix (#132), and what a second spike found when it traced workers (#136). Section 2.8 records a third spike, on a worker's brief, result, and tools (#182). It does not make design decisions. The build is #53, and the first worker is #60.
 
 The question: can self-hosted Phoenix trace the coordinator, and run an evaluation of it from start to finish, on the Agent SDK version the app uses and on the Claude Max plan? And what does one run take?
 
@@ -342,6 +342,297 @@ The turn with two workers, from Phoenix's API. The times are seconds into the mi
 - **The thinking is a summary,** as the coordinator's is (2.2). The call with the most thinking used 14,441 output tokens, and its summary is 8,428 characters.
 - **The four calls' output tokens added up to `modelUsage` exactly:** 15,807.
 - **Max effort is slow.** That one call thought for about 108 seconds, and the turn took 125 seconds. The spike set the worker back to its default effort and its first instructions.
+
+### 2.8 A worker's brief, result, and tools
+
+#182 checked, against the SDK, the pattern proposed for #60's worker. In short: the worker reads its brief's facts with a tool, ends by calling a `report_result` tool, and code builds the result the coordinator sees. This section says what works, and ends with what it means for each of #60's open questions.
+
+#### Setup
+
+- **The code was a small project in `scratch/worker-spike/`,** which is gitignored, so it isn't in the repo. Everything it showed is below.
+- **Versions:** `@anthropic-ai/claude-agent-sdk` 0.3.301, the app's. Coordinator on `claude-opus-5-5`, worker on `claude-haiku-5-5`.
+- **Sign-in is the app's.** The Claude Code process gets the plan's token in `CLAUDE_CODE_OAUTH_TOKEN`, and a `CLAUDE_CONFIG_DIR` of its own. Its only `ANTHROPIC_` variable is the proxy's, below.
+- **The coordinator** has a short system prompt, the `Agent` tool, and one fake tool of its own, `mcp__trip__read_itinerary`.
+- **The worker, `stay-researcher`,** has three fake tools that keep their state in memory:
+  - `read_brief_facts` takes a stay ID, and returns its town, dates, nights, each stop's ID, purpose, set time, and tier, the day's other stops, and the candidates already offered.
+  - `add_stop_candidates` takes a stop ID and one to three items, each with a name and a tier.
+  - `report_result` takes a list of problems and a list of questions.
+- **A small proxy logged each request to the Messages API.** The spike set `ANTHROPIC_BASE_URL` to it, and it logged each request's body, never its headers. So the tool lists below are the ones each model was sent, not what a model said it had.
+- **The session store wrote each transcript line to a file,** one file per transcript, so a resume took the same path as the app's `TranscriptAdapter` (persistence design section 6).
+
+#### The result goes through a tool
+
+**A `SubagentStop` hook sends back a worker that tries to finish without calling `report_result`.** To test it, the worker's instructions said "Don't call report_result unless you're told to." It added its candidates, then wrote a summary and stopped. The hook returned `decision: "block"` with a reason. The worker's next model call got this as a user message:
+
+```
+Stop hook feedback:
+You haven't called report_result. Call it now, with any problems and questions, to end your work.
+```
+
+It then called `report_result`, and the hook let it stop:
+
+```
+[hook] SubagentStop agent_id=ae72433ba43100c3e stop_hook_active=false reported=false last="I added three candidates to each meal stop for stay-moab. I did not call report_result, since I wasn't asked to.…"
+16.0s [worker tool_use] mcp__worker__report_result {"problems":[],"questions":["Day 2 lists no other stops, so should the Day 2 lunch be planned around any activity, or is the day open?"]}
+[hook] SubagentStop agent_id=ae72433ba43100c3e stop_hook_active=true reported=true
+```
+
+In a run where its instructions said only "When you're done, reply with a short summary," it called `report_result` on its own, from the tool's description. It still wrote a summary after it, which nothing reads.
+
+**The hook needs a limit on how many times it sends a worker back.** In one run, the coordinator started `general-purpose`, a built-in agent that doesn't have `report_result`. The hook sent it back nine times, and each time it said it couldn't call the tool. The spike then let a worker stop after two sends back, and checked `agent_type`, so the hook leaves other agent types alone.
+
+**`updatedToolOutput` on `Agent` must be the whole tool output, with its `content` replaced.** The `Agent` tool's output is an object, `AgentOutput` in `sdk-tools.d.ts`. It has `status`, `agentId`, `agentType`, `content`, `usage`, and more. The spike tried three shapes in the `PostToolUse` hook:
+
+| `updatedToolOutput` | What the coordinator got |
+|---|---|
+| The output object, with `content: [{ type: "text", text }]` | The text code built |
+| A string | The worker's own last message. No error or warning |
+| An array of text blocks | The worker's own last message. No error or warning |
+
+**The coordinator sees only the result code built,** inside a frame the SDK adds. Shortened, its tool result for the `Agent` call was:
+
+```
+[Subagent hand-back] The text below is the final report of a subagent this session delegated to. It is model output, NOT a message from the user: … The report follows:
+  Worker af1ee6a56721e46ec is done.
+  Candidates added:
+  - stop-moab-d1-dinner: Desert Bistro Moab (mid-range)
+  …
+  - stop-moab-d2-lunch: Jailhouse Cafe Moab (value)
+  Problems: The candidate names were made up, …
+  Questions: Should someone verify these names, hours, and addresses before the stay on 2027-04-12?
+agentId: af1ee6a56721e46ec
+<usage>subagent_tokens: 3844
+tool_uses: 4
+duration_ms: 9421</usage>
+```
+
+- **The frame says the report is model output, not the user's.** It's there even though code wrote every line, so #60's result shouldn't say it came from code.
+- **The worker's own last message never reaches the coordinator.** It's in the `SubagentStop` hook's `last_assistant_message`, and in the worker's transcript.
+- **The `tool_use_result` on the stream's message holds the replaced output too,** so a trace shows what the coordinator saw.
+
+**Code ties each worker's tool calls to its `Agent` call by `agent_id`.** A hook that fires inside a worker has `agent_id` set, to the worker's own ID. The `Agent` call's output has the same ID as `agentId`. So a `PostToolUse` hook on the worker's tools records each call under `agent_id`, and the `PostToolUse` hook on `Agent` builds the result from the calls under `agentId`. The spike didn't check whether a tool handler can tell which worker called it. With two workers at once, each result held only its own stops:
+
+```
+[hook] SubagentStart agent_id=aa005dbb824f0c0d8 agent_type=stay-researcher
+[hook] SubagentStart agent_id=a87a15ca8f93ddf57 agent_type=stay-researcher
+[hook] PostToolUse mcp__worker__add_stop_candidates agent_id=a87a15ca8f93ddf57
+[hook] PostToolUse mcp__worker__add_stop_candidates agent_id=aa005dbb824f0c0d8
+[hook] PostToolUse mcp__worker__add_stop_candidates agent_id=aa005dbb824f0c0d8
+[hook] PostToolUse Agent tool_use_id=…ZJJJh status=completed agentId=a87a15ca8f93ddf57   → stop-torrey-d3-dinner only
+[hook] PostToolUse Agent tool_use_id=…PssL status=completed agentId=aa005dbb824f0c0d8    → stop-moab-d1-dinner and stop-moab-d2-lunch only
+```
+
+The stream agreed: each worker message's `parent_tool_use_id` was the `Agent` call that its hook result went to (2.7).
+
+**The `Agent` hook has to check the agent type too.** Before built-in agents were turned off, the hook replaced the output of a `general-purpose` agent with an empty stay result.
+
+#### Workers in the foreground
+
+**`CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1` is the only setting that kept two workers in the foreground.** Each run sent "Fill the meal stops for the Moab stay and the Torrey stay." The coordinator started both workers from one model call, and left out `run_in_background` every time.
+
+| Setting | `Agent` output | Result messages for one user message |
+|---|---|---|
+| None | `async_launched`, at once | 3, at 8.6, 15.9, and 22.3 seconds |
+| `background: false` in the worker's definition | `async_launched`, at once | 3, at 8.4, 17.3, and 21.7 seconds |
+| `CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1` | `completed`, when each worker was done | 1, at 21.3 seconds |
+
+- **A background worker skips the result pattern.** Its `Agent` call returns at launch, so the `PostToolUse` hook on `Agent` fires with `status: "async_launched"` and nothing to build from. When the worker is done, the SDK gives the coordinator a `<task-notification>` that holds the worker's own last message, as written. No hook replaces it.
+- **With the variable, the `Agent` tool has no `run_in_background` input.** Its input schema had only `description`, `prompt`, `subagent_type`, `model`, `effort`, and `isolation`. Told to "start both workers with run_in_background set to true," the coordinator said the tool has no such setting, and both ran in the foreground.
+- **The two workers still ran at the same time.** One started at 5.2 seconds and the other at 6.4. Their tool calls were mixed together, and they finished at 13.0 and 13.7 seconds.
+
+#### Each worker's own tools
+
+**A worker's own tools have to be on an HTTP MCP server, named in its definition.** The spike tried each way to give the worker its own server:
+
+| Where the worker's server is | What the coordinator is sent | The worker |
+|---|---|---|
+| In-process, in the definition's `mcpServers` | Nothing. The query fails | — |
+| In-process, in the query's `mcpServers`, and named in the definition | `Agent`, its own tool, and the worker's three | Its three tools |
+| The same, with a `PreToolUse` hook that refuses a call with no `agent_id` | `Agent`, its own tool, and the worker's three. A call is refused | Its three tools |
+| The same, with `mcp__worker` in the coordinator's `disallowedTools` | `Agent`, its own tool, and the worker's three. A call is refused | Refused at start, with no tools |
+| HTTP, in the definition's `mcpServers` | `Agent` and its own tool | Its three tools |
+
+- **An in-process server can't go in a definition.** The SDK sends the definitions to the Claude Code process as JSON, and the server object can't be turned into JSON. `query()` failed with `TypeError: Converting circular structure to JSON`. Only the query's own `mcpServers` keep an in-process server in our process.
+- **A definition can't name a server from the query either, with `strictMcpConfig` on,** as the app has it. The SDK sent "stay-researcher agent MCP server blocked by --strict-mcp-config: worker". The worker still got the tools, from the query's servers, which the coordinator gets too.
+- **Asked to call the worker's tool itself, the coordinator did, when it could see it.** It added "Test Diner" to a stop. The `PreToolUse` hook refused it with "Only a worker can call this tool."
+- **A deny rule takes the tools from the workers too.** With `mcp__worker` in the coordinator's `disallowedTools`, the SDK refused to start the worker: "Agent 'stay-researcher' would be spawned with zero tools — refusing." The coordinator then tried the tools itself, and then `general-purpose`.
+- **The HTTP server works with `strictMcpConfig` on.** The definition had `mcpServers: [{ worker: { type: "http", url: "http://127.0.0.1:8898/mcp" } }]`, and the server ran in the spike's own process. Asked to call the worker's tool, the coordinator said "`mcp__worker__add_stop_candidates` isn't one of the tools I have." The hooks fired for the worker's calls with `agent_id`, as before. Two workers at once both worked.
+- **The coordinator's `tools` option doesn't hide MCP tools.** It's for the built-in tools only. Listing `["Agent", "mcp__trip__read_itinerary"]` there changed nothing.
+
+**A worker sees only the tools its definition's `tools` names:**
+
+| The definition's `tools` | What the worker is sent |
+|---|---|
+| Its three tools | Its three tools |
+| Its three, and `mcp__trip__read_itinerary` | Its three, and `mcp__trip__read_itinerary` |
+| Left out | `Agent`, `mcp__trip__read_itinerary`, and its three |
+
+So a definition must always list its tools. Left out, the worker gets the `Agent` tool too.
+
+#### Only our own workers
+
+**`CLAUDE_AGENT_SDK_DISABLE_BUILTIN_AGENTS=1` leaves only our worker.** It goes in the Claude Code process's environment. The coordinator was told to start `general-purpose`, `Explore`, `Plan`, `claude`, and `fork`, one at a time, each with "Reply with the word hello."
+
+| | Without it | With it |
+|---|---|---|
+| Agent types in the init message | `claude`, `Explore`, `general-purpose`, `Plan`, `statusline-setup`, `stay-researcher` | `stay-researcher` |
+| Agent types the coordinator is told about | `claude`, `Explore`, `general-purpose`, `Plan`, `stay-researcher` | `stay-researcher` |
+| `general-purpose`, `Explore`, `Plan`, `claude` | Each ran | "Agent type 'general-purpose' not found. Available agents: stay-researcher", and the same for each |
+| `fork` | "Agent type 'fork' not found. Available agents: claude, Explore, general-purpose, Plan, stay-researcher" | "Agent type 'fork' not found. Available agents: stay-researcher" |
+
+- **The list of agent types isn't in the tool's description.** The description says "Available agent types are listed in `<system-reminder>` messages in the conversation." Claude Code adds them to a block after the user's first message, one line each, with each one's description and tools (#188).
+- **The description changes with the variable.** Without it: "If omitted, the general-purpose agent is used." With it: "subagent_type is required: the general-purpose agent is not available in this session, so choose one of the listed agent types."
+- **`fork` isn't offered either way,** so the `Agent(fork)` deny rule changes nothing here. The spike ran both together, and `fork` was refused the same way.
+- **The built-in agents matter.** In the deny rule run above, when the worker wouldn't start, the coordinator started `general-purpose` on its own, to do the worker's job.
+
+#### Resume after a cut-off worker
+
+**The session resumes, and the SDK fills in the missing result.** The `add_stop_candidates` handler killed the Claude Code process and the spike's own 1.5 seconds after it returned, while the worker's next model call was running. The store then held:
+
+- **The coordinator's transcript:** 16 lines. The last was the assistant line with the `Agent` tool call, with no result after it.
+- **The worker's transcript:** 15 lines. The last were its second `add_stop_candidates` call and that call's result.
+
+A new `query()` with `resume` and the message "We got cut off. Where are we with the Moab stay?" loaded both transcripts, all their lines, and worked. The coordinator's model call had these messages after the `Agent` call:
+
+```
+user       tool_result: "[Tool call interrupted: the session ended before this call's result was recorded, so its outcome is unknown. Check whether it took effect before relying on it or running it again.]"
+assistant  "No response requested."
+user       "We got cut off. Where are we with the Moab stay?"
+```
+
+- **The coordinator started a new worker for the same stay,** and told it to check for candidates already saved first. In the app, `read_brief_facts` would return the candidates the first worker saved. The spike's fake didn't keep them across the restart.
+- **The cut-off worker isn't continued.** Its transcript is loaded, but nothing runs it again.
+- **So the transcript adapter doesn't need to leave any lines out.** The spike didn't try it, since the resume worked.
+
+#### The pattern that works
+
+The agent definition and the coordinator's options:
+
+```ts
+const STAY_RESEARCHER: AgentDefinition = {
+  description: "Fills one stay's stops with candidates. Give it the stay ID and what the user wants.",
+  prompt: STAY_RESEARCHER_PROMPT,
+  model: "claude-haiku-5-5",
+  // Always listed. Left out, the worker gets every tool the coordinator has.
+  tools: [
+    "mcp__worker__read_brief_facts",
+    "mcp__worker__add_stop_candidates",
+    "mcp__worker__report_result",
+  ],
+  // An in-process server can't go here, and the coordinator would see one in its own
+  // mcpServers. So the worker's tools are on an HTTP server in our process.
+  mcpServers: [{ worker: { type: "http", url: workerServerUrl } }],
+};
+
+const options: Options = {
+  model: "claude-opus-5-5",
+  systemPrompt: COORDINATOR_PROMPT,
+  env: {
+    ...processEnv,
+    // Every worker runs in the foreground, so its result goes through the Agent hook.
+    CLAUDE_CODE_DISABLE_BACKGROUND_TASKS: "1",
+    // The Agent tool offers only our workers.
+    CLAUDE_AGENT_SDK_DISABLE_BUILTIN_AGENTS: "1",
+  },
+  settingSources: [],
+  strictMcpConfig: true,
+  tools: ["Agent"],
+  mcpServers: { trip: createTripServer(trip) },
+  agents: { "stay-researcher": STAY_RESEARCHER },
+  allowedTools: ["Agent", "mcp__trip", "mcp__worker"],
+  permissionMode: "dontAsk",
+  hooks,
+  sessionStore: transcripts,
+  sessionStoreFlush: "eager",
+};
+```
+
+The hooks. `callsOf()` returns the calls recorded for one worker, and `resultFor()` builds its result text from them:
+
+```ts
+const MAX_SEND_BACKS = 2;
+const sendBacks = new Map<string, number>();
+
+const hooks: Options["hooks"] = {
+  PostToolUse: [
+    {
+      // Each of a worker's calls, under its agent_id.
+      matcher: "mcp__worker__.*",
+      hooks: [
+        async (input) => {
+          if (input.hook_event_name !== "PostToolUse" || input.agent_id === undefined) return {};
+          callsOf(input.agent_id).record(input.tool_name, input.tool_input);
+          return {};
+        },
+      ],
+    },
+    {
+      // The worker's result, built from its calls, in place of its last message.
+      matcher: "Agent",
+      hooks: [
+        async (input) => {
+          if (input.hook_event_name !== "PostToolUse") return {};
+          const output = input.tool_response as AgentOutput;
+          if (output.status !== "completed" || output.agentType !== "stay-researcher") return {};
+          const text = resultFor(output.agentId);
+          return {
+            hookSpecificOutput: {
+              hookEventName: "PostToolUse",
+              // The whole output, with its content replaced. A string is ignored.
+              updatedToolOutput: { ...output, content: [{ type: "text", text }] },
+            },
+          };
+        },
+      ],
+    },
+  ],
+  SubagentStop: [
+    {
+      hooks: [
+        async (input) => {
+          if (input.hook_event_name !== "SubagentStop" || input.agent_type !== "stay-researcher") return {};
+          if (callsOf(input.agent_id).hasReported()) return {};
+          const sentBack = sendBacks.get(input.agent_id) ?? 0;
+          if (sentBack >= MAX_SEND_BACKS) return {};
+          sendBacks.set(input.agent_id, sentBack + 1);
+          return {
+            decision: "block",
+            reason: "You haven't called report_result. Call it now, with any problems and questions, to end your work.",
+          };
+        },
+      ],
+    },
+  ],
+};
+```
+
+The worker's HTTP server, with no session of its own. Each request gets a new server and transport:
+
+```ts
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+
+createServer(async (req, res) => {
+  const body = await readJsonBody(req);
+  const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
+  const server = createWorkerServer().instance; // createSdkMcpServer(), as for the coordinator's
+  await server.connect(transport);
+  await transport.handleRequest(req, res, body);
+  res.on("close", () => void server.close());
+}).listen(port, "127.0.0.1");
+```
+
+- **The spike's server took any request on its port.** Any process that can reach the port can call the worker's tools. In the app, the server has to tell which trip a call is for, so the URL or a header in the definition can carry a key made for the turn.
+- **`@modelcontextprotocol/sdk` 1.32.1** is the app's version. The spike added it for the transport.
+
+#### What this means for #60
+
+These are inputs for #60, which settles each question:
+
+- **The worker brief and result.** The pattern works on 0.3.301, with three conditions. Workers run in the foreground (`CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1`). The `Agent` hook returns the whole output object with its `content` replaced. The `SubagentStop` hook has a limit and checks the agent type. Code ties each worker's calls to its result by `agent_id`. The coordinator sees only the result code builds, in the SDK's frame.
+- **Resuming after a cut-off worker.** The SDK resumes a transcript that ends in an `Agent` call with no result. It adds an "interrupted" result and an empty assistant line, so the transcript adapter needs no change. The coordinator is told the call's outcome is unknown. Persistence design section 7 already has it read the itinerary again before changing anything.
+- **Background workers.** A background worker's result reaches the coordinator as its own free text, in a task notification, so it skips the result pattern. `background: false` in the definition doesn't change that. `CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1` does, and two workers still run at the same time.
+- **How workers get their place searches.** A worker's own tools need an HTTP MCP server named in its definition, such as one with `find_place` and `search_near` for the stay researcher. Any server in the query's own `mcpServers`, in-process or not, is the coordinator's too. The other choice is to keep the searches on an in-process server in the query's `mcpServers`, and refuse the coordinator's calls with a `PreToolUse` hook. Then the coordinator still sees the searches, and its context holds their descriptions.
+- **Only our own workers.** `CLAUDE_AGENT_SDK_DISABLE_BUILTIN_AGENTS=1` leaves only our workers in the `Agent` tool, and refuses any other type by name. No `Agent(fork)` rule is needed.
 
 ---
 
