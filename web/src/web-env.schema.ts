@@ -5,6 +5,8 @@ import { z } from "zod";
 export const webEnvSchema = z.object({
   supabaseUrl: z.url(),
   supabasePublishableKey: z.string().min(1),
+  // For the itinerary map (Google design sections 1 and 4).
+  googleMapsBrowserKey: z.string().min(1),
 });
 
 export type WebEnv = z.infer<typeof webEnvSchema>;

@@ -9,6 +9,8 @@ import {
   type ShownSummary,
 } from "../../src/shared/itinerary.schema";
 import { dayText, tripDatesText } from "./dates";
+import { countText, timesText } from "./itinerary-text";
+import { TripMap } from "./trip-map";
 import { useApiAfterEachTurn } from "./use-api";
 
 interface ItineraryViewProps {
@@ -17,8 +19,8 @@ interface ItineraryViewProps {
   busy: boolean;
 }
 
-// The whole plan beside the chat: the trip summary, the stays, and each day with its
-// leg and schedule (functional spec 9). Read-only: only the coordinator changes it.
+// The whole plan beside the chat: the trip summary, the map, the stays, and each day
+// with its leg and schedule (functional spec 9). Read-only: only the coordinator changes it.
 export function ItineraryView({ tripId, busy }: ItineraryViewProps) {
   const [loaded] = useApiAfterEachTurn(
     `/api/trips/${tripId}/itinerary`,
@@ -38,6 +40,7 @@ function Itinerary({ view }: { view: ItineraryResponse }) {
   return (
     <>
       <Summary summary={view.summary} />
+      <TripMap view={view} />
       <h3>Stays</h3>
       {view.stays.length === 0 ? (
         <p>No stays yet.</p>
@@ -212,18 +215,6 @@ function Choice({ choice }: { choice: ShownChoice }) {
   );
 }
 
-// A stop's arrival and end, or one time for one that takes none. A stop with no
-// selected place and no set time has no time yet (domain model 4.1).
-function timesText(entry: ShownEntry): string {
-  const { startTime, endTime } = entry;
-  if (startTime === null) {
-    return entry.stop === null ? "" : "Time set once a place is picked";
-  }
-  return endTime === null || endTime === startTime
-    ? startTime
-    : `${startTime} – ${endTime}`;
-}
-
 // A stop by its ID, and a drive or free time by the stop after it. Between two stops
 // there's at most one of each (domain model 4.1).
 function keyedEntries(schedule: readonly ShownEntry[]): [string, ShownEntry][] {
@@ -234,8 +225,4 @@ function keyedEntries(schedule: readonly ShownEntry[]): [string, ShownEntry][] {
     const next = schedule.slice(index).find((each) => each.stop !== null);
     return [`${entry.kind} before ${next?.stop?.id ?? "the end"}`, entry];
   });
-}
-
-function countText(count: number, noun: string): string {
-  return `${String(count)} ${noun}${count === 1 ? "" : "s"}`;
 }

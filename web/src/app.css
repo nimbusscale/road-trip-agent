@@ -41,6 +41,40 @@ body:has(.chat-layout .itinerary) {
   }
 }
 
+.trip-map {
+  height: 22rem;
+  border: 1px solid #dadce0;
+  border-radius: 0.25rem;
+}
+
+.map-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin: 0.25rem 0 0;
+  color: #5f6368;
+  font-size: 0.875rem;
+}
+
+.map-legend .dot {
+  display: inline-block;
+  width: 0.75rem;
+  height: 0.75rem;
+  margin-right: 0.25rem;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px #dadce0;
+  vertical-align: middle;
+}
+
+.marker-details {
+  max-width: 18rem;
+}
+
+.marker-details p {
+  margin: 0 0 0.25rem;
+}
+
 .day {
   margin-bottom: 0.75rem;
 }

@@ -247,6 +247,8 @@ Trip name, dates, start and end, total driving time, number of stays, default bu
 - One overall view of the whole trip. No per-day filtering.
 - Shows the route line, stays, attractions, and restaurants, with distinguishable markers.
 - Selecting a marker shows that item's details.
+- A stay's marker sits at its lodging once one is selected, and in its town until then. An attraction or restaurant is on the map only once its place is selected. Places only proposed aren't shown.
+- The map zooms to fit the trip's places again only when they change, so a map the user moved stays put while the plan is the same.
 
 ### 9.3 Stays
 
