@@ -8,7 +8,7 @@ import {
   readFileSync,
   writeFileSync,
 } from "node:fs";
-import { randomUUID } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { parseArgs } from "node:util";
 
 import {
@@ -52,6 +52,11 @@ const { values: args } = parseArgs({
     "worker-skips-report": { type: "boolean", default: false },
     guard: { type: "boolean", default: false },
     strict: { type: "boolean", default: true },
+    "worker-web": { type: "boolean", default: false },
+    "http-key": { type: "string", default: "none" },
+    "session-web": { type: "boolean", default: false },
+    "deny-web": { type: "boolean", default: false },
+    "main-agent": { type: "string", default: "none" },
   },
 });
 
@@ -270,6 +275,11 @@ const WORKER_PROMPT = [
     : args["worker-skips-report"]
       ? "When you're done, reply with a short summary. Don't call report_result unless you're told to."
       : "When you're done, reply with a short summary.",
+  ...(args["worker-web"]
+    ? [
+        "This run has web tools. Before adding candidates, use WebSearch to find real restaurants in the stay's town, and use WebFetch on one restaurant's page to check its hours. Name real places you found.",
+      ]
+    : []),
 ].join("\n");
 
 function workerTools(): string[] | undefined {
@@ -278,6 +288,7 @@ function workerTools(): string[] | undefined {
     "mcp__worker__add_stop_candidates",
     "mcp__worker__report_result",
   ];
+  if (args["worker-web"]) own.push("WebSearch", "WebFetch");
   switch (args["worker-tools-list"]) {
     case "own":
       return own;
@@ -296,14 +307,21 @@ function stayResearcher(): AgentDefinition {
     prompt: WORKER_PROMPT,
     model: "claude-haiku-5-5",
     tools: workerTools(),
-    mcpServers:
+    // --worker-server query: the server is only in the query's mcpServers, and the
+    // definition names no server. Its tools list still names the server's tools.
+    ...(args["worker-server"] === "query" ? {} : { mcpServers: workerMcpServers() }),
+    ...(args["def-bg-false"] ? { background: false } : {}),
+  };
+}
+
+function workerMcpServers(): AgentDefinition["mcpServers"] {
+  return (
       args["worker-server"] === "inline"
         ? [{ worker: workerServer() }]
         : args["worker-server"] === "http"
-          ? [{ worker: { type: "http", url: "http://127.0.0.1:8898/mcp" } }]
-          : ["worker"],
-    ...(args["def-bg-false"] ? { background: false } : {}),
-  };
+          ? [{ worker: { type: "http", url: "http://127.0.0.1:8898/mcp", ...workerServerHeaders() } }]
+          : ["worker"]
+  );
 }
 
 const COORDINATOR_PROMPT = [
@@ -311,6 +329,26 @@ const COORDINATOR_PROMPT = [
   "To fill a stay's meal stops with candidates, start one stay-researcher per stay with the Agent tool. In its prompt, give the stay ID and what to look for. It reads the dates and stops itself.",
   "When the workers are done, tell the user, in a few lines, what each one added and any problems or questions.",
 ].join("\n");
+
+// The coordinator as a named agent on the main thread (Options.agent). --main-agent
+// none leaves it out. plain lists Agent and the trip tool. typed lists Agent with only
+// the worker's type, as Agent(stay-researcher). typed2 also adds a second worker type,
+// leg-scout, and lists Agent(stay-researcher, leg-scout).
+function coordinatorAgent(): AgentDefinition {
+  const agentTool =
+    args["main-agent"] === "typed"
+      ? "Agent(stay-researcher)"
+      : args["main-agent"] === "typed2"
+        ? "Agent(stay-researcher, leg-scout)"
+        : "Agent";
+  return {
+    description: "Plans road trips with the user.",
+    // Marked, so the proxy log shows whether this prompt or systemPrompt is sent.
+    prompt: `You are the coordinator, from the agent definition.\n${COORDINATOR_PROMPT}`,
+    model: "claude-opus-5-5",
+    tools: [agentTool, "mcp__trip__read_itinerary"],
+  };
+}
 
 // ---- Hooks ----
 
@@ -463,16 +501,24 @@ function options(sessionId: string): Options {
     env: processEnv(),
     settingSources: [],
     strictMcpConfig: args.strict,
-    tools: coordinatorTools,
+    tools: [...coordinatorTools, ...(args["session-web"] ? ["WebSearch", "WebFetch"] : [])],
     mcpServers: {
       trip: coordinatorServer(),
       ...(["inline", "http"].includes(args["worker-server"]) ? {} : { worker: workerServer() }),
     },
-    agents: { "stay-researcher": stayResearcher() },
-    allowedTools: ["Agent", "mcp__trip", "mcp__worker"],
+    agents: {
+      "stay-researcher": stayResearcher(),
+      ...(args["main-agent"] === "none" ? {} : { coordinator: coordinatorAgent() }),
+      ...(args["main-agent"] === "typed2"
+        ? { "leg-scout": { ...stayResearcher(), description: "Finds stops along one leg. A stand-in with the stay researcher's tools." } }
+        : {}),
+    },
+    ...(args["main-agent"] === "none" ? {} : { agent: "coordinator" }),
+    allowedTools: ["Agent", "mcp__trip", "mcp__worker", ...(args["worker-web"] ? ["WebSearch", "WebFetch"] : [])],
     disallowedTools: [
       ...(args["deny-fork"] ? ["Agent(fork)"] : []),
       ...(args["worker-server"] === "ref-deny" ? ["mcp__worker"] : []),
+      ...(args["deny-web"] ? ["WebSearch", "WebFetch"] : []),
     ],
     permissionMode: "dontAsk",
     ...(args["no-hooks"] ? {} : { hooks }),
@@ -525,12 +571,48 @@ function summarize(message: SDKMessage): string | undefined {
   return undefined;
 }
 
+// The key the worker's definition sends, made for this run. --http-key none sends no
+// header and the server takes any request. good sends the key the server expects. bad
+// sends another key, so the server refuses each request with a 401.
+const HTTP_KEY = randomBytes(32).toString("base64url");
+function workerServerHeaders(): { headers?: Record<string, string> } {
+  switch (args["http-key"]) {
+    case "none":
+      return {};
+    case "good":
+      return { headers: { Authorization: `Bearer ${HTTP_KEY}` } };
+    case "bad":
+      return { headers: { Authorization: `Bearer ${randomBytes(32).toString("base64url")}` } };
+    default:
+      throw new Error("bad --http-key");
+  }
+}
+
+function rpcMethods(body: unknown): string {
+  const messages = Array.isArray(body) ? body : body === undefined ? [] : [body];
+  return messages
+    .map((m) => {
+      const msg = m as { method?: string; params?: { name?: string } };
+      return msg.method === "tools/call" ? `tools/call(${msg.params?.name})` : (msg.method ?? "(response)");
+    })
+    .join(",");
+}
+
 // The worker's tools over HTTP, stateless: a new server and transport per request.
 function serveWorkerToolsOverHttp(): void {
   createServer(async (req, res) => {
     const chunks: Buffer[] = [];
     for await (const chunk of req) chunks.push(chunk as Buffer);
     const body = chunks.length > 0 ? JSON.parse(Buffer.concat(chunks).toString("utf8")) : undefined;
+    const auth = req.headers.authorization;
+    const keyState = auth === undefined ? "no header" : auth === `Bearer ${HTTP_KEY}` ? "right key" : "wrong key";
+    log(`[http] ${req.method} ${rpcMethods(body)} auth=${keyState}`);
+    if (args["http-key"] !== "none" && keyState !== "right key") {
+      res.writeHead(401, { "Content-Type": "application/json" }).end(
+        JSON.stringify({ jsonrpc: "2.0", error: { code: -32001, message: "Unknown key" }, id: null }),
+      );
+      return;
+    }
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
     const server = workerServer().instance;
     await server.connect(transport);

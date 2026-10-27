@@ -26,7 +26,12 @@ npx tsx proxy.ts &        # logs each Messages API request body to proxy-log.jso
 | `--def-bg-false` | Sets `background: false` in the worker's definition |
 | `--no-builtin` | Sets `CLAUDE_AGENT_SDK_DISABLE_BUILTIN_AGENTS=1` |
 | `--deny-fork` | Adds an `Agent(fork)` deny rule |
-| `--worker-server <where>` | `ref` (default): in-process on the query, named in the definition. `ref-deny`: the same, with `mcp__worker` denied for the coordinator. `inline`: in-process in the definition. `http`: an HTTP server named in the definition |
+| `--worker-server <where>` | `ref` (default): in-process on the query, named in the definition. `ref-deny`: the same, with `mcp__worker` denied for the coordinator. `query`: in-process on the query, with no server named in the definition. `inline`: in-process in the definition. `http`: an HTTP server named in the definition |
+| `--http-key <key>` | With `--worker-server http`. `none` (default): no header, and the server takes any request. `good`: the definition sends `Authorization: Bearer <key>` with the key the server expects. `bad`: it sends another key, and the server answers each request with a 401. The server logs each request's MCP method and whether the key matched |
+| `--worker-web` | Adds `WebSearch` and `WebFetch` to the worker's `tools` and to `allowedTools`, and tells the worker to use them |
+| `--session-web` | Adds `WebSearch` and `WebFetch` to the query's `tools` option |
+| `--deny-web` | Adds `WebSearch` and `WebFetch` to the query's `disallowedTools` |
+| `--main-agent <tools>` | Runs the coordinator as a named agent on the main thread (`agent: "coordinator"`), whose definition lists `mcp__trip__read_itinerary` and an `Agent` entry. `none` (default): no main agent. `plain`: `Agent`. `typed`: `Agent(stay-researcher)`. `typed2`: adds a second worker type, `leg-scout`, and lists `Agent(stay-researcher, leg-scout)` |
 | `--guard` | A `PreToolUse` hook refuses worker tool calls with no `agent_id` |
 | `--worker-tools-list <list>` | `own` (default), `own+coordinator`, or `none` (left out) |
 | `--coordinator-tools <set>` | `agent` (default) or `agent+trip` |
@@ -45,5 +50,8 @@ npx tsx proxy.ts &        # logs each Messages API request body to proxy-log.jso
 ./run.sh two-env --bg-env --worker-knows-report --wait 90 --message "Fill the meal stops for the Moab stay and the Torrey stay."
 ./run.sh builtin-off --bg-env --worker-server http --no-builtin --message "Start general-purpose, Explore, Plan, claude, and fork."
 ./run.sh crash --bg-env --worker-knows-report --worker-server http --crash-after-add
+./run.sh web-good --bg-env --no-builtin --worker-knows-report --worker-server http --worker-web --http-key good
+./run.sh web-main-typed --bg-env --no-builtin --worker-knows-report --worker-server http --worker-web --http-key good --session-web --main-agent typed
+./run.sh inproc-two --bg-env --no-builtin --worker-knows-report --worker-server query --worker-web --session-web --main-agent typed --wait 90 --message "Fill the meal stops for the Moab stay and the Torrey stay."
 ./run.sh resume --bg-env --worker-knows-report --worker-server http --resume --session "$(cat runs/crash.session)" --message "We got cut off. Where are we with the Moab stay?"
 ```
