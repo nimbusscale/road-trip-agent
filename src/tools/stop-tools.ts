@@ -33,12 +33,14 @@ import type { TripSession } from "./trip-session.js";
 
 // A description names the after input, and says what "first" does (tool design 2.1,
 // "Where an item goes").
-export const ADD_STOPS_DESCRIPTION = `Adds empty stops to a day, in order. Lay out a whole day in one call. Give after the ID of the stop they follow on that day, or "${FIRST}" to put them before every other stop on the day. A stop near a stay has to be on a day that starts or ends at that stay. "alongLeg" is refused on a day that stays put, "nearStartPlace" except on the first day, and "nearEndPlace" except on the last day. If any stop is refused, none is added. The reply gives the new stops' IDs, in order.`;
+export function addStopsDescription(checkInVisitMinutes: number): string {
+  return `Adds stops to a day, in order. Lay out a whole day in one call. Give after the ID of the stop they follow on that day, or "${FIRST}" to put them before every other stop on the day. A meal or an attraction starts empty. A stop near a stay has to be on a day that starts or ends at that stay. "alongLeg" is refused on a day that stays put, "nearStartPlace" except on the first day, and "nearEndPlace" except on the last day. A check-in is at the stay the party sleeps at that night: its lodging once one is selected, and its town until then. It takes no search area, has no candidates, and gets a visit time of ${durationText(checkInVisitMinutes)}. It's refused on the last day, which has no stay, and a day holds at most one. If any stop is refused, none is added. The reply gives the new stops' IDs, in order.`;
+}
 
 export const UPDATE_STOP_DESCRIPTION =
-  "Changes a stop's set time, visit time, tier, or opening hours approval. Items not given are not changed. A visit time needs a selected place, and only a meal has a tier. An opening hours approval needs the user's reason, and records how many minutes of the visit fall within the selected place's opening hours. The set time and visit time change first, so an approval in the same call records the minutes at the new times.";
+  "Changes a stop's set time, visit time, tier, or opening hours approval. Items not given are not changed. A visit time needs a selected place, or a check-in, and only a meal has a tier. An opening hours approval needs the user's reason, and records how many minutes of the visit fall within the selected place's opening hours. The set time and visit time change first, so an approval in the same call records the minutes at the new times.";
 
-export const MOVE_STOP_DESCRIPTION = `Moves a stop within its day or to another day. Give after the ID of the stop it follows on that day, or "${FIRST}" to put it before every other stop on the day. The set time is always given, so an old one never carries over. The stop keeps its candidates, selected place, visit time, and approvals. A stop along the leg can't move to a day that stays put: remove it and add a new one instead. A stop near a stay, or near the start or end place, can move to a day that doesn't start or end there, and the check results warn that its search area doesn't fit the day.`;
+export const MOVE_STOP_DESCRIPTION = `Moves a stop within its day or to another day. Give after the ID of the stop it follows on that day, or "${FIRST}" to put it before every other stop on the day. The set time is always given, so an old one never carries over. The stop keeps its candidates, selected place, visit time, and approvals. A stop along the leg can't move to a day that stays put: remove it and add a new one instead. A stop near a stay, or near the start or end place, can move to a day that doesn't start or end there, and the check results warn that its search area doesn't fit the day. A check-in moves to the stay the party sleeps at on its new day. It can't move to the last day, or to a day that already holds one.`;
 
 export const REMOVE_STOPS_DESCRIPTION =
   "Removes stops, with their candidates and approvals. The stops can be on different days. If any stop isn't in the trip, none is removed.";
@@ -46,13 +48,20 @@ export const REMOVE_STOPS_DESCRIPTION =
 export function addStopsTool(session: TripSession): StrictToolDefinition {
   return strictTool(
     "add_stops",
-    ADD_STOPS_DESCRIPTION,
+    addStopsDescription(session.settings.checkInVisitMinutes),
     ADD_STOPS_INPUT,
     ({ dayId, after, stops }) =>
       itineraryWriteReply(session, ({ trip, services, calendar }) => {
         const itinerary = trip.itinerary;
         const day = dayIn(itinerary, dayId);
-        const added = stops.map((input) => newStopFrom(itinerary, input));
+        const added = stops.map((input) =>
+          input.kind === "checkIn"
+            ? services.stops.newCheckIn(
+                input.purpose,
+                setTimeFrom(input.setTime),
+              )
+            : newStopFrom(itinerary, input),
+        );
         services.stops.addStops(
           itinerary,
           day,
@@ -192,8 +201,12 @@ function approvalLines(stop: Stop): string[] {
 }
 
 // Code creates the stop with its own rules. Whether it fits the day is
-// StopsService.addStops()'s rule (domain model 4.6).
-function newStopFrom(itinerary: Itinerary, input: NewStopInput): Stop {
+// StopsService.addStops()'s rule (domain model 4.6). A check-in gets its visit time from
+// StopsService.newCheckIn().
+function newStopFrom(
+  itinerary: Itinerary,
+  input: Exclude<NewStopInput, { kind: "checkIn" }>,
+): Stop {
   const tiering =
     input.kind === "meal"
       ? { tier: input.tier, tierRule: input.tierRule }

@@ -35,6 +35,7 @@ export const EXAMPLE_SETTINGS: Settings = {
   maximumDailyDrivingHours: 12,
   recommendedDailyDrivingHours: 6,
   mealVisitMinutes: 60,
+  checkInVisitMinutes: 30,
   maximumMemoryItems: 50,
   maximumMemoryItemCharacters: 300,
   coordinatorModel: "claude-opus-5-5",
@@ -242,7 +243,7 @@ export function routeDayAlong(
       timeSavedInMinutes: 0,
       routedFromPlace: from,
       routedToPlace: to,
-      routedStopPlaces: day.stops.flatMap((stop) => stop.selectedPlace ?? []),
+      routedStopPlaces: calendar.stopPlacesOf(itinerary, day),
       routedWaypoints: day.waypoints.map((waypoint) => waypoint.place),
     }),
   );

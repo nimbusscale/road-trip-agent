@@ -65,7 +65,7 @@ export const stopSchema = z.strictObject({
   id: z.string(),
   kind: z.enum(STOP_KINDS),
   purpose: z.string(),
-  searchArea: z.enum(SEARCH_AREAS),
+  searchArea: z.enum(SEARCH_AREAS).nullable(),
   searchAreaStayId: z.string().nullable(),
   setTime: scheduleTimeSchema.nullable(),
   visitTimeInMinutes: z.number().nullable(),

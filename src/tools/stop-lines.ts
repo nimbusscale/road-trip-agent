@@ -58,7 +58,7 @@ export function stopLines(
 ): string[] {
   const order = context.calendar.orderOf(context.itinerary, stop);
   return [
-    `- ${times}: Stop ${String(order + 1)} (${stop.id}), ${stop.kind}: "${stop.purpose}". ${stopFacts(stop, detail)}`,
+    `- ${times}: Stop ${String(order + 1)} (${stop.id}), ${stop.kind}: "${stop.purpose}". ${stopFacts(context, stop, detail)}`,
     ...indented(
       detail === "slim"
         ? countLines(stop.candidates, stop.selectedPlace, "Candidates")
@@ -75,17 +75,15 @@ export function stopLines(
   ];
 }
 
-function stopFacts(stop: Stop, detail: Detail): string {
+function stopFacts(context: ReadContext, stop: Stop, detail: Detail): string {
+  if (stop.searchArea === null) {
+    return checkInFacts(context, stop);
+  }
   const area =
     stop.searchArea === "nearStay"
       ? `Near the ${stop.searchAreaStay === null ? "" : placeText(stop.searchAreaStay.place)} stay`
       : SEARCH_AREA_TEXT[stop.searchArea];
-  const facts = [`${area}.`];
-  if (stop.setTime !== null) {
-    facts.push(
-      sentence(`Set time: ${clockText(minuteOfScheduleTime(stop.setTime))}`),
-    );
-  }
+  const facts = [`${area}.`, ...setTimeFacts(stop)];
   if (stop.tier !== null && stop.tierRule !== null) {
     facts.push(
       detail === "slim"
@@ -95,6 +93,26 @@ function stopFacts(stop: Stop, detail: Detail): string {
   }
   facts.push(selectionText(stop, detail));
   return facts.join(" ");
+}
+
+// A check-in has no search area or candidates. Its place is where the party sleeps that
+// night, which the calendar works out (domain model 3.7).
+function checkInFacts(context: ReadContext, stop: Stop): string {
+  const place = context.calendar.placeOf(context.itinerary, stop);
+  const visit = stop.visitTimeInMinutes;
+  return [
+    place === null
+      ? "No stay to check in at."
+      : `At where the party sleeps that night: ${pickedPlaceText(place)}.`,
+    ...setTimeFacts(stop),
+    ...(visit === null ? [] : [`Visit time ${durationText(visit)}.`]),
+  ].join(" ");
+}
+
+function setTimeFacts(stop: Stop): string[] {
+  return stop.setTime === null
+    ? []
+    : [sentence(`Set time: ${clockText(minuteOfScheduleTime(stop.setTime))}`)];
 }
 
 // A whole read gives the selected place's town, and its candidate's detour time, since

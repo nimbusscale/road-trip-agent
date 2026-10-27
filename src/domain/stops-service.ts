@@ -11,11 +11,14 @@ import { RuleError } from "./rule-error.js";
 import type { ScheduleTime } from "./schedule-time.js";
 import type { Stay } from "./stay.js";
 import { StayDay } from "./stay-day.js";
-import type { Stop } from "./stop.js";
+import { newCheckIn, type Stop } from "./stop.js";
 import { pickedTierRule } from "./tier.js";
 import { VIA_SERVICE } from "./via-service.js";
 
-export type StopsSettings = Pick<Settings, "mealVisitMinutes">;
+export type StopsSettings = Pick<
+  Settings,
+  "mealVisitMinutes" | "checkInVisitMinutes"
+>;
 
 // Where a moved stop goes (domain model 4.6, moveStop()).
 export interface StopMove {
@@ -27,7 +30,7 @@ export interface StopMove {
 }
 
 // The business rules about stops: whether a stop fits its day, rejected places, the
-// meal visit time, and opening hours approvals (domain model 4.6).
+// meal and check-in visit times, and opening hours approvals (domain model 4.6).
 export class StopsService {
   readonly #settings: StopsSettings;
   readonly #calendar: Calendar;
@@ -35,6 +38,16 @@ export class StopsService {
   constructor(given: { settings: StopsSettings; calendar: Calendar }) {
     this.#settings = given.settings;
     this.#calendar = given.calendar;
+  }
+
+  // A new check-in, with the check-in visit time, a setting. Code creates it before
+  // addStops() puts it on a day, as it does a meal or an attraction.
+  newCheckIn(purpose: string, setTime: ScheduleTime | null): Stop {
+    return newCheckIn({
+      purpose,
+      setTime,
+      visitTimeInMinutes: this.#settings.checkInVisitMinutes,
+    });
   }
 
   // Code creates the stops first, with their own rules. Here the search area rule is
@@ -52,6 +65,9 @@ export class StopsService {
         (text) => `${describeStop(stop)} ${text}`,
       ),
     );
+    if (checkInCountOf([...day.stops, ...stops]) > 1) {
+      problems.push(ONE_CHECK_IN);
+    }
     if (problems.length > 0) {
       throw new RuleError(`No stops were added. ${problems.join(" ")}`);
     }
@@ -74,6 +90,10 @@ export class StopsService {
       );
     }
     refuseUntimedOnRestDay(toDay, stop, setTime);
+    refuseUnfitCheckIn(stop, {
+      isLastDay: toDay === itinerary.lastDay,
+      others: toDay.stops.filter((each) => each !== stop),
+    });
     // The day's own rules refuse an `after` that isn't on it, or is the stop itself.
     toDay[VIA_SERVICE].placeStops([stop], after);
     if (fromDay !== toDay) {
@@ -198,6 +218,11 @@ interface DayFit {
   isRestDay: boolean;
 }
 
+const LAST_DAY_CHECK_IN =
+  "is a check-in, and the last day has no stay to sleep at, so there's nowhere to check in.";
+
+const ONE_CHECK_IN = "A day holds at most one check-in.";
+
 // Each way a stop can fail to fit its day when it's added (domain model 4.6, addStops()).
 const MISFITS: readonly {
   applies: (stop: Stop, fit: DayFit) => boolean;
@@ -228,6 +253,10 @@ const MISFITS: readonly {
     applies: (stop, fit) => fit.isRestDay && stop.setTime === null,
     text: "has no set time, and each stop on a rest day needs one.",
   },
+  {
+    applies: (stop, fit) => stop.kind === "checkIn" && fit.isLastDay,
+    text: LAST_DAY_CHECK_IN,
+  },
 ];
 
 // Why a stop can't be added to the day, if it can't.
@@ -253,6 +282,29 @@ function refuseUntimedOnRestDay(
   if (setTime === null && isRestDay(day)) {
     throw new RuleError(
       `${describeStop(stop)} needs a set time, since each stop on a rest day has one.`,
+    );
+  }
+}
+
+function checkInCountOf(stops: readonly Stop[]): number {
+  return stops.filter((stop) => stop.kind === "checkIn").length;
+}
+
+// A check-in is at the stay the party sleeps at that night, so it can't be on the last
+// day, and a day holds at most one (domain model 4.6).
+function refuseUnfitCheckIn(
+  stop: Stop,
+  toDay: { isLastDay: boolean; others: readonly Stop[] },
+): void {
+  if (stop.kind !== "checkIn") {
+    return;
+  }
+  if (toDay.isLastDay) {
+    throw new RuleError(`${describeStop(stop)} ${LAST_DAY_CHECK_IN}`);
+  }
+  if (checkInCountOf(toDay.others) > 0) {
+    throw new RuleError(
+      `${describeStop(stop)} can't move there. ${ONE_CHECK_IN}`,
     );
   }
 }

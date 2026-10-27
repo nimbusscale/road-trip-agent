@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { planningFor } from "../domain/example-trip-parts.fake.js";
 import { exampleMoabTrip, present } from "../domain/itinerary.fake.js";
 import { planSchema } from "./plan.schema.js";
 import { planDocumentOf, tripFromRow } from "./plan-document.js";
@@ -44,6 +45,28 @@ describe("the plan document", () => {
     expect(moab.lodging).toBe(
       editable.placeOf(present(example.moab.lodging).id),
     );
+  });
+
+  it("saves a check-in with no search area or place, and loads it back with its visit time", async () => {
+    const example = exampleMoabTrip(OWNER);
+    const day1 = present(example.moab.days[0]);
+    const { itinerary, services } = planningFor(example.trip);
+    const checkIn = services.stops.newCheckIn("check in", null);
+    services.stops.addStops(itinerary, day1, [checkIn], null);
+    checkIn.visitTimeInMinutes = 45;
+    const store = new FakeTripStore();
+    await store.places.addPlaces(example.trip.id, example.places);
+    await store.add(example.trip);
+    const loaded = await store.load(example.trip.id);
+    expect(planDocumentOf(loaded)).toEqual(planDocumentOf(example.trip));
+    const stop = present(present(loaded.itinerary.days[0]).stops[0]);
+    expect(stop).toMatchObject({
+      kind: "checkIn",
+      searchArea: null,
+      selectedPlace: null,
+      visitTimeInMinutes: 45,
+      status: "selected",
+    });
   });
 
   it("keeps the kind of each approval", async () => {

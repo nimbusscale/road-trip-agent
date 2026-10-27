@@ -18,6 +18,13 @@ import type { ScheduleTime } from "./schedule-time.js";
 import type { SearchArea } from "./search-area.js";
 import type { Stay } from "./stay.js";
 import type { StopKind } from "./stop-kind.js";
+import {
+  CHECK_IN_HAS_NO_CANDIDATES,
+  checkedVisitTime,
+  KIND_TEXT,
+  noPlaceForVisitTime,
+  refuseBrokenNewStop,
+} from "./stop-rules.js";
 import type { Tier } from "./tier.js";
 import { VIA_SERVICE } from "./via-service.js";
 
@@ -25,7 +32,8 @@ import { VIA_SERVICE } from "./via-service.js";
 export interface NewStopFields {
   kind: StopKind;
   purpose: string;
-  searchArea: SearchArea;
+  // Null exactly for a check-in, which no worker searches for.
+  searchArea: SearchArea | null;
   searchAreaStay: Stay | null;
   setTime: ScheduleTime | null;
   tier: Tier | null;
@@ -48,7 +56,8 @@ export interface StopChanges {
   setSetTime(setTime: ScheduleTime | null): void;
   // Adds one set, and returns the candidates as the stop made them.
   addCandidates(offers: readonly CandidateOffer[]): Candidate[];
-  // StopsService works out the visit time: the candidate's, or the meal setting.
+  // StopsService works out the visit time: the candidate's, or the meal setting. A
+  // check-in has no candidates, so it refuses.
   selectCandidate(place: Place, visitTimeInMinutes: number): void;
   // Only a rejection removes a candidate. A selected one clears the selection.
   removeCandidate(place: Place): void;
@@ -56,14 +65,15 @@ export interface StopChanges {
   removeApproval(kind: ApprovalKind): void;
 }
 
-// A place the party visits during a day: a meal or an attraction (domain model 3.7).
-// Its kind, purpose, and search area never change, since its candidates were found
-// for them.
+// A place the party visits during a day: a meal, an attraction, or checking in at the
+// stay (domain model 3.7). Its kind, purpose, and search area never change, since its
+// candidates were found for them. A check-in's place isn't stored: it's where the party
+// sleeps that night, which the calendar's placeOf() works out.
 export class Stop {
   readonly id: string;
   readonly kind: StopKind;
   readonly purpose: string;
-  readonly searchArea: SearchArea;
+  readonly searchArea: SearchArea | null;
   // The stay, for a stop near a stay. A link, not ownership: the day holds the stop.
   readonly searchAreaStay: Stay | null;
   #setTime: ScheduleTime | null;
@@ -79,6 +89,9 @@ export class Stop {
       this.#setTime = setTime;
     },
     addCandidates: (offers) => {
+      if (this.kind === "checkIn") {
+        throw new RuleError(CHECK_IN_HAS_NO_CANDIDATES);
+      }
       const tiering =
         this.#tier === null || this.#tierRule === null
           ? null
@@ -140,14 +153,15 @@ export class Stop {
     return this.#setTime;
   }
 
-  // Has a value exactly when a place is selected.
+  // Has a value exactly when a place is selected. A check-in always has one.
   get visitTimeInMinutes(): number | null {
     return this.#visitTimeInMinutes;
   }
 
-  // Set directly when the user asks, such as "plan five hours for that hike".
+  // Set directly when the user asks, such as "plan five hours for that hike", or two
+  // hours to rest at the hotel after checking in.
   set visitTimeInMinutes(value: number | null) {
-    if (this.#selectedPlace === null) {
+    if (this.#selectedPlace === null && this.kind !== "checkIn") {
       throw noPlaceForVisitTime();
     }
     this.#visitTimeInMinutes = checkedVisitTime(value);
@@ -174,8 +188,9 @@ export class Stop {
     return Object.freeze([...this.#approvals]);
   }
 
+  // A check-in has a place from the moment it's added, so it counts as selected.
   get status(): StopStatus {
-    if (this.#selectedPlace !== null) {
+    if (this.#selectedPlace !== null || this.kind === "checkIn") {
       return "selected";
     }
     return this.#candidates.length > 0 ? "proposed" : "empty";
@@ -183,8 +198,10 @@ export class Stop {
 
   // For a meal. Candidates already offered keep the tier they were offered at.
   setTier(tier: Tier, tierRule: string): void {
-    if (this.kind === "attraction") {
-      throw new RuleError("An attraction stop has no tier.");
+    if (this.kind !== "meal") {
+      throw new RuleError(
+        `Only a meal stop has a tier. This one is ${KIND_TEXT[this.kind]}.`,
+      );
     }
     if (tierRule.trim() === "") {
       throw new RuleError("A stop's tier needs the rule that produced it.");
@@ -205,8 +222,18 @@ export class Stop {
   }
 
   // The selected place is one of the candidates, and the stop has a visit time exactly
-  // when it has a selected place.
+  // when it has a selected place. A check-in has no selected place, and always has a
+  // visit time.
   #refuseBrokenSelection(): void {
+    if (this.kind === "checkIn") {
+      if (this.#selectedPlace !== null || this.#candidates.length > 0) {
+        throw new RuleError(
+          "A check-in has no candidates or selected place. Its place is where the party sleeps that night.",
+        );
+      }
+      checkedVisitTime(this.#visitTimeInMinutes);
+      return;
+    }
     if (this.#selectedPlace === null) {
       if (this.#visitTimeInMinutes !== null) {
         throw noPlaceForVisitTime();
@@ -257,7 +284,8 @@ export class Stop {
   }
 }
 
-// A new stop, with no candidates yet (domain model 3.7, "Creating a stop").
+// A new meal or attraction, with no candidates yet (domain model 3.7, "Creating a
+// stop").
 export function newStop(fields: NewStopFields): Stop {
   return new Stop({
     ...fields,
@@ -269,38 +297,23 @@ export function newStop(fields: NewStopFields): Stop {
   });
 }
 
-function refuseBrokenNewStop(fields: NewStopFields): void {
-  if (fields.purpose.trim() === "") {
-    throw new RuleError("A stop needs a purpose, such as dessert.");
-  }
-  if ((fields.searchAreaStay !== null) !== (fields.searchArea === "nearStay")) {
-    throw new RuleError(
-      "A stop near a stay names the stay, and a stop with any other search area names none.",
-    );
-  }
-  const hasTiering = fields.tier !== null || fields.tierRule !== null;
-  const isMeal = fields.kind === "meal";
-  if (
-    hasTiering !== isMeal ||
-    (isMeal && (fields.tier === null || !fields.tierRule?.trim()))
-  ) {
-    throw new RuleError(
-      "A meal stop needs a tier and the rule that produced it. An attraction stop has neither.",
-    );
-  }
-}
-
-function checkedVisitTime(value: number | null): number {
-  if (value === null || !Number.isInteger(value) || value <= 0) {
-    throw new RuleError(
-      `A stop with a selected place has a visit time of more than 0 minutes. It was given ${String(value)}.`,
-    );
-  }
-  return value;
-}
-
-function noPlaceForVisitTime(): RuleError {
-  return new RuleError(
-    "A stop has a visit time only when it has a selected place.",
-  );
+// A new check-in. It starts with the check-in visit time, a setting, which
+// StopsService.newCheckIn() gives it (domain model 4.6).
+export function newCheckIn(fields: {
+  purpose: string;
+  setTime: ScheduleTime | null;
+  visitTimeInMinutes: number;
+}): Stop {
+  return new Stop({
+    ...fields,
+    id: newId("stop"),
+    kind: "checkIn",
+    searchArea: null,
+    searchAreaStay: null,
+    tier: null,
+    tierRule: null,
+    selectedPlace: null,
+    candidates: [],
+    approvals: [],
+  });
 }

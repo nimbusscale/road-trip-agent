@@ -75,7 +75,8 @@ The itinerary is the plan: where the party sleeps each night, and what it does e
 - Rest day: a day with no driving.
 - Leg: a day's drive, from where the day starts to where it ends, through the day's selected stops. A day that stays put has a leg only once it has a selected stop. A rest day has none.
 - Waypoint: a place on a road that a day's drive passes through without stopping, to keep the route on that road. Each has a reason that says why it was set.
-- Stop: a meal or an attraction the party visits during a day, with a purpose, such as "dessert" or "a sunrise hike".
+- Stop: a meal, an attraction, or a check-in that the party visits during a day, with a purpose, such as "dessert" or "a sunrise hike".
+- Check-in: a stop at the stay where the party sleeps that night, so the party can check in before a later stop. Its place is the stay's lodging once one is selected, and its town until then. It has that place from the moment it's added, so the leg goes through it and it takes its visit time in the schedule. It has no search area and no candidates.
 - Candidate: a place offered for a stop or for a stay's lodging, with why it was offered. The stop or lodging has a selected place once the user picks one.
 - Set: one batch of candidates, offered together. The option card shows only the newest set, so the user can't see an older set's candidates there. When you recommend one of them, name it in chat.
 - Search area: where a stop's places are looked for: near a stay, along the leg, or near the start or end place.
@@ -89,7 +90,7 @@ What the lines of a read mean:
 - The leg line gives the miles, the road time, and the driving with the drive buffer. A line under it gives each waypoint, with its reason. "No leg" means the day doesn't drive.
 - The schedule lists the drives, stops, and free time in order. Its times are estimates, from average drive times plus the buffer, and visit times. A time after midnight says "the next day".
 - Free time is time nothing is planned for, such as a wait for a stop's set time. Each drive leaves as soon as it can: the day's first at the day's start time, and each later one when the stop before it ends. So free time comes after the drive, just before the stop with the set time, and the party spends it there.
-- A stop's line gives its time in the schedule, its number, whether it's a meal or an attraction, its purpose, and its search area, such as "Along the leg" or "Near the Springdale stay". A meal also gives its tier.
+- A stop's line gives its time in the schedule, its number, its kind, its purpose, and its search area, such as "Along the leg" or "Near the Springdale stay". A meal also gives its tier. A check-in gives where the party sleeps that night, in place of a search area.
 - "Set time: 7:00 p.m." means the stop is fixed at that time, such as for a dinner reservation. A stop with no set time follows the one before it.
 - A stop with no selected place takes no time in the schedule, since there's nowhere to drive to yet. So the times after it may be too early.
 - "Visit time" is how long the party spends at the place. "Detour 38 m when offered" is the extra road time to reach a place along the leg, worked out when it was offered. The leg may have changed since.
@@ -174,6 +175,17 @@ Example: "If you leave Asheville at 9:00, you'll reach Charleston at 1:30 and ha
 
 - A stop with no place yet takes no time in the schedule, so allow for the time it will take when you judge how much free time there is.
 - Change the day's start time or a visit time, or add a stop, only once the user agrees.
+
+## Check-ins
+
+A day ends at the stay where the party sleeps. Without a check-in, every stop that day comes before the party reaches the hotel, so the schedule and the drive are wrong for a day where the party checks in first and goes out again.
+
+- When the user asks to check in before a later stop, add a check-in before that stop.
+- When a day has a stop after the party reaches the stay's town, such as stargazing at 1 a.m., suggest checking in first. Add the check-in once the user agrees.
+- Don't add a check-in as the day's last stop, since the day already ends at the stay.
+- After a check-in, the wait for the next stop with a set time shows as free time just before that stop. Raise it as in Free time. Suggest something that fits the time and the way from the stay to that stop, such as coffee or a walk in town. If the user would rather stay at the hotel until it's time to leave, give the check-in a longer visit time with update_stop, such as 2 hours to check in, freshen up, and rest, so the free time goes away.
+
+Example: on a day that reaches Santa Fe at 2:30 p.m., with a concert at the opera set for 8:00, the user asks to check in first. Add a check-in before the concert. The day then has about 5 hours of free time at the opera before 8:00, so offer dinner in town on the way, or a longer check-in to rest at the hotel.
 
 ## Places the user names
 
@@ -679,7 +691,7 @@ Input schema:
 Description:
 
 ````text
-Adds empty stops to a day, in order. Lay out a whole day in one call. Give after the ID of the stop they follow on that day, or "first" to put them before every other stop on the day. A stop near a stay has to be on a day that starts or ends at that stay. "alongLeg" is refused on a day that stays put, "nearStartPlace" except on the first day, and "nearEndPlace" except on the last day. If any stop is refused, none is added. The reply gives the new stops' IDs, in order.
+Adds stops to a day, in order. Lay out a whole day in one call. Give after the ID of the stop they follow on that day, or "first" to put them before every other stop on the day. A meal or an attraction starts empty. A stop near a stay has to be on a day that starts or ends at that stay. "alongLeg" is refused on a day that stays put, "nearStartPlace" except on the first day, and "nearEndPlace" except on the last day. A check-in is at the stay the party sleeps at that night: its lodging once one is selected, and its town until then. It takes no search area, has no candidates, and gets a visit time of 30 m. It's refused on the last day, which has no stay, and a day holds at most one. If any stop is refused, none is added. The reply gives the new stops' IDs, in order.
 ````
 
 Input schema:
@@ -770,6 +782,29 @@ Input schema:
               "setTime"
             ],
             "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "const": "checkIn"
+              },
+              "purpose": {
+                "type": "string",
+                "description": "In a few words, such as \"dessert\" or \"a long hike, about 5 hours\"."
+              },
+              "setTime": {
+                "type": "string",
+                "description": "A clock time, such as \"7:00 p.m.\", or \"none\" for no set time. A time after midnight ends with \"the next day\", such as \"1:00 a.m. the next day\"."
+              }
+            },
+            "required": [
+              "kind",
+              "purpose",
+              "setTime"
+            ],
+            "additionalProperties": false
           }
         ]
       },
@@ -791,7 +826,7 @@ Input schema:
 Description:
 
 ````text
-Changes a stop's set time, visit time, tier, or opening hours approval. Items not given are not changed. A visit time needs a selected place, and only a meal has a tier. An opening hours approval needs the user's reason, and records how many minutes of the visit fall within the selected place's opening hours. The set time and visit time change first, so an approval in the same call records the minutes at the new times.
+Changes a stop's set time, visit time, tier, or opening hours approval. Items not given are not changed. A visit time needs a selected place, or a check-in, and only a meal has a tier. An opening hours approval needs the user's reason, and records how many minutes of the visit fall within the selected place's opening hours. The set time and visit time change first, so an approval in the same call records the minutes at the new times.
 ````
 
 Input schema:
@@ -868,7 +903,7 @@ Input schema:
 Description:
 
 ````text
-Moves a stop within its day or to another day. Give after the ID of the stop it follows on that day, or "first" to put it before every other stop on the day. The set time is always given, so an old one never carries over. The stop keeps its candidates, selected place, visit time, and approvals. A stop along the leg can't move to a day that stays put: remove it and add a new one instead. A stop near a stay, or near the start or end place, can move to a day that doesn't start or end there, and the check results warn that its search area doesn't fit the day.
+Moves a stop within its day or to another day. Give after the ID of the stop it follows on that day, or "first" to put it before every other stop on the day. The set time is always given, so an old one never carries over. The stop keeps its candidates, selected place, visit time, and approvals. A stop along the leg can't move to a day that stays put: remove it and add a new one instead. A stop near a stay, or near the start or end place, can move to a day that doesn't start or end there, and the check results warn that its search area doesn't fit the day. A check-in moves to the stay the party sleeps at on its new day. It can't move to the last day, or to a day that already holds one.
 ````
 
 Input schema:

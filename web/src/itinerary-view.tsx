@@ -6,6 +6,7 @@ import {
   type ShownEntry,
   type ShownLeg,
   type ShownStay,
+  type ShownStop,
   type ShownSummary,
 } from "../../src/shared/itinerary.schema";
 import { dayText, tripDatesText } from "./dates";
@@ -177,15 +178,24 @@ function EntryText({ entry }: { entry: ShownEntry }) {
     const name = entry.kind === "drive" ? "Drive" : "Free time";
     return entry.duration === null ? name : `${name}, ${entry.duration}`;
   }
-  const kind = stop.kind === "meal" ? "Meal" : "Attraction";
   return (
     <>
-      {kind}, {stop.purpose}
+      {KIND_TEXT[stop.kind]}, {stop.purpose}
       {stop.setTime === null ? null : ` (set for ${stop.setTime})`}:{" "}
-      <Choice choice={stop.choice} />
+      {stop.kind === "checkIn" ? (
+        (stop.checkInPlace?.name ?? <em>no stay to check in at</em>)
+      ) : (
+        <Choice choice={stop.choice} />
+      )}
     </>
   );
 }
+
+const KIND_TEXT: Record<ShownStop["kind"], string> = {
+  meal: "Meal",
+  attraction: "Attraction",
+  checkIn: "Check in",
+};
 
 // A stop or lodging: its selected place, with why it was picked, or how far along the
 // choice is (functional spec 7.6).

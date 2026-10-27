@@ -4,6 +4,7 @@ import type { Itinerary } from "../domain/itinerary.js";
 import type { Place } from "../domain/place.js";
 import { RuleError } from "../domain/rule-error.js";
 import type { Stop } from "../domain/stop.js";
+import { CHECK_IN_HAS_NO_CANDIDATES } from "../domain/stop-rules.js";
 import type { ChangeContext } from "../persistence/trip-writer.js";
 import { refuseWrongKind } from "./id-kind.js";
 import { type ChangeOutcome, itineraryWriteReply } from "./itinerary-write.js";
@@ -67,6 +68,11 @@ function selectCandidate(
 ): ChangeOutcome {
   const itinerary = trip.itinerary;
   const holder = stopOrStayIn(itinerary, stopOrStayId);
+  // A check-in has no candidates, so the reason comes first, not the pointer to
+  // select_user_place.
+  if (holder.kind === "stop" && holder.stop.kind === "checkIn") {
+    throw new RuleError(CHECK_IN_HAS_NO_CANDIDATES);
+  }
   refuseWrongKind(placeId, "place");
   const place = placeOf(placeId);
   const where = holderName({ itinerary, calendar }, holder);
@@ -153,8 +159,12 @@ function userOffer(place: Place, reason: string): CandidateOffer {
 }
 
 // An attraction takes the user's visit time. A meal's is a setting, which
-// StopsService.selectCandidate() gives it (tool design 2.1).
+// StopsService.selectCandidate() gives it (tool design 2.1). A check-in takes no place,
+// so it's refused first, with the reason, whatever visit time was given.
 function visitTimeFor(stop: Stop, given: number | undefined): number | null {
+  if (stop.kind === "checkIn") {
+    throw new RuleError(CHECK_IN_HAS_NO_CANDIDATES);
+  }
   if (stop.kind === "attraction") {
     if (given === undefined) {
       throw new RuleError(

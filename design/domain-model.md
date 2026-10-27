@@ -232,7 +232,7 @@ classDiagram
         id : string #123;readOnly#125;
         kind : StopKind #123;readOnly#125;
         purpose : string #123;readOnly#125;
-        searchArea : SearchArea #123;readOnly#125;
+        searchArea : SearchArea? #123;readOnly#125;
         searchAreaStay : Stay? #123;readOnly#125;
         setTime : scheduleTime? #123;viaService#125;
         visitTimeInMinutes : integer?
@@ -375,7 +375,7 @@ The fixed lists that properties above use:
 |---|---|
 | `Tier` | `value`<br>`midRange`<br>`posh` |
 | `RouteType` | `scenic`<br>`fastest` |
-| `StopKind` | `meal`<br>`attraction` |
+| `StopKind` | `meal`<br>`attraction`<br>`checkIn` |
 | `SearchArea` | `nearStay`<br>`alongLeg`<br>`nearStartPlace`<br>`nearEndPlace` |
 | `StopStatus` | `empty`<br>`proposed`<br>`selected` |
 | `HowFound` | `google`<br>`webSearch`<br>`specifiedByUser` |
@@ -693,35 +693,36 @@ The day keeps change methods for `stops`, `leg`, and `approvals`, and a stay day
 
 ### 3.7 Stop
 
-A stop is a place the party visits during a day: a meal or an attraction (functional spec 4).
+A stop is a place the party visits during a day: a meal, an attraction, or a check-in at the stay where the party sleeps that night (functional spec 4).
 
 **Held as:** an entity held by its day's `stops`. Its `id` has the prefix `stop_` (technical spec 7.1).
 
-**Created and changed by:** code creates it when the coordinator lays out a day with the tool `add_stops`, with its kind, purpose, search area, set time, and, for a meal, its tier and rule. Then `StopsService.addStops()` puts it on the day. The coordinator changes its visit time directly, and its tier with `setTier()`, both with the tool `update_stop`. Its set time, selection, approvals, moves, and removal go through `StopsService` (section 4.6). Workers add its candidates, also through `StopsService`.
+**Created and changed by:** code creates it when the coordinator lays out a day with the tool `add_stops`, with its kind, purpose, search area, set time, and, for a meal, its tier and rule. A check-in takes only its purpose and set time, and `StopsService.newCheckIn()` creates it (see Check-in, below). Then `StopsService.addStops()` puts it on the day. The coordinator changes its visit time directly, and its tier with `setTier()`, both with the tool `update_stop`. Its set time, selection, approvals, moves, and removal go through `StopsService` (section 4.6). Workers add its candidates, also through `StopsService`.
 
 | Property | Stored or worked out | Type | Notes |
 |---|---|---|---|
 | `id` | Stored | `string`, read only | Agents see it. Users never do |
-| `kind` | Stored | `StopKind`, read only | Meal or attraction |
+| `kind` | Stored | `StopKind`, read only | Meal, attraction, or check-in |
 | `purpose` | Stored | `string`, read only | What the stop is for, never when, such as "dessert" or "stargazing." It can say how long, such as "a long hike in Arches, about 5 hours." See below |
-| `searchArea` | Stored | `SearchArea`, read only | Where its candidates are searched: near a stay, along the leg, or near the start or end place. It decides which worker fills the stop (technical spec section 6) |
+| `searchArea` | Stored | `SearchArea?`, read only | Where its candidates are searched: near a stay, along the leg, or near the start or end place. It decides which worker fills the stop (technical spec section 6). Empty exactly for a check-in, which no worker fills |
 | `searchAreaStay` | Stored | `Stay?`, read only | The stay, for a stop near a stay. Empty for every other search area |
 | `setTime` | Stored | `scheduleTime?`, via service | "Not before," such as dinner at 7 or a sunrise hike at 6. Empty means it follows the stop before it. Most stops have none. Changes only through `StopsService.setStopTime()` and `moveStop()`, since a stop on a rest day needs one |
-| `visitTimeInMinutes` | Stored | `integer?` | How long the party spends there. Has a value exactly when a place is selected. `StopsService.selectCandidate()` sets it. It can also be set directly, when the user asks, such as "plan five hours for that hike." More than 0 |
-| `tier` | Stored | `Tier?`, read only | For a meal, its budget tier (technical spec section 9). Empty for an attraction. Changes only through `setTier()`, which `StopsService.selectCandidate()` also uses |
-| `tierRule` | Stored | `string?`, read only | For a meal, the user's rule that produced the tier. Empty for an attraction |
+| `visitTimeInMinutes` | Stored | `integer?` | How long the party spends there. Has a value exactly when a place is selected, and a check-in always has one. `StopsService.selectCandidate()` sets it, and `StopsService.newCheckIn()` for a check-in. It can also be set directly, when the user asks, such as "plan five hours for that hike." More than 0 |
+| `tier` | Stored | `Tier?`, read only | For a meal, its budget tier (technical spec section 9). Empty for an attraction or a check-in. Changes only through `setTier()`, which `StopsService.selectCandidate()` also uses |
+| `tierRule` | Stored | `string?`, read only | For a meal, the user's rule that produced the tier. Empty for an attraction or a check-in |
 | `selectedPlace` | Stored | `Place?`, via service | Empty until selected. Always one of `candidates`. Changes only through `StopsService.selectCandidate()`, or when its candidate is removed by a rejection (`RejectionsService.rejectPlaces()`, section 4.3) |
 | `candidates` | Stored | `List<Candidate>`, in the order offered, via service | Every candidate offered and not rejected. Changes only through `StopsService.addCandidates()`, or when `RejectionsService.rejectPlaces()` removes one |
 | `approvals` | Stored | `List<Approval>`, in no order, via service | An opening hours approval, at most one. Changes only through `StopsService.approveOpeningHours()` and `removeApproval()`, or when the place changes (see Rules) |
 | `status` | Worked out | `StopStatus` | Empty, proposed, or selected. See below |
 
-A stop's position in its day, and the day that holds it, are the calendar's `orderOf()` and `dayOf()` (section 4.1).
+A stop's position in its day, and the day that holds it, are the calendar's `orderOf()` and `dayOf()` (section 4.1). Where the party goes for it is the calendar's `placeOf()`: its selected place, or for a check-in, where the party sleeps that night.
 
 **Creating a stop.** Code creates it with its kind, purpose, search area, set time, and, for a meal, its tier and rule. A meal gets a tier even when the user will name its place, in case they later ask for more options. Creating one is refused when:
 
 - The purpose is empty.
+- A check-in has a search area, or any other stop has none.
 - `searchAreaStay` is empty for a stop near a stay, or set for any other search area.
-- A meal has no tier or rule, or an attraction has one.
+- A meal has no tier or rule, or an attraction or a check-in has one.
 
 Whether it fits its day is checked when `StopsService.addStops()` adds it (section 4.6).
 
@@ -739,10 +740,20 @@ Whether it fits its day is checked when `StopsService.addStops()` adds it (secti
 | Empty | Some | `proposed` |
 | Set | Some | `selected` |
 
+A check-in is always `selected`, since it has a place from the moment it's added.
+
+**Check-in.** A stop where the party checks in at the stay it sleeps at that night, so a day can check in before a later stop, such as an evening event. A day otherwise reaches its stay only at the end. Example: Day 1 of a trip from Natick to Bar Harbor has lunch on the way, a check-in, then an alumni event at the College of the Atlantic set for 6:00 p.m. The day drives to the stay, checks in, drives 8 minutes to the college, has free time there before 6:00, then drives back to the stay.
+
+- **Its place isn't stored.** It's the `sleepsAt` of the stay the party sleeps at that night, `endStayOf()` for its day, which the calendar's `placeOf()` works out (section 4.1). So selecting a hotel moves it, and moving it to another day takes it to that night's stay. Code that routes, schedules, checks, or shows a stop reads its place from `placeOf()`, not `selectedPlace`.
+- **It has no search area, candidates, selected place, or tier.** No worker searches for it, so a candidate for it is refused.
+- **It always has a visit time.** It starts with the check-in visit time, a setting (technical spec section 10), the way a meal gets the meal visit time. The coordinator changes it directly when the user wants longer, such as 2 hours to check in, freshen up, and rest until an event.
+- **Check-in times aren't checked.** Hotels have them, such as 3:00 or 4:00 p.m., but a check-in can be at any time. Decided by Joe on 2026-10-27, to keep the change small.
+- **Rules that need other objects are in `StopsService`:** it can't be on the last day, which has no stay to sleep at, and a day holds at most one (section 4.6). A stay can't be removed while a stop is on its days (section 4.4), so a check-in's stay can't go away under it.
+
 **Operations:**
 
 - **`setTier(tier : Tier, tierRule : string)`** (the tool `update_stop`, and `StopsService.selectCandidate()`). Sets `tier` and `tierRule`.
-  - **Refused:** for an attraction, or when the rule is empty.
+  - **Refused:** for an attraction or a check-in, or when the rule is empty.
 
 **Changed through `StopsService`** (section 4.6): its set time, candidates, selection, and approvals, and moving and removing it. The stop keeps change methods for those properties that only services reach (section 1). They run the stop's own rules, below.
 
@@ -752,11 +763,12 @@ Whether it fits its day is checked when `StopsService.addStops()` adds it (secti
 
 - **The selected place is always one of the stop's candidates.** When its candidate is removed, the stop clears its selected place. Only a rejection removes a candidate (section 4.3).
 - **Places are matched by their `id`,** when the stop looks for a place among its candidates, as `Itinerary.isRejected()` does.
-- **A stop has a visit time exactly when it has a selected place.** Setting a visit time on a stop with no place is refused. Clearing the place clears it.
+- **A stop has a visit time exactly when it has a selected place.** Setting a visit time on a stop with no place is refused. Clearing the place clears it. A check-in has no selected place, and always has a visit time.
+- **A check-in has no candidates.** Adding a set to one is refused.
 - **A set of candidates holds 1 to 3, with no place already among the stop's candidates.** Each candidate in a set gets the set number, and the stop's current tier and rule, the same way as a stay's lodging candidates (see Stay). An attraction has no tier, so its candidates get none. A set that breaks this is refused whole. A selection the stop already has stays selected.
 - **A candidate fits the stop's kind and search area.** An attraction's candidates each have a visit time. A meal's have none, since a meal's visit time is a setting. A candidate has a detour time exactly when the stop is along the leg and a worker found it. A set with a candidate that doesn't fit is refused whole.
 - **An opening hours approval goes when the stop's selected place changes or is cleared.** It was for that place. So the coordinator never has to clear one.
-- **Rules that need other objects are in `StopsService`.** A stop's search area fits its day, and a stop on a rest day has a set time (section 4.6).
+- **Rules that need other objects are in `StopsService`.** A stop's search area fits its day, a stop on a rest day has a set time, and a check-in isn't on the last day, with at most one on a day (section 4.6).
 
 **Approval.** An exception the user agreed to, recorded with their reason (functional spec 6.2). It's held by a day or a stop, in `approvals`, with no `id`. Its properties never change. Setting a new one of the same kind replaces it.
 
@@ -798,14 +810,14 @@ A leg is the drive on one day (functional spec 4). It's the route Google Routes 
 
 | Property | Stored or worked out | Type | Notes |
 |---|---|---|---|
-| `segmentDriveTimesInMinutes` | Stored | `List<integer>`, in route order, read only | Each segment's drive time, without the drive buffer. Segments run from where the day starts, through each selected stop in the day's order, to where it ends. So the drive after the last stop is one of them, and a leg with no selected stops has one. Waypoints don't split a segment. The day's schedule uses them (`scheduleOf()`, section 4.1) |
+| `segmentDriveTimesInMinutes` | Stored | `List<integer>`, in route order, read only | Each segment's drive time, without the drive buffer. Segments run from where the day starts, through each selected stop and check-in in the day's order, to where it ends. So the drive after the last stop is one of them, and a leg with no selected stops has one. Waypoints don't split a segment. The day's schedule uses them (`scheduleOf()`, section 4.1) |
 | `distanceInMiles` | Stored | `decimal`, read only | The whole leg's distance. The itinerary view shows it (functional spec 9.4) |
 | `routeLine` | Stored | `string`, read only | Google's encoded route line. The map draws it (functional spec 9.2), and the tool `search_along_leg` searches along it. It's large, so it never goes to an agent (Google design 2.3) |
-| `stopsInBestOrder` | Stored | `List<Stop>`, read only | The day's selected stops in the fastest order Google found, for the stop-order check (technical spec section 8). Empty when the leg has fewer than two selected stops |
-| `timeSavedInMinutes` | Stored | `integer`, read only | How much faster `stopsInBestOrder` is than the day's own order. 0 when the two orders match, or the leg has fewer than two selected stops. The checks give the `stopOrder` note only when it's at least the stop-order minimum saving, a setting (technical spec section 10) |
+| `stopsInBestOrder` | Stored | `List<Stop>`, read only | The day's selected stops in the fastest order Google found, for the stop-order check (technical spec section 8). A check-in keeps its place, and the stops on each side of it are ordered on their own (section 4.7). Empty when no part of the day has two or more selected stops |
+| `timeSavedInMinutes` | Stored | `integer`, read only | How much faster `stopsInBestOrder` is than the day's own order. 0 when the two orders match, or no part of the day has two or more selected stops. The checks give the `stopOrder` note only when it's at least the stop-order minimum saving, a setting (technical spec section 10) |
 | `routedFromPlace` | Stored | `Place`, read only | Where the day started when the leg was routed: `fromPlaceOf()` at the time. See below |
 | `routedToPlace` | Stored | `Place`, read only | Where the day ended when the leg was routed: `toPlaceOf()` at the time |
-| `routedStopPlaces` | Stored | `List<Place>`, in order, read only | The day's selected places, in the day's order, when the leg was routed |
+| `routedStopPlaces` | Stored | `List<Place>`, in order, read only | The day's stops' places from `placeOf()`, in the day's order, when the leg was routed. A check-in's is where the party sleeps that night |
 | `routedWaypoints` | Stored | `List<Place>`, in order, read only | The places of the day's waypoints when the leg was routed. Places only, without reasons, since it records what Google was asked |
 | `driveTimeInMinutes` | Worked out | `integer` | The sum of `segmentDriveTimesInMinutes`, without the drive buffer. The itinerary view shows it, and the itinerary's `totalDriveTimeInMinutes` adds them up |
 
@@ -956,6 +968,8 @@ It's there because an object can't see the object that holds it, or the ones bes
 | `orderOf(itinerary, day)` | `integer` | The day's position in the itinerary's `days` |
 | `orderOf(itinerary, stop)` | `integer` | The stop's position in its day's `stops` |
 | `dayOf(itinerary, stop)` | `Day` | The day whose `stops` holds it. The services use it to find a stop's day |
+| `placeOf(itinerary, stop)` | `Place?` | Where the party goes for the stop: its `selectedPlace`, or for a check-in, the `sleepsAt` of `endStayOf()` for its day (section 3.7). Code that routes, schedules, checks, or shows a stop reads its place here |
+| `stopPlacesOf(itinerary, day)` | `List<Place>`, in order | `placeOf()` for each of the day's stops that has a place, in the day's order. The leg is routed through them (section 4.7) |
 | `previousDay(itinerary, day)` | `Day?` | The day before it in the itinerary's `days`. Empty on the first day |
 | `nextDay(itinerary, day)` | `Day?` | The day after it. Empty on the last day |
 | `today(itinerary)` | `date?` | Today's date in the start place's time zone (see Trip). The time zone is worked out from the start place's coordinates. Empty while there's no start place |
@@ -967,7 +981,7 @@ It's there because an object can't see the object that holds it, or the ones bes
 | `fromPlaceOf(itinerary, day)` | `Place?` | Where the day starts: the `sleepsAt` of `startStayOf()`, or the itinerary's start place on the first day. The day's leg starts here. Empty while the start place is empty |
 | `toPlaceOf(itinerary, day)` | `Place?` | Where the day ends: the `sleepsAt` of `endStayOf()`, or the itinerary's end place on the last day. The day's leg ends here. Empty while the end place is empty |
 | `isStayingPut(itinerary, day)` | `boolean` | True when `startStayOf()` and `endStayOf()` are the same stay. False on the first and last days, where one of them is empty. See below |
-| `hasLeg(itinerary, day)` | `boolean` | Whether the day should have a leg, by the rule in section 4.7, "Which days have a leg." `LegsService` routes by it, and `scheduleOf()` gives drives only on such a day, so the two can't disagree |
+| `hasLeg(itinerary, day)` | `boolean` | Whether the day should have a leg, by the rule in section 4.7, "Which days have a leg." A check-in counts as a selected stop there. `LegsService` routes by it, and `scheduleOf()` gives drives only on such a day, so the two can't disagree |
 | `locationOf(itinerary, day)` | `string?` | Where the day is, for the daily itinerary (functional spec 9.5). See below |
 | `startTimeOf(itinerary, day)` | `time` | The day's `ownStartTime`, or the trip brief's `usualStartTime` when it's empty |
 | `scheduleOf(itinerary, day)` | `List<ScheduleEntry>`, in time order | The day's schedule. See below |
@@ -996,8 +1010,8 @@ Worked-out values that need only an object's own data, or data it holds, stay on
 - **Stops run in the day's order.** A stop's arrival is when the stop before it ends plus the drive to it, or its set time if that's later. A stop ends after its visit time.
 - **Free time is time nothing is planned for,** worked out from the wait before a set time. Each drive leaves as soon as the party can: the day's first at the start time, and each later one when the stop before it ends. So every wait shows as free time after the drive, just before the stop with the set time. The party arrives early and spends the time there. Example: Moab Day 2 starts at 5:30 a.m. The drive to Delicate Arch leaves then and arrives at 5:55, and the free time until the 6:00 set time comes after it, at the trailhead. When the party does something specific with the time, such as walking around town, that's a stop. Where a wait is best spent is a judgment call, so code doesn't make it. When a day has a lot of free time, the coordinator raises it with the user, and offers a later start, a stop to fill the time, or arriving early (technical spec 5.2).
 - **Each drive is the leg's stored segment drive time plus the buffer** for fuel and short breaks, a setting (technical spec section 10). It's rounded up to the whole minute, so every time in the schedule is a whole minute. Example: on Moab Day 4, Capitol Gorge ends at 4:40 p.m., then the drive to Panorama Point runs until 5:05, then free time until stargazing at 1:00 a.m.
-- **The drive times are known only when the leg was routed through the day's selected places,** the ones it holds now, in its order. Partway through a write, a stop can be selected before the leg is re-routed at the end of the write. Until then, the drives' times aren't known, and neither are the times of anything after the first such drive. A read always sees routed legs, so this only matters to a service, such as `StopsService.approveOpeningHours()`.
-- **A stop with no selected place takes no time.** It has no drive and no visit time, so the drive to the next selected stop starts from the selected stop before it. One with a set time shows at its set time, or when the item before it ends if that's later. It holds its spot: the stop after it can't arrive before then. Example: on San Francisco Day 2, dinner is set for 6:30 and has no place yet, so dessert shows at 6:30, not 4:35. If the stop before dinner ran until 6:55, dinner would show at 6:55. The late check gives its warning (technical spec section 8). One with no set time has no times. So the stops after a stop with no selected place can show times that are too early (see Check result).
+- **The drive times are known only when the leg was routed through the day's stops' places from `placeOf()`,** the ones it holds now, in its order. That includes a check-in's place. Partway through a write, a stop can be selected before the leg is re-routed at the end of the write. Until then, the drives' times aren't known, and neither are the times of anything after the first such drive. A read always sees routed legs, so this only matters to a service, such as `StopsService.approveOpeningHours()`.
+- **A stop with no selected place takes no time.** A check-in isn't one of these: it has a place from `placeOf()`, so it has its drive and its visit time like a selected stop. A stop with no selected place has no drive and no visit time, so the drive to the next selected stop starts from the selected stop before it. One with a set time shows at its set time, or when the item before it ends if that's later. It holds its spot: the stop after it can't arrive before then. Example: on San Francisco Day 2, dinner is set for 6:30 and has no place yet, so dessert shows at 6:30, not 4:35. If the stop before dinner ran until 6:55, dinner would show at 6:55. The late check gives its warning (technical spec section 8). One with no set time has no times. So the stops after a stop with no selected place can show times that are too early (see Check result).
 - **A stop with no selected place goes where its time falls,** so the schedule stays in time order. When its time falls within the free time before the next selected stop, it splits the free time. Otherwise it comes after the drive to that stop, which passes it, since it has no place yet. So one whose time falls during a drive comes right after that drive, before its free time. One with no time stays next to the stops around it. This holds for a stop near where the day starts too, such as a breakfast near the stay the party slept at, even when that puts it after the day's first drive. So a day can look odd until its places are picked, since a stop with no place has nowhere to drive to and takes no time. That's accepted. Example: on a day that starts at 7:00 a.m. after a night in Portland, with a 5 h 25 m drive to an event set for 6:00 p.m. and an empty breakfast near the Portland stay set for 8:00, it reads: the drive from 7:00 to 12:25 p.m., breakfast at 8:00, free time from 12:25 to 6:00, then the event. Once a café 6 minutes from the hotel is picked, it reads: the drive to the café from 7:00 to 7:06, free time until 8:00, breakfast, then the long drive. The coordinator can offer a 7:50 start instead (technical spec 5.2). Example: on San Francisco Day 2, with dinner still empty, the schedule reads: the drive, free time, dinner at 6:30, then dessert at 6:30. On Moab Day 2, with Milt's and Corona Arch still empty and dinner at 7:00, it reads: the drive to dinner, free time, Milt's at 12:00, Corona Arch with no time, more free time, then dinner. On a day that starts at 10:00 a.m., with a 5 h 25 m drive to an event set for 6:00 p.m. and an empty lunch along the leg set for 12:00, it reads: the drive from 10:00, lunch at 12:00, free time from 3:25 to 6:00, then the event.
 - **After the last stop comes the drive to where the party sleeps,** or to the end place. Its times are unknown when a stop with no selected place comes after the last selected stop.
 - **A rest day has no drives.** Each of its stops has a set time, and the day ends when its last stop ends. Neither does a day that stays put with no selected stop, which has no leg yet (section 4.7). Nor does a day whose ends aren't known yet, such as the only day of a new trip, before it has a start place and an end place. Its stops' times aren't known either, since it will drive once both ends are set.
@@ -1081,18 +1095,22 @@ The two trip brief items whose limits are settings. Every other item is set dire
 
 ### 4.6 StopsService
 
-**Given:** the settings, for the meal visit time. The calendar, for where a day runs, a stop's day, and opening hours.
+**Given:** the settings, for the meal visit time and the check-in visit time. The calendar, for where a day runs, a stop's day, and opening hours.
 
-- **`addStops(itinerary : Itinerary, day : Day, stops : List<Stop>, after : Stop?)`** (the tool `add_stops`). Code creates the stops first, with their own rules (see Stop). This adds them to the day's `stops` in list order, after the stop `after`, or first when `after` is empty. They're empty stops, so no leg is re-routed. An added attraction stop can change a stay's activities.
+- **`newCheckIn(purpose : string, setTime : scheduleTime?) : Stop`** (the tool `add_stops`). Creates a check-in, with the check-in visit time, a setting (technical spec section 10). Code creates a meal or an attraction itself, but a check-in's visit time is a setting, so the service creates it. It isn't on a day until `addStops()` puts it there.
+  - **Refused:** by the stop's own rules, when the purpose is empty.
+- **`addStops(itinerary : Itinerary, day : Day, stops : List<Stop>, after : Stop?)`** (the tool `add_stops`). Code creates the stops first, with their own rules (see Stop). This adds them to the day's `stops` in list order, after the stop `after`, or first when `after` is empty. A meal or an attraction is empty, so it re-routes no leg. A check-in has a place from the start, so the day's leg is re-routed at the end of the write. An added attraction stop can change a stay's activities.
   - **Refused:** the whole call, when a stop doesn't fit the day. Here the search area rule is hard:
     - Near a stay that isn't the day's `startStayOf()` or `endStayOf()`.
     - Along the leg, on a day that stays put (`isStayingPut()`).
     - Near the start place, except on the first day. Near the end place, except on the last day.
     - With no set time, on a rest day.
+    - A check-in on the last day, which has no stay to sleep at.
+    - A second check-in on the day, whether it's already there or in the same call.
   - **Also refused** when a stop is already in the itinerary, on any day. A new stop never is, so this only catches a mistake in code. By the day's own rule: when `after` isn't on the day.
 - **`moveStop(itinerary : Itinerary, stop : Stop, toDay : Day, after : Stop?, setTime : scheduleTime?)`** (the tool `move_stop`). In code, the last three arguments are one object, `StopMove`, since the lint rules allow a function at most 4 parameters (DEVELOPMENT.md section 3). Moves the stop to after the stop `after` on `toDay`, or first on it when `after` is empty, and sets its `setTime`. `toDay` can be the stop's own day. The set time is part of the move for two reasons. The tool always restates it, so an old time never carries over. And the rest-day rule needs the new day and the new time together. The stop keeps its candidates, selection, visit time, and approvals. An opening hours approval stays, since the place is the same. It applies or not at the new time.
-  - **Follows on:** the legs of the day it left and the day it joined are re-routed at the end of the write, when their selected places changed. A stop near a stay, or near the start or end place, can land on a day that doesn't start or end there. Here the search area rule is soft: the move goes through, and the checks give the `searchAreaDoesNotFitDay` warning. A moved attraction can change a stay's activities.
-  - **Refused:** when a stop along the leg would land on a day that stays put, since it has no leg to be along. The error says to remove the stop and add a new one. When `setTime` is empty and `toDay` is a rest day. By the day's own rule: when `after` isn't on `toDay`, or is the stop itself.
+  - **Follows on:** the legs of the day it left and the day it joined are re-routed at the end of the write, when their stops' places changed. A check-in takes its place from its new day, so it's at that night's stay, and moving it to another day re-routes both days. A stop near a stay, or near the start or end place, can land on a day that doesn't start or end there. Here the search area rule is soft: the move goes through, and the checks give the `searchAreaDoesNotFitDay` warning. A moved attraction can change a stay's activities.
+  - **Refused:** when a stop along the leg would land on a day that stays put, since it has no leg to be along. The error says to remove the stop and add a new one. When `setTime` is empty and `toDay` is a rest day. When a check-in would land on the last day, or on a day that already holds a check-in. By the day's own rule: when `after` isn't on `toDay`, or is the stop itself.
 - **`removeStops(itinerary : Itinerary, stops : List<Stop>)`** (the tool `remove_stops`). Removes the stops, with their candidates and approvals. They can be on several days. It finds each one's day with `dayOf()`. The places stay stored.
   - **Follows on:** when a selected stop goes, the leg is re-routed at the end of the write. A day that stays put loses its leg with its last selected stop (section 4.7).
   - **Refused:** the whole call, when a stop isn't in the itinerary.
@@ -1131,17 +1149,18 @@ It decides which days have a leg, and routes them. It's the one place that calls
 **Which days have a leg.** The calendar's `hasLeg()` holds this rule (section 4.1). A day has a leg when it isn't a rest day, both its ends are known, and either it moves or it has a selected stop:
 
 - **A day that moves** to a new stay, or to the end place, always has one. It has to drive. On the San Francisco trip, every day moves.
-- **A day that stays put** (`isStayingPut()`) has one only while it has a selected stop. Its leg starts and ends at the same stay, and passes through the selected stops. Stops with no selected place have nothing to route through. Example: Moab Day 2 gets its leg when its first stop is selected.
+- **A day that stays put** (`isStayingPut()`) has one only while it has a selected stop. A check-in counts, since it has a place. Its leg starts and ends at the same stay, and passes through the selected stops. Stops with no selected place have nothing to route through. Example: Moab Day 2 gets its leg when its first stop is selected.
 - **A rest day** has none. Any stops on it, such as dinner, are near the lodging and aren't routed.
 - **Both ends are known** once the itinerary has a start place and an end place. Until then, the only day is the last day, and it has no leg yet. Stays can't be added before then (section 4.4), so every later day's ends are known.
 
-**How a leg is routed.** It's one call to Google Routes, through these places in order: where the day starts, the day's selected stops in the day's order, and where it ends. Stops with no selected place are skipped. The waypoints go in among them as pass-through points:
+**How a leg is routed.** It's one call to Google Routes, through these places in order: where the day starts, the day's stops' places in the day's order (`stopPlacesOf()`, section 4.1), and where it ends. A check-in's place is where the party sleeps that night. Stops with no selected place are skipped. The waypoints go in among them as pass-through points:
 
 - **Each waypoint goes in the gap where it adds the least straight-line distance,** between two neighbors in that list. The distance comes from the coordinates stored on each place, so this needs no call to Google. With more than one waypoint, they're placed one at a time, in the coordinator's order. Example: on San Francisco Day 2, with only First Awakenings in Monterey selected, Big Sur village goes between First Awakenings and San Luis Obispo. Between the Monterey hotel and First Awakenings, it would add about 50 miles, going south and back.
 - **A waypoint that's the same place as the leg's start or end is skipped.** It would add nothing to the route. Example: a Big Sur stay added on the same place as Day 2's Big Sur waypoint.
 - **Straight-line distance can guess wrong** where the road bends far from it, such as around a bay. It works because a waypoint sits on the road the coordinator wants.
-- **A late-night stop near the lodging is routed on the way in.** The leg runs through the stops in the day's order, then to where the party sleeps. Example: Moab Day 4 is routed Capitol Gorge → Panorama Point → Torrey hotel, though the party really checks in first and drives out again at night. The times barely differ, because Panorama Point is close to Torrey.
-- **With two or more selected stops, the stop-order check runs too.** It takes one or two more calls, without the waypoints, and gives `stopsInBestOrder` and `timeSavedInMinutes` (technical spec section 8). When Google's order is the same as the day's, `stopsInBestOrder` holds the day's own order, and `timeSavedInMinutes` is 0.
+- **A check-in lets the day reach its stay before a later stop.** The leg runs through the stops in the day's order, then to where the party sleeps. Without a check-in, a late-night stop near the lodging is routed on the way in. Example: Moab Day 4 is routed Capitol Gorge → Panorama Point → Torrey hotel. With a check-in after Capitol Gorge, it's routed Capitol Gorge → Torrey hotel → Panorama Point → Torrey hotel, the way the party really drives it.
+- **With two or more selected stops, the stop-order check runs too.** It takes one or two more calls, without the waypoints, and gives `stopsInBestOrder` and `timeSavedInMinutes` (technical spec section 8). A day with a check-in is ordered in two parts instead, as the next bullet says, so it takes from none to four calls. When Google's order is the same as the day's, `stopsInBestOrder` holds the day's own order, and `timeSavedInMinutes` is 0.
+- **A check-in splits the day into two parts for the stop-order check,** like two short days. Google can't hold one stop in place while it reorders the rest, and it would nearly always move the check-in to the end, next to the stay. So the check-in stays where the coordinator put it. The stops before it are ordered from where the day starts to the check-in's place, and the stops after it from there to where the day ends. Each part is ordered only when it has two or more selected stops, other than the check-in, so the Natick to Bar Harbor Day 1 (section 3.7) needs no call. A part that's ordered takes one or two calls, as for a whole day. `timeSavedInMinutes` is the two savings added, and `stopsInBestOrder` is the two parts joined, with the check-in in its place. On a leg with no waypoints, a part's own drive time is its segments' drive times added up.
 
 The new leg stores each segment's drive time, the distance, and the route line from the answer, and what it was routed for (see Leg). Each segment's drive time is rounded to the nearest minute, and the distance to a tenth of a mile. Drive times don't follow traffic, since a trip is planned well ahead (Google design 2.3).
 

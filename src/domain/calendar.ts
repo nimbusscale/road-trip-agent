@@ -120,6 +120,21 @@ export class Calendar {
     return stay === null ? itinerary.endPlace : stay.sleepsAt;
   }
 
+  // Where the party goes for the stop: its selected place, or for a check-in, where the
+  // party sleeps that night. Code that routes, schedules, checks, or shows a stop reads
+  // it here, so selecting a hotel moves the check-in (domain model 3.7).
+  placeOf(itinerary: Itinerary, stop: Stop): Place | null {
+    return this.#placeOn(itinerary, this.dayOf(itinerary, stop), stop);
+  }
+
+  // The places of the day's stops that have one, in the day's order. Its leg is routed
+  // through them.
+  stopPlacesOf(itinerary: Itinerary, day: Day): Place[] {
+    return day.stops.flatMap(
+      (stop) => this.#placeOn(itinerary, day, stop) ?? [],
+    );
+  }
+
   isStayingPut(itinerary: Itinerary, day: Day): boolean {
     const start = this.startStayOf(itinerary, day);
     return start !== null && start === this.endStayOf(itinerary, day);
@@ -157,7 +172,7 @@ export class Calendar {
     if (!this.hasLeg(itinerary, day)) {
       return 0;
     }
-    const drives = this.#driveMinutesOf(day);
+    const drives = this.#driveMinutesOf(itinerary, day);
     return drives === null
       ? null
       : drives.reduce((total, minutes) => total + minutes, 0);
@@ -225,7 +240,7 @@ export class Calendar {
       stops: day.stops,
       startMinute: minuteOf(this.startTimeOf(itinerary, day)),
       hasDrives,
-      driveMinutes: hasDrives ? this.#driveMinutesOf(day) : noDrives,
+      driveMinutes: hasDrives ? this.#driveMinutesOf(itinerary, day) : noDrives,
     });
   }
 
@@ -242,8 +257,16 @@ export class Calendar {
     }
     return (
       !this.isStayingPut(itinerary, day) ||
-      day.stops.some((stop) => stop.selectedPlace !== null)
+      this.stopPlacesOf(itinerary, day).length > 0
     );
+  }
+
+  // A check-in is at the stay the day ends at. The last day has none, so a check-in
+  // there has no place, though StopsService refuses one there.
+  #placeOn(itinerary: Itinerary, day: Day, stop: Stop): Place | null {
+    return stop.kind === "checkIn"
+      ? (this.endStayOf(itinerary, day)?.sleepsAt ?? null)
+      : stop.selectedPlace;
   }
 
   #areEndsKnown(itinerary: Itinerary, day: Day): boolean {
@@ -254,11 +277,11 @@ export class Calendar {
   }
 
   // Each segment's drive time plus the buffer, rounded up to the whole minute. Null
-  // while the leg wasn't routed through the day's selected places, such as partway
-  // through a write, before the leg is re-routed.
-  #driveMinutesOf(day: Day): number[] | null {
+  // while the leg wasn't routed through the day's stop places, such as partway through
+  // a write, before the leg is re-routed.
+  #driveMinutesOf(itinerary: Itinerary, day: Day): number[] | null {
     const leg = day.leg;
-    const selected = day.stops.flatMap((stop) => stop.selectedPlace ?? []);
+    const selected = this.stopPlacesOf(itinerary, day);
     const isRoutedForThem =
       leg !== null &&
       leg.segmentDriveTimesInMinutes.length === selected.length + 1 &&

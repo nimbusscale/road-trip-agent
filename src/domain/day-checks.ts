@@ -60,8 +60,11 @@ function stopOrderResult(context: CheckContext, day: Day): CheckResult | null {
   if (leg === null) {
     return null;
   }
+  const { itinerary, calendar } = context;
   const best = leg.stopsInBestOrder;
-  const own = day.stops.filter((stop) => stop.selectedPlace !== null);
+  const own = day.stops.filter(
+    (stop) => calendar.placeOf(itinerary, stop) !== null,
+  );
   const isSameOrder =
     best.length === own.length &&
     best.every((stop, index) => stop === own[index]);
@@ -74,11 +77,10 @@ function stopOrderResult(context: CheckContext, day: Day): CheckResult | null {
     return null;
   }
   const order = best
-    .map((stop) =>
-      stop.selectedPlace === null
-        ? stopText(stop)
-        : placeText(stop.selectedPlace),
-    )
+    .map((stop) => {
+      const place = calendar.placeOf(itinerary, stop);
+      return place === null ? stopText(stop) : placeText(place);
+    })
     .join(", then ");
   return new CheckResult({
     check: "stopOrder",

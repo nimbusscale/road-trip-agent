@@ -55,7 +55,15 @@ function stopEntry(
     startTime: known ? "8:25 a.m." : null,
     endTime: known ? "9:10 a.m." : null,
     duration: null,
-    stop: { id, number: 1, kind, purpose: "breakfast", setTime: null, choice },
+    stop: {
+      id,
+      number: 1,
+      kind,
+      purpose: "breakfast",
+      setTime: null,
+      choice,
+      checkInPlace: null,
+    },
   };
 }
 
