@@ -1,12 +1,12 @@
-import { type Dispatch, type SetStateAction, useEffect, useState } from "react";
+import { useState } from "react";
 
 import {
   type MemoryResponse,
   memoryResponseSchema,
   type ShownMemoryItem,
 } from "../../src/shared/memory.schema";
-import { callApi, callApiForChange, messageOf } from "./api-client";
-import type { Loaded } from "./use-api";
+import { callApiForChange, messageOf } from "./api-client";
+import { type Loaded, useApiAfterEachTurn } from "./use-api";
 
 interface MemoryPanelProps {
   sessionId: string;
@@ -17,7 +17,11 @@ interface MemoryPanelProps {
 // User memory and this trip's memory, each item with "Forget" (functional spec 10.5).
 export function MemoryPanel({ sessionId, busy }: MemoryPanelProps) {
   const path = `/api/sessions/${sessionId}/memory`;
-  const [loaded, setLoaded] = useMemory(path, busy);
+  const [loaded, setLoaded] = useApiAfterEachTurn(
+    path,
+    memoryResponseSchema,
+    busy,
+  );
   const [error, setError] = useState<string | null>(null);
 
   function forget(item: ShownMemoryItem): void {
@@ -56,40 +60,6 @@ export function MemoryPanel({ sessionId, busy }: MemoryPanelProps) {
       {error === null ? null : <p role="alert">{error}</p>}
     </section>
   );
-}
-
-// Reads memory when the panel opens, and again whenever a turn ends.
-function useMemory(
-  path: string,
-  busy: boolean,
-): [Loaded<MemoryResponse>, Dispatch<SetStateAction<Loaded<MemoryResponse>>>] {
-  const [loaded, setLoaded] = useState<Loaded<MemoryResponse>>({
-    status: "loading",
-  });
-
-  useEffect(() => {
-    if (busy) {
-      return undefined;
-    }
-    const controller = new AbortController();
-    void callApi(path, memoryResponseSchema, {
-      signal: controller.signal,
-    }).then(
-      (data) => {
-        setLoaded({ status: "loaded", data });
-      },
-      (failure: unknown) => {
-        if (!controller.signal.aborted) {
-          setLoaded({ status: "failed", message: messageOf(failure) });
-        }
-      },
-    );
-    return () => {
-      controller.abort();
-    };
-  }, [path, busy]);
-
-  return [loaded, setLoaded];
 }
 
 interface MemoryListProps {

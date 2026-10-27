@@ -68,6 +68,7 @@ export function chatSetUp(now: Date): ChatSetUp {
         now: () => now,
       }),
       transcripts,
+      settings: trips.settings,
       now: () => now,
     },
     sdk,

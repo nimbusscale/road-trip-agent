@@ -10,6 +10,7 @@ import {
   shownConversation,
   type StreamedTurn,
 } from "./chat-state";
+import { ItineraryView } from "./itinerary-view";
 import { Link } from "./link";
 import { MemoryPanel } from "./memory-panel";
 import { sessionLink, traceLink } from "./phoenix-links";
@@ -22,7 +23,8 @@ import { type ChatStart, useChat } from "./use-chat";
 // the next message (functional spec 10.1). Opened from "New trip", it's the form that
 // describes the trip, and its first message starts the trip. Once the session exists,
 // "Memory" shows memory, the plan can be downloaded, and the session can be rated and
-// opened in Phoenix. So can each turn the page streamed.
+// opened in Phoenix. So can each turn the page streamed. The itinerary view sits beside
+// the chat once the trip exists (functional spec 9).
 export function ChatPage({ start }: { start: ChatStart }) {
   const { state, tripId, sessionId, send } = useChat(start);
   const [draft, setDraft] = useState("");
@@ -38,37 +40,50 @@ export function ChatPage({ start }: { start: ChatStart }) {
   }
 
   return (
-    <>
-      <p className="chat-bar">
-        {tripId === null ? (
-          <Link to={{ page: "home" }}>Your trips</Link>
-        ) : (
-          <Link to={{ page: "trip", tripId }}>Back to the trip</Link>
+    <div className="chat-layout">
+      <div>
+        <BackLink tripId={tripId} />
+        {tripId === null || sessionId === null ? null : (
+          <SessionTools
+            tripId={tripId}
+            sessionId={sessionId}
+            agentSessionId={state.agentSessionId}
+            busy={busy}
+          />
         )}
-      </p>
-      {tripId === null || sessionId === null ? null : (
-        <SessionTools
-          tripId={tripId}
-          sessionId={sessionId}
-          agentSessionId={state.agentSessionId}
+        {start.page === "newTrip" && state.cards.length === 0 ? (
+          <p>
+            Describe the trip you have in mind, such as where, when, and for how
+            long. A rough idea is fine.
+          </p>
+        ) : null}
+        <Conversation state={state} sessionId={sessionId} busy={busy} />
+        {state.error === null ? null : <p role="alert">{state.error}</p>}
+        <MessageForm
+          draft={draft}
           busy={busy}
+          onChange={setDraft}
+          onSubmit={submit}
         />
+      </div>
+      {tripId === null ? null : (
+        <aside className="itinerary">
+          <ItineraryView tripId={tripId} busy={busy} />
+        </aside>
       )}
-      {start.page === "newTrip" && state.cards.length === 0 ? (
-        <p>
-          Describe the trip you have in mind, such as where, when, and for how
-          long. A rough idea is fine.
-        </p>
-      ) : null}
-      <Conversation state={state} sessionId={sessionId} busy={busy} />
-      {state.error === null ? null : <p role="alert">{state.error}</p>}
-      <MessageForm
-        draft={draft}
-        busy={busy}
-        onChange={setDraft}
-        onSubmit={submit}
-      />
-    </>
+    </div>
+  );
+}
+
+function BackLink({ tripId }: { tripId: string | null }) {
+  return (
+    <p className="chat-bar">
+      {tripId === null ? (
+        <Link to={{ page: "home" }}>Your trips</Link>
+      ) : (
+        <Link to={{ page: "trip", tripId }}>Back to the trip</Link>
+      )}
+    </p>
   );
 }
 
