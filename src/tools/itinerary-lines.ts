@@ -17,14 +17,19 @@ import { placeLine, stopLines } from "./stop-lines.js";
 // check results about it, each marked new or already known.
 
 // The whole trip: its ends and dates, each stay followed by its days, the last day, the
-// rejected places, and every check result. It gives less about places than a scoped
-// read, so a long trip fits (tool design 2.1).
-export function wholeLines(context: ReadContext): string[] {
+// rejected places, and every check result. A whole read gives each stay and day at the
+// "slim" detail, less about places than a scoped read, so a long trip fits (tool design
+// 2.1). The full plan download gives them at the "full" detail, as a read scoped to a
+// stay does (functional spec 10.1).
+export function wholeLines(
+  context: ReadContext,
+  detail: "slim" | "full",
+): string[] {
   const { itinerary } = context;
   const stays = itinerary.stays.flatMap((stay) => [
     "",
-    ...stayLines(context, stay, "slim"),
-    ...stay.days.flatMap((day) => ["", ...dayLines(context, day, "slim")]),
+    ...stayLines(context, stay, detail),
+    ...stay.days.flatMap((day) => ["", ...dayLines(context, day, detail)]),
   ]);
   return [
     "The whole itinerary.",
@@ -33,7 +38,7 @@ export function wholeLines(context: ReadContext): string[] {
     datesLine(context),
     ...stays,
     "",
-    ...dayLines(context, itinerary.lastDay, "slim"),
+    ...dayLines(context, itinerary.lastDay, detail),
     "",
     ...rejectedLines(context),
     "",

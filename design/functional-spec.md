@@ -26,7 +26,7 @@ Planning only. The application never books, reserves, or purchases anything.
 - Weather (forecast or seasonal averages) and clothing guidance
 - Itinerary view: summary, map, stays, legs, daily schedule with times
 - Save trips, list trips, reopen trips, delete trips
-- Download a trip's brief and itinerary as a JSON file (10.1)
+- Download a trip's brief and itinerary as a text file (10.1)
 - Resume previous chat sessions, or start a new session on an existing trip
 - User memory (across trips) and trip memory (within a trip), viewable and forgettable by the user, in the chat and in the chat view's memory list
 - Trips of up to 14 days
@@ -46,7 +46,7 @@ Planning only. The application never books, reserves, or purchases anything.
 - Trips longer than 14 days
 - Avoid-tolls or avoid-highways routing
 - Direct manual editing of the itinerary
-- Exports other than the JSON download (PDF, calendar, map links)
+- Exports other than the text downloads (PDF, calendar, map links)
 - Showing prices or nightly rates. Recommendations show a budget tier only
 - Seasonal road and pass closures
 - Taking back a place the user rejected, within the same trip
@@ -59,7 +59,7 @@ Planning only. The application never books, reserves, or purchases anything.
 
 - One account per person. Each trip belongs to exactly one user and is visible only to that user.
 - The admin adds each account, with a password. Nobody can sign up on their own. A user signs in with their email and password.
-- **Home screen:** list of the user's trips (name, dates, last updated), a "New trip" action, and the ability to open any trip.
+- **Home screen:** list of the user's trips (name, dates, last updated), a "New trip" action, the ability to open any trip, and "Delete trip" next to each one (10.1). Under the list, the line that says whether turn traces reach Phoenix (10.1).
 
 ---
 
@@ -281,13 +281,17 @@ Miles, Fahrenheit, and US date formats.
   - **Resume** a previous session. The transcript is restored and the agent continues with that conversation's context.
   - **Start a new session.** The agent starts from the current itinerary, the trip brief, trip memory, and user memory, without the earlier transcripts.
 - **Once the trip has started,** no session can be started or resumed (section 2).
-- **"Delete trip"** removes the trip: its itinerary, its sessions, and its trip memory. The app asks first, since it can't be undone. User memory stays. A trip can be deleted at any time, even once it has started, but not while a reply in one of its sessions is still coming in.
+- **"Delete trip"** removes the trip: its itinerary, its sessions, and its trip memory. It's on the home screen, next to each trip, not on the trip's own page, since it's about the trip as a whole, the way a file is deleted from its folder. The app asks first, naming the trip, since it can't be undone. User memory stays. A trip can be deleted at any time, even once it has started, but not while a reply in one of its sessions is still coming in. Then the trip leaves the list.
 - **The chat view shows the conversation as cards,** as other chat apps do. The user's messages are on the right, and the coordinator's replies are on the left. A reply's formatting, such as bold text and numbered lists, shows as formatting, not as marks.
-- **Each turn's steps are saved as a trace, outside the app,** for Joe to look at later, such as each tool call and its reply (systems design section 10). The chat shows only the conversation, and while a reply comes in, the name of the tool the coordinator is waiting on. The line at the foot of every page, which says whether the API and the database can be reached, ends with a green check or a red X. The check says the turn traces can be saved. The X says they can't, and are lost. Every user sees it, before and after sign-in. The chat works the same either way.
+- **Each turn's steps are saved as a trace, outside the app,** for Joe to look at later, such as each tool call and its reply (systems design section 10). The chat shows only the conversation, and while a reply comes in, the name of the tool the coordinator is waiting on. The chat works the same whether the traces are saved or not, so a line under the home screen's trip list says which, with a green check or a red X. The check says the turn traces can be saved. The X says they can't, and are lost. It's on no other page, and not on the sign-in page, since traces matter only once the user is signed in and chatting. Until the app answers, or if it doesn't, the line is left out, since the trip list fails then too. Whether the app and the database can be reached isn't shown: a problem there is plain anyway, since sign-in or the trip list fails.
 - **Each reply has a thumbs up and a thumbs down, and so does the whole session.** Either one opens a box for a note, and the rating is saved with it in the turn's trace, or the session's (systems design section 10). Good turns get rated as well as bad ones. Rating again replaces the user's last rating, such as a thumbs up turned to a thumbs down, but a rating can't be taken back. Each user's ratings are their own. Only replies the page streamed have thumbs, since only those carry their trace's ID. After a reload, the earlier replies have none, and can be rated in Phoenix. That way a reply rated earlier never shows blank thumbs that would overwrite its rating. The session's thumbs start with the user's last rating of it, and the note box with its note. The thumbs sit in a row under the turn's last card, which is the user's message when the turn failed with no reply. A failed turn's row also says "The reply didn't finish."
 - **Each reply's row has a "View trace" link, and the session has a "View session" link,** which open the turn's trace, or the session's turns, in Phoenix, in a new tab. Every user sees them, but they open only on Joe's machine, with his SSH tunnel up. For anyone else, they lead nowhere.
 - **A "Memory" toggle shows user memory and trip memory,** each item with "Forget." The app asks first. Forgetting an item here works like asking the agent to forget it (10.5). The list is read again after each reply, since the agent may have changed memory. It's shown once the session exists, after the first message.
-- **"Download plan" saves the trip brief and the itinerary as a JSON file,** on several lines and indented, so a person can read it. It names each place by its name and address, and leaves out route lines. "Download plan as stored" saves them as the app stores them, with each place as an ID, followed by every place the plan links to, with all of its stored facts. Both are shown once the session exists.
+- **"Download plan" and "Download full plan" save the trip brief and the itinerary as a text file, as the coordinator reads them,** so Joe can trace why the coordinator did something. Each starts with the trip brief, then the whole itinerary, as the coordinator's own reads give them (tool design 2.1). Both are shown once the session exists.
+  - **"Download plan"** gives the itinerary exactly as a whole read returns it, the read the coordinator gets at the start of each session. So it matches the whole read in that session's trace, as long as nothing changed since.
+  - **"Download full plan"** gives the same layout, but each stay and day as a read of that stay gives them: every candidate, with its rationale, and each stay's weather text and tier rule. The coordinator never reads the whole trip at this detail at once, but each stay and its days match what it sees when it reads that stay.
+  - **A download has no size limit.** A whole read too large for the coordinator is refused, but a download never is.
+  - **A download saves nothing.** It marks each check result new or already known, as a read does, and like a read, it doesn't change what's saved. So the coordinator's next read is the same.
 - **Not supported:** two sessions of one trip open at the same time, such as in two browser tabs or on two devices. Nothing stops it, but a session that stays open doesn't learn about changes made in the other one. Only the trip's owner can see it (10.4), so this is one user with two sessions open, never two users.
 
 ### 10.2 Trip memory
