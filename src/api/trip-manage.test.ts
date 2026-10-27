@@ -85,27 +85,30 @@ describe("downloading the plan", () => {
     return { chat, tripId: await addMoabTrip(chat) };
   }
 
-  it("sends each form as JSON on several lines, indented", async () => {
+  it("sends each detail as a text file", async () => {
     const { chat, tripId } = await moabChat();
-    for (const form of ["stored", "readable"]) {
-      const response = await chat.asUser(
-        "GET",
-        `/api/trips/${tripId}/plan/${form}`,
-      );
+    for (const path of ["plan", "plan/full"]) {
+      const response = await chat.asUser("GET", `/api/trips/${tripId}/${path}`);
       expect(response.status).toBe(200);
-      expect(response.headers.get("Content-Type")).toBe("application/json");
+      expect(response.headers.get("Content-Type")).toBe(
+        "text/plain; charset=utf-8",
+      );
       const text = await response.text();
-      expect(text).toMatch(/^\{\n {2}"/);
-      expect(text).toMatch(/\n {4,6}"focus": "Arches and Capitol Reef",\n/);
+      expect(text).toMatch(/^focus: Arches and Capitol Reef\n/);
+      expect(text).toContain("\n\nThe whole itinerary.\n");
     }
+  });
+
+  it("sends a started trip's plan too", async () => {
+    const chat = await chatApi(START_DAY);
+    const tripId = await addMoabTrip(chat);
+    const response = await chat.asUser("GET", `/api/trips/${tripId}/plan`);
+    expect(response.status).toBe(200);
   });
 
   it("refuses another user's trip as if it didn't exist", async () => {
     const { chat, tripId } = await moabChat();
-    const response = await chat.asOtherUser(
-      "GET",
-      `/api/trips/${tripId}/plan/readable`,
-    );
+    const response = await chat.asOtherUser("GET", `/api/trips/${tripId}/plan`);
     expect(response.status).toBe(404);
   });
 });

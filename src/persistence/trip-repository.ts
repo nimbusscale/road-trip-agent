@@ -1,4 +1,3 @@
-import type { Place } from "../domain/place.js";
 import type { Trip } from "../domain/trip.js";
 import type { User } from "../domain/user.js";
 import { EditableTrip } from "./editable-trip.js";
@@ -31,8 +30,6 @@ export interface TripStore {
   loadForWrite(tripId: string): Promise<EditableTrip>;
   load(tripId: string): Promise<Trip>;
   listForOwner(owner: User): Promise<Trip[]>;
-  // Every place the trip has, for the plan's downloads.
-  loadPlaces(tripId: string): Promise<Place[]>;
   add(trip: Trip): Promise<void>;
   // `now` is the time the started-trip lock goes by.
   save(editableTrip: EditableTrip, now: Date): Promise<void>;
@@ -70,10 +67,6 @@ export class TripRepository implements TripStore {
       [owner.id],
     );
     return Promise.all(rows.map((row) => this.#tripFrom(row)));
-  }
-
-  loadPlaces(tripId: string): Promise<Place[]> {
-    return this.#places.loadForTrip(tripId);
   }
 
   async add(trip: Trip): Promise<void> {

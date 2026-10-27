@@ -30,7 +30,7 @@ export function readTripBriefTool(session: TripSession): StrictToolDefinition {
       READ_TRIP_BRIEF_INPUT,
       async () => {
         const trip = await session.reader.read(session.tripId);
-        return textReply(briefLines(trip.tripBrief));
+        return textReply(tripBriefLines(trip.tripBrief));
       },
     ),
     annotations: { readOnlyHint: true },
@@ -70,8 +70,9 @@ export function updateTripBriefTool(
   );
 }
 
-// In functional spec 5.2's order.
-function briefLines(brief: TripBrief): string[] {
+// In functional spec 5.2's order. The plan's downloads start with these lines too
+// (functional spec 10.1).
+export function tripBriefLines(brief: TripBrief): string[] {
   return [
     `focus: ${brief.focus ?? NOT_SET}`,
     `tripLengthInDays: ${shown(brief.tripLengthInDays)}`,

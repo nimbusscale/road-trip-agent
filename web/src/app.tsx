@@ -2,7 +2,6 @@ import type { Session } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
 
 import { ChatPage } from "./chat-page";
-import { HealthStatus } from "./health-status";
 import { HomePage } from "./home-page";
 import { pathOf, type Route, useRoute } from "./route";
 import { SignInPage } from "./sign-in-page";
@@ -33,7 +32,6 @@ export function App() {
       ) : (
         <SignedIn key={session.user.id} />
       )}
-      <HealthStatus />
     </>
   );
 }
