@@ -164,6 +164,37 @@ describe("a day's first drive, after a stop with no place near where the day sta
     ]);
   });
 
+  it("leaves after one with no time, at the day's start time", () => {
+    const breakfast = meal({
+      purpose: "breakfast",
+      searchArea: "nearStartPlace",
+    });
+    expect(barHarborDay(() => [breakfast]).schedule()).toEqual([
+      "stop breakfast: null to null",
+      "drive: 10:00 a.m. to 3:25 p.m.",
+      "freeTime: 3:25 p.m. to 6:00 p.m.",
+      "stop College of the Atlantic: 6:00 p.m. to 9:00 p.m.",
+      "drive: 9:00 p.m. to 9:06 p.m.",
+    ]);
+  });
+
+  it("doesn't leave after one with no time that follows one whose time would miss the arrival", () => {
+    const breakfast = meal({
+      purpose: "breakfast",
+      searchArea: "nearStartPlace",
+      setTime: at("13:00"),
+    });
+    const coffee = meal({ purpose: "coffee", searchArea: "nearStartPlace" });
+    expect(barHarborDay(() => [breakfast, coffee]).schedule()).toEqual([
+      "drive: 10:00 a.m. to 3:25 p.m.",
+      "stop breakfast: 1:00 p.m. to 1:00 p.m.",
+      "stop coffee: null to null",
+      "freeTime: 3:25 p.m. to 6:00 p.m.",
+      "stop College of the Atlantic: 6:00 p.m. to 9:00 p.m.",
+      "drive: 9:00 p.m. to 9:06 p.m.",
+    ]);
+  });
+
   it("leaves at the day's start time when waiting for it would miss the arrival", () => {
     const breakfast = meal({
       purpose: "breakfast",

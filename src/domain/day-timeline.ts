@@ -141,21 +141,35 @@ class TimelineBuilder {
   }
 
   // The party doesn't drive away from a waiting stop near where the day starts. So the
-  // drive leaves after the last one with a time, when it can still make the arrival,
-  // and the waiting stops up to it come first. Otherwise it leaves at the day's start.
+  // drive leaves after the last one, when it can still make the arrival, and the
+  // waiting stops up to it come first. Otherwise it leaves at the day's start.
   #addFirstDrive(drive: number | null, arrival: number | null): void {
     const latestStart = plus(arrival, drive === null ? null : -drive);
-    const lastNearStart = this.#waiting.findLastIndex(
-      (entry) =>
-        entry.stop !== null &&
-        this.#input.isNearStart(entry.stop) &&
-        entry.startMinute !== null &&
-        (latestStart === null || entry.startMinute <= latestStart),
-    );
+    const lastNearStart = this.#lastNearStartBefore(latestStart);
     const before = this.#waiting.slice(0, lastNearStart + 1);
     this.#waiting = this.#waiting.slice(lastNearStart + 1);
     const driveStart = this.#pushSplitting(before, this.#departure);
     this.#addDriveThenWait(driveStart, plus(driveStart, drive), arrival);
+  }
+
+  // The index of the last waiting stop near where the day starts that comes before any
+  // waiting stop whose time is after `latestStart`, or -1. A stop with no time takes no
+  // time, so it never makes the drive late. The waiting stops' times only go up.
+  #lastNearStartBefore(latestStart: number | null): number {
+    let last = -1;
+    for (const [index, entry] of this.#waiting.entries()) {
+      const isLate =
+        latestStart !== null &&
+        entry.startMinute !== null &&
+        entry.startMinute > latestStart;
+      if (isLate) {
+        break;
+      }
+      if (entry.stop !== null && this.#input.isNearStart(entry.stop)) {
+        last = index;
+      }
+    }
+    return last;
   }
 
   // The drive, then the free time until the arrival, with the waiting stops in the
