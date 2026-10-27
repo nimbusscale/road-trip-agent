@@ -156,6 +156,7 @@ When the container restarts in the middle of a turn:
 - **Every write that committed stays.** The write in progress is rolled back (section 3).
 - **The transcript loses at most its last line or two** (section 6).
 - **The turn stops,** along with any workers it called. A worker's candidates saved before the restart stay, but the coordinator never hears about them. Example: the Moab Day 4 leg scout saves the Goblin Valley candidates, and the container restarts before the leg scout reports back. The candidates are in the plan, and the transcript doesn't mention them.
+- **The coordinator's transcript can end in an `Agent` call with no result.** The SDK resumes it as it is. It adds a result for the call that says it was interrupted and its outcome is unknown, so the transcript adapter (section 6) leaves nothing out. The cut-off worker's own transcript is loaded, but nothing runs it again. Checked in #182 and #191 ([research/agent-evaluations.md](../research/agent-evaluations.md), section 2.8).
 
 The user can resume the session. **A resumed coordinator reads the trip brief, the itinerary, and memory again before changing anything** ([technical spec](technical-spec.md), 5.2). The app tells it the session was resumed (section 8.5). The same rule covers a session resumed after another session changed the trip.
 

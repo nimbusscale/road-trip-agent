@@ -16,7 +16,7 @@ This document covers the agents' custom tools: which MCP server each tool is on,
 
 **One source can serve several jobs, and one job can use several sources.** The Google client is shared code used by the `places`, `routing`, and `weather` MCP servers. The `weather` MCP server uses Google for forecasts and Open-Meteo for seasonal averages.
 
-**Grouping is separate from access.** An MCP server can hold tools for the coordinator and tools for workers. Each agent gets exactly the tools it uses (section 3).
+**Grouping is separate from access.** An MCP server can hold tools for the coordinator and tools for workers. Each agent gets exactly the tools it uses (section 3). Every server is in the session, and each agent's definition lists the tools it's sent, the coordinator's too (technical spec 6.5). So the coordinator doesn't see the workers' tools, such as `search_near` on the `places` server.
 
 | MCP server | Job | Sources behind it |
 |---|---|---|
@@ -25,8 +25,9 @@ This document covers the agents' custom tools: which MCP server each tool is on,
 | `places` | Finding places and reading their details | Google Places |
 | `routing` | Rough drive times for the coordinator's checks | Google Routes |
 | `weather` | Forecasts and seasonal averages | Google Weather, Open-Meteo |
+| `worker` | A worker's result, which code builds into what the coordinator sees (technical spec 6.5) | None. A hook records the call |
 
-Web search is Claude's built-in `WebSearch` and `WebFetch` ([web search design](data-sources/web-search.md), section 1), not one of our MCP servers. The coordinator calls workers with the SDK's built-in `Agent` tool.
+Web search is Claude's built-in `WebSearch` and `WebFetch` ([web search design](data-sources/web-search.md), section 1), not one of our MCP servers. The coordinator calls workers with the SDK's built-in `Agent` tool. These three are the session's only built-in tools. A worker can't be given a built-in tool the session doesn't have, so both web tools are in the session, and only the workers' definitions list them.
 
 ---
 
@@ -34,7 +35,7 @@ Web search is Claude's built-in `WebSearch` and `WebFetch` ([web search design](
 
 ### 2.1 Trip
 
-The coordinator's tools for the trip brief and itinerary, plus the workers' tools for adding candidates and saving weather text.
+The coordinator's tools for the trip brief and itinerary, plus the workers' tools for reading their briefs, adding candidates, and saving weather text.
 
 **Reading:**
 
@@ -166,13 +167,21 @@ The writing tools:
 
 **The worker gives each lodging and meal candidate its tier.** It says what the place is like, judged by the meanings in functional spec 7.1, not what the worker aimed for (technical spec section 9). A stop or stay has no tier to copy. Attractions have no tier, and neither does a place the user names.
 
-**Each call is one set** of one to three candidates. The tool works out the set number (domain model 3.9). A worker adds all of a stop's or stay's candidates in one call. A second call makes a new set, and the option card shows only the newest set. The tool's reply names the set it made, such as "Set 1 for stop_k7m2x9qa: 3 candidates," with one line per candidate. The worker passes those lines on in the result it returns to the coordinator.
+**Each call is one set** of one to three candidates. The tool works out the set number (domain model 3.9). A worker adds all of a stop's or stay's candidates in one call. A second call makes a new set, and the option card shows only the newest set. The tool's reply names the set it made, such as "Set 1 for stop_k7m2x9qa: 3 candidates," with one line per candidate. Code passes those lines on in the worker's result (technical spec 6.5).
 
 **A repeat rejects the whole call.** If any place is already a candidate for the same stop or stay, or is one of the trip's rejected places, nothing is added, and the error names it. So a set is never partly written. The same place can still be a candidate for a different stop or stay. Example: the Palace Hotel can be a lodging candidate for a stay and also a candidate for a stop (domain model 3.9).
 
 **Adding a set to a stop or stay that already has a selection keeps the selection.** That happens when the user asks for more options after choosing. The selected place is still one of the candidates, in an older set. Candidates are never changed after they're written.
 
 **One tool for every stop, because code knows whether a detour applies.** Detour time is the extra driving off a leg's route, and only stops along the leg have one. The stop's search area already says which kind it is (domain model 3.7), so the worker passes the same inputs either way. Example: candidates for Goblin Valley, along the Moab Day 4 leg, get detour times off the Moab-to-Torrey route. Candidates for lunch near the Moab stay don't, because there's no route to detour from. Each worker's brief holds only its own stops, so the stay researcher and the leg scout share the tool.
+
+**Reading a worker brief (workers):**
+
+| Tool | Does | Takes | Returns |
+|---|---|---|---|
+| `read_brief_facts` | Reads the facts for the stops and stay in a worker brief, so the coordinator doesn't copy them into the brief (technical spec 5.3). Called first | The stop and stay IDs from the worker brief, as a list of one or more | For a stay: its town, its dates and nights, and its lodging candidates already offered. For a stop: its day's ID, number, and date, its kind, purpose, set time or "none", and search area, the day's stops in order, with their times, purposes, and selected places, and its candidates already offered. Each candidate with its place ID and name |
+
+**It saves the worker a read for each item, and the coordinator one for each brief.** A whole read only counts candidates (above), so without it the coordinator would read each stop or stay to list the candidates already offered. The reply is written in the style of a scoped read, with the same names for days and stops. A stop with no search area, a check-in, gets an error, since no worker fills it (technical spec 6). A bad ID gets an error, as in every tool (section 4). The `Agent` hook uses the IDs passed here to list the brief's items that got no candidates (technical spec 6.5).
 
 ### 2.2 Memory
 
@@ -273,7 +282,19 @@ Weather worker only.
 
 **A forecast that doesn't cover every date is an error,** not seasonal averages, since `set_stay_weather` would label the text a forecast. The worker saves nothing for that stay, so it keeps its old text (technical spec 6.3).
 
-**The weather worker saves its own text** with `set_stay_weather` (2.1), and returns one line per stay to the coordinator.
+**The weather worker saves its own text** with `set_stay_weather` (2.1). Code builds its result from those saves' replies, one line per stay (technical spec 6.5).
+
+### 2.6 Worker
+
+Every worker ends by calling `report_result`. A hook records its input, and code builds the result the coordinator sees from it and from the worker's other calls (technical spec 6.5).
+
+| Tool | Does | Takes | Returns |
+|---|---|---|---|
+| `report_result` | Ends the worker's work, with what the coordinator should hear besides the candidates | Problems: a list of short sentences, such as "Gifford Homestead is closed on Wednesdays, and Day 4 is a Wednesday" or "Only two places in Torrey fit a quiet B&B." Questions for the user: a list of short sentences, such as "Should the Day 2 lunch be a picnic, since the day is all hiking?" Both are required. Either can be an empty list | "Result recorded. You're done." |
+
+**A problem is something the coordinator should know. A question needs the user's decision.** A worker can't ask the user anything, so the coordinator asks (technical spec 1). The candidates don't go here: the candidate tools already saved them, and code lists them from those calls.
+
+**A second call replaces the first.** The result uses the last one.
 
 ---
 
@@ -301,6 +322,7 @@ Weather worker only.
 | `trip`: `set_stay_weather` | | | | Yes |
 | `trip`: `add_lodging_candidates` | | Yes | | |
 | `trip`: `add_stop_candidates` | | Yes | Yes | |
+| `trip`: `read_brief_facts` | | Yes | Yes | |
 | `memory`: `read_memory` | Yes | | | |
 | `memory`: `add_memory_item` | Yes | | | |
 | `memory`: `update_memory_item` | Yes | | | |
@@ -311,11 +333,12 @@ Weather worker only.
 | `places`: `search_along_leg` | | | Yes | |
 | `routing`: `compute_route` | Yes | | | |
 | `weather`: `look_up_stay_weather` | | | | Yes |
+| `worker`: `report_result` | | Yes | Yes | Yes |
 | Built-in `WebSearch` | | Yes | Yes, Atlas Obscura only | |
 | Built-in `WebFetch` | | Yes | | |
 | Built-in `Agent`, to call workers | Yes | | | |
 
-That's 25 tools for the coordinator, counting `Agent`, 6 for the stay researcher, 5 for the leg scout, and 2 for the weather worker.
+That's 25 tools for the coordinator, counting `Agent`, 8 for the stay researcher, 7 for the leg scout, and 3 for the weather worker. Each agent's definition lists exactly the tools in its column, each by name (technical spec 6.5). The coordinator's `Agent` entry also names the worker types it can start.
 
 **Why only the coordinator gets `find_in_trip`.** Only the coordinator talks to the user, so only it hears a place named. A worker that offers a place already a candidate there gets a refusal from code (section 2.1).
 
@@ -327,7 +350,7 @@ The leg scout gets `WebSearch` only for Atlas Obscura, and a hook enforces it (s
 
 ## 4. Rules for all tools
 
-- **The trip comes from the session, never from a tool input.** Each session gets its own MCP server objects, made with the trip and user already set. They are small wrappers around shared tool code. One object can't be shared by two sessions running at once (tested: the second session silently got no tools). No tool takes a trip ID, so no agent can reach another trip, even with a made-up ID.
+- **The trip comes from the session, never from a tool input.** Each session gets its own MCP server objects, made with the trip and user already set. They are small wrappers around shared tool code. One object can't be shared by two sessions running at once (tested: the second session silently got no tools). A turn's workers use the same objects as its coordinator, and two workers at once worked that way (#191). No tool takes a trip ID, so no agent can reach another trip, even with a made-up ID.
 - **Bad IDs are rejected** (technical spec 7.1). A stop, stay, day, or place that doesn't exist in this trip returns an error. So does selecting a place that isn't one of that stop's or stay's candidates. The tool never guesses.
 - **IDs are short and random, with a prefix for the kind of item,** such as `stop_k7m2x9qa` (technical spec 7.1). A worker only sees the IDs in its worker brief, and can't guess any others. So it can only add candidates to its own stops and stay, without the tools needing to know which worker is calling. An ID of the wrong kind, such as a stay ID passed to `update_stop`, gets an error that says so.
 - **The leg scout's web search is limited by a hook, not only by its instructions.** A PreToolUse hook, code our app runs before every tool call, sees which kind of agent is calling. It denies a leg scout's `WebSearch` unless the search is limited to `atlasobscura.com`, with a reason the leg scout can read.
