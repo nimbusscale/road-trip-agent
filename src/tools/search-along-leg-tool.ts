@@ -32,7 +32,7 @@ import { dayIn } from "./trip-items.js";
 export const SEARCH_ALONG_LEG_RESULTS = 20;
 
 export function searchAlongLegDescription(endDistanceMiles: number): string {
-  return `Searches Google for places along one day's drive, such as viewpoints, or lunch on the way. Returns up to ${String(SEARCH_ALONG_LEG_RESULTS)} places, in the order the drive reaches them, each with its place ID, type, address, about how far into the drive it is, how far off the route it is, rating and review count, price level, links, and what Google and the public say about it. How far into the drive is worked out from where the place is along the day's route, so it's rough. How far off the route is a straight line from the place to the nearest point on the route, so the drive there can be longer, such as up a canyon road. Each place's opening hours are given for the day's date. They're Google's hours for a normal week, with no holidays or seasonal closures. Places within ${String(endDistanceMiles)} miles of either end of the drive are left out, since results bunch up there. Near a big city, results can still bunch up at the ends, so name a town in the middle of the drive in the query. Google can miss well-known places, so try more than one query, such as "tourist attraction" and "scenic viewpoint". Places the user rejected for this trip are left out. Every place found is saved to the trip, so its place ID works in the other tools.`;
+  return `Searches Google for places along one day's drive, such as viewpoints, or lunch on the way. Returns up to ${String(SEARCH_ALONG_LEG_RESULTS)} places, in the order the drive reaches them, each with its place ID, type, address, about how far into the drive it is, how far off the route it is, rating and review count, price level, links, and what Google and the public say about it. How far into the drive is worked out from where the place is along the day's route, so it's rough. How far off the route is a straight line from the place to the nearest spot on the route, so the drive there can be longer, such as up a canyon road. Each place's opening hours are given for the day's date. They're Google's hours for a normal week, with no holidays or seasonal closures. Places within ${String(endDistanceMiles)} miles of either end of the drive are left out, since results bunch up there. Near a big city, results can still bunch up at the ends, so name a town in the middle of the drive in the query. Google can miss well-known places, so try more than one query, such as "tourist attraction" and "scenic viewpoint". Places the user rejected for this trip are left out. Every place found is saved to the trip, so its place ID works in the other tools.`;
 }
 
 export function searchAlongLegTool(
@@ -146,7 +146,7 @@ function sortedAlongLeg(
 
 // Such as "About 21 m and 8.1 miles into the drive. 0.2 miles off the route." How far
 // into the drive is the leg's drive time and distance times the share of its route line
-// before the place. How far off is as the crow flies, to the line's nearest point, so
+// before the place. How far off is as the crow flies, to the line's nearest spot, so
 // the drive there can be longer (tool design 2.3).
 function whereOnLeg(onLeg: OnLeg, leg: Leg): string {
   const minutes = Math.round(leg.driveTimeInMinutes * onLeg.share);

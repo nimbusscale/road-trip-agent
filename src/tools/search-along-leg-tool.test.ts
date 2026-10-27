@@ -143,7 +143,7 @@ describe("search_along_leg", () => {
     ]);
   });
 
-  it("gives how far a place is off the route, as the crow flies to the route line's nearest point", async () => {
+  it("gives how far a place is off the route, as the crow flies to the route line's nearest spot", async () => {
     // Carmel Valley Village, inland from Carmel, up a valley road.
     const planning = plannedDay2();
     const body = JSON.stringify({
