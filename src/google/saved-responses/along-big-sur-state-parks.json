@@ -1,0 +1,592 @@
+{
+  "places": [
+    {
+      "id": "ChIJWf78dTmQjYARjugRZ8TA2IQ",
+      "types": [
+        "state_park",
+        "tourist_attraction",
+        "park",
+        "point_of_interest",
+        "establishment"
+      ],
+      "formattedAddress": "45500 CA-1, Big Sur, CA 93920, USA",
+      "location": {
+        "latitude": 36.2884177,
+        "longitude": -121.8442571
+      },
+      "rating": 4.6,
+      "googleMapsUri": "https://maps.google.com/?cid=9572612957751339150&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA",
+      "userRatingCount": 948,
+      "displayName": {
+        "text": "Andrew Molera State Park",
+        "languageCode": "en"
+      },
+      "primaryTypeDisplayName": {
+        "text": "State Park",
+        "languageCode": "en-US"
+      },
+      "editorialSummary": {
+        "text": "Relatively undeveloped park with trails on beaches & through meadows & a walk-in trail camp.",
+        "languageCode": "en"
+      },
+      "generativeSummary": {
+        "overview": {
+          "text": "Scenic state park featuring coastal hiking trails and beach access.",
+          "languageCode": "en"
+        },
+        "overviewFlagContentUri": "https://www.google.com/local/content/rap/report?postId=CiUweDgwOGQ5MDM5NzVmY2ZlNTk6MHg4NGQ4YzBjNDY3MTFlODhlMAI&d=17924085&t=12",
+        "disclosureText": {
+          "text": "Summarized with Gemini",
+          "languageCode": "en-US"
+        }
+      },
+      "reviewSummary": {
+        "text": {
+          "text": "Visitors say this state park offers beautiful scenic trails, open meadows, and coastal views, leading to an expansive, sandy beach. They also highlight the easy parking and the peaceful, less crowded atmosphere. Others mention the convenient location for a quick stop and the option to wade across a creek to reach the beach.<ctrl100>",
+          "languageCode": "en-US"
+        },
+        "flagContentUri": "https://www.google.com/local/content/rap/report?postId=5%401:CAIQACodChtyc19oOjJjOUdvYW9yVE9kZG43eFpYMnhLZlE%7CCAIQACorChtyc19oOjJjOUdvYW9yVE9kZG43eFpYMnhLZlESDAjF-vTWBhDgpYTuAg&d=17924085&t=8",
+        "disclosureText": {
+          "text": "Summarized with Gemini",
+          "languageCode": "en-US"
+        },
+        "reviewsUri": "https://www.google.com/maps/place//data=!4m4!3m3!1s0x808d903975fcfe59:0x84d8c0c46711e88e!9m1!1b1"
+      }
+    },
+    {
+      "id": "ChIJ744EDL7h7IARq9SmRxJbovQ",
+      "types": [
+        "state_park",
+        "tourist_attraction",
+        "rv_park",
+        "campground",
+        "park",
+        "lodging",
+        "point_of_interest",
+        "service",
+        "establishment"
+      ],
+      "formattedAddress": "60 State Park Rd, Morro Bay, CA 93442, USA",
+      "location": {
+        "latitude": 35.3526935,
+        "longitude": -120.8392652
+      },
+      "rating": 4.7,
+      "googleMapsUri": "https://maps.google.com/?cid=17627752025551197355&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA",
+      "regularOpeningHours": {
+        "periods": [
+          {
+            "open": {
+              "day": 0,
+              "hour": 0,
+              "minute": 0
+            }
+          }
+        ],
+        "weekdayDescriptions": [
+          "Monday: Open 24 hours",
+          "Tuesday: Open 24 hours",
+          "Wednesday: Open 24 hours",
+          "Thursday: Open 24 hours",
+          "Friday: Open 24 hours",
+          "Saturday: Open 24 hours",
+          "Sunday: Open 24 hours"
+        ]
+      },
+      "userRatingCount": 1718,
+      "displayName": {
+        "text": "Morro Bay State Park",
+        "languageCode": "en"
+      },
+      "primaryTypeDisplayName": {
+        "text": "State Park",
+        "languageCode": "en-US"
+      },
+      "editorialSummary": {
+        "text": "Waterfront recreation area offering sailing, fishing, hiking, bird-watching, golfing & more.",
+        "languageCode": "en"
+      },
+      "generativeSummary": {
+        "overview": {
+          "text": "Scenic state park offering waterfront camping and bird watching near the estuary.",
+          "languageCode": "en"
+        },
+        "overviewFlagContentUri": "https://www.google.com/local/content/rap/report?postId=CiUweDgwZWNlMWJlMGMwNDhlZWY6MHhmNGEyNWIxMjQ3YTZkNGFiMAI&d=17924085&t=12",
+        "disclosureText": {
+          "text": "Summarized with Gemini",
+          "languageCode": "en-US"
+        }
+      },
+      "reviewSummary": {
+        "text": {
+          "text": "Visitors say this state park offers beautiful views of Morro Rock and the bay, along with clean restrooms and showers. They also highlight the peaceful atmosphere, opportunities for birdwatching, and convenient access to hiking trails. Guests mention the friendly staff and the park's proximity to a golf course and a natural history museum.<ctrl100>",
+          "languageCode": "en-US"
+        },
+        "flagContentUri": "https://www.google.com/local/content/rap/report?postId=5%401:CAIQACodChtyc19oOlhyS2RlQlNKZllBRUQyYmZPMWpJWnc%7CCAIQACorChtyc19oOlhyS2RlQlNKZllBRUQyYmZPMWpJWncSDAjF-vTWBhDgpYTuAg&d=17924085&t=8",
+        "disclosureText": {
+          "text": "Summarized with Gemini",
+          "languageCode": "en-US"
+        },
+        "reviewsUri": "https://www.google.com/maps/place//data=!4m4!3m3!1s0x80ece1be0c048eef:0xf4a25b1247a6d4ab!9m1!1b1"
+      }
+    },
+    {
+      "id": "ChIJ7_dIUMDojYARRr3LNa3xvfU",
+      "types": [
+        "state_park",
+        "tourist_attraction",
+        "park",
+        "point_of_interest",
+        "establishment"
+      ],
+      "formattedAddress": "562 CA-1, Carmel, CA 93923, USA",
+      "location": {
+        "latitude": 36.5148125,
+        "longitude": -121.9217108
+      },
+      "rating": 4.8,
+      "googleMapsUri": "https://maps.google.com/?cid=17707575036124839238&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA",
+      "regularOpeningHours": {
+        "periods": [
+          {
+            "open": {
+              "day": 1,
+              "hour": 8,
+              "minute": 0
+            },
+            "close": {
+              "day": 1,
+              "hour": 16,
+              "minute": 0
+            }
+          },
+          {
+            "open": {
+              "day": 2,
+              "hour": 8,
+              "minute": 0
+            },
+            "close": {
+              "day": 2,
+              "hour": 16,
+              "minute": 0
+            }
+          },
+          {
+            "open": {
+              "day": 3,
+              "hour": 8,
+              "minute": 0
+            },
+            "close": {
+              "day": 3,
+              "hour": 16,
+              "minute": 0
+            }
+          },
+          {
+            "open": {
+              "day": 4,
+              "hour": 8,
+              "minute": 0
+            },
+            "close": {
+              "day": 4,
+              "hour": 16,
+              "minute": 0
+            }
+          },
+          {
+            "open": {
+              "day": 5,
+              "hour": 8,
+              "minute": 0
+            },
+            "close": {
+              "day": 5,
+              "hour": 16,
+              "minute": 0
+            }
+          }
+        ],
+        "weekdayDescriptions": [
+          "Monday: 8:00 AM – 4:00 PM",
+          "Tuesday: 8:00 AM – 4:00 PM",
+          "Wednesday: 8:00 AM – 4:00 PM",
+          "Thursday: 8:00 AM – 4:00 PM",
+          "Friday: 8:00 AM – 4:00 PM",
+          "Saturday: Closed",
+          "Sunday: Closed"
+        ]
+      },
+      "userRatingCount": 25,
+      "displayName": {
+        "text": "Ishxenta State Park",
+        "languageCode": "en"
+      },
+      "primaryTypeDisplayName": {
+        "text": "State Park",
+        "languageCode": "en-US"
+      },
+      "editorialSummary": {
+        "text": "State park on former ranching land, spanning 1,315-acres covered in Monterey pines & cypress.",
+        "languageCode": "en"
+      }
+    },
+    {
+      "id": "ChIJVVVVlQUh7YARBB9rOSllfFQ",
+      "types": [
+        "state_park",
+        "tourist_attraction",
+        "park",
+        "point_of_interest",
+        "establishment"
+      ],
+      "formattedAddress": "750 Hearst Castle Road, San Simeon, CA 93452, USA",
+      "location": {
+        "latitude": 35.4493467,
+        "longitude": -120.9185706
+      },
+      "rating": 4.8,
+      "googleMapsUri": "https://maps.google.com/?cid=6087852024029454084&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA",
+      "regularOpeningHours": {
+        "periods": [
+          {
+            "open": {
+              "day": 0,
+              "hour": 0,
+              "minute": 0
+            }
+          }
+        ],
+        "weekdayDescriptions": [
+          "Monday: Open 24 hours",
+          "Tuesday: Open 24 hours",
+          "Wednesday: Open 24 hours",
+          "Thursday: Open 24 hours",
+          "Friday: Open 24 hours",
+          "Saturday: Open 24 hours",
+          "Sunday: Open 24 hours"
+        ]
+      },
+      "userRatingCount": 280,
+      "displayName": {
+        "text": "Estero Bluffs State Park",
+        "languageCode": "en"
+      },
+      "primaryTypeDisplayName": {
+        "text": "State Park",
+        "languageCode": "en-US"
+      },
+      "generativeSummary": {
+        "overview": {
+          "text": "Scenic coastal state park featuring easy walking trails and tide pool exploration.",
+          "languageCode": "en"
+        },
+        "overviewFlagContentUri": "https://www.google.com/local/content/rap/report?postId=CiUweDgwZWQyMTA1OTU1NTU1NTU6MHg1NDdjNjUyOTM5NmIxZjA0MAI&d=17924085&t=12",
+        "disclosureText": {
+          "text": "Summarized with Gemini",
+          "languageCode": "en-US"
+        }
+      },
+      "reviewSummary": {
+        "text": {
+          "text": "Visitors say this coastal park offers stunning ocean views, diverse wildlife, and opportunities to explore tide pools and a shipwreck. They also highlight the scenic, flat hiking paths and convenient parking, especially for early arrivals. Guests mention it's a beautiful spot for a light walk or jog, with some restrooms available.",
+          "languageCode": "en-US"
+        },
+        "flagContentUri": "https://www.google.com/local/content/rap/report?postId=5%401:CAIQACodChtyc19oOkkxbGQ5NTd3MGJWR3lKU0FKME5DWFE%7CCAIQACoqChtyc19oOkkxbGQ5NTd3MGJWR3lKU0FKME5DWFESCwieguzSBhCI-dN0&d=17924085&t=8",
+        "disclosureText": {
+          "text": "Summarized with Gemini",
+          "languageCode": "en-US"
+        },
+        "reviewsUri": "https://www.google.com/maps/place//data=!4m4!3m3!1s0x80ed210595555555:0x547c6529396b1f04!9m1!1b1"
+      }
+    },
+    {
+      "id": "ChIJneb26AMk7YAREkSwtoYLGyo",
+      "types": [
+        "state_park",
+        "tourist_attraction",
+        "park",
+        "point_of_interest",
+        "establishment"
+      ],
+      "formattedAddress": "Cayucos, CA 93430, USA",
+      "location": {
+        "latitude": 35.477972,
+        "longitude": -120.9922687
+      },
+      "rating": 4.8,
+      "googleMapsUri": "https://maps.google.com/?cid=3034031447182689298&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA",
+      "regularOpeningHours": {
+        "periods": [
+          {
+            "open": {
+              "day": 0,
+              "hour": 7,
+              "minute": 0
+            },
+            "close": {
+              "day": 0,
+              "hour": 18,
+              "minute": 30
+            }
+          },
+          {
+            "open": {
+              "day": 1,
+              "hour": 7,
+              "minute": 0
+            },
+            "close": {
+              "day": 1,
+              "hour": 18,
+              "minute": 30
+            }
+          },
+          {
+            "open": {
+              "day": 2,
+              "hour": 7,
+              "minute": 0
+            },
+            "close": {
+              "day": 2,
+              "hour": 19,
+              "minute": 0
+            }
+          },
+          {
+            "open": {
+              "day": 3,
+              "hour": 7,
+              "minute": 0
+            },
+            "close": {
+              "day": 3,
+              "hour": 18,
+              "minute": 30
+            }
+          },
+          {
+            "open": {
+              "day": 4,
+              "hour": 7,
+              "minute": 0
+            },
+            "close": {
+              "day": 4,
+              "hour": 18,
+              "minute": 30
+            }
+          },
+          {
+            "open": {
+              "day": 5,
+              "hour": 7,
+              "minute": 30
+            },
+            "close": {
+              "day": 5,
+              "hour": 19,
+              "minute": 0
+            }
+          },
+          {
+            "open": {
+              "day": 6,
+              "hour": 7,
+              "minute": 30
+            },
+            "close": {
+              "day": 6,
+              "hour": 19,
+              "minute": 0
+            }
+          }
+        ],
+        "weekdayDescriptions": [
+          "Monday: 7:00 AM – 6:30 PM",
+          "Tuesday: 7:00 AM – 7:00 PM",
+          "Wednesday: 7:00 AM – 6:30 PM",
+          "Thursday: 7:00 AM – 6:30 PM",
+          "Friday: 7:30 AM – 7:00 PM",
+          "Saturday: 7:30 AM – 7:00 PM",
+          "Sunday: 7:00 AM – 6:30 PM"
+        ]
+      },
+      "userRatingCount": 235,
+      "displayName": {
+        "text": "Harmony Headlands State Park",
+        "languageCode": "en"
+      },
+      "primaryTypeDisplayName": {
+        "text": "State Park",
+        "languageCode": "en-US"
+      },
+      "editorialSummary": {
+        "text": "Coastal park with a 1.5-mi. hiking trail through steep grasslands to Pacific Ocean panoramas.",
+        "languageCode": "en"
+      },
+      "generativeSummary": {
+        "overview": {
+          "text": "Peaceful state park offering easy hiking trails with scenic coastal views.",
+          "languageCode": "en"
+        },
+        "overviewFlagContentUri": "https://www.google.com/local/content/rap/report?postId=CiUweDgwZWQyNDAzZThmNmU2OWQ6MHgyYTFiMGI4NmI2YjA0NDEyMAI&d=17924085&t=12",
+        "disclosureText": {
+          "text": "Summarized with Gemini",
+          "languageCode": "en-US"
+        }
+      },
+      "reviewSummary": {
+        "text": {
+          "text": "Visitors say this park offers an easy, mostly flat trail leading to stunning coastline views and a peaceful, natural environment. They also highlight the convenient and ample parking right off the highway, as well as the presence of a restroom about a half-mile in. Others also mention it's a great spot for birdwatching and enjoying fresh air.<ctrl100>",
+          "languageCode": "en-US"
+        },
+        "flagContentUri": "https://www.google.com/local/content/rap/report?postId=5%401:CAIQACodChtyc19oOmNzQzA0aG1DZ3ROa3g1M3k2RGlwdWc%7CCAIQACorChtyc19oOmNzQzA0aG1DZ3ROa3g1M3k2RGlwdWcSDAjF-vTWBhDgpYTuAg&d=17924085&t=8",
+        "disclosureText": {
+          "text": "Summarized with Gemini",
+          "languageCode": "en-US"
+        },
+        "reviewsUri": "https://www.google.com/maps/place//data=!4m4!3m3!1s0x80ed2403e8f6e69d:0x2a1b0b86b6b04412!9m1!1b1"
+      }
+    },
+    {
+      "id": "ChIJQ22p7PPojYARUnooBId5xfE",
+      "types": ["point_of_interest", "establishment"],
+      "formattedAddress": "Point Lobos State Natural Reserve, 62 CA-1, Carmel, CA 93923, USA",
+      "location": {
+        "latitude": 36.508612299999996,
+        "longitude": -121.9408101
+      },
+      "rating": 4.8,
+      "googleMapsUri": "https://maps.google.com/?cid=17421464354349939282&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA",
+      "regularOpeningHours": {
+        "periods": [
+          {
+            "open": {
+              "day": 0,
+              "hour": 8,
+              "minute": 0
+            },
+            "close": {
+              "day": 0,
+              "hour": 19,
+              "minute": 0
+            }
+          },
+          {
+            "open": {
+              "day": 1,
+              "hour": 8,
+              "minute": 0
+            },
+            "close": {
+              "day": 1,
+              "hour": 19,
+              "minute": 0
+            }
+          },
+          {
+            "open": {
+              "day": 2,
+              "hour": 8,
+              "minute": 0
+            },
+            "close": {
+              "day": 2,
+              "hour": 19,
+              "minute": 0
+            }
+          },
+          {
+            "open": {
+              "day": 3,
+              "hour": 8,
+              "minute": 0
+            },
+            "close": {
+              "day": 3,
+              "hour": 19,
+              "minute": 0
+            }
+          },
+          {
+            "open": {
+              "day": 4,
+              "hour": 8,
+              "minute": 0
+            },
+            "close": {
+              "day": 4,
+              "hour": 19,
+              "minute": 0
+            }
+          },
+          {
+            "open": {
+              "day": 5,
+              "hour": 8,
+              "minute": 0
+            },
+            "close": {
+              "day": 5,
+              "hour": 19,
+              "minute": 0
+            }
+          },
+          {
+            "open": {
+              "day": 6,
+              "hour": 8,
+              "minute": 0
+            },
+            "close": {
+              "day": 6,
+              "hour": 19,
+              "minute": 0
+            }
+          }
+        ],
+        "weekdayDescriptions": [
+          "Monday: 8:00 AM – 7:00 PM",
+          "Tuesday: 8:00 AM – 7:00 PM",
+          "Wednesday: 8:00 AM – 7:00 PM",
+          "Thursday: 8:00 AM – 7:00 PM",
+          "Friday: 8:00 AM – 7:00 PM",
+          "Saturday: 8:00 AM – 7:00 PM",
+          "Sunday: 8:00 AM – 7:00 PM"
+        ]
+      },
+      "userRatingCount": 438,
+      "displayName": {
+        "text": "China Cove",
+        "languageCode": "en"
+      },
+      "generativeSummary": {
+        "overview": {
+          "text": "Scenic coastal area featuring easy hiking trails and harbor seal sightings.",
+          "languageCode": "en"
+        },
+        "overviewFlagContentUri": "https://www.google.com/local/content/rap/report?postId=CiUweDgwOGRlOGYzZWNhOTZkNDM6MHhmMWM1Nzk4NzA0Mjg3YTUyMAI&d=17924085&t=12",
+        "disclosureText": {
+          "text": "Summarized with Gemini",
+          "languageCode": "en-US"
+        }
+      },
+      "reviewSummary": {
+        "text": {
+          "text": "Visitors say this natural attraction offers stunning views of the ocean, cliffs, and nearby Bird Island, with crystal clear water. They also highlight the easy walking trails and the opportunity to see sea otters. Guests mention the convenient parking options, including lots within the reserve or along the highway.<ctrl100>",
+          "languageCode": "en-US"
+        },
+        "flagContentUri": "https://www.google.com/local/content/rap/report?postId=5%401:CAIQACodChtyc19oOndEeEtYSHpIU3RYWW45UWdueWZ4NlE%7CCAIQACorChtyc19oOndEeEtYSHpIU3RYWW45UWdueWZ4NlESDAjF-vTWBhDgpYTuAg&d=17924085&t=8",
+        "disclosureText": {
+          "text": "Summarized with Gemini",
+          "languageCode": "en-US"
+        },
+        "reviewsUri": "https://www.google.com/maps/place//data=!4m4!3m3!1s0x808de8f3eca96d43:0xf1c5798704287a52!9m1!1b1"
+      }
+    }
+  ]
+}

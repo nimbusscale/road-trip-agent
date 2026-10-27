@@ -29,7 +29,7 @@ export function coordinatorAccessFor(
     processEnv: claudeProcessEnv(processEnv, env.claudeCodeOauthToken),
     trip: tripAccessFor({ env, pool, settings }),
     memory: memoryAccessFor({ pool, settings }),
-    places: placesAccessFor({ env, pool }),
+    places: placesAccessFor({ env, pool, settings }),
     routing: routingAccessFor({ env, pool, settings }),
     transcripts: new TranscriptAdapter({
       pool,

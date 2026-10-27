@@ -1,0 +1,269 @@
+{
+  "places": [
+    {
+      "id": "ChIJJ2oN6zzx7IARcmLTRboAx8s",
+      "types": [
+        "hotel",
+        "motel",
+        "inn",
+        "lodging",
+        "point_of_interest",
+        "establishment"
+      ],
+      "formattedAddress": "1845 Monterey St, San Luis Obispo, CA 93401, USA",
+      "location": {
+        "latitude": 35.2888375,
+        "longitude": -120.65084609999998
+      },
+      "rating": 4.5,
+      "googleMapsUri": "https://maps.google.com/?cid=14683705910100189810&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA",
+      "regularOpeningHours": {
+        "periods": [
+          {
+            "open": {
+              "day": 0,
+              "hour": 0,
+              "minute": 0
+            }
+          }
+        ],
+        "weekdayDescriptions": [
+          "Monday: Open 24 hours",
+          "Tuesday: Open 24 hours",
+          "Wednesday: Open 24 hours",
+          "Thursday: Open 24 hours",
+          "Friday: Open 24 hours",
+          "Saturday: Open 24 hours",
+          "Sunday: Open 24 hours"
+        ]
+      },
+      "userRatingCount": 806,
+      "displayName": {
+        "text": "La Quinta Inn & Suites by Wyndham San Luis Obispo Downtown",
+        "languageCode": "en"
+      },
+      "primaryTypeDisplayName": {
+        "text": "Hotel",
+        "languageCode": "en-US"
+      },
+      "editorialSummary": {
+        "text": "Relaxed quarters in a contemporary hotel offering a restaurant/bar, a rooftop pool & free breakfast.",
+        "languageCode": "en"
+      },
+      "generativeSummary": {
+        "overview": {
+          "text": "Modern, pet-friendly hotel offering spacious rooms plus a rooftop pool and views.",
+          "languageCode": "en"
+        },
+        "overviewFlagContentUri": "https://www.google.com/local/content/rap/report?postId=CiUweDgwZWNmMTNjZWIwZDZhMjc6MHhjYmM3MDBiYTQ1ZDM2MjcyMAI&d=17924085&t=12",
+        "disclosureText": {
+          "text": "Summarized with Gemini",
+          "languageCode": "en-US"
+        }
+      },
+      "reviewSummary": {
+        "text": {
+          "text": "Guests mention this hotel offers clean, comfortable rooms and a delicious complimentary breakfast with a wide variety of options, including a pancake and waffle station. They also highlight the friendly and accommodating staff, along with the convenient location for walking to downtown and nearby restaurants. Visitors appreciate the rooftop pool, hot tub, and fireplace, which provide lovely views.<ctrl100>",
+          "languageCode": "en-US"
+        },
+        "flagContentUri": "https://www.google.com/local/content/rap/report?postId=5%401:CAIQACodChtyc19oOlg0NkItYWExM0R5YWpRM0c0TWFTNmc%7CCAIQACorChtyc19oOlg0NkItYWExM0R5YWpRM0c0TWFTNmcSDAjF-vTWBhDgpYTuAg&d=17924085&t=8",
+        "disclosureText": {
+          "text": "Summarized with Gemini",
+          "languageCode": "en-US"
+        },
+        "reviewsUri": "https://www.google.com/maps/place//data=!4m4!3m3!1s0x80ecf13ceb0d6a27:0xcbc700ba45d36272!9m1!1b1"
+      }
+    },
+    {
+      "id": "ChIJvXoW4gnx7IARN_oqoHsBOow",
+      "types": ["hotel", "lodging", "point_of_interest", "establishment"],
+      "formattedAddress": "2015 Monterey St, San Luis Obispo, CA 93401, USA",
+      "location": {
+        "latitude": 35.2901842,
+        "longitude": -120.6493478
+      },
+      "rating": 4.4,
+      "googleMapsUri": "https://maps.google.com/?cid=10104390344438905399&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA",
+      "regularOpeningHours": {
+        "periods": [
+          {
+            "open": {
+              "day": 0,
+              "hour": 7,
+              "minute": 0
+            },
+            "close": {
+              "day": 0,
+              "hour": 21,
+              "minute": 0
+            }
+          },
+          {
+            "open": {
+              "day": 1,
+              "hour": 7,
+              "minute": 0
+            },
+            "close": {
+              "day": 1,
+              "hour": 21,
+              "minute": 0
+            }
+          },
+          {
+            "open": {
+              "day": 2,
+              "hour": 7,
+              "minute": 0
+            },
+            "close": {
+              "day": 2,
+              "hour": 21,
+              "minute": 0
+            }
+          },
+          {
+            "open": {
+              "day": 3,
+              "hour": 7,
+              "minute": 0
+            },
+            "close": {
+              "day": 3,
+              "hour": 21,
+              "minute": 0
+            }
+          },
+          {
+            "open": {
+              "day": 4,
+              "hour": 7,
+              "minute": 0
+            },
+            "close": {
+              "day": 4,
+              "hour": 21,
+              "minute": 0
+            }
+          },
+          {
+            "open": {
+              "day": 5,
+              "hour": 7,
+              "minute": 0
+            },
+            "close": {
+              "day": 5,
+              "hour": 21,
+              "minute": 0
+            }
+          },
+          {
+            "open": {
+              "day": 6,
+              "hour": 7,
+              "minute": 0
+            },
+            "close": {
+              "day": 6,
+              "hour": 21,
+              "minute": 0
+            }
+          }
+        ],
+        "weekdayDescriptions": [
+          "Monday: 7:00 AM – 9:00 PM",
+          "Tuesday: 7:00 AM – 9:00 PM",
+          "Wednesday: 7:00 AM – 9:00 PM",
+          "Thursday: 7:00 AM – 9:00 PM",
+          "Friday: 7:00 AM – 9:00 PM",
+          "Saturday: 7:00 AM – 9:00 PM",
+          "Sunday: 7:00 AM – 9:00 PM"
+        ]
+      },
+      "userRatingCount": 1932,
+      "displayName": {
+        "text": "Apple Farm Inn",
+        "languageCode": "en"
+      },
+      "primaryTypeDisplayName": {
+        "text": "Hotel",
+        "languageCode": "en-US"
+      },
+      "editorialSummary": {
+        "text": "Refined, country-style rooms, plus free shuttles, an outdoor pool & a farm-to-table restaurant.",
+        "languageCode": "en"
+      },
+      "generativeSummary": {
+        "overview": {
+          "text": "Cozy rooms in a relaxed hotel featuring a heated pool, a hot tub and friendly staff.",
+          "languageCode": "en"
+        },
+        "overviewFlagContentUri": "https://www.google.com/local/content/rap/report?postId=CiUweDgwZWNmMTA5ZTIxNjdhYmQ6MHg4YzNhMDE3YmEwMmFmYTM3MAI&d=17924085&t=12",
+        "disclosureText": {
+          "text": "Summarized with Gemini",
+          "languageCode": "en-US"
+        }
+      },
+      "reviewSummary": {
+        "text": {
+          "text": "Guests mention this hotel offers clean, comfortable, and charmingly decorated rooms, often featuring fireplaces. They also highlight the friendly staff, complimentary cookies and cider, and convenient parking.\n\nSome reviews mention the service can be inattentive.",
+          "languageCode": "en-US"
+        },
+        "flagContentUri": "https://www.google.com/local/content/rap/report?postId=5%401:CAIQACodChtyc19oOmRvVGRRdjJkMDVRUFdyYVYwRlh1M0E%7CCAIQACorChtyc19oOmRvVGRRdjJkMDVRUFdyYVYwRlh1M0ESDAjHoPPUBhCQrtqiAw&d=17924085&t=8",
+        "disclosureText": {
+          "text": "Summarized with Gemini",
+          "languageCode": "en-US"
+        },
+        "reviewsUri": "https://www.google.com/maps/place//data=!4m4!3m3!1s0x80ecf109e2167abd:0x8c3a017ba02afa37!9m1!1b1"
+      }
+    },
+    {
+      "id": "ChIJ5UqkUGvx7IARvMGwGjU_lj8",
+      "types": ["hotel", "lodging", "point_of_interest", "establishment"],
+      "formattedAddress": "877 Palm St, San Luis Obispo, CA 93401, USA",
+      "location": {
+        "latitude": 35.2815448,
+        "longitude": -120.66336669999998
+      },
+      "rating": 4.6,
+      "googleMapsUri": "https://maps.google.com/?cid=4581919168209666492&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA",
+      "userRatingCount": 359,
+      "displayName": {
+        "text": "Hotel San Luis Obispo",
+        "languageCode": "en"
+      },
+      "primaryTypeDisplayName": {
+        "text": "Hotel",
+        "languageCode": "en-US"
+      },
+      "editorialSummary": {
+        "text": "Hip rooms in a modern hotel offering a restaurant, a rooftop lounge & an outdoor pool.",
+        "languageCode": "en"
+      },
+      "generativeSummary": {
+        "overview": {
+          "text": "Modern hotel featuring several restaurants, a rooftop bar, and an outdoor pool.",
+          "languageCode": "en"
+        },
+        "overviewFlagContentUri": "https://www.google.com/local/content/rap/report?postId=CiUweDgwZWNmMTZiNTBhNDRhZTU6MHgzZjk2M2YzNTFhYjBjMWJjMAI&d=17924085&t=12",
+        "disclosureText": {
+          "text": "Summarized with Gemini",
+          "languageCode": "en-US"
+        }
+      },
+      "reviewSummary": {
+        "text": {
+          "text": "Guests mention this hotel offers spacious, clean, and modern rooms with amenities like balconies, Nespresso machines, and complimentary snacks. They also highlight the friendly and accommodating staff, along with the convenient downtown location near shops and restaurants. Visitors appreciate the excellent food at the adjoining restaurants and the enjoyable pool, spa, and rooftop bar facilities.<ctrl100>",
+          "languageCode": "en-US"
+        },
+        "flagContentUri": "https://www.google.com/local/content/rap/report?postId=5%401:CAIQACodChtyc19oOk9waVliTFNqRTVDYnRLeWV1N25LQnc%7CCAIQACorChtyc19oOk9waVliTFNqRTVDYnRLeWV1N25LQncSDAjF-vTWBhDgpYTuAg&d=17924085&t=8",
+        "disclosureText": {
+          "text": "Summarized with Gemini",
+          "languageCode": "en-US"
+        },
+        "reviewsUri": "https://www.google.com/maps/place//data=!4m4!3m3!1s0x80ecf16b50a44ae5:0x3f963f351ab0c1bc!9m1!1b1"
+      }
+    }
+  ]
+}

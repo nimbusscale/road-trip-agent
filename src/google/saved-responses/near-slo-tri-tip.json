@@ -1,0 +1,300 @@
+{
+  "places": [
+    {
+      "id": "ChIJs9nkjAPx7IARC964fOXcxd0",
+      "types": ["restaurant", "food", "point_of_interest", "establishment"],
+      "formattedAddress": "1001 Higuera St, San Luis Obispo, CA 93401, USA",
+      "location": {
+        "latitude": 35.2811695,
+        "longitude": -120.6603135
+      },
+      "rating": 4.6,
+      "googleMapsUri": "https://maps.google.com/?cid=15980421730992184843&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA",
+      "regularOpeningHours": {
+        "periods": [
+          {
+            "open": {
+              "day": 0,
+              "hour": 11,
+              "minute": 0
+            },
+            "close": {
+              "day": 0,
+              "hour": 21,
+              "minute": 0
+            }
+          },
+          {
+            "open": {
+              "day": 1,
+              "hour": 11,
+              "minute": 0
+            },
+            "close": {
+              "day": 1,
+              "hour": 21,
+              "minute": 0
+            }
+          },
+          {
+            "open": {
+              "day": 2,
+              "hour": 11,
+              "minute": 0
+            },
+            "close": {
+              "day": 2,
+              "hour": 21,
+              "minute": 0
+            }
+          },
+          {
+            "open": {
+              "day": 3,
+              "hour": 11,
+              "minute": 0
+            },
+            "close": {
+              "day": 3,
+              "hour": 21,
+              "minute": 0
+            }
+          },
+          {
+            "open": {
+              "day": 4,
+              "hour": 11,
+              "minute": 0
+            },
+            "close": {
+              "day": 4,
+              "hour": 21,
+              "minute": 0
+            }
+          },
+          {
+            "open": {
+              "day": 5,
+              "hour": 11,
+              "minute": 0
+            },
+            "close": {
+              "day": 5,
+              "hour": 22,
+              "minute": 0
+            }
+          },
+          {
+            "open": {
+              "day": 6,
+              "hour": 11,
+              "minute": 0
+            },
+            "close": {
+              "day": 6,
+              "hour": 22,
+              "minute": 0
+            }
+          }
+        ],
+        "weekdayDescriptions": [
+          "Monday: 11:00 AM – 9:00 PM",
+          "Tuesday: 11:00 AM – 9:00 PM",
+          "Wednesday: 11:00 AM – 9:00 PM",
+          "Thursday: 11:00 AM – 9:00 PM",
+          "Friday: 11:00 AM – 10:00 PM",
+          "Saturday: 11:00 AM – 10:00 PM",
+          "Sunday: 11:00 AM – 9:00 PM"
+        ]
+      },
+      "priceLevel": "PRICE_LEVEL_INEXPENSIVE",
+      "userRatingCount": 4717,
+      "displayName": {
+        "text": "Firestone Grill",
+        "languageCode": "en"
+      },
+      "primaryTypeDisplayName": {
+        "text": "Restaurant",
+        "languageCode": "en-US"
+      },
+      "editorialSummary": {
+        "text": "Meat-centric American grill serving steak sandwiches, burgers & ribs in a sports-bar setting.",
+        "languageCode": "en"
+      },
+      "generativeSummary": {
+        "overview": {
+          "text": "Popular barbecue restaurant offering signature tri-tip sandwiches and fresh salads with outdoor seating.",
+          "languageCode": "en"
+        },
+        "overviewFlagContentUri": "https://www.google.com/local/content/rap/report?postId=CiUweDgwZWNmMTAzOGNlNGQ5YjM6MHhkZGM1ZGNlNTdjYjhkZTBiMAI&d=17924085&t=12",
+        "disclosureText": {
+          "text": "Summarized with Gemini",
+          "languageCode": "en-US"
+        }
+      },
+      "reviewSummary": {
+        "text": {
+          "text": "People say this restaurant offers delicious tri-tip sandwiches, burgers, and ribs, with generous portions and a wide variety of dipping sauces. They also highlight the reasonable prices and fast service, even when busy. Guests mention the lively sports bar atmosphere and the dog-friendly outdoor patio.<ctrl100>",
+          "languageCode": "en-US"
+        },
+        "flagContentUri": "https://www.google.com/local/content/rap/report?postId=5%401:CAIQACodChtyc19oOndnWERUQ1M5bU0tOGtKeDhLSno2Umc%7CCAIQACorChtyc19oOndnWERUQ1M5bU0tOGtKeDhLSno2UmcSDAjF-vTWBhDgpYTuAg&d=17924085&t=8",
+        "disclosureText": {
+          "text": "Summarized with Gemini",
+          "languageCode": "en-US"
+        },
+        "reviewsUri": "https://www.google.com/maps/place//data=!4m4!3m3!1s0x80ecf1038ce4d9b3:0xddc5dce57cb8de0b!9m1!1b1"
+      }
+    },
+    {
+      "id": "ChIJMTinhwLx7IARD0n8zlUjeNE",
+      "types": [
+        "barbecue_restaurant",
+        "restaurant",
+        "food",
+        "point_of_interest",
+        "establishment"
+      ],
+      "formattedAddress": "670 Higuera St, San Luis Obispo, CA 93401, USA",
+      "location": {
+        "latitude": 35.2786639,
+        "longitude": -120.6653244
+      },
+      "rating": 4.4,
+      "googleMapsUri": "https://maps.google.com/?cid=15093853002584049935&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA",
+      "regularOpeningHours": {
+        "periods": [
+          {
+            "open": {
+              "day": 0,
+              "hour": 11,
+              "minute": 0
+            },
+            "close": {
+              "day": 0,
+              "hour": 21,
+              "minute": 0
+            }
+          },
+          {
+            "open": {
+              "day": 1,
+              "hour": 11,
+              "minute": 0
+            },
+            "close": {
+              "day": 1,
+              "hour": 21,
+              "minute": 0
+            }
+          },
+          {
+            "open": {
+              "day": 2,
+              "hour": 11,
+              "minute": 0
+            },
+            "close": {
+              "day": 2,
+              "hour": 21,
+              "minute": 0
+            }
+          },
+          {
+            "open": {
+              "day": 3,
+              "hour": 11,
+              "minute": 0
+            },
+            "close": {
+              "day": 3,
+              "hour": 21,
+              "minute": 0
+            }
+          },
+          {
+            "open": {
+              "day": 4,
+              "hour": 11,
+              "minute": 0
+            },
+            "close": {
+              "day": 5,
+              "hour": 2,
+              "minute": 0
+            }
+          },
+          {
+            "open": {
+              "day": 5,
+              "hour": 11,
+              "minute": 0
+            },
+            "close": {
+              "day": 6,
+              "hour": 2,
+              "minute": 0
+            }
+          },
+          {
+            "open": {
+              "day": 6,
+              "hour": 11,
+              "minute": 0
+            },
+            "close": {
+              "day": 0,
+              "hour": 2,
+              "minute": 0
+            }
+          }
+        ],
+        "weekdayDescriptions": [
+          "Monday: 11:00 AM – 9:00 PM",
+          "Tuesday: 11:00 AM – 9:00 PM",
+          "Wednesday: 11:00 AM – 9:00 PM",
+          "Thursday: 11:00 AM – 2:00 AM",
+          "Friday: 11:00 AM – 2:00 AM",
+          "Saturday: 11:00 AM – 2:00 AM",
+          "Sunday: 11:00 AM – 9:00 PM"
+        ]
+      },
+      "priceLevel": "PRICE_LEVEL_INEXPENSIVE",
+      "userRatingCount": 1527,
+      "displayName": {
+        "text": "Old Slo BBQ Co.",
+        "languageCode": "en"
+      },
+      "primaryTypeDisplayName": {
+        "text": "Barbecue Restaurant",
+        "languageCode": "en-US"
+      },
+      "editorialSummary": {
+        "text": "Spot with walk-up window for ordering sandwiches & other BBQ entrees, plus indoor & outdoor seating.",
+        "languageCode": "en"
+      },
+      "generativeSummary": {
+        "overview": {
+          "text": "Santa Maria-style barbecue restaurant serving signature Tri-Tip and corn pie with a self-pour tap wall.",
+          "languageCode": "en"
+        },
+        "overviewFlagContentUri": "https://www.google.com/local/content/rap/report?postId=CiUweDgwZWNmMTAyODdhNzM4MzE6MHhkMTc4MjM1NWNlZmM0OTBmMAI&d=17924085&t=12",
+        "disclosureText": {
+          "text": "Summarized with Gemini",
+          "languageCode": "en-US"
+        }
+      },
+      "reviewSummary": {
+        "text": {
+          "text": "Diners like this BBQ restaurant's delicious tri-tip, pulled pork, and ribs, along with tasty sides like sweet potato fries and cowboy corn pie. They also highlight the friendly staff, great value, and chill atmosphere with indoor and outdoor seating.<ctrl100>\n\nSome reviews mention the meat can be flavorless.",
+          "languageCode": "en-US"
+        },
+        "flagContentUri": "https://www.google.com/local/content/rap/report?postId=5%401:CAIQACodChtyc19oOlVyVFFpRmtPYXJoenBkdFVLclQtaWc%7CCAIQACorChtyc19oOlVyVFFpRmtPYXJoenBkdFVLclQtaWcSDAjF-vTWBhDgpYTuAg&d=17924085&t=8",
+        "disclosureText": {
+          "text": "Summarized with Gemini",
+          "languageCode": "en-US"
+        },
+        "reviewsUri": "https://www.google.com/maps/place//data=!4m4!3m3!1s0x80ecf10287a73831:0xd1782355cefc490f!9m1!1b1"
+      }
+    }
+  ]
+}

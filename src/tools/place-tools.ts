@@ -101,7 +101,7 @@ function recordLines(place: Place): string[] {
   ];
 }
 
-function ratingText(place: Place): string {
+export function ratingText(place: Place): string {
   if (place.rating === null) {
     return "none";
   }

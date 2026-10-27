@@ -47,6 +47,15 @@ export const TIMEOUT_MILLISECONDS = 10_000;
 // Google allows 1 to 20 results per call (Google design 2.1).
 export const MAXIMUM_RESULTS = 20;
 
+// The center and radius of a search near a point. The radius biases the results, and
+// isn't a limit, so a query that names a farther place still finds it (technical spec
+// section 10, the near distance).
+export interface NearPoint {
+  latitude: number;
+  longitude: number;
+  radiusInMeters: number;
+}
+
 export interface PlacesClientOptions {
   // The server key, GOOGLE_MAPS_SERVER_KEY (Google design section 1).
   apiKey: string;
@@ -74,13 +83,45 @@ export class PlacesClient {
     textQuery: string,
     maximumResults: number,
   ): Promise<Place[]> {
-    const body = await this.#post(
-      {
-        textQuery,
-        pageSize: Math.min(Math.max(maximumResults, 1), MAXIMUM_RESULTS),
+    return this.#places({ textQuery, pageSize: pageSizeOf(maximumResults) });
+  }
+
+  // Places near a point, such as a stay's lodging, ranked by how well they match, not
+  // by distance (Google design 2.1).
+  async searchNear(
+    textQuery: string,
+    near: NearPoint,
+    maximumResults: number,
+  ): Promise<Place[]> {
+    return this.#places({
+      textQuery,
+      pageSize: pageSizeOf(maximumResults),
+      locationBias: {
+        circle: {
+          center: { latitude: near.latitude, longitude: near.longitude },
+          radius: near.radiusInMeters,
+        },
       },
-      FIELD_MASK,
-    );
+    });
+  }
+
+  // Places along a route, given as Google's encoded route line, in Google's order. No
+  // routing summaries: Google's drives to and from each place skip the route's
+  // waypoints, so they'd give wrong detours (Google design 2.4).
+  async searchAlongRoute(
+    textQuery: string,
+    routeLine: string,
+    maximumResults: number,
+  ): Promise<Place[]> {
+    return this.#places({
+      textQuery,
+      pageSize: pageSizeOf(maximumResults),
+      searchAlongRouteParameters: { polyline: { encodedPolyline: routeLine } },
+    });
+  }
+
+  async #places(request: object): Promise<Place[]> {
+    const body = await this.#post(request, FIELD_MASK);
     const parsed = textSearchResponseSchema.safeParse(body);
     if (!parsed.success) {
       throw new GooglePlacesError(misunderstood(parsed.error.message));
@@ -132,6 +173,10 @@ export class PlacesClient {
     }
     return body;
   }
+}
+
+function pageSizeOf(maximumResults: number): number {
+  return Math.min(Math.max(maximumResults, 1), MAXIMUM_RESULTS);
 }
 
 function misunderstood(detail: string): string {

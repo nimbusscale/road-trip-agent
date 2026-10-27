@@ -51,6 +51,16 @@ describe("parseSettings", () => {
     expect(() => parse(settings)).toThrow("- maximumTripLengthDays Too small");
   });
 
+  it("refuses a near distance over Google's 50,000-meter circle, which every search_near would fail on", () => {
+    expect(parse({ ...GOOD_SETTINGS, nearDistanceMiles: 31 })).toEqual({
+      ...GOOD_SETTINGS,
+      nearDistanceMiles: 31,
+    });
+    expect(() => parse({ ...GOOD_SETTINGS, nearDistanceMiles: 32 })).toThrow(
+      "- nearDistanceMiles Too big",
+    );
+  });
+
   it("refuses a short model name, which would move to newer models on its own", () => {
     const settings = { ...GOOD_SETTINGS, coordinatorModel: "opus" };
     expect(() => parse(settings)).toThrow(

@@ -4,6 +4,7 @@ import {
 } from "@anthropic-ai/claude-agent-sdk";
 
 import type { Env } from "../config/env.schema.js";
+import type { Settings } from "../config/settings.schema.js";
 import { PlacesClient } from "../google/places-client.js";
 import { PlaceReader } from "../persistence/place-reader.js";
 import { PlaceRepository } from "../persistence/place-repository.js";
@@ -21,6 +22,7 @@ export const PLACES_SERVER_NAME = "places";
 export interface PlacesAccessGiven {
   env: Env;
   pool: Connectable & Queryable;
+  settings: Settings;
 }
 
 // What every session's places server shares, made once when the app starts. Places come
@@ -28,7 +30,7 @@ export interface PlacesAccessGiven {
 export function placesAccessFor(
   given: PlacesAccessGiven,
 ): Omit<PlacesSession, "tripId"> {
-  const { env, pool } = given;
+  const { env, pool, settings } = given;
   const makeStore = (connection: Queryable): PlaceRepository =>
     new PlaceRepository(connection);
   return {
@@ -39,6 +41,8 @@ export function placesAccessFor(
     places: new PlaceReader({ pool, makeStore }),
     placeWriter: new PlaceWriter({ pool, makeStore }),
     google: new PlacesClient({ apiKey: env.googleMapsServerKey, fetch }),
+    settings,
+    now: () => new Date(),
   };
 }
 
