@@ -221,10 +221,15 @@ export class Calendar {
   #timelineOf(itinerary: Itinerary, day: Day): TimelineEntry[] {
     const hasDrives = this.hasLeg(itinerary, day);
     const noDrives = this.#areEndsKnown(itinerary, day) ? [] : null;
+    const startStay = this.startStayOf(itinerary, day);
     return timelineOf({
       stops: day.stops,
       startMinute: minuteOf(this.startTimeOf(itinerary, day)),
       hasDrives,
+      isNearStart: (stop) =>
+        startStay === null
+          ? stop.searchArea === "nearStartPlace"
+          : stop.searchAreaStay === startStay,
       driveMinutes: hasDrives ? this.#driveMinutesOf(day) : noDrives,
     });
   }

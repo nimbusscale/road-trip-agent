@@ -22,6 +22,9 @@ export interface TimelineInput {
   // False on a day with no drives: a rest day, a day that stays put with no selected
   // stop yet, or a day whose ends aren't known yet.
   hasDrives: boolean;
+  // Whether a stop is near where the day starts: the stay the party slept at, or the
+  // start place on the first day.
+  isNearStart: (stop: Stop) => boolean;
   // Each segment's drive time with the buffer, in route order. Null when they aren't
   // known, such as before the day's leg is routed for its selected stops. On a day with
   // no drives, an empty list, or null while the day's ends aren't known, since the
@@ -122,7 +125,7 @@ class TimelineBuilder {
     const earliest = plus(this.#departure, drive);
     const arrival = this.#arrivalAt(earliest, stop);
     if (isFirstDrive) {
-      this.#addDriveThenWait(earliest, arrival);
+      this.#addFirstDrive(drive, arrival);
     } else {
       this.#addWaitThenDrive(drive, arrival);
     }
@@ -137,28 +140,55 @@ class TimelineBuilder {
     this.#heldUntil = end;
   }
 
-  // The drive from the day's start, then the free time until the arrival, with the
-  // waiting stops in the day's order. One whose time falls within the free time splits
-  // it. One whose time falls during the drive comes right after it, since the drive
-  // passes it.
-  #addDriveThenWait(driveEnd: number | null, arrival: number | null): void {
-    this.#push("drive", this.#departure, driveEnd);
-    let from = driveEnd;
-    for (const entry of this.#waiting) {
-      if (
-        from !== null &&
+  // The party doesn't drive away from a waiting stop near where the day starts. So the
+  // drive leaves after the last one with a time, when it can still make the arrival,
+  // and the waiting stops up to it come first. Otherwise it leaves at the day's start.
+  #addFirstDrive(drive: number | null, arrival: number | null): void {
+    const latestStart = plus(arrival, drive === null ? null : -drive);
+    const lastNearStart = this.#waiting.findLastIndex(
+      (entry) =>
+        entry.stop !== null &&
+        this.#input.isNearStart(entry.stop) &&
         entry.startMinute !== null &&
-        entry.startMinute > from
-      ) {
-        this.#push("freeTime", from, entry.startMinute);
-        from = entry.startMinute;
-      }
-      this.#entries.push(entry);
-    }
+        (latestStart === null || entry.startMinute <= latestStart),
+    );
+    const before = this.#waiting.slice(0, lastNearStart + 1);
+    this.#waiting = this.#waiting.slice(lastNearStart + 1);
+    const driveStart = this.#pushSplitting(before, this.#departure);
+    this.#addDriveThenWait(driveStart, plus(driveStart, drive), arrival);
+  }
+
+  // The drive, then the free time until the arrival, with the waiting stops in the
+  // day's order. One whose time falls within the free time splits it. One whose time
+  // falls during the drive comes right after it, since the drive passes it.
+  #addDriveThenWait(
+    driveStart: number | null,
+    driveEnd: number | null,
+    arrival: number | null,
+  ): void {
+    this.#push("drive", driveStart, driveEnd);
+    const from = this.#pushSplitting(this.#waiting, driveEnd);
     this.#waiting = [];
     if (from !== null && arrival !== null && arrival > from) {
       this.#push("freeTime", from, arrival);
     }
+  }
+
+  // Pushes the stops, with free time from `from` until each one whose time is later.
+  // Returns when the last of them is, or `from` when that's later.
+  #pushSplitting(
+    entries: readonly TimelineEntry[],
+    from: number | null,
+  ): number | null {
+    let at = from;
+    for (const entry of entries) {
+      if (at !== null && entry.startMinute !== null && entry.startMinute > at) {
+        this.#push("freeTime", at, entry.startMinute);
+        at = entry.startMinute;
+      }
+      this.#entries.push(entry);
+    }
+    return at;
   }
 
   // The free time until the drive starts, then the drive, so the drive ends at the
@@ -177,22 +207,18 @@ class TimelineBuilder {
   // whose times fall within it. A waiting stop with no time before one of those goes
   // with it, so the stops stay in the day's order.
   #addFreeTimeUntil(freeEnd: number | null): void {
-    let from = this.#departure;
-    if (from === null || freeEnd === null) {
+    if (this.#departure === null || freeEnd === null) {
       return;
     }
     const lastWithin = this.#waiting.findLastIndex(
       (entry) => entry.startMinute !== null && entry.startMinute < freeEnd,
     );
-    for (const entry of this.#waiting.slice(0, lastWithin + 1)) {
-      if (entry.startMinute !== null && entry.startMinute > from) {
-        this.#push("freeTime", from, entry.startMinute);
-        from = entry.startMinute;
-      }
-      this.#entries.push(entry);
-    }
+    const from = this.#pushSplitting(
+      this.#waiting.slice(0, lastWithin + 1),
+      this.#departure,
+    );
     this.#waiting = this.#waiting.slice(lastWithin + 1);
-    if (freeEnd > from) {
+    if (from !== null && freeEnd > from) {
       this.#push("freeTime", from, freeEnd);
     }
   }
