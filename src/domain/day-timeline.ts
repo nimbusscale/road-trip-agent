@@ -113,19 +113,19 @@ class TimelineBuilder {
     this.#waiting.push({ kind: "stop", stop, startMinute: at, endMinute: at });
   }
 
-  // The party waits before driving, not after, so a wait shows as free time before the
-  // drive.
+  // The day's first drive leaves at the day's start time, so a wait for the first
+  // selected stop shows as free time after the drive. Later in the day, the party waits
+  // where it is before driving on, so a wait shows as free time before the drive.
   #addSelected(stop: Stop, visitMinutes: number): void {
+    const isFirstDrive = this.#input.hasDrives && this.#segment === 0;
     const drive = this.#nextDrive();
     const earliest = plus(this.#departure, drive);
     const arrival = this.#arrivalAt(earliest, stop);
-    const driveStart = plus(arrival, drive === null ? null : -drive);
-    this.#addFreeTimeUntil(driveStart);
-    if (this.#input.hasDrives) {
-      this.#push("drive", driveStart, arrival);
+    if (isFirstDrive) {
+      this.#addDriveThenWait(earliest, arrival);
+    } else {
+      this.#addWaitThenDrive(drive, arrival);
     }
-    this.#entries.push(...this.#waiting);
-    this.#waiting = [];
     const end = plus(arrival, visitMinutes);
     this.#entries.push({
       kind: "stop",
@@ -135,6 +135,42 @@ class TimelineBuilder {
     });
     this.#departure = end;
     this.#heldUntil = end;
+  }
+
+  // The drive from the day's start, then the free time until the arrival, with the
+  // waiting stops in the day's order. One whose time falls within the free time splits
+  // it. One whose time falls during the drive comes right after it, since the drive
+  // passes it.
+  #addDriveThenWait(driveEnd: number | null, arrival: number | null): void {
+    this.#push("drive", this.#departure, driveEnd);
+    let from = driveEnd;
+    for (const entry of this.#waiting) {
+      if (
+        from !== null &&
+        entry.startMinute !== null &&
+        entry.startMinute > from
+      ) {
+        this.#push("freeTime", from, entry.startMinute);
+        from = entry.startMinute;
+      }
+      this.#entries.push(entry);
+    }
+    this.#waiting = [];
+    if (from !== null && arrival !== null && arrival > from) {
+      this.#push("freeTime", from, arrival);
+    }
+  }
+
+  // The free time until the drive starts, then the drive, so the drive ends at the
+  // arrival. On a day with no drives, the free time runs until the arrival.
+  #addWaitThenDrive(drive: number | null, arrival: number | null): void {
+    const driveStart = plus(arrival, drive === null ? null : -drive);
+    this.#addFreeTimeUntil(driveStart);
+    if (this.#input.hasDrives) {
+      this.#push("drive", driveStart, arrival);
+    }
+    this.#entries.push(...this.#waiting);
+    this.#waiting = [];
   }
 
   // The free time from the departure until the drive starts, with the waiting stops

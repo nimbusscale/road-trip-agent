@@ -19,29 +19,11 @@ import { present } from "./itinerary.fake.js";
 import { moabExample } from "./moab-example.fake.js";
 import { OpeningPeriod } from "./opening-period.js";
 import { sanFranciscoExample } from "./san-francisco-example.fake.js";
-import type { ScheduleEntry } from "./schedule-entry.js";
-import type { ScheduleTime } from "./schedule-time.js";
+import { describeEntry, timeText } from "./schedule-entry.fake.js";
 import { newStay } from "./stay.js";
 import { TimeOfDay } from "./time-of-day.js";
 import { newTrip } from "./trip.js";
 import { VIA_SERVICE } from "./via-service.js";
-
-// Such as "8:25 a.m." or "1:00 a.m., next day", as the example trips show times.
-function timeText(time: ScheduleTime | null): string | null {
-  if (time === null) {
-    return null;
-  }
-  const { hours, minutes } = time.time;
-  const hour = String(hours % 12 === 0 ? 12 : hours % 12);
-  const text = `${hour}:${String(minutes).padStart(2, "0")} ${hours < 12 ? "a.m." : "p.m."}`;
-  return time.isNextDay ? `${text}, next day` : text;
-}
-
-function describeEntry(entry: ScheduleEntry): string {
-  const name = entry.stop?.selectedPlace?.name ?? entry.stop?.purpose;
-  const label = name === undefined ? entry.kind : `${entry.kind} ${name}`;
-  return `${label}: ${String(timeText(entry.startTime))} to ${String(timeText(entry.endTime))}`;
-}
 
 function stopTimes(
   calendar: Calendar,
@@ -118,7 +100,7 @@ describe("the example trips' schedules, with made-up drive times", () => {
     expect(arrival(calendar, itinerary, day5)).toBe("1:45 p.m.");
   });
 
-  it("show a wait before a set time as free time before the drive", () => {
+  it("show a later wait in the day, before a set time, as free time before the drive on", () => {
     const { trip, calendar } = sanFranciscoExample();
     const day1 = present(trip.itinerary.days[0]);
     const entries = calendar.scheduleOf(trip.itinerary, day1).slice(-4);
