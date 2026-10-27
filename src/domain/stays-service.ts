@@ -10,7 +10,6 @@ import { RuleError } from "./rule-error.js";
 import { checkedNightCount, newStay, type Stay } from "./stay.js";
 import type { StayDay } from "./stay-day.js";
 import type { Stop } from "./stop.js";
-import type { Tier } from "./tier.js";
 import { VIA_SERVICE } from "./via-service.js";
 import type { WeatherLabel } from "./weather-label.js";
 import { ActivityRecord, WeatherText } from "./weather-text.js";
@@ -25,8 +24,6 @@ export const FORECAST_DAYS = 7;
 export interface NewStay {
   place: Place;
   nightCount: number;
-  tier: Tier;
-  tierRule: string;
   // Null puts it first.
   after: Stay | null;
 }

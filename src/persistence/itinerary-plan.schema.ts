@@ -2,7 +2,6 @@ import { z } from "zod";
 
 import { CHECK_KINDS } from "../domain/check-kind.js";
 import { CheckResult } from "../domain/check-result.js";
-import { TIERS } from "../domain/tier.js";
 import { WEATHER_LABELS } from "../domain/weather-label.js";
 import { calendarDateSchema } from "./plan-values.schema.js";
 import { candidateSchema, daySchema } from "./stop-plan.schema.js";
@@ -34,8 +33,6 @@ const staySchema = z.strictObject({
   placeId: z.string(),
   lodgingId: z.string().nullable(),
   lodgingCandidates: z.array(candidateSchema).readonly(),
-  tier: z.enum(TIERS),
-  tierRule: z.string(),
   days: z.array(stayDaySchema).readonly(),
   weatherText: weatherTextSchema.nullable(),
 });

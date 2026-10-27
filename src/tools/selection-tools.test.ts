@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { present, workerOffer } from "../domain/itinerary.fake.js";
+import { present } from "../domain/itinerary.fake.js";
 import { moabExample } from "../domain/moab-example.fake.js";
 import { exampleAddress } from "../domain/place.fake.js";
 import { setUp } from "../persistence/trip-writer.fake.js";
@@ -194,34 +194,6 @@ describe("select_candidate", () => {
         }),
       ),
     ).toBe("Nothing was changed. day_k7m2x9qa isn't a stop or stay ID.");
-  });
-
-  it("sets the stop's tier to the tier a candidate was offered at", async () => {
-    const fixture = setUp();
-    const example = moabExample();
-    const { itinerary } = example.trip;
-    const milts = example.stops.milts;
-    const place = present(example.stops.gifford.selectedPlace);
-    milts.setTier("midRange", "stays of 2+ nights");
-    example.services.stops.addCandidates(itinerary, milts, [
-      workerOffer(place),
-    ]);
-    milts.setTier("posh", "the user asked for a higher tier");
-    await storeTrip(fixture, example.trip);
-    const { selectCandidate, read } = toolsFor({
-      ...fixture,
-      tripId: example.trip.id,
-    });
-    expect(
-      textOf(
-        await selectCandidate({ stopOrStayId: milts.id, placeId: place.id }),
-      ),
-    ).toContain(
-      'Its tier is now midRange, from the rule "the user picked a mid-range option".',
-    );
-    expect(await read(milts.id)).toContain(
-      'Tier: midRange, from the rule "the user picked a mid-range option".',
-    );
   });
 });
 

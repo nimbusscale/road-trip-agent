@@ -47,12 +47,12 @@ describe("read_itinerary on the Moab trip", () => {
       "  - Candidates:",
       picked("Windows", "1 h"),
       "- 9:50 a.m. to 10:20 a.m.: drive.",
-      '- 10:20 a.m. to 11:20 a.m.: Stop 3 (stop_…), meal: "café". Near the Moab stay. Tier: value, from the rule "the trip default". Selected: Love Muffin Cafe (place_…), visit time 1 h.',
+      '- 10:20 a.m. to 11:20 a.m.: Stop 3 (stop_…), meal: "café". Near the Moab stay. Selected: Love Muffin Cafe (place_…), visit time 1 h.',
       "  - Candidates:",
       picked("Love Muffin Cafe", null),
       "- 11:20 a.m. to 11:26 a.m.: drive.",
       "- 11:26 a.m. to 12:00 p.m.: free time.",
-      '- 12:00 p.m. to 1:00 p.m.: Stop 4 (stop_…), meal: "burgers". Near the Moab stay. Set time: 12:00 p.m. Tier: value, from the rule "the trip default". Selected: Milt\'s (place_…), visit time 1 h.',
+      '- 12:00 p.m. to 1:00 p.m.: Stop 4 (stop_…), meal: "burgers". Near the Moab stay. Set time: 12:00 p.m. Selected: Milt\'s (place_…), visit time 1 h.',
       "  - Candidates:",
       picked("Milt's", null),
       "- 1:00 p.m. to 1:15 p.m.: drive.",
@@ -61,7 +61,7 @@ describe("read_itinerary on the Moab trip", () => {
       picked("Corona Arch", "2 h 30 m"),
       "- 3:45 p.m. to 4:00 p.m.: drive.",
       "- 4:00 p.m. to 7:00 p.m.: free time.",
-      '- 7:00 p.m. to 8:00 p.m.: Stop 6 (stop_…), meal: "dinner out". Near the Moab stay. Set time: 7:00 p.m. Tier: value, from the rule "the trip default". Selected: Desert Bistro (place_…), visit time 1 h.',
+      '- 7:00 p.m. to 8:00 p.m.: Stop 6 (stop_…), meal: "dinner out". Near the Moab stay. Set time: 7:00 p.m. Selected: Desert Bistro (place_…), visit time 1 h.',
       "  - Candidates:",
       picked("Desert Bistro", null),
       "- 8:00 p.m. to 8:06 p.m.: drive.",
@@ -84,7 +84,7 @@ describe("read_itinerary on the Moab trip", () => {
     const miltsPlace = present(stops.milts.selectedPlace);
     expect(text).toContain(`Day 2 (${day2.id}),`);
     expect(text).toContain(
-      `Stop 4 (${stops.milts.id}), meal: "burgers". Near the Moab stay. Set time: 12:00 p.m. Tier: value, from the rule "the trip default". Selected: Milt's (${miltsPlace.id}),`,
+      `Stop 4 (${stops.milts.id}), meal: "burgers". Near the Moab stay. Set time: 12:00 p.m. Selected: Milt's (${miltsPlace.id}),`,
     );
     expect(text).toContain(`Set 1: Milt's (${miltsPlace.id}), ${SHORT},`);
   });
@@ -93,9 +93,8 @@ describe("read_itinerary on the Moab trip", () => {
     const { trip, torrey } = moabExample();
     const read = await readerFor(trip);
     const lines = linesOf(await read(torrey.id));
-    expect(lines.slice(0, 6)).toEqual([
+    expect(lines.slice(0, 5)).toEqual([
       `Stay 2 (stay_…): Torrey (place_…), ${SHORT}. 1 night, Day 4, from Wednesday, October 13, 2027 to the morning of Thursday, October 14, 2027.`,
-      '- Lodging tier: value, from the rule "the trip default".',
       "- Lodging: Torrey hotel (place_…).",
       "- Lodging candidates:",
       `  - Set 1: Torrey hotel (place_…), ${SHORT}, selected. Why: "The user's pick." Named by the user.`,
@@ -125,7 +124,7 @@ describe("read_itinerary on the Moab trip", () => {
     const read = await readerFor(trip);
     expect(linesOf(await read(stops.milts.id))).toEqual([
       "Day 2 (day_…), Monday, October 11, 2027: Moab. Starts 5:30 a.m., the day's own start time.",
-      '- 12:00 p.m. to 1:00 p.m.: Stop 4 (stop_…), meal: "burgers". Near the Moab stay. Set time: 12:00 p.m. Tier: value, from the rule "the trip default". Selected: Milt\'s (place_…), visit time 1 h.',
+      '- 12:00 p.m. to 1:00 p.m.: Stop 4 (stop_…), meal: "burgers". Near the Moab stay. Set time: 12:00 p.m. Selected: Milt\'s (place_…), visit time 1 h.',
       "  - Candidates:",
       `    - Set 1: Milt's (place_…), ${SHORT}, selected. Why: "The user's pick." Named by the user.`,
       "",
@@ -191,7 +190,7 @@ describe("read_itinerary on the San Francisco trip", () => {
     expect(lines.slice(elsewhere, elsewhere + 5)).toEqual([
       "Stops on other days whose search area is this stay:",
       "Day 2 (day_…):",
-      '- 8:10 a.m. to 9:10 a.m.: Stop 1 (stop_…), meal: "breakfast before the drive". Near the Monterey stay. Tier: value, from the rule "the trip default". Selected: First Awakenings, Monterey (place_…), visit time 1 h.',
+      '- 8:10 a.m. to 9:10 a.m.: Stop 1 (stop_…), meal: "breakfast before the drive". Near the Monterey stay. Selected: First Awakenings, Monterey (place_…), visit time 1 h.',
       "  - Candidates:",
       `    - Set 1: First Awakenings, Monterey (place_…), ${SHORT}, selected. Why: "The user's pick." Named by the user.`,
     ]);

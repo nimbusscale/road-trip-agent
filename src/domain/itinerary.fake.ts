@@ -43,14 +43,10 @@ export function exampleMoabTrip(owner: User): ExampleTrip {
   const moab = newStay({
     place: places.moab,
     nightCount: 3,
-    tier: "midRange",
-    tierRule: "stays of 2+ nights",
   });
   const torrey = newStay({
     place: places.torrey,
     nightCount: 1,
-    tier: "value",
-    tierRule: "the trip default",
   });
   itinerary[VIA_SERVICE].placeStay(moab, null);
   itinerary[VIA_SERVICE].placeStay(torrey, moab);
@@ -73,6 +69,7 @@ function layOutMoab(moab: Stay, places: ExamplePlaces): Stop {
   fisherTowers[VIA_SERVICE].addCandidates([
     {
       ...workerOffer(places.fisherTowers),
+      tier: null,
       visitTimeInMinutes: 60,
       detourTimeInMinutes: 10,
     },
@@ -198,8 +195,6 @@ function mealStop(
     searchArea,
     searchAreaStay: stay,
     setTime,
-    tier: "value",
-    tierRule: "the trip default",
   });
 }
 
@@ -215,8 +210,6 @@ function attractionStop(
     searchArea,
     searchAreaStay: stay,
     setTime,
-    tier: null,
-    tierRule: null,
   });
 }
 
@@ -224,7 +217,8 @@ function at(text: string): ScheduleTime {
   return new ScheduleTime(TimeOfDay.fromText(text), false);
 }
 
-// What a worker passes in for a place it found on Google.
+// What a worker passes in for a lodging or a meal it found on Google. An attraction's
+// takes a visit time and no tier.
 export function workerOffer(place: Place): CandidateOffer {
   return {
     place,
@@ -232,6 +226,7 @@ export function workerOffer(place: Place): CandidateOffer {
     howFound: "google",
     sourceLink: place.links[0] ?? "https://maps.google.com/",
     notesText: null,
+    tier: "midRange",
     visitTimeInMinutes: null,
     detourTimeInMinutes: null,
   };
@@ -243,6 +238,7 @@ export function userOffer(place: Place): CandidateOffer {
     ...workerOffer(place),
     howFound: "specifiedByUser",
     sourceLink: null,
+    tier: null,
     rationale: "The user's pick.",
   };
 }

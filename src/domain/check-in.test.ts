@@ -83,8 +83,6 @@ describe("a day with a check-in before an evening event", () => {
     const camden = services.stays.addStay(itinerary, {
       place: CAMDEN,
       nightCount: 1,
-      tier: "value",
-      tierRule: "the trip default",
       after: barHarbor,
     });
     const day3 = present(camden.days[0]);
@@ -152,7 +150,7 @@ describe("the check-in's rules", () => {
     }).toThrow("A day holds at most one check-in.");
   });
 
-  it("starts with the check-in visit time, and takes no candidates or tier", () => {
+  it("starts with the check-in visit time, and takes no candidates", () => {
     const planning = checkInDay();
     const { checkIn } = planning;
     expect(checkIn.visitTimeInMinutes).toBe(30);
@@ -160,9 +158,6 @@ describe("the check-in's rules", () => {
     expect(() => {
       pick(planning, checkIn, BAR_HARBOR_INN);
     }).toThrow("A check-in has no candidates.");
-    expect(() => {
-      checkIn.setTier("value", "the trip default");
-    }).toThrow("Only a meal stop has a tier. This one is a check-in.");
   });
 });
 

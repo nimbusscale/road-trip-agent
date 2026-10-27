@@ -39,7 +39,7 @@ describe("read_itinerary's candidates", () => {
     const read = await readerFor(trip);
     const stopText = textOf(await read(stops.milts.id));
     expect(stopText).toContain(
-      `    - Set 2: Milt's 2 (${first.id}), ${SHORT}. Why: "Fits the trip." Offered at tier value, from the rule "the trip default". Found on Google: ${present(first.links[0])} Notes: "Cash only."`,
+      `    - Set 2: Milt's 2 (${first.id}), ${SHORT}. Why: "Fits the trip." Tier: midRange. Found on Google: ${present(first.links[0])} Notes: "Cash only."`,
     );
     expect(stopText).toContain(
       `    - Set 2: Milt's 3 (${second.id}), ${SHORT}. Why: "Fits the trip."`,
@@ -194,6 +194,7 @@ function addMoreOptions(planning: Planning, rounds: number): void {
       count += 1;
       return {
         ...workerOffer(placeNamed(`More option ${String(count)}`)),
+        tier: stop?.kind === "attraction" ? null : "midRange",
         visitTimeInMinutes: stop?.kind === "attraction" ? 60 : null,
         detourTimeInMinutes: stop?.searchArea === "alongLeg" ? 10 : null,
       };

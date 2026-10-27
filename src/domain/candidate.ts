@@ -4,27 +4,21 @@ import { RuleError } from "./rule-error.js";
 import type { Tier } from "./tier.js";
 
 // What a worker or the coordinator passes in for one candidate. The stop or stay that
-// adds it fills in the rest: its set number, tier, and rule (domain model 3.9).
+// adds it fills in its set number (domain model 3.9).
 export interface CandidateOffer {
   place: Place;
   rationale: string;
   howFound: HowFound;
   sourceLink: string | null;
   notesText: string | null;
+  // What the place is like, judged by the worker that found it.
+  tier: Tier | null;
   visitTimeInMinutes: number | null;
   detourTimeInMinutes: number | null;
 }
 
 export interface CandidateFields extends CandidateOffer {
-  tier: Tier | null;
-  tierRule: string | null;
   setNumber: number;
-}
-
-// A tier and the user's rule that produced it, such as "2+ nights".
-export interface Tiering {
-  tier: Tier;
-  tierRule: string;
 }
 
 const MAXIMUM_SET_SIZE = 3;
@@ -38,7 +32,6 @@ export class Candidate {
   readonly sourceLink: string | null;
   readonly notesText: string | null;
   readonly tier: Tier | null;
-  readonly tierRule: string | null;
   readonly visitTimeInMinutes: number | null;
   readonly detourTimeInMinutes: number | null;
   readonly setNumber: number;
@@ -51,7 +44,6 @@ export class Candidate {
     this.sourceLink = fields.sourceLink;
     this.notesText = fields.notesText;
     this.tier = fields.tier;
-    this.tierRule = fields.tierRule;
     this.visitTimeInMinutes = fields.visitTimeInMinutes;
     this.detourTimeInMinutes = fields.detourTimeInMinutes;
     this.setNumber = fields.setNumber;
@@ -65,12 +57,10 @@ export class Candidate {
 
 // Makes one set of candidates for a stop or stay: 1 to 3, with no place the holder
 // already has among its candidates. Each gets the set number, one more than the
-// highest the holder still has, or 0 when it has none. One a worker found gets the
-// holder's tier and rule. One the user named gets none (domain model 3.9).
+// highest the holder still has, or 0 when it has none (domain model 3.9).
 export function newCandidateSet(
   candidates: readonly Candidate[],
   offers: readonly CandidateOffer[],
-  tiering: Tiering | null,
 ): Candidate[] {
   if (offers.length < 1 || offers.length > MAXIMUM_SET_SIZE) {
     throw new RuleError(
@@ -79,15 +69,9 @@ export function newCandidateSet(
   }
   refuseRepeatedPlaces([...candidates, ...offers]);
   const setNumber = Math.max(-1, ...candidates.map((each) => each.setNumber));
-  return offers.map((offer) => {
-    const isFoundByWorker = offer.howFound !== "specifiedByUser";
-    return new Candidate({
-      ...offer,
-      tier: isFoundByWorker ? (tiering?.tier ?? null) : null,
-      tierRule: isFoundByWorker ? (tiering?.tierRule ?? null) : null,
-      setNumber: setNumber + 1,
-    });
-  });
+  return offers.map(
+    (offer) => new Candidate({ ...offer, setNumber: setNumber + 1 }),
+  );
 }
 
 // A holder has each place among its candidates once, matched by the place's ID.
@@ -108,11 +92,6 @@ export function refuseRepeatedPlaces(
 function refuseBrokenCandidate(fields: CandidateFields): void {
   const isFoundByWorker = fields.howFound !== "specifiedByUser";
   refuseIf(fields.rationale.trim() === "", "needs a rationale");
-  refuseIf(
-    (fields.tier === null) !== (fields.tierRule === null) ||
-      fields.tierRule?.trim() === "",
-    "has a tier and its rule together, or neither",
-  );
   refuseIf(
     isFoundByWorker !== (fields.sourceLink !== null) ||
       fields.sourceLink?.trim() === "",

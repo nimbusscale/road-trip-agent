@@ -28,7 +28,7 @@ describe("RejectionsService.rejectPlaces", () => {
     const [, windows, cafe] = day2.stops;
     const muffins = present(cafe?.selectedPlace);
     services.stops.addCandidates(itinerary, present(windows), [
-      { ...workerOffer(muffins), visitTimeInMinutes: 30 },
+      { ...workerOffer(muffins), tier: null, visitTimeInMinutes: 30 },
     ]);
     const result = services.rejections.rejectPlaces(itinerary, [
       new RejectedPlace({ place: muffins, reason: "we had it last time" }),

@@ -34,9 +34,9 @@ export function dayNumber(
   return `Day ${String(context.calendar.orderOf(context.itinerary, day) + 1)}`;
 }
 
-// The stay's line, then its tier, lodging, candidates, and weather text. A whole read
-// gives the tier without its rule, the lodging with its town, a count of the other
-// candidates, and the weather line without its text (tool design 2.1).
+// The stay's line, then its lodging, candidates, and weather text. A whole read gives
+// the lodging with its town, a count of the other candidates, and the weather line
+// without its text (tool design 2.1).
 export function stayLines(
   context: ReadContext,
   stay: Stay,
@@ -46,9 +46,6 @@ export function stayLines(
   const isSlim = detail === "slim";
   return [
     `Stay ${String(order + 1)} (${stay.id}): ${placeLine(stay.place)}. ${nightsText(context, stay)}`,
-    isSlim
-      ? `- Lodging tier: ${stay.tier}.`
-      : `- Lodging tier: ${stay.tier}, from the rule "${stay.tierRule}".`,
     lodgingLine(stay, isSlim),
     ...(isSlim
       ? countLines(stay.lodgingCandidates, stay.lodging, "Lodging candidates")

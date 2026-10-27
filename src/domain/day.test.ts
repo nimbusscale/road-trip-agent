@@ -39,8 +39,6 @@ function stop(purpose: string): Stop {
     searchArea: "alongLeg",
     searchAreaStay: null,
     setTime: null,
-    tier: null,
-    tierRule: null,
   });
 }
 

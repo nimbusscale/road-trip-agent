@@ -25,7 +25,7 @@ import { namedPlaceOf } from "./update-itinerary-tool.js";
 // The meal visit time is a setting, filled in here, never written into the text (tool
 // design, section 4).
 export function selectCandidateDescription(mealVisitMinutes: number): string {
-  return `Selects one of a stop's candidates, or one of a stay's lodging candidates. Selecting the place already selected changes nothing. Otherwise a stop gets a visit time: an attraction the candidate's, and a meal ${durationText(mealVisitMinutes)}. When the candidate was offered at a different tier, the stop's or stay's tier changes to the candidate's. A place that isn't a candidate there is refused. Select a place the user named with select_user_place.`;
+  return `Selects one of a stop's candidates, or one of a stay's lodging candidates. Selecting the place already selected changes nothing. Otherwise a stop gets a visit time: an attraction the candidate's, and a meal ${durationText(mealVisitMinutes)}. A place that isn't a candidate there is refused. Select a place the user named with select_user_place.`;
 }
 
 export function selectUserPlaceDescription(mealVisitMinutes: number): string {
@@ -89,17 +89,13 @@ function selectCandidate(
       touchedIds: [idOf(holder)],
     };
   }
-  const tierBefore = tierOf(holder);
   if (holder.kind === "stop") {
     services.stops.selectCandidate(holder.stop, place);
   } else {
     holder.stay.selectCandidate(place);
   }
   return {
-    lines: [
-      selectedLine(holder, place, where),
-      ...tierLines(holder, tierBefore),
-    ],
+    lines: [selectedLine(holder, place, where)],
     touchedIds: [idOf(holder)],
   };
 }
@@ -153,6 +149,7 @@ function userOffer(place: Place, reason: string): CandidateOffer {
     howFound: "specifiedByUser",
     sourceLink: null,
     notesText: null,
+    tier: null,
     visitTimeInMinutes: null,
     detourTimeInMinutes: null,
   };
@@ -238,16 +235,6 @@ function selectedLine(holder: StopOrStay, place: Place, where: string): string {
   return `Selected ${placeText(place)} for ${where}, with a visit time of ${durationText(visit)}.`;
 }
 
-// A candidate offered at another tier sets the stop's or stay's tier to it (technical
-// spec section 9).
-function tierLines(holder: StopOrStay, tierBefore: string | null): string[] {
-  const now = holder.kind === "stop" ? holder.stop : holder.stay;
-  if (now.tier === tierBefore || now.tier === null || now.tierRule === null) {
-    return [];
-  }
-  return [`Its tier is now ${now.tier}, from the rule "${now.tierRule}".`];
-}
-
 function holderName(positions: Positions, holder: StopOrStay): string {
   return holder.kind === "stop"
     ? stopName(positions, holder.stop)
@@ -266,10 +253,6 @@ function selectedOf(holder: StopOrStay): Place | null {
   return holder.kind === "stop"
     ? holder.stop.selectedPlace
     : holder.stay.lodging;
-}
-
-function tierOf(holder: StopOrStay): string | null {
-  return holder.kind === "stop" ? holder.stop.tier : holder.stay.tier;
 }
 
 function idOf(holder: StopOrStay): string {

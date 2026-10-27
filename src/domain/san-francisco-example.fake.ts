@@ -109,8 +109,6 @@ function addStay(planning: Planning, town: string, after: Stay | null): Stay {
   const stay = planning.services.stays.addStay(planning.itinerary, {
     place: placeNamed(town),
     nightCount: 1,
-    tier: "value",
-    tierRule: "the trip default",
     after,
   });
   lodgeAt(planning, stay, placeNamed(`${town} hotel`));

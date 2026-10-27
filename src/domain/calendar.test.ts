@@ -74,8 +74,6 @@ describe("the calendar's lookups", () => {
     const elsewhere = newStay({
       place: namedPlace("Green River"),
       nightCount: 1,
-      tier: "value",
-      tierRule: "the trip default",
     });
     expect(() => calendar.orderOf(trip.itinerary, elsewhere)).toThrow(
       RuleError,

@@ -209,8 +209,6 @@ describe("a day's schedule", () => {
     const stay = newStay({
       place: placeNamed("Moab"),
       nightCount: 2,
-      tier: "value",
-      tierRule: "the trip default",
     });
     itinerary[VIA_SERVICE].placeStay(stay, null);
     const day2 = present(stay.days[1]);

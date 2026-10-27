@@ -24,7 +24,7 @@ describe("the chat's routes, for another user's trip", () => {
     const { tripId, sessionId } = openedSession(
       await eventsOf(await chat.asUser("POST", "/api/trips", { text: "Utah" })),
     );
-    const message = { text: "Make it posh." };
+    const message = { text: "Make it upscale." };
     const responses = [
       await chat.asOtherUser("GET", `/api/trips/${tripId}`),
       await chat.asOtherUser("POST", `/api/trips/${tripId}/sessions`, message),

@@ -21,11 +21,9 @@ import type { StopKind } from "./stop-kind.js";
 import {
   CHECK_IN_HAS_NO_CANDIDATES,
   checkedVisitTime,
-  KIND_TEXT,
   noPlaceForVisitTime,
   refuseBrokenNewStop,
 } from "./stop-rules.js";
-import type { Tier } from "./tier.js";
 import { VIA_SERVICE } from "./via-service.js";
 
 // What code gives a new stop (domain model 3.7).
@@ -36,8 +34,6 @@ export interface NewStopFields {
   searchArea: SearchArea | null;
   searchAreaStay: Stay | null;
   setTime: ScheduleTime | null;
-  tier: Tier | null;
-  tierRule: string | null;
 }
 
 export interface StopFields extends NewStopFields {
@@ -78,8 +74,6 @@ export class Stop {
   readonly searchAreaStay: Stay | null;
   #setTime: ScheduleTime | null;
   #visitTimeInMinutes: number | null;
-  #tier: Tier | null;
-  #tierRule: string | null;
   #selectedPlace: Place | null;
   #candidates: Candidate[];
   #approvals: OpeningHoursApproval[];
@@ -92,11 +86,7 @@ export class Stop {
       if (this.kind === "checkIn") {
         throw new RuleError(CHECK_IN_HAS_NO_CANDIDATES);
       }
-      const tiering =
-        this.#tier === null || this.#tierRule === null
-          ? null
-          : { tier: this.#tier, tierRule: this.#tierRule };
-      const set = newCandidateSet(this.#candidates, offers, tiering);
+      const set = newCandidateSet(this.#candidates, offers);
       set.forEach((candidate) => {
         this.#refuseUnfitCandidate(candidate);
       });
@@ -135,8 +125,6 @@ export class Stop {
     this.searchArea = fields.searchArea;
     this.searchAreaStay = fields.searchAreaStay;
     this.#setTime = fields.setTime;
-    this.#tier = fields.tier;
-    this.#tierRule = fields.tierRule;
     this.#candidates = [...fields.candidates];
     this.#candidates.forEach((candidate) => {
       this.#refuseUnfitCandidate(candidate);
@@ -167,14 +155,6 @@ export class Stop {
     this.#visitTimeInMinutes = checkedVisitTime(value);
   }
 
-  get tier(): Tier | null {
-    return this.#tier;
-  }
-
-  get tierRule(): string | null {
-    return this.#tierRule;
-  }
-
   get selectedPlace(): Place | null {
     return this.#selectedPlace;
   }
@@ -194,20 +174,6 @@ export class Stop {
       return "selected";
     }
     return this.#candidates.length > 0 ? "proposed" : "empty";
-  }
-
-  // For a meal. Candidates already offered keep the tier they were offered at.
-  setTier(tier: Tier, tierRule: string): void {
-    if (this.kind !== "meal") {
-      throw new RuleError(
-        `Only a meal stop has a tier. This one is ${KIND_TEXT[this.kind]}.`,
-      );
-    }
-    if (tierRule.trim() === "") {
-      throw new RuleError("A stop's tier needs the rule that produced it.");
-    }
-    this.#tier = tier;
-    this.#tierRule = tierRule;
   }
 
   #selectCandidate(place: Place, visitTimeInMinutes: number): void {
@@ -263,7 +229,8 @@ export class Stop {
     this.#approvals = withoutApproval(this.#approvals, "openingHours");
   }
 
-  // A candidate fits the stop's kind and search area (domain model 3.7).
+  // A candidate fits the stop's kind and search area. The worker that found a meal's
+  // candidate judges its tier (domain model 3.7).
   #refuseUnfitCandidate(candidate: Candidate): void {
     const name = candidate.place.name ?? candidate.place.id;
     if (
@@ -279,6 +246,25 @@ export class Stop {
     if ((candidate.detourTimeInMinutes !== null) !== needsDetour) {
       throw new RuleError(
         `${name} doesn't fit the stop: a candidate has a detour time exactly when the stop is along the leg and a worker found it.`,
+      );
+    }
+    this.#refuseUnfitTier(candidate, name);
+  }
+
+  // A place the user named has no tier, which Candidate refuses itself.
+  #refuseUnfitTier(candidate: Candidate, name: string): void {
+    if (this.kind === "attraction" && candidate.tier !== null) {
+      throw new RuleError(
+        `${name} doesn't fit the stop: an attraction's candidates have no tier.`,
+      );
+    }
+    if (
+      this.kind === "meal" &&
+      candidate.isFoundByWorker &&
+      candidate.tier === null
+    ) {
+      throw new RuleError(
+        `${name} doesn't fit the stop: a meal's candidate a worker found has a tier.`,
       );
     }
   }
@@ -310,8 +296,6 @@ export function newCheckIn(fields: {
     kind: "checkIn",
     searchArea: null,
     searchAreaStay: null,
-    tier: null,
-    tierRule: null,
     selectedPlace: null,
     candidates: [],
     approvals: [],

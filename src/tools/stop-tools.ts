@@ -38,7 +38,7 @@ export function addStopsDescription(checkInVisitMinutes: number): string {
 }
 
 export const UPDATE_STOP_DESCRIPTION =
-  "Changes a stop's set time, visit time, tier, or opening hours approval. Items not given are not changed. A visit time needs a selected place, or a check-in, and only a meal has a tier. An opening hours approval needs the user's reason, and records how many minutes of the visit fall within the selected place's opening hours. The set time and visit time change first, so an approval in the same call records the minutes at the new times.";
+  "Changes a stop's set time, visit time, or opening hours approval. Items not given are not changed. A visit time needs a selected place, or a check-in. An opening hours approval needs the user's reason, and records how many minutes of the visit fall within the selected place's opening hours. The set time and visit time change first, so an approval in the same call records the minutes at the new times.";
 
 export const MOVE_STOP_DESCRIPTION = `Moves a stop within its day or to another day. Give after the ID of the stop it follows on that day, or "${FIRST}" to put it before every other stop on the day. The set time is always given, so an old one never carries over. The stop keeps its candidates, selected place, visit time, and approvals. A stop along the leg can't move to a day that stays put: remove it and add a new one instead. A stop near a stay, or near the start or end place, can move to a day that doesn't start or end there, and the check results warn that its search area doesn't fit the day. A check-in moves to the stay the party sleeps at on its new day. It can't move to the last day, or to a day that already holds one.`;
 
@@ -144,23 +144,16 @@ export function removeStopsTool(session: TripSession): StrictToolDefinition {
   );
 }
 
-// In the order tool design 2.1 gives: set time and visit time, then tier, then
-// approvals. The approval to remove goes before a new one, so a call can't remove one
-// it set.
+// In the order tool design 2.1 gives: set time and visit time, then approvals. The
+// approval to remove goes before a new one, so a call can't remove one it set.
 function updateStop(
   input: UpdateStopInput,
   { trip, services, calendar }: ChangeContext,
 ): ChangeOutcome {
-  const { setTime, visitTimeInMinutes, tier, approveOpeningHours } = input;
+  const { setTime, visitTimeInMinutes, approveOpeningHours } = input;
   refuseNoChange(
-    [
-      setTime,
-      visitTimeInMinutes,
-      tier,
-      approveOpeningHours,
-      input.removeApproval,
-    ],
-    "Give at least one change: setTime, visitTimeInMinutes, tier, approveOpeningHours, or removeApproval.",
+    [setTime, visitTimeInMinutes, approveOpeningHours, input.removeApproval],
+    "Give at least one change: setTime, visitTimeInMinutes, approveOpeningHours, or removeApproval.",
   );
   const itinerary = trip.itinerary;
   const stop = stopIn(itinerary, input.stopId);
@@ -169,9 +162,6 @@ function updateStop(
   }
   if (visitTimeInMinutes !== undefined) {
     stop.visitTimeInMinutes = visitTimeInMinutes;
-  }
-  if (tier !== undefined) {
-    stop.setTier(tier.tier, tier.tierRule);
   }
   if (input.removeApproval !== undefined) {
     services.stops.removeApproval(stop, input.removeApproval);
@@ -207,16 +197,11 @@ function newStopFrom(
   itinerary: Itinerary,
   input: Exclude<NewStopInput, { kind: "checkIn" }>,
 ): Stop {
-  const tiering =
-    input.kind === "meal"
-      ? { tier: input.tier, tierRule: input.tierRule }
-      : { tier: null, tierRule: null };
   return newStop({
     kind: input.kind,
     purpose: input.purpose,
     ...searchAreaFrom(itinerary, input.searchArea),
     setTime: setTimeFrom(input.setTime),
-    ...tiering,
   });
 }
 

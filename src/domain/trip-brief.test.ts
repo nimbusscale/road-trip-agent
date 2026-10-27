@@ -20,9 +20,8 @@ const EMPTY_BRIEF: TripBriefFields = {
   routePreference: null,
   restDaysText: null,
   usualStartTime: DEFAULT_USUAL_START_TIME,
-  defaultTier: null,
-  budgetRulesText: null,
   mealPreferencesText: null,
+  lodgingPreferencesText: null,
 };
 
 const SERVICE = new TripBriefService({
@@ -35,8 +34,8 @@ const TEXT_ITEMS = [
   "interestsText",
   "mustSeesText",
   "restDaysText",
-  "budgetRulesText",
   "mealPreferencesText",
+  "lodgingPreferencesText",
 ] as const;
 
 function emptyBrief(): TripBrief {
@@ -61,14 +60,11 @@ describe("TripBrief", () => {
     expect(brief[item]).toBe("Texas barbecue");
   });
 
-  it("changes routePreference and defaultTier, but never empties them", () => {
+  it("changes routePreference, but never empties it", () => {
     const brief = emptyBrief();
     brief.routePreference = "scenic";
-    brief.defaultTier = "midRange";
     expect(() => (brief.routePreference = null)).toThrow(RuleError);
-    expect(() => (brief.defaultTier = null)).toThrow(RuleError);
     expect(brief.routePreference).toBe("scenic");
-    expect(brief.defaultTier).toBe("midRange");
   });
 
   it("changes its usual start time", () => {
