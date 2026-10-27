@@ -40,10 +40,6 @@ export class FakeTripStore implements TripStore {
     return trips.filter((trip) => trip.owner.id === owner.id);
   }
 
-  loadPlaces(tripId: string): Promise<Place[]> {
-    return this.places.loadForTrip(tripId);
-  }
-
   add(trip: Trip): Promise<void> {
     this.#store(trip);
     return Promise.resolve();

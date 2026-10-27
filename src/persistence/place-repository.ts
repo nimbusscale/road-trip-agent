@@ -1,5 +1,5 @@
+import type { OpeningPeriod } from "../domain/opening-period.js";
 import { Place } from "../domain/place.js";
-import { storedOpeningPeriod } from "./place-document.js";
 import { placeRowSchema } from "./place-row.schema.js";
 import type { Queryable } from "./queryable.js";
 
@@ -128,6 +128,16 @@ function valuesOf(tripId: string, place: Place): unknown[] {
     place.summaries,
     place.links,
   ];
+}
+
+// Each time of day is text, as in the opening_periods column.
+function storedOpeningPeriod(period: OpeningPeriod): object {
+  return {
+    openDay: period.openDay,
+    openTime: period.openTime.toText(),
+    closeDay: period.closeDay,
+    closeTime: period.closeTime?.toText() ?? null,
+  };
 }
 
 function inGivenOrder(

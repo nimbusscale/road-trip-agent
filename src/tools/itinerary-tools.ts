@@ -1,6 +1,4 @@
-import { FeasibilityChecker } from "../domain/feasibility-checker.js";
 import { RuleError } from "../domain/rule-error.js";
-import { calendarAndServicesFor } from "../domain/trip-services.js";
 import { ID_PREFIXES } from "../ids/new-id.js";
 import {
   dayScopeLines,
@@ -8,7 +6,7 @@ import {
   stopScopeLines,
   wholeLines,
 } from "./itinerary-lines.js";
-import type { ReadContext } from "./read-context.js";
+import { type ReadContext, readContextOf } from "./read-context.js";
 import {
   READ_ITINERARY_INPUT,
   WHOLE_ITINERARY,
@@ -53,32 +51,8 @@ export function readItineraryTool(session: TripSession): StrictToolDefinition {
       ({ scope }) =>
         readReplyOrReadableError(async () => {
           const trip = await session.reader.read(session.tripId);
-          const { calendar } = calendarAndServicesFor(
-            trip,
-            session.settings,
-            session.now,
-          );
-          const checker = new FeasibilityChecker({
-            tripBrief: trip.tripBrief,
-            settings: session.settings,
-            calendar,
-          });
-          const itinerary = trip.itinerary;
-          const currentResults = checker.workOut(itinerary);
-          const comparison = checker.compare(
-            currentResults,
-            itinerary.checkResults,
-          );
-          const lines = linesFor(
-            {
-              itinerary,
-              calendar,
-              checker,
-              currentResults,
-              newResults: new Set(comparison.newResults),
-            },
-            scope,
-          );
+          const context = readContextOf(trip, session.settings, session.now);
+          const lines = linesFor(context, scope);
           return textReply(withinLimit(lines, scope));
         }),
     ),
@@ -91,7 +65,7 @@ export function readItineraryTool(session: TripSession): StrictToolDefinition {
 function linesFor(context: ReadContext, scope: string): string[] {
   const { itinerary } = context;
   if (scope === WHOLE_ITINERARY) {
-    return wholeLines(context);
+    return wholeLines(context, "slim");
   }
   if (scope.startsWith(ID_PREFIXES.day)) {
     return dayScopeLines(context, dayIn(itinerary, scope));

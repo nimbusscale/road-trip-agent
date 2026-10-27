@@ -182,7 +182,6 @@ classDiagram
     class TripReader {
         read(tripId : string) Trip
         listForOwner(owner : User) List~Trip~
-        readPlaces(tripId : string) List~Place~
     }
 
     class PlaceWriter {
@@ -238,7 +237,6 @@ classDiagram
         loadForWrite(tripId : string) EditableTrip
         load(tripId : string) Trip
         listForOwner(owner : User) List~Trip~
-        loadPlaces(tripId : string) List~Place~
         add(trip : Trip)
         save(editableTrip : EditableTrip, now : dateTime)
         remove(tripId : string)
@@ -349,7 +347,6 @@ The fixed list that the classes above use:
 
 - **`read(tripId)`** loads one trip. The tools use it for reads, such as `read_itinerary`, and the search tools use it to leave out rejected places, with `itinerary.isRejected()`.
 - **`listForOwner(owner)`** loads every trip the user owns, for the home screen, newest change first. The name, dates, and last updated each come from the plan document (section 2).
-- **`readPlaces(tripId)`** loads every place the trip has, for the plan's downloads (functional spec 10.1). The stored download lists the places the plan links to, and the readable one puts each one's name and address where the plan has its ID.
 
 **A trip from a read is never saved.** Code can change it in memory, but `TripRepository.save()` only takes an `EditableTrip`, and only `loadForWrite()` makes one (section 8.4). So a change made to a read by mistake goes nowhere.
 
@@ -424,7 +421,6 @@ A **repository** is a class that reads and saves one kind of record (section 2).
 - **`loadForWrite(tripId)`** loads the trip's row "for no key update," which takes the row lock (section 4). Then it loads the trip's places, and returns an `EditableTrip`. If the lock isn't free within 5 seconds, it refuses, and the error says the trip is busy. `TripWriter` tries again twice before passing the error on (section 4).
 - **`load(tripId)`** does the same without the row lock, and returns the `Trip`.
 - **`listForOwner(owner)`** loads every trip the user owns.
-- **`loadPlaces(tripId)`** loads the trip's places, with `PlaceRepository.loadForTrip()`.
 - **`add(trip)`** adds a new trip's row.
 - **`save(editableTrip, now)`** checks the started-trip lock with `editableTrip.refuseIfStarted(now)`, and refuses when the trip has started by `now` (section 5). Otherwise it saves the plan document. Then it passes each place in `unnamedPlaceIds` that now has a name to `PlaceRepository.fillNames()`. `TripWriter` passes the time from its clock.
 - **`remove(tripId)`** takes the row lock "for update," then removes the trip's transcript lines, sessions, trip memory items, places, and row, in that order, since each row goes before the rows it links to (section 6). It's the one query that reaches other records' tables, so that deleting a trip stays one call in one transaction.

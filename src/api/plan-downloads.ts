@@ -1,93 +1,34 @@
-import type { Place } from "../domain/place.js";
+import type { Settings } from "../config/settings.schema.js";
 import type { Trip } from "../domain/trip.js";
-import { placeDocumentOf } from "../persistence/place-document.js";
-import { planDocumentOf } from "../persistence/plan-document.js";
+import { wholeLines } from "../tools/itinerary-lines.js";
+import { readContextOf } from "../tools/read-context.js";
+import { tripBriefLines } from "../tools/trip-brief-tools.js";
 
-// The trip brief and the itinerary, for the user to download from the chat view
-// (functional spec 10.1). Two forms:
+// The trip brief and the itinerary, for the user to download from the chat view, as
+// text the coordinator could read (functional spec 10.1). Each starts with what
+// read_trip_brief returns, then the whole itinerary from the lines read_itinerary
+// builds:
 //
-// - stored: the plan document as it's stored, and the places it links to, as stored.
-// - readable: the plan document with each place's name and address where it has the
-//   place's ID, and without route lines, which only a map can read.
+// - plan: each stay and day at the "slim" detail, as a whole read gives them.
+// - full: each at the "full" detail, as a read scoped to a stay gives them.
+//
+// Unlike a read, a download has no size limit. It marks check results new or already
+// known the same way, and saves nothing either, so the coordinator's next read is the
+// same.
 
-const ID = "Id";
-const IDS = "Ids";
-const LEFT_OUT = new Set(["routeLine"]);
+export type PlanDetail = "slim" | "full";
 
-interface PlaceShown {
-  name: string | null;
-  address: string;
-}
-
-type ShownPlaces = ReadonlyMap<string, PlaceShown>;
-
-export function storedPlanOf(trip: Trip, places: readonly Place[]): object {
-  const plan = planDocumentOf(trip);
-  const linked = new Set(textsIn(plan));
-  return {
-    plan,
-    places: places.filter((place) => linked.has(place.id)).map(placeDocumentOf),
-  };
-}
-
-export function readablePlanOf(trip: Trip, places: readonly Place[]): unknown {
-  const shown: ShownPlaces = new Map(
-    places.map((place) => [
-      place.id,
-      { name: place.name, address: place.address },
-    ]),
-  );
-  return readableOf(planDocumentOf(trip), shown);
-}
-
-// Every text value in the document, at any depth. The place IDs are among them.
-function textsIn(value: unknown): string[] {
-  if (typeof value === "string") {
-    return [value];
-  }
-  if (typeof value !== "object" || value === null) {
-    return [];
-  }
-  return Object.values(value).flatMap(textsIn);
-}
-
-function readableOf(value: unknown, places: ShownPlaces): unknown {
-  if (Array.isArray(value)) {
-    return value.map((item: unknown) => readableOf(item, places));
-  }
-  if (typeof value !== "object" || value === null) {
-    return value;
-  }
-  return Object.fromEntries(
-    Object.entries(value)
-      .filter(([key]) => !LEFT_OUT.has(key))
-      .map(([key, item]: [string, unknown]) =>
-        readableEntryOf(key, item, places),
-      ),
-  );
-}
-
-// A link to a place loses "Id" from its name, such as selectedPlaceId to
-// selectedPlace, and a list of them "Ids", such as waypointIds to waypoints. A link
-// that's empty keeps its name.
-function readableEntryOf(
-  key: string,
-  item: unknown,
-  places: ShownPlaces,
-): [string, unknown] {
-  if (key.endsWith(ID) && typeof item === "string") {
-    const place = places.get(item);
-    if (place !== undefined) {
-      return [key.slice(0, -ID.length), place];
-    }
-  }
-  if (key.endsWith(IDS) && Array.isArray(item) && item.length > 0) {
-    const linked = item.map((id: unknown) =>
-      typeof id === "string" ? places.get(id) : undefined,
-    );
-    if (linked.every((place) => place !== undefined)) {
-      return [`${key.slice(0, -IDS.length)}s`, linked];
-    }
-  }
-  return [key, readableOf(item, places)];
+export function planTextOf(
+  trip: Trip,
+  settings: Settings,
+  now: () => Date,
+  detail: PlanDetail,
+): string {
+  const context = readContextOf(trip, settings, now);
+  const lines = [
+    ...tripBriefLines(trip.tripBrief),
+    "",
+    ...wholeLines(context, detail),
+  ];
+  return `${lines.join("\n")}\n`;
 }
