@@ -154,6 +154,10 @@ function stopPoint(itinerary: Itinerary, stop: Stop, day: Day): Place {
       throw new RuleError(
         `${stop.id} is along the leg, so it has no place to search near. Search along its day's drive with search_along_leg and the day ID ${day.id}.`,
       );
+    case null:
+      throw new RuleError(
+        `${stop.id} is a check-in, so it has no candidates to search for. Its place is where the party sleeps that night.`,
+      );
   }
 }
 

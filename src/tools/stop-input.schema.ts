@@ -92,11 +92,18 @@ const newAttraction = z.strictObject({
   setTime,
 });
 
+// Its place is where the party sleeps that night, so it takes no search area.
+const newCheckIn = z.strictObject({
+  kind: z.literal("checkIn"),
+  purpose,
+  setTime,
+});
+
 export const ADD_STOPS_INPUT = z.strictObject({
   dayId,
   after,
   stops: z
-    .array(z.discriminatedUnion("kind", [newMeal, newAttraction]))
+    .array(z.discriminatedUnion("kind", [newMeal, newAttraction, newCheckIn]))
     .min(1)
     .describe("In the order they go on the day."),
 });

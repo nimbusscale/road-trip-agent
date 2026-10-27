@@ -170,6 +170,10 @@ function stopOf(
     purpose: stop.purpose,
     setTime: timeText(stop.setTime),
     choice: choiceOf(stop.selectedPlace, stop.candidates),
+    checkInPlace:
+      stop.kind === "checkIn"
+        ? placeOrNull(calendar.placeOf(itinerary, stop))
+        : null,
   };
 }
 

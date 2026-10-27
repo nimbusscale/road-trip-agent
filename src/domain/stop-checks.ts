@@ -27,9 +27,10 @@ export function stopCheckResults(context: CheckContext): CheckResult[] {
     const schedule = context.calendar.scheduleOf(context.itinerary, day);
     return day.stops.flatMap((stop, index) => {
       const entry = schedule.find((each) => each.stop === stop) ?? null;
+      // A check-in counts as selected, since it has a place from the start.
       const hasUnselectedStopBefore = day.stops
         .slice(0, index)
-        .some((before) => before.selectedPlace === null);
+        .some((before) => before.status !== "selected");
       return [
         openingHoursResult(context, { day, stop, entry }),
         lateResult(context, stop, entry),
@@ -65,7 +66,9 @@ interface StopInDay {
 }
 
 // Checked from the stop's arrival to the end of its visit, against its selected
-// place's weekly hours. A visit that's open the whole time gives nothing.
+// place's weekly hours. A visit that's open the whole time gives nothing. A check-in has
+// no selected place, so it's skipped: Google often has no hours for a hotel, and
+// check-in times aren't checked (technical spec section 8).
 function openingHoursResult(
   context: CheckContext,
   { day, stop, entry }: StopInDay,

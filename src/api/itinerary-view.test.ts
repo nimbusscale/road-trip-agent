@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { TEST_USER_ID } from "../auth/test-tokens.js";
+import { checkInDay } from "../domain/check-in.fake.js";
 import { calendarFor } from "../domain/example-trip-parts.fake.js";
 import { exampleMoabTrip } from "../domain/itinerary.fake.js";
 import { sanFranciscoExample } from "../domain/san-francisco-example.fake.js";
@@ -166,6 +167,23 @@ describe("the itinerary view's route", () => {
     );
     return { chat, tripId: trip.id };
   }
+
+  it("shows a check-in at where the party sleeps that night, with no options to pick", async () => {
+    const { trip, calendar, legs, checkIn } = checkInDay();
+    await legs.updateLegs(trip.itinerary);
+    const day1 = dayNumbered(itineraryViewOf(trip, calendar), 1);
+    const entry = day1.schedule.find((each) => each.stop?.id === checkIn.id);
+    expect(entry).toMatchObject({
+      startTime: "3:57 p.m.",
+      endTime: "4:27 p.m.",
+      stop: {
+        kind: "checkIn",
+        purpose: "check in and freshen up",
+        checkInPlace: { name: "Bar Harbor" },
+        choice: { status: "empty", selection: null },
+      },
+    });
+  });
 
   it("gives the owner the itinerary, in the shape the browser parses", async () => {
     const { chat, tripId } = await addMoabTrip();

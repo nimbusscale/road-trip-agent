@@ -92,13 +92,16 @@ export const shownLegSchema = z.object({
 
 export type ShownLeg = z.infer<typeof shownLegSchema>;
 
+// A check-in has no candidates, so its choice is always empty. `checkInPlace` is where
+// it is: where the party sleeps that night. It's null for every other stop.
 export const shownStopSchema = z.object({
   id: z.string(),
   number: z.number(),
-  kind: z.enum(["meal", "attraction"]),
+  kind: z.enum(["meal", "attraction", "checkIn"]),
   purpose: z.string(),
   setTime: z.string().nullable(),
   choice: shownChoiceSchema,
+  checkInPlace: shownPlaceSchema.nullable(),
 });
 
 export type ShownStop = z.infer<typeof shownStopSchema>;

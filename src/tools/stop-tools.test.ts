@@ -42,6 +42,36 @@ describe("add_stops", () => {
     );
   });
 
+  it("adds a check-in at the stay the party sleeps at that night, with no search area, and re-routes the leg through it", async () => {
+    const { addStops, updateStop, read, example } = await plannedMoab();
+    const day4 = present(example.torrey.days[0]);
+    const reply = textOf(
+      await addStops({
+        dayId: day4.id,
+        after: present(day4.stops[2]).id,
+        stops: [{ kind: "checkIn", purpose: "check in", setTime: "none" }],
+      }),
+    );
+    expect(reply).toMatch(
+      /^Added 1 stop to Day 4 \(day_\w+\):\n- Day 4, Stop 4 \(stop_\w+\), checkIn: "check in"\n/,
+    );
+    const checkInId = present(/Stop 4 \((stop_\w+)\)/.exec(reply))[1] ?? "";
+    expect(await read(day4.id)).toMatch(
+      /Stop 4 \(stop_\w+\), checkIn: "check in"\. At where the party sleeps that night: Torrey hotel \(place_\w+\), Lockhart\. Visit time 30 m\./,
+    );
+    await updateStop({ stopId: checkInId, visitTimeInMinutes: 120 });
+    expect(await read(checkInId)).toContain("Visit time 2 h.");
+    expect(
+      textOf(
+        await addStops({
+          dayId: example.trip.itinerary.lastDay.id,
+          after: "first",
+          stops: [{ kind: "checkIn", purpose: "check in", setTime: "none" }],
+        }),
+      ),
+    ).toMatch(/the last day has no stay to sleep at/);
+  });
+
   it("puts stops first, and takes a set time after midnight", async () => {
     const { addStops, read, example } = await plannedMoab();
     const day4 = present(example.torrey.days[0]);
@@ -113,7 +143,9 @@ describe("update_stop", () => {
           tier: { tier: "posh", tierRule: "the default tier" },
         }),
       ),
-    ).toBe("Nothing was changed. An attraction stop has no tier.");
+    ).toBe(
+      "Nothing was changed. Only a meal stop has a tier. This one is an attraction.",
+    );
     expect(textOf(await updateStop({ stopId: towers.id }))).toBe(
       "Nothing was changed. Give at least one change: setTime, visitTimeInMinutes, tier, approveOpeningHours, or removeApproval.",
     );

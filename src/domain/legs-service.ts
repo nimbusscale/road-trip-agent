@@ -3,13 +3,10 @@ import { describeStop, type Day } from "./day.js";
 import type { Itinerary } from "./itinerary.js";
 import { Leg } from "./leg.js";
 import type { Place } from "./place.js";
-import {
-  driveTimeOf,
-  type FoundRoute,
-  type RouteFinder,
-} from "./route-finder.js";
+import { driveTimeOf, type RouteFinder } from "./route-finder.js";
 import { RuleError } from "./rule-error.js";
 import type { Stop } from "./stop.js";
+import { stopOrderOf } from "./stop-order.js";
 import { VIA_SERVICE } from "./via-service.js";
 import { withWaypoints } from "./waypoint-placement.js";
 
@@ -42,11 +39,6 @@ interface DetourRoute {
   waypoints: readonly Place[];
   before: readonly Place[];
   after: readonly Place[];
-}
-
-interface StopOrder {
-  stopsInBestOrder: readonly Stop[];
-  timeSavedInMinutes: number;
 }
 
 // Decides which days have a leg, and routes them (domain model 4.7). It's the one place
@@ -121,16 +113,18 @@ export class LegsService {
       );
     }
     const position = day.stops.indexOf(stop);
-    const selectedPlaces = (stops: readonly Stop[]): Place[] =>
-      stops.flatMap((each) => each.selectedPlace ?? []);
+    const placesOf = (stops: readonly Stop[]): Place[] =>
+      stops.flatMap(
+        (each) => this.#given.calendar.placeOf(itinerary, each) ?? [],
+      );
     return {
       day,
       route: {
         from: route.from,
         to: route.to,
         waypoints: route.waypoints,
-        before: selectedPlaces(day.stops.slice(0, position)),
-        after: selectedPlaces(day.stops.slice(position + 1)),
+        before: placesOf(day.stops.slice(0, position)),
+        after: placesOf(day.stops.slice(position + 1)),
       },
     };
   }
@@ -144,12 +138,15 @@ export class LegsService {
     if (!calendar.hasLeg(itinerary, day) || from === null || to === null) {
       return null;
     }
-    const stops = day.stops.filter((stop) => stop.selectedPlace !== null);
+    const placed = day.stops.flatMap((stop) => {
+      const place = calendar.placeOf(itinerary, stop);
+      return place === null ? [] : [{ stop, place }];
+    });
     return {
       from,
       to,
-      stops,
-      stopPlaces: stops.flatMap((stop) => stop.selectedPlace ?? []),
+      stops: placed.map((each) => each.stop),
+      stopPlaces: placed.map((each) => each.place),
       waypoints: day.waypoints.map((waypoint) => waypoint.place),
     };
   }
@@ -168,8 +165,8 @@ export class LegsService {
     return { day, oldLeg, newLeg: await this.#routeLeg(route) };
   }
 
-  // One call through the day's start, its selected stops, and its end, with the
-  // waypoints among them. Then the stop-order check, with two or more stops.
+  // One call through the day's start, its stops' places, and its end, with the
+  // waypoints among them. Then the stop-order check.
   async #routeLeg(route: DayRoute): Promise<Leg> {
     const through = withWaypoints(
       route.from,
@@ -182,8 +179,10 @@ export class LegsService {
       through,
       to: route.to,
     });
-    const hasWaypoints = through.some((point) => point.isPassThrough);
-    const stopOrder = await this.#stopOrderOf(route, found, hasWaypoints);
+    const stopOrder = await stopOrderOf(this.#given.routeFinder, route, {
+      found,
+      hasWaypoints: through.some((point) => point.isPassThrough),
+    });
     return new Leg({
       ...found,
       ...stopOrder,
@@ -192,53 +191,6 @@ export class LegsService {
       routedStopPlaces: route.stopPlaces,
       routedWaypoints: route.waypoints,
     });
-  }
-
-  // The stop-order check (technical spec section 8). Google's best order leaves the
-  // waypoints out, since it refuses them. When its order differs from the day's, the
-  // day's own order is routed without waypoints too, so the two compare only the order.
-  // On a leg with no waypoints, that's the leg's own route, so it needs no call.
-  async #stopOrderOf(
-    route: DayRoute,
-    legRoute: FoundRoute,
-    hasWaypoints: boolean,
-  ): Promise<StopOrder> {
-    if (route.stops.length < 2) {
-      return { stopsInBestOrder: [], timeSavedInMinutes: 0 };
-    }
-    const { routeFinder } = this.#given;
-    const best = await routeFinder.bestOrder({
-      from: route.from,
-      stops: route.stopPlaces,
-      to: route.to,
-    });
-    const stopsInBestOrder = best.order.map((position) => {
-      const stop = route.stops[position];
-      if (stop === undefined) {
-        throw new RangeError(`The best order has no stop ${String(position)}.`);
-      }
-      return stop;
-    });
-    if (best.order.every((position, index) => position === index)) {
-      return { stopsInBestOrder, timeSavedInMinutes: 0 };
-    }
-    const ownOrder = hasWaypoints
-      ? await routeFinder.route({
-          from: route.from,
-          through: route.stopPlaces.map((place) => ({
-            place,
-            isPassThrough: false,
-          })),
-          to: route.to,
-        })
-      : legRoute;
-    return {
-      stopsInBestOrder,
-      timeSavedInMinutes: Math.max(
-        0,
-        driveTimeOf(ownOrder) - driveTimeOf(best.route),
-      ),
-    };
   }
 }
 

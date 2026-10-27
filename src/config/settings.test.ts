@@ -13,6 +13,7 @@ const GOOD_SETTINGS = {
   maximumDailyDrivingHours: 12,
   recommendedDailyDrivingHours: 6,
   mealVisitMinutes: 60,
+  checkInVisitMinutes: 30,
   maximumMemoryItems: 50,
   maximumMemoryItemCharacters: 300,
   coordinatorModel: "claude-opus-5-5",

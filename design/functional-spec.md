@@ -70,7 +70,7 @@ Planning only. The application never books, reserves, or purchases anything.
 | Trip | The persistent plan. Owns one itinerary, one trip memory, and many sessions |
 | Itinerary | The structured plan of the road trip that the agent builds |
 | Stay | An overnight location, for one or more nights. One lodging per stay regardless of nights, usually a hotel |
-| Stop | A place the party visits during a day, such as a meal, an attraction, or a quick look along the way |
+| Stop | A place the party visits during a day, such as a meal, an attraction, or a quick look along the way. Checking in at the stay before a later stop, such as an evening event, is a stop too |
 | Leg | The drive on one day, with duration, distance, and the day's stops along the way. It runs from where the party slept to where it sleeps that night. On a day that stays put, it starts and ends at the same stay |
 | Day | One day of the trip, with a schedule: a start time, and a time for each stop and drive. A day can run past midnight, such as for stargazing |
 | Night | A night the party spends at a stay. Every day but the last ends with one. A stay's nights are the days that end there. So a three-night stay in Moab covers three days, and the party leaves on the morning of a fourth |
@@ -260,7 +260,7 @@ For each leg: from, to, drive duration, distance, and notable stops along the wa
 
 ### 9.5 Daily itinerary
 
-For each day: day number, date, location, start time, and its schedule: drives, attractions, and meals, each with a time, and the free time between them. Rest days are marked. The times are a plan, worked out from average drive times and estimated visit times.
+For each day: day number, date, location, start time, and its schedule: drives, attractions, meals, and check-ins, each with a time, and the free time between them. A check-in shows where the party sleeps that night. Rest days are marked. The times are a plan, worked out from average drive times and estimated visit times.
 
 ### 9.6 Weather and clothing
 

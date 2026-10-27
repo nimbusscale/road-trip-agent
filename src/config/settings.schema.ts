@@ -15,6 +15,7 @@ export const settingsSchema = z
     maximumDailyDrivingHours: z.number().positive().max(24),
     recommendedDailyDrivingHours: z.number().positive(),
     mealVisitMinutes: z.int().positive(),
+    checkInVisitMinutes: z.int().positive(),
     maximumMemoryItems: z.int().positive(),
     maximumMemoryItemCharacters: z.int().positive(),
     // An exact model ID, never a short name such as "opus", which moves to newer models

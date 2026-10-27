@@ -85,7 +85,7 @@ describe("Stop.setTier", () => {
     }).toThrow(RuleError);
     expect(() => {
       newStop(HIKE).setTier("value", "cheap");
-    }).toThrow("no tier");
+    }).toThrow("Only a meal stop has a tier");
   });
 });
 
