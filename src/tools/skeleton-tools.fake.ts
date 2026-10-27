@@ -5,7 +5,15 @@ import type { Place } from "../domain/place.js";
 import { setUp } from "../persistence/trip-writer.fake.js";
 import { setWaypointsTool, updateDayTool } from "./day-tools.js";
 import { readItineraryTool } from "./itinerary-tools.js";
+import { rejectPlacesTool } from "./reject-places-tool.js";
+import { selectCandidateTool, selectUserPlaceTool } from "./selection-tools.js";
 import { addStayTool, removeStayTool, updateStayTool } from "./stay-tools.js";
+import {
+  addStopsTool,
+  moveStopTool,
+  removeStopsTool,
+  updateStopTool,
+} from "./stop-tools.js";
 import { storeTrip, textOf } from "./stored-trip.fake.js";
 import type { StrictToolDefinition } from "./strict-tool.js";
 import type { ToolReply } from "./tool-reply.js";
@@ -26,6 +34,13 @@ export interface Tools {
   removeStay: Call;
   updateDay: Call;
   setWaypoints: Call;
+  addStops: Call;
+  updateStop: Call;
+  moveStop: Call;
+  removeStops: Call;
+  selectCandidate: Call;
+  selectUserPlace: Call;
+  rejectPlaces: Call;
   read: (scope: string) => Promise<string>;
 }
 
@@ -44,6 +59,13 @@ export function toolsFor(session: TripSession): Tools {
     removeStay: call(removeStayTool),
     updateDay: call(updateDayTool),
     setWaypoints: call(setWaypointsTool),
+    addStops: call(addStopsTool),
+    updateStop: call(updateStopTool),
+    moveStop: call(moveStopTool),
+    removeStops: call(removeStopsTool),
+    selectCandidate: call(selectCandidateTool),
+    selectUserPlace: call(selectUserPlaceTool),
+    rejectPlaces: call(rejectPlacesTool),
     read: async (scope) =>
       textOf(await readItineraryTool(session).handler({ scope })),
   };

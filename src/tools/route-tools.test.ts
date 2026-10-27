@@ -83,7 +83,7 @@ describe("compute_route", () => {
       "- Grand Junction → Moab, UT, through Dewey Bridge, UT: 1 h 51 m, 25 miles.",
       "- Moab, UT → Torrey: 2 h 20 m, 25 miles.",
       "In all: 4 h 11 m, 50 miles.",
-      "Drive times are Google's averages, without the drive buffer. The schedule and the daily driving check add 10% to each drive.",
+      "Road times are Google's averages, without the drive buffer. The schedule and the daily driving check add 10% to each drive.",
       "What each plain name matched:",
       '- "Dewey Bridge, UT" matched Salt Lake City, at Salt Lake City, UT, USA.',
       '- "Moab, UT" matched Moab, at Moab, UT 84532, USA.',

@@ -6,7 +6,15 @@ import {
 import { setWaypointsTool, updateDayTool } from "./day-tools.js";
 import { findInTripTool } from "./find-in-trip-tool.js";
 import { readItineraryTool } from "./itinerary-tools.js";
+import { rejectPlacesTool } from "./reject-places-tool.js";
+import { selectCandidateTool, selectUserPlaceTool } from "./selection-tools.js";
 import { addStayTool, removeStayTool, updateStayTool } from "./stay-tools.js";
+import {
+  addStopsTool,
+  moveStopTool,
+  removeStopsTool,
+  updateStopTool,
+} from "./stop-tools.js";
 import { readTripBriefTool, updateTripBriefTool } from "./trip-brief-tools.js";
 import type { TripSession } from "./trip-session.js";
 import { updateItineraryTool } from "./update-itinerary-tool.js";
@@ -35,7 +43,14 @@ export function createTripServer(
       updateStayTool(session),
       removeStayTool(session),
       updateDayTool(session),
+      addStopsTool(session),
+      updateStopTool(session),
+      moveStopTool(session),
+      removeStopsTool(session),
       setWaypointsTool(session),
+      selectCandidateTool(session),
+      selectUserPlaceTool(session),
+      rejectPlacesTool(session),
     ],
   });
 }
