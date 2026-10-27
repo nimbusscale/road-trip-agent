@@ -22,7 +22,7 @@ Planning only. The application never books, reserves, or purchases anything.
 - Conversational trip planning with the agent
 - Feasibility checking (driving time, seasonality, must-sees vs days)
 - Recommendations for lodging, restaurants, and attractions, presented as selectable option cards
-- Budget tiers (value, mid-range, posh), with differentiated rules per stay. Prices are not shown
+- Budget tiers (value, mid-range, upscale), which say what each recommended hotel or restaurant is like. Prices are not shown
 - Weather (forecast or seasonal averages) and clothing guidance
 - Itinerary view: summary, map, stays, legs, daily schedule with times
 - Save trips, list trips, reopen trips, delete trips
@@ -78,7 +78,7 @@ Planning only. The application never books, reserves, or purchases anything.
 | Candidate | A hotel, restaurant, or attraction offered for a stay's lodging or a stop, with its rationale and source |
 | Status | Where a stop, or a stay's lodging, is in being decided: **empty** (no options yet), **proposed** (options shown, nothing chosen), or **selected**. An empty or proposed stop has **no selected place**. It has no place to drive to, so it takes no time in the day's schedule. The timing rules say "no selected place" so they cover both |
 | Option card | The UI element presenting a set of candidates for one choice (a stay's lodging or a stop), with selection actions |
-| Budget tier | Value, mid-range, or posh. A relative price level the agent infers. Shown instead of prices |
+| Budget tier | Value, mid-range, or upscale. What a hotel or restaurant is like, which the agent judges for each place it recommends (section 7.1). Shown instead of prices |
 | Session | One conversation with the agent about one trip |
 | User memory | Durable facts and preferences about the user, applied to every trip |
 | Trip brief | The structured facts about what the user wants from one trip: the items in section 5.2 |
@@ -111,8 +111,10 @@ The trip brief holds the items below. The agent establishes each one, whether or
 | Route preference | Yes | Scenic or fastest. A default for the trip. A leg can differ when the user agrees |
 | Rest days | No | Days with no driving, in the user's words, such as "one day off in Moab." The agent decides which days |
 | Usual start time | No | When the party usually gets going each day. Defaults to 8 a.m. A day can start at another time when the user agrees, such as for a sunrise hike |
-| Budget posture | Yes | Default tier plus any rules (section 7.1) |
-| Meal preferences | Yes | Hotel breakfast vs local food scene, cuisines, food interests |
+| Meal preferences | Yes | Hotel breakfast vs local food scene, cuisines, food interests, and how much the user likes to spend on food. In the user's words, such as "foodies, willing to splurge on good food, especially lobster" |
+| Lodging preferences | Yes | What the user wants from places to stay, in their words, such as "something mid-tier in Bar Harbor, upscale OK in Camden and Portland, a B&B could be a good option in one of them" (section 7.2) |
+
+There's no item for a total trip budget, such as "under $3,000." The app never shows prices (7.1), so the agent says it can't plan to one. A preference for free activities goes in interests, since attractions have no tier. A lodging wish that comes up later in the chat, after discovery, goes in trip memory, or in user memory when it's a standing preference (section 10).
 
 Discovery also settles the start and end points (one-way or loop, and the agent suggests them if the user has no preference) and an exact start date. It must be after today, with no limit on how far ahead. These go in the itinerary, not the trip brief. The trip brief holds what the user wants. The itinerary holds the plan. No fact is kept in both. The user must give a start date before the agent builds the skeleton. Planning without dates is out of the MVP.
 
@@ -164,22 +166,25 @@ The agent:
 
 ## 7. Recommendations
 
-### 7.1 Budget tiers and rules
+### 7.1 Budget tiers
 
-- Three tiers: **value**, **mid-range**, **posh**. The agent infers a place's tier from descriptions, reviews, and listing signals, such as a "$$" price level when the data includes one.
-- Option cards show the tier only. They never show prices or nightly rates.
+- Three tiers: **value**, **mid-range**, **upscale**. A tier says what a place is like, not how it compares with the places around it:
+  - **Value** is simple and clean: a budget chain motel, such as a Super 8, or a basic independent motel. For food, counter service, a diner, or a food truck.
+  - **Mid-range** is comfortable, with more service: a mainstream chain hotel, such as a Hampton Inn or a Courtyard, or a well-reviewed independent inn. For food, a typical sit-down restaurant.
+  - **Upscale** is a boutique hotel, a resort, or a top-rated inn or B&B. For food, a chef-driven restaurant where a reservation is wise.
+- The agent judges each place's tier from its description, reviews, and listing. For restaurants, the price level is a guide, not a rule: $ usually means value, $$ mid-range, and $$$ or more upscale. When it's missing, or disagrees with what the place is like, the description decides.
 - Tiers apply to lodging and dining. **Assumption:** attractions have no tier.
-- The user sets a **default tier** for the trip early in the conversation.
-- The user can add **rules** in natural language, and the agent applies its judgment. Examples:
-  - "One-night stays: value. Cities where we stay two or more nights: mid-range."
-  - "Posh in Savannah, value everywhere else."
-  - "One special dinner on the last night."
-- Each candidate shows which tier it is and which rule produced it. A place the user named shows "your choice" instead.
+- **A tier is a label, not a target.** What the agent looks for comes from the user's own words: their meal and lodging preferences (5.2), and what they say later. Real budget wishes don't fit three boxes. Examples:
+  - "We're foodies, willing to splurge on good food" is about quality, not how fancy a place is. The best lobster roll in Maine may come from a shack with counter service, which is value.
+  - "Mid-range for stays of two or more nights, value otherwise."
+  - "A B&B could be a good option in Camden or Portland" means one of the two towns, not both.
+- Option cards show each option's tier. They never show prices or nightly rates. A place the user named shows "your choice" instead.
 
 ### 7.2 Lodging
 
 - One lodging per stay, regardless of nights.
-- The agent recommends hotels only. The user can name any lodging instead, such as a friend's house or a campground (7.6).
+- The agent recommends hotels only: lodging businesses listed on Google, B&Bs and inns included. That rules out private rentals and campgrounds. The user can still name any lodging instead, such as a friend's house, a rental, or a campground (7.6).
+- What the agent looks for in each stay's lodging comes from the user's lodging preferences (5.2).
 - Location matters: for a stay of several nights, near what the user wants to see; for a one-night stay, convenient to the route.
 
 ### 7.3 Dining
@@ -200,7 +205,7 @@ Each card set presents candidates for one choice (a stay's lodging, or a meal or
 
 Each option shows:
 
-- Name, type, tier, and location
+- Name, type, and location, and the tier for hotels and restaurants (7.1)
 - Rating and review count, for restaurants and hotels. Attractions show them only where a rating means something. A national park or a historic plaque, for example, shows none. Which attractions qualify is settled during development
 - Why it was recommended, tied to the user's stated preferences
 - Source link for the underlying listing or review data
@@ -209,8 +214,8 @@ Each option shows:
 Actions on the card set:
 
 - **Select** an option
-- **More options** in the same tier
-- **Higher tier** / **Lower tier**, on lodging and meal cards only. Attractions have no tier. "Higher tier" is hidden at posh, and "Lower tier" at value
+- **More options** like these
+- **Higher tier** / **Lower tier**, on lodging and meal cards only. Attractions have no tier. Each asks the agent for options nicer, or simpler, than the ones shown, such as "something nicer than these." Nothing is changed in the trip until the user selects one. "Higher tier" is hidden when every option shown is upscale, and "Lower tier" when every option shown is value
 
 Selecting an option updates the itinerary, and the agent acknowledges the change in chat. The user can also select by chat ("take the second one"). Once an option is selected, the card closes. Later changes go through chat: the user can ask what else was offered, pick another option by name, ask for more options, or turn the pick down. A new card appears only when new options are offered, or when the user turns down the pick and other options are left. It shows the newest options. When the user passes on the pick only because of the date, such as "it's closed that day," the place isn't turned down, so no card appears. The agent lists the other options in chat instead.
 
@@ -240,7 +245,7 @@ Displayed alongside the chat. Read-only: only the agent changes it, in response 
 
 ### 9.1 Trip summary
 
-Trip name, dates, start and end, total driving time, number of stays, default budget posture and rules.
+Trip name, dates, start and end, total driving time, and number of stays.
 
 ### 9.2 Map
 
@@ -289,7 +294,7 @@ Miles, Fahrenheit, and US date formats.
 - **A "Memory" toggle shows user memory and trip memory,** each item with "Forget." The app asks first. Forgetting an item here works like asking the agent to forget it (10.5). The list is read again after each reply, since the agent may have changed memory. It's shown once the session exists, after the first message.
 - **"Download plan" and "Download full plan" save the trip brief and the itinerary as a text file, as the coordinator reads them,** so Joe can trace why the coordinator did something. Each starts with the trip brief, then the whole itinerary, as the coordinator's own reads give them (tool design 2.1). Both are shown once the session exists.
   - **"Download plan"** gives the itinerary exactly as a whole read returns it, the read the coordinator gets at the start of each session. So it matches the whole read in that session's trace, as long as nothing changed since.
-  - **"Download full plan"** gives the same layout, but each stay and day as a read of that stay gives them: every candidate, with its rationale, and each stay's weather text and tier rule. The coordinator never reads the whole trip at this detail at once, but each stay and its days match what it sees when it reads that stay.
+  - **"Download full plan"** gives the same layout, but each stay and day as a read of that stay gives them: every candidate, with its rationale, and each stay's weather text. The coordinator never reads the whole trip at this detail at once, but each stay and its days match what it sees when it reads that stay.
   - **A download has no size limit.** A whole read too large for the coordinator is refused, but a download never is.
   - **A download saves nothing.** It marks each check result new or already known, as a read does, and like a read, it doesn't change what's saved. So the coordinator's next read is the same.
 - **Not supported:** two sessions of one trip open at the same time, such as in two browser tabs or on two devices. Nothing stops it, but a session that stays open doesn't learn about changes made in the other one. Only the trip's owner can see it (10.4), so this is one user with two sessions open, never two users.
@@ -310,7 +315,7 @@ Trip memory holds what the user says that doesn't fit the trip brief or the itin
 Durable preferences that apply to every trip. Examples:
 
 - Typical comfortable driving hours and route preference
-- Default budget posture and rules
+- Lodging preferences ("B&Bs over chain hotels")
 - Meal habits ("prefer the local food scene over hotel breakfast")
 - Recurring interests
 
@@ -334,7 +339,7 @@ User memory doesn't hold a dislike of one specific place, since it means nothing
 
 ## 11. Acceptance scenarios
 
-**S1. Specific route.** User asks for the Pacific Coast Highway, San Francisco to Los Angeles. The agent still asks about interests, must-sees, dates, driving hours, and budget posture before proposing stays and nights.
+**S1. Specific route.** User asks for the Pacific Coast Highway, San Francisco to Los Angeles. The agent still asks about interests, must-sees, dates, driving hours, and lodging preferences before proposing stays and nights.
 
 **S2. Theme and region.** User wants Texas barbecue over seven days with no start or end in mind. The agent proposes a start and end (loop or one-way), stays, and drive times, with barbecue restaurants treated as primary attractions.
 
@@ -342,9 +347,9 @@ User memory doesn't hold a dislike of one specific place, since it means nothing
 
 **S4. Seasonal conflict.** User plans a trip starting January 15 that includes an attraction open only in summer. The agent flags that the attraction is typically closed then and proposes later dates or a substitute. In the MVP this comes from the agent's judgment, not a code check (technical spec section 8).
 
-**S5. Differentiated tiers.** User sets value as the default and mid-range for any stay of two or more nights. Hotel cards for one-night stays show value options; cards for longer stays show mid-range, with the applied rule visible.
+**S5. Tiers as labels.** The user says they're foodies, willing to splurge on good food, and wants mid-range hotels, with a B&B in one of two towns. Restaurant cards show the places that fit best, at whatever tier they are, such as a value lobster shack, each with its tier. Hotel cards show mid-range options. Both towns' cards include a B&B, until the user picks a B&B in one of them.
 
-**S6. Option card navigation.** On a hotel card, the user picks "Higher tier," then selects an option. The itinerary updates and the agent confirms in chat.
+**S6. Option card navigation.** On a hotel card, the user picks "Higher tier." The agent offers options nicer than the ones shown. The user selects one, the itinerary updates, and the agent confirms in chat.
 
 **S7. Resume and new session.** The user returns the next day. Resuming the prior session restores the conversation. Starting a new session, the agent knows the itinerary, the trip's open items, and the user's standing preferences.
 
