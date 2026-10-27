@@ -68,8 +68,8 @@ function readableOf(value: unknown, places: ShownPlaces): unknown {
 }
 
 // A link to a place loses "Id" from its name, such as selectedPlaceId to
-// selectedPlace, and a list of them "Ids", such as waypointIds to waypoints. A link
-// that's empty keeps its name.
+// selectedPlace, and a list of them "Ids", such as routedWaypointIds to
+// routedWaypoints. A link that's empty keeps its name.
 function readableEntryOf(
   key: string,
   item: unknown,

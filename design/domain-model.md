@@ -197,10 +197,15 @@ classDiagram
         id : string #123;readOnly#125;
         ownStartTime : time?
         stops : List~Stop~ #123;viaService#125;
-        waypoints : List~Place~ #123;readOnly#125;
+        waypoints : List~Waypoint~ #123;readOnly#125;
         leg : Leg? #123;viaService#125;
         approvals : List~Approval~ #123;viaService#125;
-        setWaypoints(waypoints : List~Place~)
+        setWaypoints(waypoints : List~Waypoint~)
+    }
+
+    class Waypoint {
+        place : Place #123;readOnly#125;
+        reason : string #123;readOnly#125;
     }
 
     class StayDay {
@@ -336,7 +341,7 @@ classDiagram
     ActivityRecord --> "0..1" Place : selectedPlace
 
     Day *-- "*" Stop : stops
-    Day --> "*" Place : waypoints
+    Day *-- "*" Waypoint : waypoints
     Day *-- "0..1" Leg : leg
     Day *-- "*" Approval : approvals
 
@@ -352,6 +357,7 @@ classDiagram
     Stop *-- "*" Approval : approvals
 
     Candidate --> "1" Place : place
+    Waypoint --> "1" Place : place
 
     Place *-- "*" OpeningPeriod : openingPeriods
 
@@ -638,7 +644,7 @@ A day is one day of the trip, with a schedule (functional spec 4). There are two
 | `id` | Stored | `string`, read only | Agents see it. Users never do. It never changes, even when the day's number or date does (see Itinerary) |
 | `ownStartTime` | Stored | `time?` | A start time the user agreed to for this day, such as 5:30 a.m. for a sunrise hike. Empty means the trip brief's `usualStartTime`. Set directly |
 | `stops` | Stored | `List<Stop>`, in order, via service | The day's stops, in the order the coordinator set. Code never reorders them. Changes only through `StopsService.addStops()`, `moveStop()`, and `removeStops()` |
-| `waypoints` | Stored | `List<Place>`, in the coordinator's order, read only | Places the day's drive must pass through without stopping, to steer the route, such as Big Sur village. Changes only through `setWaypoints()`, or when the leg goes. See below |
+| `waypoints` | Stored | `List<Waypoint>`, in the coordinator's order, read only | Places the day's drive must pass through without stopping, to steer the route, each with its reason, such as Big Sur village, "steer onto Highway 1". Changes only through `setWaypoints()`, through `DaysService.approveRouteType()` when fastest is approved (section 4.5), or when the leg goes. See below |
 | `leg` | Stored | `Leg?`, held by the day, via service | The day's drive, if it has one. Changes only through `LegsService.updateLegs()`, at the end of every write (section 4.7). That includes a rest day's leg, which it removes (see Rules). See Leg |
 | `approvals` | Stored | `List<Approval>`, in no order, via service | Drive hours and route type approvals, at most one of each. Changes only through `DaysService.approveDriveHours()`, `approveRouteType()`, and `removeApproval()` |
 
@@ -652,8 +658,9 @@ A day is one day of the trip, with a schedule (functional spec 4). There are two
 
 **Worked out by the calendar.** A day doesn't know the stay that holds it, or the day before it. So its position, date, start time, the stays it runs between, where it starts and ends, whether it stays put, its location, and its schedule are calendar functions (section 4.1). Example: on San Francisco Day 2, `startStayOf()` gives the Monterey stay and `endStayOf()` gives the San Luis Obispo stay.
 
-**Waypoints.** A waypoint is a point the route must pass through, without stopping. The coordinator adds waypoints to steer a scenic route. Example: the fastest route from Monterey to San Luis Obispo runs inland on US-101. To keep it on Highway 1 through Big Sur, the coordinator adds a waypoint at Big Sur village. Users don't pick waypoints. They pick scenic or fastest, and the coordinator picks the waypoints.
+**Waypoints.** A waypoint is a point the route must pass through, without stopping. The coordinator adds waypoints to keep a route on a road: a scenic road, for the route preference, or a road to a must-see that's an area or a road (technical spec 4.2). Example: the fastest route from Monterey to San Luis Obispo runs inland on US-101. To keep it on Highway 1 through Big Sur, the coordinator adds a waypoint at Big Sur village. The user doesn't pick the waypoint itself. They pick scenic or fastest, or ask for a road, such as "take us over the Golden Gate Bridge," and the coordinator picks the waypoints.
 
+- **Each waypoint holds a reason,** such as "steer onto Highway 1", "must-see: Capitol Reef", or "the user asked: the Golden Gate Bridge." A `Waypoint` is held by its day, with no `id` of its own. It holds `place : Place` and `reason : string`, both read only, and never changes. Creating one with an empty reason is refused. The reason says which waypoints are still needed when they're cleared, such as when the user approves fastest (section 4.5), and in a later session that never saw them set. It also shows a reader of the itinerary why the route goes where it does.
 - **A waypoint is a place, never a plain name.** A name can resolve somewhere unexpected without any error. In testing, "Dewey Bridge, UT" resolved to Salt Lake City and turned a 2-hour drive into an 8-hour one. The coordinator looks a waypoint up with the tool `find_place` first.
 - **The coordinator doesn't say where a waypoint goes among the stops.** `LegsService` places it when it routes the leg (section 4.7). A day's stops change after its waypoints are set, so a waypoint placed by hand could end up next to the wrong stop.
 - **A waypoint stays after stops are selected.** Once the selected stops pull the route onto the road, it changes nothing. The coordinator can remove it then, but doesn't have to. It picks a waypoint on the road it wants, so it doesn't need to see the route to know the leg uses that road. Only Highway 1 goes through Big Sur village.
@@ -669,9 +676,9 @@ A day is one day of the trip, with a schedule (functional spec 4). There are two
 
 **Operations:**
 
-- **`setWaypoints(waypoints : List<Place>)`** (the tool `set_waypoints`). Replaces the day's waypoints with the list given, in that order. An empty list clears them.
+- **`setWaypoints(waypoints : List<Waypoint>)`** (the tool `set_waypoints`). Replaces the day's waypoints with the list given, in that order. An empty list clears them.
   - **Follows on:** the leg is re-routed at the end of the write.
-  - **Refused:** while the day has no leg, such as a day that stays put with no selected stop yet. On a rest day, even one marked in this write, which keeps its leg until the end of the write.
+  - **Refused:** while the day has no leg, such as a day that stays put with no selected stop yet. Waypoints on a rest day, even one marked in this write, which keeps its leg until the end of the write. Clearing them there is allowed, such as when fastest is approved in the same write.
 
 The day keeps change methods for `stops`, `leg`, and `approvals`, and a stay day for `isRestDay`, that only services reach (section 1). They run the day's own rules, below. Adding, moving, and removing stops are in `StopsService` (section 4.6). Rest days and approvals are in `DaysService` (section 4.5). Adding, re-routing, and removing the leg are in `LegsService` (section 4.7).
 
@@ -771,7 +778,7 @@ Each kind is its own class, because each holds a different value. In code, the t
 
 **Each records an amount, not yes or no.** Then nothing has to be reset. Example: Moab Day 4 is approved for 5 hours. If a later change makes it 5 hours 20 minutes, the approval stops applying, and the warning comes back as new. If a change makes the day shorter, nothing is said. An opening hours approval works the same way, in minutes. Approving a closed place records 0 minutes, so it applies as long as that place stays selected. A time of day wouldn't work: any change earlier in the day moves every later time.
 
-**A route type approval covers no warning.** It records the user's choice, so the coordinator doesn't raise it again, in this session or a later one, and adds no scenic waypoints that day. The itinerary view shows it with the day's leg, with the reason (functional spec 9.4).
+**A route type approval covers no warning.** It records the user's choice, so the coordinator doesn't raise it again, in this session or a later one, and adds no scenic waypoints that day. Approving fastest clears the day's waypoints (section 4.5). The itinerary view shows it with the day's leg, with the reason (functional spec 9.4).
 
 **Approval rules:**
 
@@ -799,7 +806,7 @@ A leg is the drive on one day (functional spec 4). It's the route Google Routes 
 | `routedFromPlace` | Stored | `Place`, read only | Where the day started when the leg was routed: `fromPlaceOf()` at the time. See below |
 | `routedToPlace` | Stored | `Place`, read only | Where the day ended when the leg was routed: `toPlaceOf()` at the time |
 | `routedStopPlaces` | Stored | `List<Place>`, in order, read only | The day's selected places, in the day's order, when the leg was routed |
-| `routedWaypoints` | Stored | `List<Place>`, in order, read only | The day's waypoints when the leg was routed |
+| `routedWaypoints` | Stored | `List<Place>`, in order, read only | The places of the day's waypoints when the leg was routed. Places only, without reasons, since it records what Google was asked |
 | `driveTimeInMinutes` | Worked out | `integer` | The sum of `segmentDriveTimesInMinutes`, without the drive buffer. The itinerary view shows it, and the itinerary's `totalDriveTimeInMinutes` adds them up |
 
 **Stored because each one costs a paid call.** Working the route out on every read would be slow, and would use up the Google Routes quota. So it's worked out once and stored, and worked out again only when something the route depends on changes (section 4.7).
@@ -808,7 +815,7 @@ A leg is the drive on one day (functional spec 4). It's the route Google Routes 
 
 **Worked out by the calendar.** Where a day starts and ends now needs the day before and the stay that holds the day, which neither the leg nor its day can see. So they're the calendar's `fromPlaceOf()` and `toPlaceOf()` (section 4.1). The leg's `routedFromPlace` and `routedToPlace` only record what they were when it was routed. Example: on the San Francisco trip, Day 1's leg ends at the Monterey hotel, and Day 2's leg starts there. When the user picks a different Monterey hotel, both functions give the new one at once, and both legs are re-routed at the end of the write. A day that stays put starts and ends at the same place, so its leg returns to the stay. That's just what the two functions give, not a kind of leg.
 
-**Route type isn't a property.** Nothing reads it. It changes nothing in the call to Google, and no check reads it (technical spec section 8). The coordinator makes a leg scenic with waypoints, or with stops that already pull the route onto the scenic road. Google's avoid-highways option was tested as a scenic setting and turned down: it stayed on US-101 instead of Big Sur, added hours to long Western legs, and picked old back roads such as the TransAmerica Trail. The itinerary view shows a leg as scenic or fastest only when its day holds a route type approval, and reads that from the approval (functional spec 9.4).
+**Route type isn't a property.** It changes nothing in the call to Google, and no check reads it (technical spec section 8). Only approving fastest acts on it, by clearing the day's waypoints (section 4.5). The coordinator makes a leg scenic with waypoints, or with stops that already pull the route onto the scenic road. Google's avoid-highways option was tested as a scenic setting and turned down: it stayed on US-101 instead of Big Sur, added hours to long Western legs, and picked old back roads such as the TransAmerica Trail. The itinerary view shows a leg as scenic or fastest only when its day holds a route type approval, and reads that from the approval (functional spec 9.4).
 
 **Waypoints and approvals are on the day,** not the leg. The leg is only Google's answer, and a re-route replaces it. Approvals stay on the day when the leg goes, such as on a rest day (see Approval). Waypoints go with the leg (see Day).
 
@@ -1065,7 +1072,8 @@ The two trip brief items whose limits are settings. Every other item is set dire
   - **Refused:** marking a day that doesn't stay put (`isStayingPut()`), since a day that moves has to drive. Marking a day while a stop on it has no set time, since nothing would place that stop in the day. The error lists those stops.
 - **`approveDriveHours(day : Day, drivingInHours : decimal, reason : string)`** (the tool `update_day`). Adds a drive hours approval, replacing any the day has.
   - **Refused:** when the hours are more than the maximum daily driving, a setting (technical spec section 10). By the approval's own rules: when the reason is empty, or the hours aren't more than 0.
-- **`approveRouteType(day : Day, routeType : RouteType, reason : string)`** (the tool `update_day`). Adds a route type approval, replacing any the day has. It needs no business rule. It's here because a day's `approvals` is via service.
+- **`approveRouteType(day : Day, routeType : RouteType, reason : string) : List<Waypoint>`** (the tool `update_day`). Adds a route type approval, replacing any the day has. Approving fastest also clears the day's waypoints, so none keeps the day on a scenic road under a fastest label. Approving scenic leaves them. It returns the waypoints it cleared, in order, with their reasons, and an empty list when it cleared none. It's here because a day's `approvals` is via service.
+  - **Follows on:** when it cleared waypoints, the leg is re-routed at the end of the write (section 4.7), so the tool's reply gives the new road time. The reply names each waypoint cleared, with its reason. The coordinator puts back, with `set_waypoints`, each one set for a must-see or the user's request (technical spec 5.2). Code doesn't sort them, since a reason is the coordinator's own words.
   - **Refused:** by the approval's own rule, when the reason is empty.
 - **`removeApproval(day : Day, kind : ApprovalKind)`** (the tool `update_day`). Removes the day's approval of that kind. It does nothing when the day has none. No reason is needed.
   - **Refused:** by the day's own rule, for an opening hours approval, which only stops hold.
@@ -1110,7 +1118,7 @@ It decides which days have a leg, and routes them. It's the one place that calls
 
 - **`updateLegs(itinerary : Itinerary) : List<LegChange>`** (the finish of every write, section 1). For each day, it works out whether the day should have a leg (below), and compares the day as it is now with what its leg was routed for (see Leg):
   - **Adds** a leg to a day that should have one and has none.
-  - **Re-routes** a day's leg when its start (`fromPlaceOf()`), its end (`toPlaceOf()`), its selected places in order, or its waypoints differ from the leg's `routedFromPlace`, `routedToPlace`, `routedStopPlaces`, or `routedWaypoints`. The new leg replaces the old one, and remembers the new values.
+  - **Re-routes** a day's leg when its start (`fromPlaceOf()`), its end (`toPlaceOf()`), its selected places in order, or its waypoints' places in order differ from the leg's `routedFromPlace`, `routedToPlace`, `routedStopPlaces`, or `routedWaypoints`. A waypoint's reason isn't routed, so changing only a reason re-routes nothing. The new leg replaces the old one, and remembers the new values.
   - **Removes** the leg from a day that shouldn't have one. The day's waypoints go with it, by the day's own rule.
   - **Leaves alone** every other leg. Changing a stop's set time, visit time, tier, or approvals re-routes nothing, and neither does adding, moving, or removing a stop with no selected place. The schedule is worked out from the stored segment drive times (section 4.1), so it needs no new route.
   - **Returns** one `LegChange` for each day whose leg it added, re-routed, or removed. Each holds the day, its old leg, and its new leg. The old leg is empty for an added leg, and the new leg for a removed one. The write hands them back to the tool (section 1). The tool's reply uses them to give each day's old and new drive time, such as "Day 2: 2 h 10 m → 1 h 30 m," and counts their days as touched (technical spec section 8). A `LegChange` isn't stored.
@@ -1230,7 +1238,7 @@ Itinerary
                            lodging → (an SLO hotel)
       Day 2, Fri May 14 (worked out)
         Starts        8:00 a.m.        (worked out: the trip brief's usual start time)
-        Waypoints     Big Sur village  (keeps it on Highway 1 during the fill)
+        Waypoints     Big Sur village, "steer onto Highway 1"  (keeps it on the coast during the fill)
         Leg
           from        Monterey hotel   (worked out: where the party slept last night)
           to          SLO hotel        (worked out: where the party sleeps tonight)
@@ -1282,7 +1290,7 @@ Itinerary
                  tier: mid-range, from rule: stays of 2+ nights
       Day 1, Sun Oct 10 (worked out)
         Starts        8:00 a.m.        (worked out: the trip brief's usual start time)
-        Waypoints     Dewey Bridge     (keeps it on Highway 128 along the river)
+        Waypoints     Dewey Bridge, "steer onto UT-128"  (keeps it along the river)
         Leg
           from        Grand Junction   (worked out: the start place)
           to          Moab hotel       (worked out: where the party sleeps tonight)

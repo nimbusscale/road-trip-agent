@@ -41,7 +41,13 @@ describe("the plan's downloads", () => {
     const { trip, places } = exampleMoabTrip(OWNER);
     const readable = JSON.stringify(readablePlanOf(trip, places));
     expect(readable).toContain('"selectedPlaceId":null');
-    expect(readable).toContain('"waypointIds":[]');
-    expect(readable).toContain('"waypoints":[{"name":');
+  });
+
+  it("gives each waypoint's place with its reason, and each place a leg was routed through", () => {
+    const { trip, places } = exampleMoabTrip(OWNER);
+    const readable = JSON.stringify(readablePlanOf(trip, places));
+    expect(readable).toContain('"waypoints":[{"place":{"name":"Dewey Bridge",');
+    expect(readable).toContain('"reason":"steer onto UT-128"');
+    expect(readable).toContain('"routedWaypoints":[{"name":"Dewey Bridge",');
   });
 });

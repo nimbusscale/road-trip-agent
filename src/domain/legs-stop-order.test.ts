@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { lodgeAt, placeNamed } from "./example-trip-parts.fake.js";
 import { present } from "./itinerary.fake.js";
+import { exampleWaypoint } from "./place.fake.js";
 import {
   addNepentheLunch,
   BIG_SUR,
@@ -33,7 +34,7 @@ describe("LegsService.updateLegs: the stop-order check", () => {
     const planning = sanFranciscoDay2();
     const { itinerary, day2, legs, finder } = planning;
     await legs.updateLegs(itinerary);
-    day2.setWaypoints([BIG_SUR]);
+    day2.setWaypoints([exampleWaypoint(BIG_SUR)]);
     // Nepenthe first: the day backtracks to Monterey for breakfast.
     addNepentheLunch(planning, "first");
     forgetCalls(finder);

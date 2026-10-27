@@ -112,9 +112,19 @@ export function updateDayInput(
   });
 }
 
+// What the reason is for is in the coordinator's instructions (tool design, section 4).
 export const SET_WAYPOINTS_INPUT = z.strictObject({
   dayId,
-  waypoints: z.array(placeId).describe("Place IDs. An empty list clears them."),
+  waypoints: z
+    .array(
+      z.strictObject({
+        placeId,
+        reason: z
+          .string()
+          .describe('In a few words, such as "steer onto US-1".'),
+      }),
+    )
+    .describe("An empty list clears them."),
 });
 
 export type UpdateDayInput = z.infer<ReturnType<typeof updateDayInput>>;

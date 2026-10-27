@@ -33,6 +33,7 @@ export function coordinatorPrompt(settings: CoordinatorPromptSettings): string {
     comfortableDriving(settings),
     ITINERARY,
     PLANNING,
+    WAYPOINTS,
     DAYS,
     STAY_CHANGES,
     LAYING_OUT_DAYS,
@@ -133,7 +134,7 @@ The itinerary is the plan: where the party sleeps each night, and what it does e
 - Last day: the trip's final day, when the party drives to the end place. It ends with no night, so a trip's nights add up to one less than its days: a 5-day trip has 4 nights of stays. Every trip has a last day, and a day trip is only the last day.
 - Rest day: a day with no driving.
 - Leg: a day's drive, from where the day starts to where it ends, through the day's selected stops. A day that stays put has a leg only once it has a selected stop. A rest day has none.
-- Waypoint: a place a day's drive passes through without stopping, to steer the route, such as onto a scenic road.
+- Waypoint: a place on a road that a day's drive passes through without stopping, to keep the route on that road. Each has a reason that says why it was set.
 - Stop: a meal or an attraction the party visits during a day, with a purpose, such as "dessert" or "a sunrise hike".
 - Candidate: a place offered for a stop or for a stay's lodging, with why it was offered. The stop or lodging has a selected place once the user picks one.
 - Set: one batch of candidates, offered together. The option card shows only the newest set, so the user can't see an older set's candidates there. When you recommend one of them, name it in chat.
@@ -145,7 +146,7 @@ What the lines of a read mean:
 
 - A stop's number is its place in its day. Days, stays, stops, and sets are counted from 1.
 - A day's line gives its date and where it runs, such as "Moab → Torrey", or one town when it stays put. Its start time is "the usual start time", from the trip brief, or "the day's own start time", set on that day.
-- The leg line gives the miles, the road time, and the driving with the drive buffer, then any waypoints. "No leg" means the day doesn't drive.
+- The leg line gives the miles, the road time, and the driving with the drive buffer. A line under it gives each waypoint, with its reason. "No leg" means the day doesn't drive.
 - The schedule lists the drives, stops, and free time in order. Its times are estimates, from average drive times plus the buffer, and visit times. A time after midnight says "the next day".
 - Free time is a wait before the party drives on, such as before a stop's set time. The schedule doesn't say where they spend it.
 - A stop's line gives its time in the schedule, its number, whether it's a meal or an attraction, its purpose, and its search area, such as "Along the leg" or "Near the Springdale stay". A meal also gives its tier.
@@ -185,13 +186,28 @@ While building the skeleton:
 - For a must-see that's a road, such as the Big Sur coast, set waypoints on it.
 - When routePreference is scenic, set waypoints on scenic legs where no stop the user chose already decides the road, before the days are filled in. Example: a leg from Half Moon Bay to Santa Cruz goes down Highway 1, not inland on US-101 and back to the coast on CA-92. A day with its own route type approval gets no scenic waypoints.`;
 
+// Technical spec 4.2 for how a waypoint is picked, and 5.2 for its reason.
+const WAYPOINTS = `## Waypoints
+
+A waypoint keeps a day's drive on a road. Give each one a reason with set_waypoints, in a few words that say what it's for:
+
+- To keep the drive on a scenic road, for the route preference, such as "steer onto US-1".
+- To make sure the route reaches a must-see that's an area or a road, such as "must-see: Capitol Reef".
+- Because the user asked for a road, or a place on it, such as "the user asked: the Golden Gate Bridge".
+
+Picking a waypoint:
+
+- Pick a place on the road itself, such as a town or a junction the road runs through. Not a sight beside the road: the route leaves the road to pass through it. Example: to keep a drive in Maine on US-1, pick Wiscasset, a town US-1 runs through.
+- A waypoint isn't a stop. A place worth seeing becomes a stop, once the user agrees to it. Don't describe a waypoint to the user as a sight: say which road the drive takes.
+- Check the road time in set_waypoints' reply. A waypoint that adds much more than a few minutes is a detour, so pick another point on the road. One that adds nothing isn't needed, since the route already takes that road, so take it off.`;
+
 // Technical spec 5.2, and functional spec 6.2 for approvals. Which days can be rest
 // days is in update_day's description (tool design, section 4).
 const DAYS = `## Days and approvals
 
 - restDaysText only records what the user asked for. Mark the day itself with update_day.
 - When the user agrees to a day that drives longer than comfortableDrivingInHours, approve it on that day with update_day, with the hours they agreed to and their reason. It isn't raised again unless a later change makes the day longer than that.
-- When the user approves fastest on a day, also clear the day's waypoints with set_waypoints and an empty list, in the same turn. Code doesn't read the route type, so waypoints left in place keep the day on the scenic road under a fastest label.
+- When the user approves fastest on a day, update_day clears the day's waypoints, and its reply lists each one with its reason. In the same turn, put back with set_waypoints each one whose reason is a must-see or the user's request, with the same reason. Drop the ones that only kept the drive on a scenic road, and tell the user in one line which road the day no longer takes, such as "Day 3 now takes US-101 instead of the coast."
 - When the user agrees to a different start time for one day, such as for a sunrise hike, set it on that day with update_day.`;
 
 // Technical spec 5.2: before removing a stay or a night, after adding or moving a stay,

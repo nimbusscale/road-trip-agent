@@ -9,6 +9,7 @@ import { Stay, type StayFields } from "./stay.js";
 import { StayDay, type StayDayFields } from "./stay-day.js";
 import { Stop, type StopFields } from "./stop.js";
 import { VIA_SERVICE } from "./via-service.js";
+import { Waypoint } from "./waypoint.js";
 import {
   ActivityRecord,
   WeatherText,
@@ -52,7 +53,7 @@ export type StoredLeg = Omit<
 
 export type StoredDay = DayFields & {
   stops: readonly StoredStop[];
-  waypointIds: readonly string[];
+  waypoints: readonly { placeId: string; reason: string }[];
   leg: StoredLeg | null;
 };
 
@@ -117,8 +118,16 @@ export function itineraryFromStored(
     if (storedDay?.leg) {
       day[VIA_SERVICE].setLeg(legFromStored(storedDay.leg, placeOf, stopOf));
     }
-    if (storedDay !== undefined && storedDay.waypointIds.length > 0) {
-      day.setWaypoints(storedDay.waypointIds.map(placeOf));
+    if (storedDay !== undefined && storedDay.waypoints.length > 0) {
+      day.setWaypoints(
+        storedDay.waypoints.map(
+          (waypoint) =>
+            new Waypoint({
+              place: placeOf(waypoint.placeId),
+              reason: waypoint.reason,
+            }),
+        ),
+      );
     }
   });
   return new Itinerary({

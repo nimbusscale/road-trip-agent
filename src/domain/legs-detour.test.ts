@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { meal, placeNamed } from "./example-trip-parts.fake.js";
 import { present } from "./itinerary.fake.js";
+import { exampleWaypoint } from "./place.fake.js";
 import {
   BIG_SUR,
   forgetCalls,
@@ -44,7 +45,7 @@ describe("LegsService.detourTimesOf", () => {
   it("places the waypoints the same way as for the leg", async () => {
     const { itinerary, services, day2, legs, finder } = sanFranciscoDay2();
     await legs.updateLegs(itinerary);
-    day2.setWaypoints([BIG_SUR]);
+    day2.setWaypoints([exampleWaypoint(BIG_SUR)]);
     await legs.updateLegs(itinerary);
     const lunch = meal({
       purpose: "a view with lunch",

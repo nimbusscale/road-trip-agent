@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { at, layOut, meal } from "./example-trip-parts.fake.js";
+import { at, layOut, meal, placeNamed } from "./example-trip-parts.fake.js";
 import { present } from "./itinerary.fake.js";
 import { moabExample } from "./moab-example.fake.js";
+import { exampleWaypoint } from "./place.fake.js";
 import { sanFranciscoExample } from "./san-francisco-example.fake.js";
 
 describe("DaysService.setRestDay", () => {
@@ -129,5 +130,43 @@ describe("DaysService approvals", () => {
     expect(() => {
       services.days.removeApproval(trip.itinerary.lastDay, "openingHours");
     }).toThrow("A day holds no opening hours approval. Only stops hold them.");
+  });
+});
+
+describe("DaysService.approveRouteType: waypoints", () => {
+  it("approving scenic leaves the day's waypoints, and approving fastest clears them and returns them", () => {
+    const { trip, services } = sanFranciscoExample();
+    const day2 = present(trip.itinerary.days[1]);
+    const bigSur = present(day2.waypoints[0]);
+    expect(services.days.approveRouteType(day2, "scenic", "the coast")).toEqual(
+      [],
+    );
+    expect(day2.waypoints).toEqual([bigSur]);
+    expect(
+      services.days.approveRouteType(day2, "fastest", "running late"),
+    ).toEqual([bigSur]);
+    expect(day2.waypoints).toEqual([]);
+    expect(
+      services.days.approveRouteType(day2, "fastest", "still late"),
+    ).toEqual([]);
+  });
+
+  it("clears them on a day marked a rest day in the same write, which keeps its leg until the end of the write", () => {
+    const { trip, services, moab } = moabExample();
+    const day2 = present(moab.days[1]);
+    const arches = exampleWaypoint(placeNamed("Arches viewpoint"));
+    day2.setWaypoints([arches]);
+    day2.stops.forEach((stop, index) => {
+      services.stops.setStopTime(
+        trip.itinerary,
+        stop,
+        stop.setTime ?? at(`1${String(index)}:00`),
+      );
+    });
+    services.days.setRestDay(trip.itinerary, day2, true);
+    expect(
+      services.days.approveRouteType(day2, "fastest", "short hops"),
+    ).toEqual([arches]);
+    expect(day2.waypoints).toEqual([]);
   });
 });

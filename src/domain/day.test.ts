@@ -11,8 +11,13 @@ import { Leg } from "./leg.js";
 import { StayDay } from "./stay-day.js";
 import { newStop, type Stop } from "./stop.js";
 import { VIA_SERVICE } from "./via-service.js";
+import { Waypoint } from "./waypoint.js";
 
 const BIG_SUR = namedPlace("Big Sur village");
+const ON_HIGHWAY_1 = new Waypoint({
+  place: BIG_SUR,
+  reason: "steer onto Highway 1",
+});
 const FIVE_HOURS = new DriveHoursApproval({
   reason: "the hoodoos",
   approvedDrivingInHours: 5,
@@ -105,15 +110,21 @@ describe("a day's stops", () => {
 describe("a day's waypoints", () => {
   it("are refused while the day has no leg", () => {
     expect(() => {
-      newDay().setWaypoints([BIG_SUR]);
+      newDay().setWaypoints([ON_HIGHWAY_1]);
     }).toThrow("no leg");
+  });
+
+  it("each need a reason", () => {
+    expect(() => new Waypoint({ place: BIG_SUR, reason: " " })).toThrow(
+      `A waypoint needs a reason, such as "steer onto US-1". The one at ${BIG_SUR.id} has none.`,
+    );
   });
 
   it("go when the leg goes", () => {
     const day = newDay();
     day[VIA_SERVICE].setLeg(leg());
-    day.setWaypoints([BIG_SUR]);
-    expect(day.waypoints).toEqual([BIG_SUR]);
+    day.setWaypoints([ON_HIGHWAY_1]);
+    expect(day.waypoints).toEqual([ON_HIGHWAY_1]);
     day[VIA_SERVICE].setLeg(null);
     expect(day.waypoints).toEqual([]);
   });
@@ -124,13 +135,13 @@ describe("a rest day", () => {
     const day = newDay();
     const itsLeg = leg();
     day[VIA_SERVICE].setLeg(itsLeg);
-    day.setWaypoints([BIG_SUR]);
+    day.setWaypoints([ON_HIGHWAY_1]);
     day[VIA_SERVICE].setApproval(FIVE_HOURS);
     day[VIA_SERVICE].setRestDay(true);
     expect([day.isRestDay, day.leg, day.waypoints]).toEqual([
       true,
       itsLeg,
-      [BIG_SUR],
+      [ON_HIGHWAY_1],
     ]);
     expect(day.approvals).toEqual([FIVE_HOURS]);
   });
@@ -140,8 +151,17 @@ describe("a rest day", () => {
     day[VIA_SERVICE].setLeg(leg());
     day[VIA_SERVICE].setRestDay(true);
     expect(() => {
-      day.setWaypoints([BIG_SUR]);
+      day.setWaypoints([ON_HIGHWAY_1]);
     }).toThrow("A rest day can't have waypoints, since it has no drive.");
+    expect(day.waypoints).toEqual([]);
+  });
+
+  it("can have the waypoints it had before it was marked cleared", () => {
+    const day = newDay();
+    day[VIA_SERVICE].setLeg(leg());
+    day.setWaypoints([ON_HIGHWAY_1]);
+    day[VIA_SERVICE].setRestDay(true);
+    day.setWaypoints([]);
     expect(day.waypoints).toEqual([]);
   });
 

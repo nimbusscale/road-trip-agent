@@ -6,11 +6,11 @@ import {
 } from "./approval.js";
 import type { ApprovalKind } from "./approval-kind.js";
 import type { Leg } from "./leg.js";
-import type { Place } from "./place.js";
 import { RuleError } from "./rule-error.js";
 import type { Stop } from "./stop.js";
 import type { TimeOfDay } from "./time-of-day.js";
 import { VIA_SERVICE } from "./via-service.js";
+import type { Waypoint } from "./waypoint.js";
 
 export interface DayFields {
   id: string;
@@ -44,7 +44,7 @@ export abstract class Day {
   // usualStartTime. A TimeOfDay is always a valid time, so it has no rules to run.
   ownStartTime: TimeOfDay | null;
   #stops: Stop[] = [];
-  #waypoints: Place[] = [];
+  #waypoints: Waypoint[] = [];
   #leg: Leg | null = null;
   #approvals: DayApproval[];
 
@@ -61,7 +61,7 @@ export abstract class Day {
     return Object.freeze([...this.#stops]);
   }
 
-  get waypoints(): readonly Place[] {
+  get waypoints(): readonly Waypoint[] {
     return Object.freeze([...this.#waypoints]);
   }
 
@@ -75,7 +75,7 @@ export abstract class Day {
 
   // Replaces the waypoints, in the order given. An empty list clears them. A day has
   // waypoints only while it has a leg.
-  setWaypoints(waypoints: readonly Place[]): void {
+  setWaypoints(waypoints: readonly Waypoint[]): void {
     if (this.#leg === null) {
       throw new RuleError(
         "A day with no leg can't have waypoints, such as a rest day, or a day that stays put with no selected stop yet.",

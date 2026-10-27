@@ -3,8 +3,10 @@ import type { DaysService } from "../domain/days-service.js";
 import type { Itinerary } from "../domain/itinerary.js";
 import { RuleError } from "../domain/rule-error.js";
 import { StayDay } from "../domain/stay-day.js";
+import { Waypoint } from "../domain/waypoint.js";
 import type { ChangeContext } from "../persistence/trip-writer.js";
 import { timeOfDayFromClockText } from "./clock-time.js";
+import { waypointText } from "./day-lines.js";
 import { refuseWrongKind } from "./id-kind.js";
 import {
   type ChangeOutcome,
@@ -25,11 +27,12 @@ import type { TripSession } from "./trip-session.js";
 // The tools that change a day, and set its waypoints (tool design 2.1).
 
 export const UPDATE_DAY_DESCRIPTION =
-  "Changes a day: whether it's a rest day, its start time, and its approvals. Items not given are not changed. Only a day that starts and ends at the same stay can be a rest day, and every stop on it needs a set time. Marking a rest day removes the day's leg and its waypoints. An approval replaces any of the same kind the day has, and needs the user's reason. The reply gives any leg that changed.";
+  "Changes a day: whether it's a rest day, its start time, and its approvals. Items not given are not changed. Only a day that starts and ends at the same stay can be a rest day, and every stop on it needs a set time. Marking a rest day removes the day's leg and its waypoints. An approval replaces any of the same kind the day has, and needs the user's reason. Approving fastest clears the day's waypoints, and the reply lists each one it cleared, with its reason. Approving scenic leaves them. The reply gives any leg that changed, with its new road time.";
 
-// What a waypoint is, is in the coordinator's instructions (tool design, section 4).
+// What a waypoint is, and what its reason is for, is in the coordinator's instructions
+// (tool design, section 4).
 export const SET_WAYPOINTS_DESCRIPTION =
-  "Sets a day's waypoints, replacing any the day had. An empty list clears them. Code places each one among the day's selected stops, where it adds the least distance. Refused for a day with no leg, such as a rest day, or a day that stays put with no selected stop yet. The reply gives the leg's new road time.";
+  "Sets a day's waypoints, replacing any the day had. Each is a place and its reason. An empty list clears them. Code places each one among the day's selected stops, where it adds the least distance. Refused for a day with no leg, such as a rest day, or a day that stays put with no selected stop yet. The reply lists each waypoint with its reason, and gives the leg's road time before and after.";
 
 export function updateDayTool(session: TripSession): StrictToolDefinition {
   return strictTool(
@@ -50,25 +53,24 @@ export function setWaypointsTool(session: TripSession): StrictToolDefinition {
       itineraryWriteReply(session, ({ trip, placeOf }) => {
         const itinerary = trip.itinerary;
         const day = dayIn(itinerary, dayId);
-        if (new Set(waypoints).size !== waypoints.length) {
+        const placeIds = waypoints.map((waypoint) => waypoint.placeId);
+        if (new Set(placeIds).size !== placeIds.length) {
           throw new RuleError("Give each waypoint once.");
         }
         day.setWaypoints(
-          waypoints.map((placeId) => {
+          waypoints.map(({ placeId, reason }) => {
             refuseWrongKind(placeId, "place");
-            return placeOf(placeId);
+            return new Waypoint({ place: placeOf(placeId), reason });
           }),
         );
-        const count =
-          waypoints.length === 1
-            ? "1 waypoint"
-            : `${String(waypoints.length)} waypoints`;
         return {
-          lines: [
+          lines:
             waypoints.length === 0
-              ? `Cleared the waypoints on ${dayName(itinerary, day)}.`
-              : `Set ${count} on ${dayName(itinerary, day)}.`,
-          ],
+              ? [`Cleared the waypoints on ${dayName(itinerary, day)}.`]
+              : [
+                  `Set ${waypointCount(waypoints.length)} on ${dayName(itinerary, day)}:`,
+                  ...waypointLines(day.waypoints),
+                ],
           touchedIds: [day.id],
         };
       }),
@@ -109,14 +111,38 @@ function updateDay(
     const { hours, reason } = approveDriveHours;
     services.days.approveDriveHours(day, hours, reason);
   }
-  if (approveRouteType !== undefined) {
-    const { routeType, reason } = approveRouteType;
-    services.days.approveRouteType(day, routeType, reason);
-  }
+  const cleared =
+    approveRouteType === undefined
+      ? []
+      : services.days.approveRouteType(
+          day,
+          approveRouteType.routeType,
+          approveRouteType.reason,
+        );
   return {
-    lines: [`Changed ${dayName(itinerary, day)}.`],
+    lines: [`Changed ${dayName(itinerary, day)}.`, ...clearedLines(cleared)],
     touchedIds: [day.id],
   };
+}
+
+// The coordinator puts back the ones it still needs, from their reasons (technical spec
+// 5.2).
+function clearedLines(cleared: readonly Waypoint[]): string[] {
+  if (cleared.length === 0) {
+    return [];
+  }
+  return [
+    `Approving fastest cleared the day's ${waypointCount(cleared.length)}:`,
+    ...waypointLines(cleared),
+  ];
+}
+
+function waypointLines(waypoints: readonly Waypoint[]): string[] {
+  return waypoints.map((waypoint) => `- ${waypointText(waypoint)}`);
+}
+
+function waypointCount(count: number): string {
+  return count === 1 ? "1 waypoint" : `${String(count)} waypoints`;
 }
 
 // The last day ends at the end place with no night, so it's never a rest day (domain

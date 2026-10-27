@@ -141,13 +141,15 @@ describe("add_stay", () => {
     );
     const waypoint = await trip.setWaypoints({
       dayId: day1,
-      waypoints: [trip.place("Dewey Bridge").id],
+      waypoints: [
+        { placeId: trip.place("Dewey Bridge").id, reason: "steer onto UT-128" },
+      ],
     });
     expect(textOf(waypoint)).toContain(
-      `Set 1 waypoint on Day 1 (${String(day1)}).`,
+      `Set 1 waypoint on Day 1 (${String(day1)}):`,
     );
     const whole = await trip.read("all");
-    expect(whole).toContain("Waypoints: Dewey Bridge");
+    expect(whole).toContain("  - Waypoint: Dewey Bridge");
     expect(whole.match(/- Leg: 25 miles, 30 m of road time/g)).toHaveLength(3);
   });
 });
