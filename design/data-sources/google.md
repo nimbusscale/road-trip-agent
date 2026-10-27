@@ -113,7 +113,7 @@ The itinerary map (spec 9.2) uses the Maps JavaScript API.
 - **One map for the whole trip.** It shows the route line, stays, attractions, and restaurants, with different markers for each kind. Selecting a marker shows that item's details.
 - **The route line comes from the backend,** as the encoded polyline from the Routes API. The map library's geometry tools decode it. It never passes through the model.
 - **Places and Routes results must be shown on this Google map,** per Google's terms. Don't put them on another map library.
-- **The page loads the API with `@vis.gl/react-google-maps`,** Google's React library for it. The library decodes the route line with the API's geometry library.
+- **The page loads the API with `@vis.gl/react-google-maps`,** Google's React library for it.
 - **Markers are classic `google.maps.Marker`s,** colored circles, one color for each kind, with a legend under the map. Google deprecated them in 2024 in favor of advanced markers, but hasn't scheduled their end, and promises 12 months' notice. Advanced markers need a map ID made in the Cloud console, so the classic ones save that setup. The browser console shows Google's deprecation warning once per page load.
 
 ---
