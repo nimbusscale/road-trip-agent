@@ -133,6 +133,26 @@ describe("select_user_place", () => {
 });
 
 describe("select_candidate", () => {
+  it("refuses a check-in with the reason, and says to select the hotel for the stay", async () => {
+    const { addStops, selectCandidate, example } = await plannedMoab();
+    const day4 = present(example.torrey.days[0]);
+    const added = textOf(
+      await addStops({
+        dayId: day4.id,
+        after: "first",
+        stops: [{ kind: "checkIn", purpose: "check in", setTime: "none" }],
+      }),
+    );
+    const checkInId = present(/\((stop_\w+)\), checkIn/.exec(added))[1] ?? "";
+    const reply = await selectCandidate({
+      stopOrStayId: checkInId,
+      placeId: present(example.torrey.lodging).id,
+    });
+    expect(textOf(reply)).toBe(
+      "Nothing was changed. A check-in has no candidates. Its place is where the party sleeps that night. To pick the hotel, select it for the stay instead.",
+    );
+  });
+
   it("selects an older candidate, and refuses a place that isn't one", async () => {
     const { selectUserPlace, selectCandidate, example } = await plannedMoab();
     const dinner = present(example.moab.days[2]?.stops[0]);

@@ -68,6 +68,11 @@ function selectCandidate(
 ): ChangeOutcome {
   const itinerary = trip.itinerary;
   const holder = stopOrStayIn(itinerary, stopOrStayId);
+  // A check-in has no candidates, so the reason comes first, not the pointer to
+  // select_user_place.
+  if (holder.kind === "stop" && holder.stop.kind === "checkIn") {
+    throw new RuleError(CHECK_IN_HAS_NO_CANDIDATES);
+  }
   refuseWrongKind(placeId, "place");
   const place = placeOf(placeId);
   const where = holderName({ itinerary, calendar }, holder);

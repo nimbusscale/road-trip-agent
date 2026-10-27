@@ -43,8 +43,10 @@ describe("add_stops", () => {
   });
 
   it("adds a check-in at the stay the party sleeps at that night, with no search area, and re-routes the leg through it", async () => {
-    const { addStops, updateStop, read, example } = await plannedMoab();
+    const { addStops, updateStop, read, example, fixture } =
+      await plannedMoab();
     const day4 = present(example.torrey.days[0]);
+    const routeCount = fixture.routeFinder.routes.length;
     const reply = textOf(
       await addStops({
         dayId: day4.id,
@@ -56,6 +58,22 @@ describe("add_stops", () => {
       /^Added 1 stop to Day 4 \(day_\w+\):\n- Day 4, Stop 4 \(stop_\w+\), checkIn: "check in"\n/,
     );
     const checkInId = present(/Stop 4 \((stop_\w+)\)/.exec(reply))[1] ?? "";
+    // Day 4 is re-routed through the Torrey hotel, between Capitol Gorge and
+    // Panorama Point.
+    const stopNames = fixture.routeFinder.routes
+      .slice(routeCount)
+      .map((route) =>
+        route.through
+          .filter((point) => !point.isPassThrough)
+          .map((point) => point.place.name),
+      );
+    expect(stopNames).toContainEqual([
+      "Goblin Valley State Park",
+      "Gifford Homestead",
+      "Capitol Gorge",
+      "Torrey hotel",
+      "Panorama Point",
+    ]);
     expect(await read(day4.id)).toMatch(
       /Stop 4 \(stop_\w+\), checkIn: "check in"\. At where the party sleeps that night: Torrey hotel \(place_\w+\), Lockhart\. Visit time 30 m\./,
     );
