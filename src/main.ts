@@ -76,6 +76,7 @@ function chatDependencies(
     },
     turns: new CoordinatorTurns({ coordinator, runTurn: runTurnWithSdk, now }),
     transcripts: coordinator.transcripts,
+    settings,
     now,
   };
 }

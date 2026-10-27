@@ -4,6 +4,7 @@ import {
   refuseIfChatClosed,
   TurnRunningError,
 } from "../agent/coordinator-turns.js";
+import { Calendar } from "../domain/calendar.js";
 import type { Trip } from "../domain/trip.js";
 import type {
   TripListResponse,
@@ -11,12 +12,13 @@ import type {
   TripSummary,
 } from "../shared/trip.schema.js";
 import type { ChatDependencies } from "./chat-dependencies.js";
+import { itineraryViewOf } from "./itinerary-view.js";
 import { messageBody } from "./message-body.js";
 import { ownedTrip } from "./owned.js";
 import { streamTurn } from "./turn-stream.js";
 
-// The home screen and the trip page (functional spec 3 and 10.1), starting a trip or a
-// session, and deleting a trip. Each start sends the first message, and streams the
+// The home screen, the trip page, and the itinerary view (functional spec 3, 9, and
+// 10.1), starting a trip or a session, and deleting a trip. Each start sends the first message, and streams the
 // reply.
 export function tripRoutes(chat: ChatDependencies): Hono {
   const routes = new Hono();
@@ -49,6 +51,12 @@ export function tripRoutes(chat: ChatDependencies): Hono {
 
   routes.delete("/trips/:tripId", (context) => deleteTrip(context, chat));
 
+  // The itinerary view beside the chat (functional spec 9). It's a read, so it works on
+  // a started trip too.
+  routes.get("/trips/:tripId/itinerary", (context) =>
+    itineraryView(context, chat),
+  );
+
   // "Start a new session": the coordinator gets no earlier transcripts (functional
   // spec 10.1).
   routes.post("/trips/:tripId/sessions", messageBody, async (context) => {
@@ -68,6 +76,23 @@ export function tripRoutes(chat: ChatDependencies): Hono {
   });
 
   return routes;
+}
+
+async function itineraryView(
+  context: Context,
+  chat: ChatDependencies,
+): Promise<Response> {
+  const trip = await ownedTrip(
+    chat.trips.reader,
+    context.req.param("tripId") ?? "",
+    context.get("user"),
+  );
+  const calendar = new Calendar({
+    tripBrief: trip.tripBrief,
+    settings: chat.settings,
+    now: chat.now,
+  });
+  return context.json(itineraryViewOf(trip, calendar));
 }
 
 // Removes the trip with its sessions, places, and trip memory (persistence design,

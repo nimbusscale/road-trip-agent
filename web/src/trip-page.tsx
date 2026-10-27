@@ -3,12 +3,14 @@ import { useState } from "react";
 import { tripPageResponseSchema } from "../../src/shared/trip.schema";
 import { callApiForChange, messageOf } from "./api-client";
 import { momentText, tripDatesText } from "./dates";
+import { ItineraryView } from "./itinerary-view";
 import { Link } from "./link";
 import { navigate } from "./route";
 import { useApi } from "./use-api";
 
 // A trip's sessions, each with resume, "start a new session", and "Delete trip"
-// (functional spec 10.1). Once the trip has started, its chat is closed.
+// (functional spec 10.1). Once the trip has started, its chat is closed, and the
+// itinerary under them is where the plan can still be read.
 export function TripPage({ tripId }: { tripId: string }) {
   const loaded = useApi(`/api/trips/${tripId}`, tripPageResponseSchema);
 
@@ -50,6 +52,7 @@ export function TripPage({ tripId }: { tripId: string }) {
         ))}
       </ul>
       <DeleteTrip tripId={tripId} />
+      <ItineraryView tripId={tripId} busy={false} />
     </>
   );
 }

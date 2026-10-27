@@ -1,4 +1,5 @@
 import type { CoordinatorTurns } from "../agent/coordinator-turns.js";
+import type { CalendarSettings } from "../domain/calendar.js";
 import type { MemoryReader } from "../persistence/memory-reader.js";
 import type { MemoryWriter } from "../persistence/memory-writer.js";
 import type { SessionReader } from "../persistence/session-reader.js";
@@ -14,5 +15,7 @@ export interface ChatDependencies {
   memory: { reader: MemoryReader; writer: MemoryWriter };
   turns: CoordinatorTurns;
   transcripts: TranscriptAdapter;
+  // For the calendar that works out the itinerary view's schedules.
+  settings: CalendarSettings;
   now: () => Date;
 }

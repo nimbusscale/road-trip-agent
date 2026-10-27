@@ -5,6 +5,92 @@ body {
   padding: 0 1rem;
 }
 
+/* The chat view is wider, with the itinerary beside the chat (functional spec 9). The
+   itinerary scrolls on its own, so it stays in view while the chat grows. On a narrow
+   screen it goes under the chat. */
+body:has(.chat-layout .itinerary) {
+  max-width: 96rem;
+}
+
+.chat-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.chat-layout:not(:has(.itinerary)) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.itinerary {
+  position: sticky;
+  top: 0;
+  max-height: 100vh;
+  overflow-y: auto;
+}
+
+@media (max-width: 60rem) {
+  .chat-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .itinerary {
+    position: static;
+    max-height: none;
+  }
+}
+
+.day {
+  margin-bottom: 0.75rem;
+}
+
+.day h4 {
+  margin: 0 0 0.25rem;
+}
+
+.day p {
+  margin: 0.25rem 0;
+}
+
+.schedule {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0 0;
+}
+
+/* Each item's time sits in a column of its own, so the times line up. */
+.schedule li {
+  display: grid;
+  grid-template-columns: 12.5rem minmax(0, 1fr);
+  gap: 0.5rem;
+  padding: 0.125rem 0;
+}
+
+.schedule .time {
+  color: #5f6368;
+  white-space: nowrap;
+}
+
+.why {
+  display: inline;
+}
+
+.why summary {
+  display: inline;
+  cursor: pointer;
+  text-decoration: underline dotted;
+}
+
+.why[open] {
+  display: block;
+}
+
+.why p {
+  margin: 0.25rem 0 0.25rem 1rem;
+  color: #3c4043;
+}
+
 .chat-bar {
   display: flex;
   justify-content: space-between;
