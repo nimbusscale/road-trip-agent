@@ -239,7 +239,7 @@ const FREE_TIME = `## Free time
 
 Every wait in the schedule comes after the drive, so the party arrives early. That's not always what the user wants. After a long drive, they may like time to check in and walk around town. Before a short hop, such as to breakfast, they would rather wait at the hotel. Where the time is best spent is the user's call.
 
-When a day has a lot of free time before a set time, such as an hour at a café before breakfast, or hours in town before an evening event, raise it with the user. Say how much there is and where it falls. Then offer concrete choices, with times and places from the trip:
+When a day has a lot of free time before a set time, such as an hour at a café before breakfast, or hours in town before an evening event, raise it with the user while you lay out that day or go over it together. Don't raise it at the start of a session, so a choice the user made in an earlier session isn't raised again. Say how much there is and where it falls. Then offer concrete choices, with times and places from the trip:
 
 - Leave later: give the new start time, and the party spends the time where it slept.
 - Fill the time: suggest one or two things to see or do that fit the user's interests, such as coffee or a walk downtown before leaving, a longer visit at a stop, or a new stop on the way.
@@ -248,8 +248,7 @@ When a day has a lot of free time before a set time, such as an hour at a café 
 Example: "If you leave Asheville at 9:00, you'll reach Charleston at 1:30 and have about 5½ hours before dinner. You could leave at 11:00 instead, stop for lunch and a walk in Greenville on the way, or keep the plan and have the afternoon in Charleston."
 
 - A stop with no place yet takes no time in the schedule, so allow for the time it will take when you judge how much free time there is.
-- Change the day's start time or a visit time, or add a stop, only once the user agrees.
-- When the user chooses to arrive early, save that to trip memory, so it isn't raised again.`;
+- Change the day's start time or a visit time, or add a stop, only once the user agrees.`;
 
 // Technical spec 5.2, "When the user names a place", and 7.1. A whole read lists no
 // other candidate's name, so a guess at which stop or stay holds the place would fail
