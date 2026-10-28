@@ -183,6 +183,12 @@ The writing tools:
 
 **It saves the worker a read for each item, and the coordinator one for each worker brief.** A whole read only counts candidates (above), so without it the coordinator would read each stop or stay to list the candidates already offered. The reply is the same for every worker, so a worker gets some facts it doesn't use, such as lodging candidates for the weather worker. The reply is written in the style of a scoped read, with the same names for days and stops. A stop with no search area, a check-in, gets an error, since no worker fills it (technical spec 6). A bad ID gets an error, as in every tool (section 4). The `Agent` hook uses the IDs passed here to list the worker brief's items that got no candidates, or no weather text (technical spec 6.5).
 
+**It's its own tool, not a scoped `read_itinerary`, though it shows the same data.** The reply reuses the read's lines, but differs in three ways:
+
+- **It's much smaller.** A stay read is 4,090 to 12,154 tokens on a busy trip (2.1, above). It gives every candidate in full for every stop on the stay's days, with their rationale, plus the weather text, approvals, and check results. A worker needs only its own items, the day's other stops, and the names of the candidates already offered. Check results could also lead a worker to report problems that aren't its job.
+- **It takes the exact items the worker fills.** The `Agent` hook lists the ones that got nothing from these IDs. A stay read names only the stay, not which of its stops the worker was sent to fill.
+- **It gives a stay's activities by the weather rule** (technical spec 6.3). A stay read doesn't. Example: stops along the last day's leg count with the last stay, but the last day isn't one of that stay's days.
+
 ### 2.2 Memory
 
 Coordinator only. Workers never see memory (technical spec 6.4). What memory holds, and the rules for writing it, are in technical spec 3.1 and 5.2.
