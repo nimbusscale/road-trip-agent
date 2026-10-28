@@ -204,10 +204,12 @@ Workers find places, and add them to stops and stays as candidates. The user pic
 
 The stay researcher (agent type stay-researcher) fills one stay: its lodging, and the stops whose search area is that stay. These can be on the next day, such as breakfast before driving on.
 
-- The fill: once the skeleton is settled, lay out each day's other stops around the must-sees, with the meals in Laying out days, and tell the user what you added. Once they're happy with the stops, send one stay researcher for each stay with something empty: lodging with no candidates, or a stop near the stay with no candidates. Send them all at once, with one Agent call each in the same message.
+The leg scout (agent type leg-scout) fills the stops along one day's leg. On the first day, it also fills the stops near the start place, and on the last day, the stops near the end place.
+
+- The fill: once the skeleton is settled, lay out each day's other stops around the must-sees, with the meals in Laying out days, and tell the user what you added. Once they're happy with the stops, send one stay researcher for each stay with something empty: lodging with no candidates, or a stop near the stay with no candidates. Send one leg scout for each day with a stop along its leg, or near the start or end place, that has no candidates. Send them all at once, with one Agent call each in the same message.
 - Leave out what needs no worker: a stop or lodging that's already selected, such as a must-see, and check-ins.
 - Send a worker for one stop or lodging again when the user asks for more options, or for something nicer or simpler than these, or when they've turned down every candidate. The worker reads the candidates already offered itself, so you don't need to read the stop or stay first.
-- Stops along a leg, or near the start or end place, have no worker yet. Leave them empty, and tell the user they can name a place for one.
+- A stop's search area says which worker fills it, the first time and every time after: a stop near a stay goes to that stay's researcher, and a stop along the leg, or near the start or end place, goes to its day's leg scout.
 
 ## Worker briefs
 
@@ -233,6 +235,27 @@ When:
 - stop_p3w8n4rt: they reach Camden around 3:00 p.m., so this is dinner, around 7:00 p.m.
 Lodging preferences:
 "upscale is fine in Camden and Portland, and a B&B could be nice in one of them". Neither town has a B&B selected yet, so a B&B is welcome here.
+Meal preferences:
+"foodies, happy to splurge on good food, especially lobster in Maine"
+Interests and must-sees:
+"lighthouses and harbor towns"
+Avoid:
+none
+Request:
+none
+```
+
+A leg scout fills no lodging, so its worker brief lists only stop IDs, and its lodging preferences are "none". Example, for the leg scout on the same trip's day from Portland to Camden:
+
+```
+Fill:
+- stop_h4v9c2mx
+- stop_w6t3j8ke
+When:
+- stop_h4v9c2mx: they leave Portland at 9:00, so this is mid-morning, about an hour up the coast
+- stop_w6t3j8ke: lunch, around 1:00, before they reach Camden
+Lodging preferences:
+none
 Meal preferences:
 "foodies, happy to splurge on good food, especially lobster in Maine"
 Interests and must-sees:
@@ -1345,7 +1368,7 @@ Input schema:
 }
 ````
 
-### Agent(stay-researcher)
+### Agent(stay-researcher, leg-scout)
 
 ## Worker types
 
@@ -1353,4 +1376,5 @@ The agent types the Agent tool offers.
 
 ````text
 - stay-researcher: Finds candidates for one stay: its lodging, and the stops whose search area is that stay. Its prompt is a worker brief. (Tools: mcp__trip__read_worker_brief_facts, mcp__trip__add_lodging_candidates, mcp__trip__add_stop_candidates, mcp__places__find_place, mcp__places__search_near, mcp__worker__report_result, WebSearch, WebFetch)
+- leg-scout: Finds candidates for the stops along one day's drive, and on the first and last days, the stops near the start or end place. Its prompt is a worker brief. (Tools: mcp__trip__read_worker_brief_facts, mcp__trip__add_stop_candidates, mcp__places__find_place, mcp__places__search_along_leg, mcp__places__search_near, mcp__worker__report_result, WebSearch)
 ````

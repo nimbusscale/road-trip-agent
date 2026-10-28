@@ -14,5 +14,7 @@
   "coordinatorModel": "claude-opus-5-5",
   "coordinatorEffort": "medium",
   "stayResearcherModel": "claude-sonnet-5-5",
-  "stayResearcherEffort": "medium"
+  "stayResearcherEffort": "medium",
+  "legScoutModel": "claude-sonnet-5-5",
+  "legScoutEffort": "medium"
 }
