@@ -5,7 +5,8 @@
       "Bash(gh run view:*)",
       "Bash(gh pr checks:*)",
       "Bash(gh pr merge:*)",
-      "Bash(gh pr create:*)"
+      "Bash(gh pr create:*)",
+      "Bash(gh pr view:*)"
     ],
     "ask": [
       "Edit(/tsconfig*.json)",
