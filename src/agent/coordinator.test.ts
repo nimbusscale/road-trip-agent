@@ -42,6 +42,47 @@ describe("coordinatorOptions", () => {
     expect(options.strictMcpConfig).toBe(true);
   });
 
+  it("runs as the coordinator agent, whose definition lists each tool allowedTools lets it use", () => {
+    const options = coordinatorOptions(given(), conversation(), false);
+    expect(options.agent).toBe("coordinator");
+    const definition = options.agents?.coordinator;
+    // Every tool on the trip, memory, and routing servers, and the places server's
+    // find_place and read_place: what allowedTools lets the coordinator use.
+    expect(definition?.tools).toEqual([
+      "mcp__trip__read_trip_brief",
+      "mcp__trip__update_trip_brief",
+      "mcp__trip__read_itinerary",
+      "mcp__trip__find_in_trip",
+      "mcp__trip__update_itinerary",
+      "mcp__trip__add_stay",
+      "mcp__trip__update_stay",
+      "mcp__trip__remove_stay",
+      "mcp__trip__update_day",
+      "mcp__trip__add_stops",
+      "mcp__trip__update_stop",
+      "mcp__trip__move_stop",
+      "mcp__trip__remove_stops",
+      "mcp__trip__set_waypoints",
+      "mcp__trip__select_candidate",
+      "mcp__trip__select_user_place",
+      "mcp__trip__reject_places",
+      "mcp__memory__read_memory",
+      "mcp__memory__add_memory_item",
+      "mcp__memory__update_memory_item",
+      "mcp__memory__forget_memory_item",
+      "mcp__places__find_place",
+      "mcp__places__read_place",
+      "mcp__routing__compute_route",
+    ]);
+  });
+
+  it("gives the coordinator's definition the same prompt and model as the query", () => {
+    const options = coordinatorOptions(given(), conversation(), false);
+    const definition = options.agents?.coordinator;
+    expect(definition?.prompt).toBe(options.systemPrompt);
+    expect(definition?.model).toBe("claude-test-1-2");
+  });
+
   it("asks for a summary of the model's thinking", () => {
     expect(coordinatorOptions(given(), conversation(), false).thinking).toEqual(
       {
