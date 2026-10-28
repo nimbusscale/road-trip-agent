@@ -1,9 +1,19 @@
 import type { Settings } from "../config/settings.schema.js";
-import { FORGOTTEN_LINE, RESUMED_LINE } from "./app-lines.js";
+import {
+  FORGOTTEN_LINE,
+  OPTION_CARD_LINE_START,
+  RESUMED_LINE,
+} from "./app-lines.js";
 import {
   COORDINATOR_WEATHER_WORKER,
   WEATHER_WORKER_BRIEF,
 } from "./coordinator-weather-prompt.js";
+import {
+  OPTION_CARDS,
+  PLACES_THE_USER_NAMES,
+  REJECTIONS,
+  SELECTIONS,
+} from "./coordinator-choices-prompt.js";
 import { WORKER_BRIEF_HEADING } from "./worker-instructions.js";
 import { BUILD_FAILED_LINE } from "./worker-result.js";
 import { WORKER_TYPE } from "./worker-types.js";
@@ -50,6 +60,7 @@ export function coordinatorPrompt(settings: CoordinatorPromptSettings): string {
     COORDINATOR_WEATHER_WORKER,
     WORKER_BRIEFS,
     WORKER_RESULTS,
+    OPTION_CARDS,
     PLACES_THE_USER_NAMES,
     SELECTIONS,
     REJECTIONS,
@@ -71,17 +82,18 @@ const CONDUCT = `## Conduct
 - Stay on trip planning. Politely steer other requests back to the trip.`;
 
 // Technical spec 5.2: today's date, the line after a resume, and the line after the
-// user forgets memory items in the chat view.
+// user forgets memory items in the chat view. Technical spec 7.2: an option card's IDs.
 const APP_LINES = `## Lines the app adds
 
 The app adds lines to the start of some user messages. The user didn't write them.
 
 - "Today is" and the date, such as "Today is Sunday, October 10, 2027." It's on the first message of a session, the first message after a resume, and the first message after the date changes.
 - "${RESUMED_LINE}" It's on the first message after a resume.
-- "${FORGOTTEN_LINE}" It's on the first message after the user does that.`;
+- "${FORGOTTEN_LINE}" It's on the first message after the user does that.
+- "${OPTION_CARD_LINE_START}" and IDs, such as "${OPTION_CARD_LINE_START} stay_k7m2x9qa, place_p3w8n4rt." It's on a message the user sent with a button on an option card (Option cards). The first ID is the stop or stay. The second, for Select, is the place. The user doesn't see this line.`;
 
 // Technical spec 3.1 and 5.2, with two of the rules in 5.2's "What a whole read gives".
-// The third, on "More options" and the tier buttons, comes with those actions (#62).
+// The third, on "More options" and the tier buttons, is in Workers.
 // What a whole read leaves out is in read_itinerary's description, so it isn't
 // repeated here (tool design, section 4).
 const SESSION_START = `## Reading the trip brief, the itinerary, and memory
@@ -374,38 +386,9 @@ Code builds what you get back from what the worker saved. No text the worker wro
 Then:
 
 - The user sees each new set on an option card, with each candidate's details. In chat, say briefly what was found, and recommend one where it helps. Don't list every candidate.
+- When the stop or stay already has a selected place, there's no card for its new set. Name the new options in chat instead, and say which one you'd recommend. The user picks there.
 - Raise the problems the user needs to hear, and ask the questions.
 - When a stop or lodging got no candidates, tell the user, and offer choices, such as a different purpose for the stop, or a place they name.`;
-
-// Technical spec 5.2, "When the user names a place", and 7.1. A whole read lists no
-// other candidate's name, so a guess at which stop or stay holds the place would fail
-// quietly.
-const PLACES_THE_USER_NAMES = `## Places the user names
-
-A whole read names only the selected places, so you know another candidate's name only when a read of its day, stay, or stop, or a worker's reply, showed it.
-
-- When the user names a place you already have an ID for, use it.
-- When they name one you don't have, and it may be a place the trip offered, look for it with find_in_trip. When a match is close but you aren't sure it's the place, ask the user, such as "Did you mean the Desert Pearl Inn, the hotel in Springdale?" for "Desert Rose". A shorter form of a name, such as "the Desert Pearl" for the Desert Pearl Inn, is clear, so don't ask. When none is close, the place isn't in the trip, so look it up with find_place.
-- For a place that's new to the trip, such as one a friend recommended, use find_place.
-- A place that's already a candidate on the stop or stay the user means is selected with select_candidate, not select_user_place.`;
-
-// Technical spec 5.2: places the user names, visit times and pace, and why the user
-// chose an option.
-const SELECTIONS = `## Selections and visit times
-
-- When select_user_place says the place is also a candidate elsewhere, such as "Oscar's Cafe is also a candidate for Day 1, Stop 4", decide: fix the pick with select_candidate on the stop that offered it, ask the user which one they meant, or leave it. The same place can be a candidate on two stops on purpose.
-- When you select a place the user named, mention anything you know that could stop the visit, such as a seasonal closure, limited public access, or a needed reservation or permit, like a timed entry reservation for a national park. Code checks only weekly hours.
-- For an attraction the user names, ask how long they'll spend there, offering a typical figure for them to confirm or change.
-- When the user wants a different visit time for a selected stop, change it on the stop. When they say something about their pace, such as "we're slow," save it to trip memory and apply it to later visit times.
-- When the user says why they chose an option, such as "the one with the pool," save it to trip memory. A candidate's "Why" says why it was offered, not why it was chosen. Save a reason about the date too, such as "took Stan's only because Gifford is closed Wednesdays." After any change that moves a stop's date, check trip memory for places passed over for a date reason. Find each one with find_in_trip, read its hours, and if it now fits, offer it again. When the user takes the place back, forget that note.`;
-
-// Technical spec 5.2, "When the user turns down a place", and domain model 4.3. What a
-// rejection changes is in reject_places's description (tool design, section 4).
-const REJECTIONS = `## Rejecting places
-
-- When the user turns down a place, reject it with their reason, whether or not it's selected.
-- When the reason is about the date or time, such as "it's closed that day," select another candidate instead of rejecting.
-- When the user asks for a rejected place again, find_place returns it with the reason. Say they turned it down earlier, give the reason, and say this version can't take a rejection back. Then offer other options.`;
 
 // Technical spec 5.2's bullet on broken feasibility rules, split into short points,
 // and section 8 for warnings, notes, and approvals. "Until the skeleton is finished"

@@ -1,8 +1,8 @@
 // The credits the data's terms ask for, each in its own small piece so every place that
 // shows the data gives the same text. The text is never changed, and stays visible.
 
-// For text made from Google's data, such as the weather worker's reading of a forecast
-// (Google design section 3).
+// For Google's data shown off its map: the weather worker's reading of a forecast
+// (Google design section 3), and each option card, as one box (Google design 2.2).
 export function GoogleMapsCredit() {
   return (
     <p className="credit" translate="no">

@@ -2,6 +2,7 @@ import type { Options } from "@anthropic-ai/claude-agent-sdk";
 
 import type { CalendarDate } from "../domain/calendar-date.js";
 import type { Trip } from "../domain/trip.js";
+import type { MessageRequest } from "../shared/session.schema.js";
 import { startedToday, tripTimeZone, tripToday } from "../domain/today.js";
 import { AppLines } from "./app-lines.js";
 import {
@@ -82,7 +83,10 @@ export class CoordinatorTurns {
   // message while the session's last turn is still running, and once the trip has
   // started. The trip is read before each message, since a tool may have changed its
   // start date or start place.
-  async begin(conversation: Conversation, text: string): Promise<Turn> {
+  async begin(
+    conversation: Conversation,
+    request: MessageRequest,
+  ): Promise<Turn> {
     const sessionId = conversation.session.id;
     if (this.#running.has(sessionId)) {
       throw new TurnRunningError();
@@ -92,7 +96,7 @@ export class CoordinatorTurns {
     this.#running.set(sessionId, turn);
     let started: { message: string; options: Options };
     try {
-      started = await this.#prepare(conversation, text);
+      started = await this.#prepare(conversation, request);
     } catch (error) {
       this.#running.delete(sessionId);
       throw error;
@@ -103,7 +107,7 @@ export class CoordinatorTurns {
 
   async #prepare(
     conversation: Conversation,
-    text: string,
+    { text, optionCard }: MessageRequest,
   ): Promise<{ message: string; options: Options }> {
     const { coordinator, now } = this.given;
     const { session } = conversation;
@@ -122,7 +126,7 @@ export class CoordinatorTurns {
     this.#appLines.set(session.id, appLines);
     const { startPlace } = trip.itinerary;
     return {
-      message: appLines.addTo(text, tripToday(startPlace, moment)),
+      message: appLines.addTo(text, tripToday(startPlace, moment), optionCard),
       options: coordinatorOptions(coordinator, conversation, {
         hasTranscript,
         timeZone: tripTimeZone(startPlace),

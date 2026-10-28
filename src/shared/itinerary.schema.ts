@@ -29,12 +29,48 @@ export const shownSelectionSchema = z.object({
 
 export type ShownSelection = z.infer<typeof shownSelectionSchema>;
 
+// One option on an option card (functional spec 7.5). Google's facts, which the card
+// sets apart from ours: the name, type, location, and `rating`, such as "4.5 stars,
+// 1,234 reviews". Each is null when Google has none. Then ours: `tier`, such as
+// "Mid-range", or "Your choice" for a place the user named, and null for an attraction.
+// `visitTime` is the worker's estimate, or the time the user gave, and `detourTime` is
+// the extra driving as of when the place was offered. The source link is null for a
+// place the user named.
+export const shownOptionSchema = z.object({
+  place: shownPlaceSchema,
+  type: z.string().nullable(),
+  location: z.string(),
+  rating: z.string().nullable(),
+  tier: z.string().nullable(),
+  namedByUser: z.boolean(),
+  rationale: z.string(),
+  notes: z.string().nullable(),
+  sourceLink: z.string().nullable(),
+  visitTime: z.string().nullable(),
+  detourTime: z.string().nullable(),
+});
+
+export type ShownOption = z.infer<typeof shownOptionSchema>;
+
+// The newest set of a stop or stay with nothing selected (functional spec 7.5).
+// "Higher tier" and "Lower tier" show only on lodging and meal cards, and each is
+// hidden when every option is already at that end.
+export const shownOptionCardSchema = z.object({
+  options: z.array(shownOptionSchema),
+  higherTier: z.boolean(),
+  lowerTier: z.boolean(),
+});
+
+export type ShownOptionCard = z.infer<typeof shownOptionCardSchema>;
+
 // Empty, proposed, or selected (functional spec 4, Status). `candidateCount` is how
 // many places have been offered, and `selection` is set only when one is selected.
+// `card` is set only while it's proposed.
 export const shownChoiceSchema = z.object({
   status: z.enum(["empty", "proposed", "selected"]),
   candidateCount: z.number(),
   selection: shownSelectionSchema.nullable(),
+  card: shownOptionCardSchema.nullable(),
 });
 
 export type ShownChoice = z.infer<typeof shownChoiceSchema>;

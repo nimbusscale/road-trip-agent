@@ -95,6 +95,41 @@ describe("the chat's turns", () => {
     });
   });
 
+  // Technical spec 7.2: the coordinator gets the IDs, and the user never sees them.
+  it("gives the coordinator an option card's IDs, and shows the user only their message", async () => {
+    const chat = await chatApi(PLANNING);
+    const sessionId = await startTrip(chat);
+    const text = "Select Red Cliffs Lodge for the lodging in Moab.";
+    await eventsOf(
+      await chat.asUser("POST", `/api/sessions/${sessionId}/messages`, {
+        text,
+        optionCard: { holderId: "stay_k7m2x9qa", placeId: "place_p3w8n4rt" },
+      }),
+    );
+    expect(chat.sdk.calls.at(-1)?.message).toBe(
+      `From an option card: stay_k7m2x9qa, place_p3w8n4rt.\n\n${text}`,
+    );
+    const shown = await chat.asUser("GET", `/api/sessions/${sessionId}`);
+    expect(
+      sessionResponseSchema.parse(await shown.json()).messages.at(-2),
+    ).toEqual({ role: "user", text });
+  });
+
+  it("refuses an option card whose IDs aren't a stop or stay and a place", async () => {
+    const chat = await chatApi(PLANNING);
+    const sessionId = await startTrip(chat);
+    const response = await chat.asUser(
+      "POST",
+      `/api/sessions/${sessionId}/messages`,
+      {
+        text: "More options, please.",
+        optionCard: { holderId: "day_k7m2x9qa", placeId: null },
+      },
+    );
+    expect(response.status).toBe(400);
+    expect(chat.sdk.calls).toHaveLength(1);
+  });
+
   // The turn's other steps are in its trace (systems design section 10).
   it("streams only the turn's span ID, the reply's text, the tool being called, and the turn's end", async () => {
     const chat = await chatApi(PLANNING);

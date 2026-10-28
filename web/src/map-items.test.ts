@@ -35,6 +35,7 @@ function picked(chosen: ShownPlace, namedByUser: boolean): ShownChoice {
       namedByUser,
       sourceLink: namedByUser ? null : "https://maps.google.com/?cid=1",
     },
+    card: null,
   };
 }
 
@@ -42,6 +43,7 @@ const NOT_PICKED: ShownChoice = {
   status: "proposed",
   candidateCount: 3,
   selection: null,
+  card: { options: [], higherTier: true, lowerTier: true },
 };
 
 function stopEntry(

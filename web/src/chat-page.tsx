@@ -35,7 +35,7 @@ export function ChatPage({ start }: { start: ChatStart }) {
     if (text === "" || busy) {
       return;
     }
-    send(text);
+    send({ text, optionCard: null });
     setDraft("");
   }
 
@@ -68,7 +68,7 @@ export function ChatPage({ start }: { start: ChatStart }) {
       </div>
       {tripId === null ? null : (
         <aside className="itinerary">
-          <ItineraryView tripId={tripId} busy={busy} />
+          <ItineraryView tripId={tripId} busy={busy} send={send} />
         </aside>
       )}
     </div>

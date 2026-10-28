@@ -208,7 +208,7 @@ Each card set presents candidates for one choice (a stay's lodging, or a meal or
 Each option shows:
 
 - Name, type, and location, and the tier for hotels and restaurants (7.1)
-- Rating and review count, for restaurants and hotels. Attractions show them only where a rating means something. A national park or a historic plaque, for example, shows none. Which attractions qualify is settled during development
+- Rating and review count, for every place Google has them for, attractions included, such as "4.5 stars, 1,234 reviews". A place with no rating on Google shows none. The review count shows when a rating is thin, such as "5.0 stars, 3 reviews"
 - Why it was recommended, tied to the user's stated preferences
 - Source link for the underlying listing or review data
 - Notes (seasonal hours, reservations advised)
@@ -219,9 +219,11 @@ Actions on the card set:
 - **More options** like these
 - **Higher tier** / **Lower tier**, on lodging and meal cards only. Attractions have no tier. Each asks the agent for options nicer, or simpler, than the ones shown, such as "something nicer than these." Nothing is changed in the trip until the user selects one. "Higher tier" is hidden when every option shown is upscale, and "Lower tier" when every option shown is value
 
-Selecting an option updates the itinerary, and the agent acknowledges the change in chat. The user can also select by chat ("take the second one"). Once an option is selected, the card closes. Later changes go through chat: the user can ask what else was offered, pick another option by name, ask for more options, or turn the pick down. A new card appears only when new options are offered, or when the user turns down the pick and other options are left. It shows the newest options. When the user passes on the pick only because of the date, such as "it's closed that day," the place isn't turned down, so no card appears. The agent lists the other options in chat instead.
+Each action sends a message to the agent in the user's words, such as "Select Red Cliffs Lodge for the lodging in Moab." or "Show me something nicer than these for the lodging in Moab." The chat shows it as the user's message.
 
-Whether a card is open belongs to the screen, and isn't saved with the trip. When the user opens a trip, starts a session, or reloads the page, a card shows for every stop, and every stay's lodging, with nothing selected yet. It shows the newest options. A card that opened for new options on an item that's already selected doesn't come back after a reload. The user can still ask in chat what else was offered.
+Selecting an option updates the itinerary, and the agent acknowledges the change in chat. The user can also select by chat ("take the second one"). Once an option is selected, the card closes. Later changes go through chat: the user can ask what else was offered, pick another option by name, ask for more options, or turn the pick down. A card appears again only when the user turns down the pick and other options are left. It shows the newest options left. New options for an item that's already selected get no card. The agent names them in chat, says which one it would recommend, and the user picks there. When the user passes on the pick only because of the date, such as "it's closed that day," the place isn't turned down, so no card appears. The agent lists the other options in chat instead.
+
+A card shows for every stop, and every stay's lodging, that has options and nothing selected yet, with the newest options. So whether a card shows comes from the trip as it's saved: it's the same when the user opens a trip, starts a session, or reloads the page. The cards sit in the itinerary view beside the chat, each at its stop or stay. The trip page's itinerary shows no cards, since a choice is made in a session's chat.
 
 ### 7.6 Item status and rationale
 

@@ -8,7 +8,10 @@ import {
 } from "react";
 
 import { sessionResponseSchema } from "../../src/shared/session.schema";
-import type { ChatEvent } from "../../src/shared/session.schema";
+import type {
+  ChatEvent,
+  MessageRequest,
+} from "../../src/shared/session.schema";
 import { callApi, messageOf, sendMessage } from "./api-client";
 import {
   type ChatAction,
@@ -35,7 +38,7 @@ export interface Chat {
   tripId: string | null;
   // Null until the session exists, which is when the trip does.
   sessionId: string | null;
-  send: (text: string) => void;
+  send: (message: MessageRequest) => void;
 }
 
 export function useChat(start: ChatStart): Chat {
@@ -53,8 +56,8 @@ export function useChat(start: ChatStart): Chat {
   useCheckRunningTurn(state.turnRunning, resumedSessionId, dispatch);
 
   const send = useCallback(
-    (text: string) => {
-      dispatch({ type: "sent", text });
+    (message: MessageRequest) => {
+      dispatch({ type: "sent", text: message.text });
       const onEvent = (event: ChatEvent): void => {
         if (event.name === "session") {
           sessionIdRef.current = event.data.sessionId;
@@ -66,7 +69,7 @@ export function useChat(start: ChatStart): Chat {
       };
       void sendMessage(
         pathFor(start, sessionIdRef.current),
-        text,
+        message,
         onEvent,
       ).then(
         () => {

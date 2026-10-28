@@ -25,6 +25,7 @@ import { loadSettings, SETTINGS_PATH } from "./config/settings.js";
 import { createPool } from "./db/connection.js";
 import type { Connectable, Queryable } from "./persistence/queryable.js";
 import { sessionAccessFor } from "./persistence/session-access.js";
+import type { MessageRequest } from "./shared/session.schema.js";
 import { appCommit } from "./tracing/app-commit.js";
 import { startTracing } from "./tracing/phoenix.js";
 
@@ -87,7 +88,7 @@ async function chat(): Promise<void> {
       turns.markResumed(conversation.session.id);
     }
     for await (const text of userTexts(firstText, terminal)) {
-      const turn = await turns.begin(conversation, text);
+      const turn = await turns.begin(conversation, typed(text));
       for await (const event of turn.events()) {
         printEvent(event, terminal);
       }
@@ -97,6 +98,11 @@ async function chat(): Promise<void> {
     await pool.end();
     await tracing.shutdown();
   }
+}
+
+// A message typed in the terminal, which has no option cards.
+function typed(text: string): MessageRequest {
+  return { text, optionCard: null };
 }
 
 // Resumes the session, or starts one with the first message, which gives its title.

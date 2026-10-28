@@ -93,8 +93,9 @@ body:has(.chat-layout .itinerary) {
   margin: 0.5rem 0 0;
 }
 
-/* Each item's time sits in a column of its own, so the times line up. */
-.schedule li {
+/* Each item's time sits in a column of its own, so the times line up. An option card's
+   own list inside an item isn't laid out this way. */
+.schedule > li {
   display: grid;
   grid-template-columns: 12.5rem minmax(0, 1fr);
   gap: 0.5rem;
@@ -254,4 +255,40 @@ textarea {
 
 .phoenix.unreachable {
   color: #d93025;
+}
+
+/* An option card is a box of its own, so its Google Maps credit is in the same box as
+   the Google facts it covers (Google design 2.2). Google's facts are on the first line
+   of each option. Ours sit under them, set apart by a rule on the left. */
+.option-card {
+  margin: 0.25rem 0;
+  padding: 0.5rem;
+  background: #ffffff;
+  border: 1px solid #dadce0;
+  border-radius: 0.25rem;
+}
+
+.option-card .options {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.option-card .options li {
+  margin-bottom: 0.5rem;
+}
+
+.option-card p {
+  margin: 0.125rem 0;
+}
+
+.option-card .our-notes {
+  padding-left: 0.5rem;
+  border-left: 3px solid #dadce0;
+  color: #3c4043;
+}
+
+.card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
