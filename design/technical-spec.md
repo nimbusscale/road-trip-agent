@@ -291,7 +291,7 @@ The coordinator starts a worker with the Agent SDK's built-in `Agent` tool. Ever
 
 **Hooks in our code build the result the coordinator sees.** They're made with each turn's options, and keep what they record in memory for that turn.
 
-- **A `PostToolUse` hook on the workers' tools records each call that succeeds,** under the worker's `agent_id`: the IDs passed to `read_worker_brief_facts`, each candidate tool's and `set_stay_weather`'s reply, and the input to `report_result`. A hook on the coordinator's own calls has no `agent_id`, so those aren't recorded.
+- **A `PostToolUse` hook on the workers' tools records each call that succeeds,** under the worker's `agent_id`: the IDs passed to `read_worker_brief_facts`, each candidate tool's and `set_stay_weather`'s reply, and the input to `report_result`.
 - **A `SubagentStop` hook sends back a worker that tries to finish without calling `report_result`.** The worker gets "You haven't called report_result. Call it now, with any problems and questions, to end your work." It sends a worker back at most twice, and acts only for our worker types. Without a limit, a worker that can't call the tool is sent back again and again.
 - **A `PostToolUse` hook on `Agent` replaces the worker's last message with a result code builds,** from the calls recorded under the output's `agentId`. It returns the whole `Agent` output object, with its `content` replaced, since a string is ignored with no error. It acts only for our worker types, and only when the call completed.
 - **So no free text from a worker reaches the coordinator.** The worker's last message is still in its transcript, and in the turn's trace.
