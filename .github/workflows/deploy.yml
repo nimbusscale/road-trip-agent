@@ -59,9 +59,11 @@ jobs:
           tags: ${{ env.IMAGE_PREFIX }}-${{ matrix.image }}:${{ github.sha }}
           # Links the image to this repo, so the workflow's token can pull it.
           labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
-          # Only the web image reads these. They're GitHub repo variables, not secrets,
-          # since they end up in the front end's files (systems design section 7).
+          # Only the app image reads APP_COMMIT, for its traces (systems design section
+          # 10). Only the web image reads the others. They're GitHub repo variables, not
+          # secrets, since they end up in the front end's files (systems design section 7).
           build-args: |
+            APP_COMMIT=${{ github.sha }}
             VITE_SUPABASE_URL=${{ vars.VITE_SUPABASE_URL }}
             VITE_SUPABASE_PUBLISHABLE_KEY=${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
             VITE_GOOGLE_MAPS_BROWSER_KEY=${{ vars.VITE_GOOGLE_MAPS_BROWSER_KEY }}

@@ -16,6 +16,7 @@ import type { ReadWorkerTranscript } from "./worker-trace.js";
 // place of Phoenix (DEVELOPMENT.md section 5).
 
 export const USER_ID = "00000000-0000-4000-8000-000000000001";
+export const COMMIT = "6b0dbee1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7-dirty";
 export const MESSAGE =
   "Today is Sunday, October 25, 2026.\n\nPlan a trip to Boston.";
 
@@ -75,6 +76,7 @@ function recordAll(
     message: MESSAGE,
     agentSessionId: SESSION_ID,
     userId: USER_ID,
+    commit: COMMIT,
     readWorkerTranscript,
   });
   for (const [index, message] of messages.entries()) {

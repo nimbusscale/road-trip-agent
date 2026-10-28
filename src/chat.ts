@@ -16,7 +16,7 @@ import {
 import {
   type Conversation,
   type CoordinatorGiven,
-  runTurnWithSdk,
+  sdkTurnRunner,
 } from "./agent/coordinator.js";
 import type { TurnEvent } from "./agent/turn-event.js";
 import { ConfigError } from "./config/config-error.js";
@@ -25,6 +25,7 @@ import { loadSettings, SETTINGS_PATH } from "./config/settings.js";
 import { createPool } from "./db/connection.js";
 import type { Connectable, Queryable } from "./persistence/queryable.js";
 import { sessionAccessFor } from "./persistence/session-access.js";
+import { appCommit } from "./tracing/app-commit.js";
 import { startTracing } from "./tracing/phoenix.js";
 
 // Users live in Supabase. Locally, any UUID will do, and memory is kept under it.
@@ -51,6 +52,7 @@ async function chat(): Promise<void> {
   const { values: args } = parseArgs({ options: ARGS });
   const env = parseEnv(process.env);
   const settings = loadSettings(SETTINGS_PATH);
+  const commit = appCommit(env.appCommit);
   const pool = createPool(env);
   const tracing = startTracing(env);
   const readline = createInterface({
@@ -72,7 +74,7 @@ async function chat(): Promise<void> {
     });
     const turns = new CoordinatorTurns({
       coordinator: given,
-      runTurn: runTurnWithSdk,
+      runTurn: sdkTurnRunner(commit),
       now: () => new Date(),
     });
     const { conversation, firstText } = await start(

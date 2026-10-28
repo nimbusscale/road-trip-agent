@@ -18,6 +18,11 @@ COPY --from=build /app/dist/app ./dist/app
 COPY settings.json ./
 COPY migrations ./migrations
 USER node
+# The commit the image is built from, for each turn's trace (systems design section 10).
+# The deploy passes it. Last, so a new commit rebuilds only this layer. A local
+# Compose build has no commit to give, so its traces say "unknown".
+ARG APP_COMMIT=unknown
+ENV APP_COMMIT=$APP_COMMIT
 EXPOSE 3000
 # Migrations run from this image too: node --enable-source-maps dist/app/migrate.js
 CMD ["node", "--enable-source-maps", "dist/app/main.js"]

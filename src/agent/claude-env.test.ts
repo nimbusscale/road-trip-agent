@@ -13,6 +13,7 @@ const TOKEN = ["CLAUDE_CODE_OAUTH_TOKEN", "plan-token"] as const;
 const CONFIG = ["CLAUDE_CONFIG_DIR", CLAUDE_CONFIG_FOLDER] as const;
 const FOREGROUND = ["CLAUDE_CODE_DISABLE_BACKGROUND_TASKS", "1"] as const;
 const OUR_WORKERS = ["CLAUDE_AGENT_SDK_DISABLE_BUILTIN_AGENTS", "1"] as const;
+const NO_GIT_STATUS = ["CLAUDE_CODE_DISABLE_GIT_INSTRUCTIONS", "1"] as const;
 
 describe("claudeProcessEnv", () => {
   it("keeps the variables Claude Code needs, such as PATH and HOME", () => {
@@ -28,6 +29,7 @@ describe("claudeProcessEnv", () => {
         CONFIG,
         FOREGROUND,
         OUR_WORKERS,
+        NO_GIT_STATUS,
       ]),
     );
   });
@@ -38,14 +40,14 @@ describe("claudeProcessEnv", () => {
       ["ANTHROPIC_BASE_URL", "https://example.com"],
     ]);
     expect(claudeProcessEnv(source, "plan-token")).toEqual(
-      envOf([TOKEN, CONFIG, FOREGROUND, OUR_WORKERS]),
+      envOf([TOKEN, CONFIG, FOREGROUND, OUR_WORKERS, NO_GIT_STATUS]),
     );
   });
 
   it("uses the given token over one already in the environment", () => {
     const source = envOf([["CLAUDE_CODE_OAUTH_TOKEN", "old-token"]]);
     expect(claudeProcessEnv(source, "plan-token")).toEqual(
-      envOf([TOKEN, CONFIG, FOREGROUND, OUR_WORKERS]),
+      envOf([TOKEN, CONFIG, FOREGROUND, OUR_WORKERS, NO_GIT_STATUS]),
     );
   });
 
@@ -55,14 +57,21 @@ describe("claudeProcessEnv", () => {
       ["CLAUDE_AGENT_SDK_DISABLE_BUILTIN_AGENTS", "0"],
     ]);
     expect(claudeProcessEnv(source, "plan-token")).toEqual(
-      envOf([TOKEN, CONFIG, FOREGROUND, OUR_WORKERS]),
+      envOf([TOKEN, CONFIG, FOREGROUND, OUR_WORKERS, NO_GIT_STATUS]),
+    );
+  });
+
+  it("leaves the git status out, even when the shell turns it on", () => {
+    const source = envOf([["CLAUDE_CODE_DISABLE_GIT_INSTRUCTIONS", "0"]]);
+    expect(claudeProcessEnv(source, "plan-token")).toEqual(
+      envOf([TOKEN, CONFIG, FOREGROUND, OUR_WORKERS, NO_GIT_STATUS]),
     );
   });
 
   it("keeps Claude Code's files out of a developer's own ~/.claude", () => {
     const source = envOf([["CLAUDE_CONFIG_DIR", "/home/joe/.claude"]]);
     expect(claudeProcessEnv(source, "plan-token")).toEqual(
-      envOf([TOKEN, CONFIG, FOREGROUND, OUR_WORKERS]),
+      envOf([TOKEN, CONFIG, FOREGROUND, OUR_WORKERS, NO_GIT_STATUS]),
     );
   });
 });

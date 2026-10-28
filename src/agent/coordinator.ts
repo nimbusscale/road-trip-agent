@@ -35,6 +35,7 @@ import {
   COORDINATOR_AGENT_TYPE,
   coordinatorDefinition,
 } from "./coordinator-definition.js";
+import { inTimeZone } from "./claude-env.js";
 import { coordinatorPrompt } from "./coordinator-prompt.js";
 import { sdkUserMessage } from "./sdk-user-message.schema.js";
 import { stayResearcherDefinition } from "./stay-researcher-definition.js";
@@ -70,17 +71,25 @@ export interface Conversation {
   userId: string;
 }
 
-// `hasTranscript` says whether the session has had a turn before. Each turn starts its
-// own Claude Code process, which ends with the turn (systems design section 2). So
-// every turn after the first resumes the conversation from the stored transcript.
+// What a turn's options depend on besides the session.
+export interface TurnStart {
+  // Whether the session has had a turn before. Each turn starts its own Claude Code
+  // process, which ends with the turn (systems design section 2). So every turn after
+  // the first resumes the conversation from the stored transcript.
+  hasTranscript: boolean;
+  // The time zone of the app's date line, from tripTimeZone().
+  timeZone: string;
+}
+
 export function coordinatorOptions(
   given: CoordinatorGiven,
   conversation: Conversation,
-  hasTranscript: boolean,
+  turn: TurnStart,
 ): Options {
   const { settings, processEnv, trip, memory, places, routing, transcripts } =
     given;
   const { session, userId } = conversation;
+  const { hasTranscript, timeZone } = turn;
   const tripId = session.tripId;
   const prompt = coordinatorPrompt(settings);
   return {
@@ -98,7 +107,7 @@ export function coordinatorOptions(
     // The stream events give each model call's start and its final tokens, for the
     // turn's trace (systems design section 10). turnEventsOf() leaves them out.
     includePartialMessages: true,
-    env: processEnv,
+    env: inTimeZone(processEnv, timeZone),
     // No settings files, CLAUDE.md, or MCP servers but ours. These are the tools that
     // exist in the session: the built-in Agent, to start workers, the web tools, which
     // only workers are sent, and our servers. Each agent's definition picks the ones it's
@@ -166,12 +175,18 @@ export type RunTurn = (
   userId: string,
 ) => AsyncIterable<TurnEvent>;
 
-// Runs the turn with the Agent SDK. The process ends when the turn does.
-export const runTurnWithSdk: RunTurn = async function* (
-  message,
-  options,
-  userId,
-) {
+// Runs each turn with the Agent SDK. The process ends when the turn does. The commit,
+// from appCommit(), goes on each turn's trace.
+export function sdkTurnRunner(commit: string): RunTurn {
+  return (message, options, userId) =>
+    runTurnWithSdk(message, options, { userId, commit });
+}
+
+async function* runTurnWithSdk(
+  message: string,
+  options: Options,
+  traced: { userId: string; commit: string },
+): AsyncGenerator<TurnEvent> {
   const turnEnded = Promise.withResolvers<undefined>();
   // The message is held open until the turn ends. A prompt that ends at once could end
   // the input before the reply.
@@ -183,7 +198,7 @@ export const runTurnWithSdk: RunTurn = async function* (
   const turnTrace = new TurnTrace({
     message,
     agentSessionId,
-    userId,
+    ...traced,
     readWorkerTranscript: workerTranscriptReader(options),
   });
   try {
@@ -204,7 +219,7 @@ export const runTurnWithSdk: RunTurn = async function* (
     turnEnded.resolve(undefined);
     await turnTrace.end();
   }
-};
+}
 
 // A worker's transcript is in the same session store as the coordinator's.
 function workerTranscriptReader(options: Options): ReadWorkerTranscript {

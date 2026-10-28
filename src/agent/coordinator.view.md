@@ -2,6 +2,12 @@
 
 Written by `npm run agent-views`, with the real settings.json. Don't edit it by hand.
 
+It leaves out text that Claude Code adds, which our code doesn't write ([research section 2.9](../../research/agent-evaluations.md#29-claude-codes-environment-block)):
+
+- **The SDK's first line of every system prompt:** "You are a Claude agent, built on Anthropic's Claude Agent SDK."
+- **An environment block after the user's first message,** with the working folder, the model, and the date, such as "Today's date is 2026-10-27." With the Agent tool, it also lists the worker types, and says to start independent ones in one message.
+- **Notes after a worker's prompt,** written for coding work, such as "Do not use a colon before tool calls."
+
 Model: `claude-opus-5-5`. Effort: `medium`.
 
 ## System prompt

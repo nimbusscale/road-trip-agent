@@ -20,6 +20,7 @@ import {
   toolUse,
 } from "./fake-sdk-messages.schema.js";
 import {
+  COMMIT,
   MESSAGE,
   runThrowingTrace,
   runTrace,
@@ -77,6 +78,15 @@ describe("TurnTrace", () => {
       "user.id": USER_ID,
     });
     expect(turn.status.code).toBe(1);
+  });
+
+  // The view files at the commit show what each agent was given (systems design
+  // section 10).
+  it("puts the commit of the code that ran in the turn's metadata", async () => {
+    await runTrace(ONE_TOOL_TURN);
+    expect(spanNamed("coordinator.turn").attributes.metadata).toBe(
+      JSON.stringify({ commit: COMMIT }),
+    );
   });
 
   // For the chat's rating and "View trace" link (systems design section 10).
