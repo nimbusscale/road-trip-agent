@@ -1,5 +1,9 @@
 import type { Settings } from "../config/settings.schema.js";
-import { FORGOTTEN_LINE, RESUMED_LINE } from "./app-lines.js";
+import {
+  FORGOTTEN_LINE,
+  OPTION_CARD_LINE_START,
+  RESUMED_LINE,
+} from "./app-lines.js";
 import { WORKER_BRIEF_HEADING } from "./worker-instructions.js";
 import { BUILD_FAILED_LINE } from "./worker-result.js";
 import { WORKER_TYPE } from "./worker-types.js";
@@ -45,6 +49,7 @@ export function coordinatorPrompt(settings: CoordinatorPromptSettings): string {
     WORKERS,
     WORKER_BRIEFS,
     WORKER_RESULTS,
+    OPTION_CARDS,
     PLACES_THE_USER_NAMES,
     SELECTIONS,
     REJECTIONS,
@@ -66,17 +71,18 @@ const CONDUCT = `## Conduct
 - Stay on trip planning. Politely steer other requests back to the trip.`;
 
 // Technical spec 5.2: today's date, the line after a resume, and the line after the
-// user forgets memory items in the chat view.
+// user forgets memory items in the chat view. Technical spec 7.2: an option card's IDs.
 const APP_LINES = `## Lines the app adds
 
 The app adds lines to the start of some user messages. The user didn't write them.
 
 - "Today is" and the date, such as "Today is Sunday, October 10, 2027." It's on the first message of a session, the first message after a resume, and the first message after the date changes.
 - "${RESUMED_LINE}" It's on the first message after a resume.
-- "${FORGOTTEN_LINE}" It's on the first message after the user does that.`;
+- "${FORGOTTEN_LINE}" It's on the first message after the user does that.
+- "${OPTION_CARD_LINE_START}" and IDs, such as "${OPTION_CARD_LINE_START} stay_k7m2x9qa, place_p3w8n4rt." It's on a message the user sent with a button on an option card (Option cards). The first ID is the stop or stay. The second, for Select, is the place. The user doesn't see this line.`;
 
 // Technical spec 3.1 and 5.2, with two of the rules in 5.2's "What a whole read gives".
-// The third, on "More options" and the tier buttons, comes with those actions (#62).
+// The third, on "More options" and the tier buttons, is in Workers.
 // What a whole read leaves out is in read_itinerary's description, so it isn't
 // repeated here (tool design, section 4).
 const SESSION_START = `## Reading the trip brief, the itinerary, and memory
@@ -342,8 +348,19 @@ Code builds what you get back from what the worker saved. No text the worker wro
 Then:
 
 - The user sees each new set on an option card, with each candidate's details. In chat, say briefly what was found, and recommend one where it helps. Don't list every candidate.
+- When the stop or stay already has a selected place, there's no card for its new set. Name the new options in chat instead, and say which one you'd recommend. The user picks there.
 - Raise the problems the user needs to hear, and ask the questions.
 - When a stop or lodging got no candidates, tell the user, and offer choices, such as a different purpose for the stop, or a place they name.`;
+
+// Functional spec 7.5, technical spec 7.2, and section 9 for the tier buttons. Which
+// worker fills which stop or stay is in Workers, so this holds as workers are added.
+const OPTION_CARDS = `## Option cards
+
+Each stop, and each stay's lodging, that has candidates and nothing selected shows an option card beside the chat, with its newest set. Each option has a Select button. Under the options, More options asks for more like these. Higher tier and Lower tier ask for something nicer or simpler than these. They're on lodging and meal cards only, and each is hidden when every option is already at that end. A click sends a message in the user's words, such as "Select Red Cliffs Lodge for the lodging in Moab." or "Show me something nicer than these for the lodging in Moab.", with the app's line that gives the card's IDs.
+
+- Select: select the place with select_candidate, using the IDs, and confirm the pick in chat in a sentence. The card goes away once a place is selected.
+- More options, Higher tier, and Lower tier: send the worker for that one stop or stay, as in Workers, with what the user asked under the "${WORKER_BRIEF_HEADING.request}" heading, such as "something nicer than these".
+- A tier button is a request for this one worker, not a new preference. Nothing is saved, so don't save it to memory or pass it to later workers.`;
 
 // Technical spec 5.2, "When the user names a place", and 7.1. A whole read lists no
 // other candidate's name, so a guess at which stop or stay holds the place would fail
@@ -371,7 +388,7 @@ const SELECTIONS = `## Selections and visit times
 // rejection changes is in reject_places's description (tool design, section 4).
 const REJECTIONS = `## Rejecting places
 
-- When the user turns down a place, reject it with their reason, whether or not it's selected.
+- When the user turns down a place, reject it with their reason, whether or not it's selected. The card then shows what's left, so a worker is needed only when no candidates are left or the user asks for more options.
 - When the reason is about the date or time, such as "it's closed that day," select another candidate instead of rejecting.
 - When the user asks for a rejected place again, find_place returns it with the reason. Say they turned it down earlier, give the reason, and say this version can't take a rejection back. Then offer other options.`;
 
