@@ -71,4 +71,4 @@ The tool combines all the days from all 10 years and returns one small summary p
 
 ## 4. Attribution
 
-The data is licensed CC BY 4.0. The UI shows "Weather data by Open-Meteo.com", linked to `https://open-meteo.com/`, wherever seasonal averages appear.
+The data is licensed CC BY 4.0. The UI shows "Weather data by Open-Meteo.com", linked to `https://open-meteo.com/`, wherever seasonal averages appear. In the itinerary view, that's the bottom of each stay's weather block, when its text is from seasonal averages.
