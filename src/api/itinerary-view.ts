@@ -24,12 +24,12 @@ import type {
   ShownStay,
   ShownStop,
   ShownSummary,
+  ShownWeather,
 } from "../shared/itinerary.schema.js";
 import { clockTextOf } from "../tools/clock-time.js";
 
 // The itinerary as the view beside the chat shows it (functional spec 9). Stays, days,
-// and stops are counted from 1, as people count them (domain model section 1). Weather
-// is added by its own issue (#64).
+// and stops are counted from 1, as people count them (domain model section 1).
 
 export function itineraryViewOf(
   trip: Trip,
@@ -76,6 +76,24 @@ function stayOf(
     arriveDate: dates[0]?.toText() ?? null,
     leaveDate: dates.at(-1)?.toText() ?? null,
     lodging: choiceOf(stay.lodging, stay.lodgingCandidates, true),
+    weather: weatherOf(itinerary, calendar, stay),
+  };
+}
+
+function weatherOf(
+  itinerary: Itinerary,
+  calendar: Calendar,
+  stay: Stay,
+): ShownWeather | null {
+  const text = stay.weatherText;
+  if (text === null) {
+    return null;
+  }
+  return {
+    guidance: text.guidance,
+    label: text.label,
+    writtenOnDate: text.writtenOnDate.toText(),
+    isOutOfDate: calendar.isWeatherOutOfDate(itinerary, stay),
   };
 }
 

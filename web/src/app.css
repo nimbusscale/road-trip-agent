@@ -184,6 +184,20 @@ body:has(.chat-layout .itinerary) {
   text-align: left;
 }
 
+/* A stay's weather block, with its credit at the bottom. */
+.weather p {
+  margin: 0.25rem 0;
+}
+
+.out-of-date {
+  color: #b06000;
+}
+
+.credit {
+  color: #5f6368;
+  font-size: 0.75rem;
+}
+
 .boxed {
   padding: 0.5rem;
   background: #f8f9fa;
@@ -277,9 +291,4 @@ textarea {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
-}
-
-.google-maps-credit {
-  color: #5f6368;
-  font-size: 0.75rem;
 }

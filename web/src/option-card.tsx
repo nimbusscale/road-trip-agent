@@ -3,7 +3,7 @@ import type {
   ShownOptionCard,
 } from "../../src/shared/itinerary.schema";
 import type { MessageRequest } from "../../src/shared/session.schema";
-import { GoogleMapsCredit } from "./google-maps-credit";
+import { GoogleMapsCredit } from "./credits";
 
 // How the cards' buttons reach the coordinator: each sends a message in the user's
 // words, with the card's IDs for the app's line (technical spec 7.2).

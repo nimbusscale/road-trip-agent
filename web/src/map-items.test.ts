@@ -132,6 +132,7 @@ function view(): ItineraryResponse {
         arriveDate: "2027-05-13",
         leaveDate: "2027-05-14",
         lodging: picked(MONTEREY_HOTEL, false),
+        weather: null,
       },
       {
         id: "stay-2",
@@ -141,6 +142,7 @@ function view(): ItineraryResponse {
         arriveDate: null,
         leaveDate: null,
         lodging: NOT_PICKED,
+        weather: null,
       },
     ],
     days: [

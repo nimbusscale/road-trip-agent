@@ -16,6 +16,10 @@ const SETTINGS = {
   coordinatorEffort: "xhigh",
   stayResearcherModel: "claude-test-3-4",
   stayResearcherEffort: "low",
+  legScoutModel: "claude-test-5-6",
+  legScoutEffort: "high",
+  weatherWorkerModel: "claude-test-7-8",
+  weatherWorkerEffort: "medium",
 } as const;
 
 const NEW_SESSION = { hasTranscript: false, timeZone: "UTC" };
@@ -38,6 +42,7 @@ describe("coordinatorOptions", () => {
       "memory",
       "places",
       "routing",
+      "weather",
       "worker",
     ]);
     expect(options.tools).toEqual(["Agent", "WebSearch", "WebFetch"]);
@@ -49,6 +54,7 @@ describe("coordinatorOptions", () => {
       "mcp__memory",
       "mcp__places",
       "mcp__routing",
+      "mcp__weather",
       "mcp__worker",
     ]);
     expect(options.permissionMode).toBe("dontAsk");
@@ -76,6 +82,20 @@ describe("coordinatorOptions", () => {
     const definition = options.agents?.["stay-researcher"];
     expect(definition?.model).toBe("claude-test-3-4");
     expect(definition?.effort).toBe("low");
+  });
+
+  it("runs the leg scout on its own model and effort from the settings", () => {
+    const options = coordinatorOptions(given(), conversation(), NEW_SESSION);
+    const definition = options.agents?.["leg-scout"];
+    expect(definition?.model).toBe("claude-test-5-6");
+    expect(definition?.effort).toBe("high");
+  });
+
+  it("runs the weather worker on its own model and effort from the settings", () => {
+    const options = coordinatorOptions(given(), conversation(), NEW_SESSION);
+    const definition = options.agents?.["weather-worker"];
+    expect(definition?.model).toBe("claude-test-7-8");
+    expect(definition?.effort).toBe("medium");
   });
 
   it("asks for a summary of the model's thinking", () => {

@@ -62,7 +62,7 @@ export function addStopCandidatesTool(
 
 // A worker's write runs no checks, so the reply is only what the change says (tool
 // design 2.1, "Writing").
-function workerWriteReply(
+export function workerWriteReply(
   session: TripSession,
   change: (context: ChangeContext) => string[] | Promise<string[]>,
 ): Promise<ToolReply> {

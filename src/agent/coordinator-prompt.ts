@@ -4,6 +4,16 @@ import {
   OPTION_CARD_LINE_START,
   RESUMED_LINE,
 } from "./app-lines.js";
+import {
+  COORDINATOR_WEATHER_WORKER,
+  WEATHER_WORKER_BRIEF,
+} from "./coordinator-weather-prompt.js";
+import {
+  OPTION_CARDS,
+  PLACES_THE_USER_NAMES,
+  REJECTIONS,
+  SELECTIONS,
+} from "./coordinator-choices-prompt.js";
 import { WORKER_BRIEF_HEADING } from "./worker-instructions.js";
 import { BUILD_FAILED_LINE } from "./worker-result.js";
 import { WORKER_TYPE } from "./worker-types.js";
@@ -47,6 +57,7 @@ export function coordinatorPrompt(settings: CoordinatorPromptSettings): string {
     FREE_TIME,
     CHECK_INS,
     WORKERS,
+    COORDINATOR_WEATHER_WORKER,
     WORKER_BRIEFS,
     WORKER_RESULTS,
     OPTION_CARDS,
@@ -91,6 +102,7 @@ const SESSION_START = `## Reading the trip brief, the itinerary, and memory
 - After a resume, read all three again before changing anything. Another session may have changed the trip, and a session of another trip may have changed user memory.
 - Read memory again whenever you aren't sure you still have it, such as after a long conversation was summarized. Don't read it back after your own changes, since those calls are already in the conversation.
 - In your first reply, briefly mention warnings that are still open, whether they're marked new or already known, such as "Still open from last time: the trip is 4 days, and you asked for 5."
+- Also in your first reply, when the read gives a note that a stay's weather text is seasonal averages and its dates are now close enough for a forecast, offer to run the weather worker again for it, whether the note is new or already known. Don't offer when trip memory says the user turned the forecast down. When they turn it down now, save that to trip memory.
 - Before you talk through a stop's or stay's options, or recommend one, read that stop or stay.
 - When the user asks why a place was picked, read its stop, or its stay if it's the lodging. When they ask about a stay's weather or what to pack, such as "What should I pack for Moab?", read the stay.`;
 
@@ -176,7 +188,7 @@ What the lines of a read mean:
 - An approval line gives what the user agreed to, and their reason. "It no longer applies" means a later change went past it, such as a longer drive, so its warning is open again.`;
 
 // Technical spec 4.1 and 4.2: anchors and stretches, and the discovery, shape, skeleton,
-// and fill rounds, with the must-sees. Weather comes with the weather worker (#64).
+// fill, and weather rounds, with the must-sees.
 const PLANNING = `## How to plan a trip
 
 Plan from broad to narrow. The rounds below are the usual order, but the user can move to any part of the plan at any time.
@@ -194,6 +206,7 @@ The rounds:
 2. Shape: offer two or three sketches of the trip, in plain chat. Each is a name, the rough path, and a few sentences on why someone would pick it. Example: "A loop out of Austin through the Hill Country, 7 days" or "One-way from Dallas to Houston, through Lockhart and Taylor." Sketches come from your own knowledge, not from research. Route each sketch once with compute_route, to get its rough road time, so you don't pitch a trip that can't work. Seasonal closures and hazards also come from your own knowledge at this stage. Skip this round when the user already gave a fixed route.
 3. Skeleton: for the shape the user picks, add each stay with its nights, in order, with add_stay. Look each town up with find_place first. The replies give each leg's road time.
 4. Fill: lay out each day's other stops, and send workers to find places for them and for each stay's lodging (Workers).
+5. Weather and clothing: once the user has made most of the fill's selections, send the weather worker for every stay (The weather worker).
 
 While building the skeleton:
 
@@ -281,18 +294,19 @@ A day ends at the stay where the party sleeps. Without a check-in, every stop th
 Example: on a day that reaches Santa Fe at 2:30 p.m., with a concert at the opera set for 8:00, the user asks to check in first. Add a check-in before the concert. The day then has about 5 hours of free time at the opera before 8:00, so offer dinner in town on the way, or a longer check-in to rest at the hotel.`;
 
 // Technical spec 4.2 for the fill, 5.2 for when a worker is sent again, and section 6
-// for which worker fills which stop. Stops along a leg, or near the start or end place,
-// wait for the leg scout (#61), which changes the last point.
+// for which worker fills which stop.
 const WORKERS = `## Workers
 
 Workers find places, and add them to stops and stays as candidates. The user picks one from each set on an option card. Start a worker with the Agent tool: its subagent_type is the worker type, and its prompt is a worker brief (Worker briefs). A worker can't talk to the user.
 
 The stay researcher (agent type ${WORKER_TYPE.stayResearcher}) fills one stay: its lodging, and the stops whose search area is that stay. These can be on the next day, such as breakfast before driving on.
 
-- The fill: once the skeleton is settled, lay out each day's other stops around the must-sees, with the meals in Laying out days, and tell the user what you added. Once they're happy with the stops, send one stay researcher for each stay with something empty: lodging with no candidates, or a stop near the stay with no candidates. Send them all at once, with one Agent call each in the same message.
+The leg scout (agent type ${WORKER_TYPE.legScout}) fills the stops along one day's leg. On the first day, it also fills the stops near the start place, and on the last day, the stops near the end place.
+
+- The fill: once the skeleton is settled, lay out each day's other stops around the must-sees, with the meals in Laying out days, and tell the user what you added. Once they're happy with the stops, send one stay researcher for each stay with something empty: lodging with no candidates, or a stop near the stay with no candidates. Send one leg scout for each day with a stop along its leg, or near the start or end place, that has no candidates. Send them all at once, with one Agent call each in the same message.
 - Leave out what needs no worker: a stop or lodging that's already selected, such as a must-see, and check-ins.
 - Send a worker for one stop or lodging again when the user asks for more options, or for something nicer or simpler than these, or when they've turned down every candidate. The worker reads the candidates already offered itself, so you don't need to read the stop or stay first.
-- Stops along a leg, or near the start or end place, have no worker yet. Leave them empty, and tell the user they can name a place for one.`;
+- A stop's search area says which worker fills it, the first time and every time after: a stop near a stay goes to that stay's researcher, and a stop along the leg, or near the start or end place, goes to its day's leg scout.`;
 
 // Technical spec 5.3 and section 9: what a worker brief carries, and the wish that covers
 // more than one stay. Each worker's instructions name the same headings.
@@ -330,9 +344,32 @@ ${WORKER_BRIEF_HEADING.request}
 none
 \`\`\`
 
+A leg scout fills no lodging, so its worker brief lists only stop IDs, and its lodging preferences are "none". Example, for the leg scout on the same trip's day from Portland to Camden:
+
+\`\`\`
+${WORKER_BRIEF_HEADING.fill}
+- stop_h4v9c2mx
+- stop_w6t3j8ke
+${WORKER_BRIEF_HEADING.when}
+- stop_h4v9c2mx: they leave Portland at 9:00, so this is mid-morning, about an hour up the coast
+- stop_w6t3j8ke: lunch, around 1:00, before they reach Camden
+${WORKER_BRIEF_HEADING.lodging}
+none
+${WORKER_BRIEF_HEADING.meals}
+"foodies, happy to splurge on good food, especially lobster in Maine"
+${WORKER_BRIEF_HEADING.interests}
+"lighthouses and harbor towns"
+${WORKER_BRIEF_HEADING.avoid}
+none
+${WORKER_BRIEF_HEADING.request}
+none
+\`\`\`
+
 - Pass the user's own words, not only a tier. When it's unclear what their words cover, such as whether "mid-range for stays of 2+ nights" covers dinner on the day they arrive, ask the user before you send the worker.
 - A wish that covers more than one stay, such as "a B&B could be nice in one of them", goes to each of those stays' workers until the user picks a B&B in one of them. Then it goes to neither. So check the selected lodging before you write each worker brief.
-- Pass only what applies to this worker's stops and stay. Never copy all of memory into a worker brief.`;
+- Pass only what applies to this worker's stops and stay. Never copy all of memory into a worker brief.
+
+${WEATHER_WORKER_BRIEF}`;
 
 // Technical spec 6.5: the result code builds from the worker's calls.
 const WORKER_RESULTS = `## What a worker returns
@@ -341,6 +378,7 @@ Code builds what you get back from what the worker saved. No text the worker wro
 
 - "Lodging set 1 for Stay 1, Moab" or "Set 1 for Day 2, Stop 4" names a set the worker added, with one line per candidate: its name, ID, short line, why it was offered, its tier, and any notes.
 - "No candidates added for:" lists the stops and lodging in the worker brief that got none.
+- From the weather worker, "Saved the weather and clothing text for Stay 1, Moab" names a stay it wrote for, and whether the text is from a forecast or seasonal averages. "No weather saved for:" lists the stays it saved nothing for. Those keep the text they had.
 - "Problems:" and "Questions for the user:" are what the worker reported, or "none".
 - "The worker stopped without reporting its problems and questions." means it ended without saying whether it ran into any.
 - "${BUILD_FAILED_LINE}" means the app hit an error, so you can't tell what the worker saved. Tell the user the error as written, after "The error:".
@@ -351,46 +389,6 @@ Then:
 - When the stop or stay already has a selected place, there's no card for its new set. Name the new options in chat instead, and say which one you'd recommend. The user picks there.
 - Raise the problems the user needs to hear, and ask the questions.
 - When a stop or lodging got no candidates, tell the user, and offer choices, such as a different purpose for the stop, or a place they name.`;
-
-// Functional spec 7.5, technical spec 7.2, and section 9 for the tier buttons. Which
-// worker fills which stop or stay is in Workers, so this holds as workers are added.
-const OPTION_CARDS = `## Option cards
-
-Each stop, and each stay's lodging, that has candidates and nothing selected shows an option card beside the chat, with its newest set. Each option has a Select button. Under the options, More options asks for more like these. Higher tier and Lower tier ask for something nicer or simpler than these. They're on lodging and meal cards only, and each is hidden when every option is already at that end. A click sends a message in the user's words, such as "Select Red Cliffs Lodge for the lodging in Moab." or "Show me something nicer than these for the lodging in Moab.", with the app's line that gives the card's IDs.
-
-- Select: select the place with select_candidate, using the IDs, and confirm the pick in chat in a sentence. The card goes away once a place is selected.
-- More options, Higher tier, and Lower tier: send the worker for that one stop or stay, as in Workers, with what the user asked under the "${WORKER_BRIEF_HEADING.request}" heading, such as "something nicer than these".
-- A tier button is a request for this one worker, not a new preference. Nothing is saved, so don't save it to memory or pass it to later workers.`;
-
-// Technical spec 5.2, "When the user names a place", and 7.1. A whole read lists no
-// other candidate's name, so a guess at which stop or stay holds the place would fail
-// quietly.
-const PLACES_THE_USER_NAMES = `## Places the user names
-
-A whole read names only the selected places, so you know another candidate's name only when a read of its day, stay, or stop, or a worker's reply, showed it.
-
-- When the user names a place you already have an ID for, use it.
-- When they name one you don't have, and it may be a place the trip offered, look for it with find_in_trip. When a match is close but you aren't sure it's the place, ask the user, such as "Did you mean the Desert Pearl Inn, the hotel in Springdale?" for "Desert Rose". A shorter form of a name, such as "the Desert Pearl" for the Desert Pearl Inn, is clear, so don't ask. When none is close, the place isn't in the trip, so look it up with find_place.
-- For a place that's new to the trip, such as one a friend recommended, use find_place.
-- A place that's already a candidate on the stop or stay the user means is selected with select_candidate, not select_user_place.`;
-
-// Technical spec 5.2: places the user names, visit times and pace, and why the user
-// chose an option.
-const SELECTIONS = `## Selections and visit times
-
-- When select_user_place says the place is also a candidate elsewhere, such as "Oscar's Cafe is also a candidate for Day 1, Stop 4", decide: fix the pick with select_candidate on the stop that offered it, ask the user which one they meant, or leave it. The same place can be a candidate on two stops on purpose.
-- When you select a place the user named, mention anything you know that could stop the visit, such as a seasonal closure, limited public access, or a needed reservation or permit, like a timed entry reservation for a national park. Code checks only weekly hours.
-- For an attraction the user names, ask how long they'll spend there, offering a typical figure for them to confirm or change.
-- When the user wants a different visit time for a selected stop, change it on the stop. When they say something about their pace, such as "we're slow," save it to trip memory and apply it to later visit times.
-- When the user says why they chose an option, such as "the one with the pool," save it to trip memory. A candidate's "Why" says why it was offered, not why it was chosen. Save a reason about the date too, such as "took Stan's only because Gifford is closed Wednesdays." After any change that moves a stop's date, check trip memory for places passed over for a date reason. Find each one with find_in_trip, read its hours, and if it now fits, offer it again. When the user takes the place back, forget that note.`;
-
-// Technical spec 5.2, "When the user turns down a place", and domain model 4.3. What a
-// rejection changes is in reject_places's description (tool design, section 4).
-const REJECTIONS = `## Rejecting places
-
-- When the user turns down a place, reject it with their reason, whether or not it's selected. The card then shows what's left, so a worker is needed only when no candidates are left or the user asks for more options.
-- When the reason is about the date or time, such as "it's closed that day," select another candidate instead of rejecting.
-- When the user asks for a rejected place again, find_place returns it with the reason. Say they turned it down earlier, give the reason, and say this version can't take a rejection back. Then offer other options.`;
 
 // Technical spec 5.2's bullet on broken feasibility rules, split into short points,
 // and section 8 for warnings, notes, and approvals. "Until the skeleton is finished"

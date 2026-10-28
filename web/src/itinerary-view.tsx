@@ -8,8 +8,10 @@ import {
   type ShownStay,
   type ShownStop,
   type ShownSummary,
+  type ShownWeather,
 } from "../../src/shared/itinerary.schema";
 import type { MessageRequest } from "../../src/shared/session.schema";
+import { GoogleMapsCredit, OpenMeteoCredit } from "./credits";
 import { dayText, tripDatesText } from "./dates";
 import { countText, timesText } from "./itinerary-text";
 import { type CardActions, type CardHolder, OptionCard } from "./option-card";
@@ -117,7 +119,44 @@ function StayItem({
         holder={{ id: stay.id, label: `the lodging in ${stay.place.name}` }}
         cards={cards}
       />
+      <WeatherBlock weather={stay.weather} />
     </li>
+  );
+}
+
+// The stay's weather and clothing text, with its label, an out-of-date mark, and the
+// credit its source asks for, at the bottom of the block (functional spec 9.6).
+function WeatherBlock({ weather }: { weather: ShownWeather | null }) {
+  if (weather === null) {
+    return (
+      <div className="weather">
+        <p>
+          Weather and clothing: <em>not written yet</em>
+        </p>
+      </div>
+    );
+  }
+  const isForecast = weather.label === "forecast";
+  return (
+    <div className="weather">
+      <p>
+        <strong>
+          Weather and clothing, from{" "}
+          {isForecast ? "a forecast" : "seasonal averages"}
+        </strong>
+        , written {dayText(weather.writtenOnDate)}
+        {weather.isOutOfDate ? (
+          <>
+            {" "}
+            <strong className="out-of-date">
+              Out of date: the stay has changed since this was written.
+            </strong>
+          </>
+        ) : null}
+      </p>
+      <p>{weather.guidance}</p>
+      {isForecast ? <GoogleMapsCredit /> : <OpenMeteoCredit />}
+    </div>
   );
 }
 

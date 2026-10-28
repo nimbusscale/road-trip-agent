@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { present } from "../domain/itinerary.fake.js";
+import { examplePlace } from "../domain/place.fake.js";
 import { plannedMoab } from "./skeleton-tools.fake.js";
 import { textOf } from "./stored-trip.fake.js";
 import { readWorkerBriefFactsTool } from "./worker-brief-facts-tool.js";
@@ -74,6 +75,42 @@ describe("read_worker_brief_facts", () => {
     expect(text).toMatch(
       new RegExp(
         String.raw`  - Panorama Point ${PLACE}, .+: Thursday, October 14, 2027, 1:00 a\.m\. to 2:00 a\.m\.$`,
+      ),
+    );
+  });
+
+  // Every place in the Moab example is at the same spot, so a place 0.25 degrees of
+  // latitude north of them is about 17 miles away.
+  it("gives each activity's distance from the stay's town, as the crow flies", async () => {
+    const planned = await moabFacts();
+    const { torrey, stops } = planned.example;
+    const [farOff] = await planned.fixture.store.places.addPlaces(
+      planned.example.trip.id,
+      [
+        examplePlace({
+          name: "Far-off overlook",
+          googlePlaceId: "google-Far-off overlook",
+          latitude: torrey.place.latitude + 0.25,
+          longitude: torrey.place.longitude,
+        }),
+      ],
+    );
+    await planned.selectUserPlace({
+      stopOrStayId: stops.panoramaPoint.id,
+      placeId: present(farOff).id,
+      name: "Far-off overlook",
+      reason: "the user asked for it",
+      visitTimeInMinutes: 60,
+    });
+    const text = await planned.facts([torrey.id]);
+    expect(text).toMatch(
+      new RegExp(
+        String.raw`  - Goblin Valley State Park ${PLACE}, .+, less than a mile from Torrey: Wednesday`,
+      ),
+    );
+    expect(text).toMatch(
+      new RegExp(
+        String.raw`  - Far-off overlook ${PLACE}, .+, about 17 miles from Torrey: Thursday, October 14, 2027, 1:00 a\.m\.`,
       ),
     );
   });

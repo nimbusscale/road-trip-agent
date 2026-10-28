@@ -89,8 +89,21 @@ export const shownSummarySchema = z.object({
 
 export type ShownSummary = z.infer<typeof shownSummarySchema>;
 
+// The weather worker's text for a stay, with its label and the date it was written
+// (functional spec 8). `isOutOfDate` is true once the stay's place, dates, or activities
+// no longer match the ones it was written for (domain model 4.1).
+export const shownWeatherSchema = z.object({
+  guidance: z.string(),
+  label: z.enum(["forecast", "seasonalAverages"]),
+  writtenOnDate: z.string(),
+  isOutOfDate: z.boolean(),
+});
+
+export type ShownWeather = z.infer<typeof shownWeatherSchema>;
+
 // `arriveDate` is the first night's date, and `leaveDate` the morning the party leaves.
-// Both are null until the trip has a start date.
+// Both are null until the trip has a start date. `weather` is null until the weather
+// worker writes it.
 export const shownStaySchema = z.object({
   id: z.string(),
   number: z.number(),
@@ -99,6 +112,7 @@ export const shownStaySchema = z.object({
   arriveDate: z.string().nullable(),
   leaveDate: z.string().nullable(),
   lodging: shownChoiceSchema,
+  weather: shownWeatherSchema.nullable(),
 });
 
 export type ShownStay = z.infer<typeof shownStaySchema>;
