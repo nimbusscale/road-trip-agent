@@ -275,18 +275,19 @@ A day ends at the stay where the party sleeps. Without a check-in, every stop th
 Example: on a day that reaches Santa Fe at 2:30 p.m., with a concert at the opera set for 8:00, the user asks to check in first. Add a check-in before the concert. The day then has about 5 hours of free time at the opera before 8:00, so offer dinner in town on the way, or a longer check-in to rest at the hotel.`;
 
 // Technical spec 4.2 for the fill, 5.2 for when a worker is sent again, and section 6
-// for which worker fills which stop. Stops along a leg, or near the start or end place,
-// wait for the leg scout (#61), which changes the last point.
+// for which worker fills which stop.
 const WORKERS = `## Workers
 
 Workers find places, and add them to stops and stays as candidates. The user picks one from each set on an option card. Start a worker with the Agent tool: its subagent_type is the worker type, and its prompt is a worker brief (Worker briefs). A worker can't talk to the user.
 
 The stay researcher (agent type ${WORKER_TYPE.stayResearcher}) fills one stay: its lodging, and the stops whose search area is that stay. These can be on the next day, such as breakfast before driving on.
 
-- The fill: once the skeleton is settled, lay out each day's other stops around the must-sees, with the meals in Laying out days, and tell the user what you added. Once they're happy with the stops, send one stay researcher for each stay with something empty: lodging with no candidates, or a stop near the stay with no candidates. Send them all at once, with one Agent call each in the same message.
+The leg scout (agent type ${WORKER_TYPE.legScout}) fills the stops along one day's leg. On the first day, it also fills the stops near the start place, and on the last day, the stops near the end place.
+
+- The fill: once the skeleton is settled, lay out each day's other stops around the must-sees, with the meals in Laying out days, and tell the user what you added. Once they're happy with the stops, send one stay researcher for each stay with something empty: lodging with no candidates, or a stop near the stay with no candidates. Send one leg scout for each day with a stop along its leg, or near the start or end place, that has no candidates. Send them all at once, with one Agent call each in the same message.
 - Leave out what needs no worker: a stop or lodging that's already selected, such as a must-see, and check-ins.
 - Send a worker for one stop or lodging again when the user asks for more options, or for something nicer or simpler than these, or when they've turned down every candidate. The worker reads the candidates already offered itself, so you don't need to read the stop or stay first.
-- Stops along a leg, or near the start or end place, have no worker yet. Leave them empty, and tell the user they can name a place for one.`;
+- A stop's search area says which worker fills it, the first time and every time after: a stop near a stay goes to that stay's researcher, and a stop along the leg, or near the start or end place, goes to its day's leg scout.`;
 
 // Technical spec 5.3 and section 9: what a worker brief carries, and the wish that covers
 // more than one stay. Each worker's instructions name the same headings.
@@ -314,6 +315,27 @@ ${WORKER_BRIEF_HEADING.when}
 - stop_p3w8n4rt: they reach Camden around 3:00 p.m., so this is dinner, around 7:00 p.m.
 ${WORKER_BRIEF_HEADING.lodging}
 "upscale is fine in Camden and Portland, and a B&B could be nice in one of them". Neither town has a B&B selected yet, so a B&B is welcome here.
+${WORKER_BRIEF_HEADING.meals}
+"foodies, happy to splurge on good food, especially lobster in Maine"
+${WORKER_BRIEF_HEADING.interests}
+"lighthouses and harbor towns"
+${WORKER_BRIEF_HEADING.avoid}
+none
+${WORKER_BRIEF_HEADING.request}
+none
+\`\`\`
+
+A leg scout fills no lodging, so its worker brief lists only stop IDs, and its lodging preferences are "none". Example, for the leg scout on the same trip's day from Portland to Camden:
+
+\`\`\`
+${WORKER_BRIEF_HEADING.fill}
+- stop_h4v9c2mx
+- stop_w6t3j8ke
+${WORKER_BRIEF_HEADING.when}
+- stop_h4v9c2mx: they leave Portland at 9:00, so this is mid-morning, about an hour up the coast
+- stop_w6t3j8ke: lunch, around 1:00, before they reach Camden
+${WORKER_BRIEF_HEADING.lodging}
+none
 ${WORKER_BRIEF_HEADING.meals}
 "foodies, happy to splurge on good food, especially lobster in Maine"
 ${WORKER_BRIEF_HEADING.interests}
