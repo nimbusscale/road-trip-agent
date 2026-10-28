@@ -66,8 +66,12 @@ export class WorkerCalls {
   ): void {
     const record = this.#recordOf(agentId);
     if (toolName === READ_FACTS) {
-      const ids = readIdsSchema.parse(toolInput);
-      record.readIds.push(...ids.filter((id) => !record.readIds.includes(id)));
+      // Each ID once, even when one call names it twice.
+      for (const id of readIdsSchema.parse(toolInput)) {
+        if (!record.readIds.includes(id)) {
+          record.readIds.push(id);
+        }
+      }
       return;
     }
     if (toolName === REPORT_RESULT) {

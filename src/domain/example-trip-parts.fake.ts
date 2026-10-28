@@ -39,7 +39,9 @@ export const EXAMPLE_SETTINGS: Settings = {
   maximumMemoryItems: 50,
   maximumMemoryItemCharacters: 300,
   coordinatorModel: "claude-opus-5-5",
-  workerModel: "claude-sonnet-5-5",
+  coordinatorEffort: "medium",
+  stayResearcherModel: "claude-sonnet-5-5",
+  stayResearcherEffort: "medium",
 };
 
 // The drive buffer setting's starting value.

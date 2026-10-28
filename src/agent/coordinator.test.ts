@@ -8,21 +8,25 @@ import {
   coordinatorGiven,
 } from "./coordinator.fake.js";
 
+// Each agent's model and effort unlike the other's, so a setting that reached the wrong
+// agent would show up.
 const SETTINGS = {
   ...EXAMPLE_SETTINGS,
   coordinatorModel: "claude-test-1-2",
-  workerModel: "claude-test-3-4",
-};
+  coordinatorEffort: "xhigh",
+  stayResearcherModel: "claude-test-3-4",
+  stayResearcherEffort: "low",
+} as const;
 
 function given(): ReturnType<typeof coordinatorGiven> {
   return coordinatorGiven(SETTINGS);
 }
 
 describe("coordinatorOptions", () => {
-  it("uses the exact model ID from the settings", () => {
-    expect(coordinatorOptions(given(), conversation(), false).model).toBe(
-      "claude-test-1-2",
-    );
+  it("runs the query on the coordinator's model and effort from the settings", () => {
+    const options = coordinatorOptions(given(), conversation(), false);
+    expect(options.model).toBe("claude-test-1-2");
+    expect(options.effort).toBe("xhigh");
   });
 
   it("gives only our servers and three built-in tools, and lets each run without asking, with no settings files", () => {
@@ -57,16 +61,19 @@ describe("coordinatorOptions", () => {
     expect(options.agent).toBe("coordinator");
   });
 
-  it("gives the coordinator's definition the same prompt and model as the query", () => {
+  it("gives the coordinator's definition the same prompt, model, and effort as the query", () => {
     const options = coordinatorOptions(given(), conversation(), false);
     const definition = options.agents?.coordinator;
     expect(definition?.prompt).toBe(options.systemPrompt);
     expect(definition?.model).toBe("claude-test-1-2");
+    expect(definition?.effort).toBe("xhigh");
   });
 
-  it("runs the stay researcher on the worker model from the settings", () => {
+  it("runs the stay researcher on its own model and effort from the settings", () => {
     const options = coordinatorOptions(given(), conversation(), false);
-    expect(options.agents?.["stay-researcher"]?.model).toBe("claude-test-3-4");
+    const definition = options.agents?.["stay-researcher"];
+    expect(definition?.model).toBe("claude-test-3-4");
+    expect(definition?.effort).toBe("low");
   });
 
   it("asks for a summary of the model's thinking", () => {

@@ -35,7 +35,15 @@ describe("agent views", () => {
     const definition = definitionOf(given, "coordinator");
     const tools = toolsSent(definition, await toolsOf(given.mcpServers ?? {}));
     await expect(
-      view("coordinator", given.systemPrompt, tools, workerTypes(given)),
+      view(
+        {
+          name: "coordinator",
+          definition,
+          systemPrompt: given.systemPrompt,
+        },
+        tools,
+        workerTypes(given),
+      ),
     ).toMatchFileSnapshot("coordinator.view.md");
   });
 
@@ -45,7 +53,15 @@ describe("agent views", () => {
     const definition = definitionOf(given, WORKER_TYPE.stayResearcher);
     const tools = toolsSent(definition, await toolsOf(given.mcpServers ?? {}));
     await expect(
-      view("stay researcher", definition.prompt, tools, []),
+      view(
+        {
+          name: "stay researcher",
+          definition,
+          systemPrompt: definition.prompt,
+        },
+        tools,
+        [],
+      ),
     ).toMatchFileSnapshot("stay-researcher.view.md");
   });
 });
@@ -121,13 +137,22 @@ function toolsSent(definition: AgentDefinition, listed: Tool[]): ViewTool[] {
 // A built-in tool is only a name. Claude Code writes its text.
 type ViewTool = Tool | { name: string; inputSchema?: undefined };
 
-// Fenced with four backticks, so a prompt or description can hold three.
+// The agent's name in the heading, its definition, and the system prompt it gets.
+interface ViewAgent {
+  name: string;
+  definition: AgentDefinition;
+  systemPrompt: string;
+}
+
+// Fenced with four backticks, so a prompt or description can hold three. The model and
+// effort come from the agent's definition. The coordinator's query options have the
+// same ones (technical spec 6.5).
 function view(
-  agent: string,
-  systemPrompt: string,
+  agent: ViewAgent,
   tools: ViewTool[],
   workerTypeLines: string[],
 ): string {
+  const { model, effort } = agent.definition;
   const toolSections = tools.map((each) =>
     each.inputSchema === undefined
       ? `### ${each.name}`
@@ -140,10 +165,11 @@ function view(
         ].join("\n\n"),
   );
   return [
-    `# What the ${agent} sees`,
+    `# What the ${agent.name} sees`,
     "Written by `npm run agent-views`, with the real settings.json. Don't edit it by hand.",
+    `Model: \`${model ?? "not set"}\`. Effort: \`${String(effort ?? "not set")}\`.`,
     "## System prompt",
-    `\`\`\`\`text\n${systemPrompt}\n\`\`\`\``,
+    `\`\`\`\`text\n${agent.systemPrompt}\n\`\`\`\``,
     "## Tools",
     ...toolSections,
     ...(workerTypeLines.length === 0

@@ -1,4 +1,7 @@
-import type { AgentDefinition } from "@anthropic-ai/claude-agent-sdk";
+import type {
+  AgentDefinition,
+  EffortLevel,
+} from "@anthropic-ai/claude-agent-sdk";
 
 import { PLACES_SERVER_NAME } from "../tools/places-server.js";
 import { TRIP_SERVER_NAME } from "../tools/trip-server.js";
@@ -25,13 +28,22 @@ export const STAY_RESEARCHER_TOOLS: readonly string[] = [
   "WebFetch",
 ];
 
+// The stay researcher's own model and effort settings (technical spec section 10).
+export interface StayResearcherDefinitionGiven {
+  model: string;
+  effort: EffortLevel;
+}
+
 // The description is what the coordinator is told about the worker type, with its tools.
-export function stayResearcherDefinition(model: string): AgentDefinition {
+export function stayResearcherDefinition(
+  given: StayResearcherDefinitionGiven,
+): AgentDefinition {
   return {
     description:
       "Finds candidates for one stay: its lodging, and the stops whose search area is that stay. Its prompt is a worker brief.",
     prompt: stayResearcherPrompt(),
-    model,
+    model: given.model,
+    effort: given.effort,
     tools: [...STAY_RESEARCHER_TOOLS],
   };
 }

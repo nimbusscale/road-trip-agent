@@ -10,6 +10,18 @@ import { WORKER_TYPE, type WorkerType } from "./worker-types.js";
 export const STOPPED_WITHOUT_REPORT =
   "The worker stopped without reporting its problems and questions.";
 
+// What the coordinator gets in place of a worker's result when code fails to build it.
+// The coordinator's instructions quote it, and tell it to give the user the error.
+export const BUILD_FAILED_LINE =
+  "Code failed to build this worker's result, so the result isn't available.";
+
+// One line, with the error's message as written. Runs of spaces and line breaks become
+// one space, since some messages, such as a Zod error's, span many lines.
+export function buildFailedText(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  return `${BUILD_FAILED_LINE} The error: ${message.replace(/\s+/g, " ").trim()}`;
+}
+
 // Each part is a block of lines, with a blank line between blocks: each fill's reply,
 // then what got nothing, then the problems and questions. `positions` reads the trip,
 // to name what got nothing.

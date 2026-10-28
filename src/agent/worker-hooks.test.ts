@@ -1,79 +1,18 @@
-import type {
-  HookCallback,
-  HookInput,
-  HookJSONOutput,
-} from "@anthropic-ai/claude-agent-sdk";
-import { describe, expect, it } from "vitest";
+import type { HookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
+import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 
-import { plannedMoab } from "../tools/skeleton-tools.fake.js";
 import {
-  agentCall,
-  agentCallDone,
-  type Caller,
-  subagentStop,
-  toolCall,
-} from "./fake-hook-inputs.schema.js";
-import { MAX_SEND_BACKS, SEND_BACK_TEXT, workerHooks } from "./worker-hooks.js";
+  ADD_STOP,
+  moabHooks,
+  READ_FACTS,
+  RESEARCHER,
+  SET_STAY_WEATHER,
+} from "./worker-hooks.fake.js";
+import { MAX_SEND_BACKS, SEND_BACK_TEXT } from "./worker-hooks.js";
 
 // The worker hooks over the Moab example as planned (domain model 5.2), fed the hook
 // inputs the Agent SDK sends (technical spec 6.5).
-
-const READ_FACTS = "mcp__trip__read_worker_brief_facts";
-const ADD_STOP = "mcp__trip__add_stop_candidates";
-const SET_STAY_WEATHER = "mcp__trip__set_stay_weather";
-const REPORT_RESULT = "mcp__worker__report_result";
-
-const RESEARCHER = { agentId: "a1", agentType: "stay-researcher" };
-
-async function moabHooks() {
-  const planned = await plannedMoab();
-  const hooks = workerHooks({
-    ...planned.fixture,
-    tripId: planned.example.trip.id,
-  });
-  // Each test feeds a hook only the calls its matcher lets through.
-  const hookFor = (
-    event: "PostToolUse" | "SubagentStop",
-    isMatcher: (matcher: string | undefined) => boolean,
-  ) => {
-    const hook = hooks[event]?.find((each) => isMatcher(each.matcher))
-      ?.hooks[0];
-    if (hook === undefined) {
-      throw new Error(`No ${event} hook.`);
-    }
-    return hook;
-  };
-  const recordHook = hookFor("PostToolUse", (matcher) => matcher !== "Agent");
-  const agentHook = hookFor("PostToolUse", (matcher) => matcher === "Agent");
-  const stopHook = hookFor("SubagentStop", () => true);
-  const { moab, torrey, stops } = planned.example;
-  return {
-    moab,
-    torrey,
-    stops,
-    // A worker's call that succeeded.
-    call: (caller: Caller, tool: string, input: unknown, reply?: string) =>
-      run(recordHook, toolCall(caller, tool, input, reply)),
-    report: (caller: Caller, problems: string[], questionsForUser: string[]) =>
-      run(
-        recordHook,
-        toolCall(caller, REPORT_RESULT, { problems, questionsForUser }),
-      ),
-    // The result the coordinator sees, or undefined when the hook leaves the output as
-    // it is.
-    result: async (agentType: string, agentId: string) =>
-      contentOf(await run(agentHook, agentCallDone(agentType, agentId))),
-    agentOutput: (agentType: string, output: unknown) =>
-      run(agentHook, agentCall(agentType, output)),
-    stop: (agentType: string, agentId: string) =>
-      run(stopHook, subagentStop(agentType, agentId)),
-  };
-}
-
-function run(hook: HookCallback, input: HookInput): Promise<HookJSONOutput> {
-  return hook(input, undefined, { signal: new AbortController().signal });
-}
 
 // The whole Agent output, with the fields the hook keeps, and its content replaced.
 const replacedOutputSchema = z.object({
@@ -96,9 +35,20 @@ function contentOf(output: HookJSONOutput): string | undefined {
   return replaced.content[0].text;
 }
 
+// The Moab hooks, with the result the coordinator sees, or undefined when the hook
+// leaves the output as it is.
+async function moabTrip() {
+  const trip = await moabHooks();
+  return {
+    ...trip,
+    result: async (agentType: string, agentId: string) =>
+      contentOf(await trip.resultOutput(agentType, agentId)),
+  };
+}
+
 describe("the result in place of a worker's last message", () => {
   it("gives each candidate reply in call order, what got no candidates, and the problems and questions", async () => {
-    const trip = await moabHooks();
+    const trip = await moabTrip();
     const { moab, stops } = trip;
     await trip.call(RESEARCHER, READ_FACTS, {
       stopOrStayIds: [moab.id, stops.milts.id, stops.delicateArch.id],
@@ -140,7 +90,7 @@ describe("the result in place of a worker's last message", () => {
   });
 
   it('says "none" when there are no problems or questions, and leaves out the line for what got nothing when every stop got candidates', async () => {
-    const trip = await moabHooks();
+    const trip = await moabTrip();
     const { stops } = trip;
     await trip.call(RESEARCHER, READ_FACTS, {
       stopOrStayIds: [stops.milts.id],
@@ -152,8 +102,29 @@ describe("the result in place of a worker's last message", () => {
     );
   });
 
+  it("lists a stop once when one read_worker_brief_facts call names it twice", async () => {
+    const trip = await moabTrip();
+    const { stops } = trip;
+    await trip.call(RESEARCHER, READ_FACTS, {
+      stopOrStayIds: [
+        stops.milts.id,
+        stops.delicateArch.id,
+        stops.delicateArch.id,
+      ],
+    });
+    await trip.call(RESEARCHER, ADD_STOP, { stopId: stops.milts.id }, "Set 2.");
+    await trip.report(RESEARCHER, [], []);
+    expect(await trip.result("stay-researcher", "a1")).toBe(
+      [
+        "Set 2.",
+        `No candidates added for:\n- Day 2, Stop 1 (${stops.delicateArch.id}), attraction: "a sunrise hike"`,
+        "Problems: none\nQuestions for the user: none",
+      ].join("\n\n"),
+    );
+  });
+
   it("uses the last report_result call when there are two", async () => {
-    const trip = await moabHooks();
+    const trip = await moabTrip();
     await trip.report(RESEARCHER, ["First problem."], ["First question?"]);
     await trip.report(RESEARCHER, ["Second problem."], []);
     expect(await trip.result("stay-researcher", "a1")).toBe(
@@ -162,7 +133,7 @@ describe("the result in place of a worker's last message", () => {
   });
 
   it("says the worker stopped without reporting, in place of the problems and questions", async () => {
-    const trip = await moabHooks();
+    const trip = await moabTrip();
     const { stops } = trip;
     await trip.call(RESEARCHER, READ_FACTS, {
       stopOrStayIds: [stops.milts.id],
@@ -174,7 +145,7 @@ describe("the result in place of a worker's last message", () => {
   });
 
   it("gives the weather worker's saves, and the stays it saved no weather for", async () => {
-    const trip = await moabHooks();
+    const trip = await moabTrip();
     const { moab, torrey } = trip;
     const weatherWorker = { agentId: "w1", agentType: "weather-worker" };
     await trip.call(weatherWorker, READ_FACTS, {
@@ -201,7 +172,7 @@ describe("the result in place of a worker's last message", () => {
   });
 
   it("gives each of two workers only its own calls", async () => {
-    const trip = await moabHooks();
+    const trip = await moabTrip();
     const legScout = { agentId: "l1", agentType: "leg-scout" };
     await trip.call(RESEARCHER, ADD_STOP, { stopId: "stop_aaaaaaaa" }, "Moab.");
     await trip.call(legScout, ADD_STOP, { stopId: "stop_bbbbbbbb" }, "Leg.");
@@ -212,7 +183,7 @@ describe("the result in place of a worker's last message", () => {
   });
 
   it("leaves out a call made by the coordinator, or by an agent type that isn't one of our workers", async () => {
-    const trip = await moabHooks();
+    const trip = await moabTrip();
     await trip.call(
       { agentType: "coordinator" },
       ADD_STOP,
@@ -231,13 +202,51 @@ describe("the result in place of a worker's last message", () => {
     );
   });
 
+  it("says code failed to build the result, with the error, in place of the worker's own message", async () => {
+    const trip = await moabTrip();
+    await trip.call(RESEARCHER, READ_FACTS, {
+      stopOrStayIds: [trip.stops.delicateArch.id],
+    });
+    await trip.report(RESEARCHER, [], []);
+    // Naming the stop that got nothing reads the trip.
+    trip.failTripReads("The database is down.");
+    const logged = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+    try {
+      expect(await trip.result("stay-researcher", "a1")).toBe(
+        "Code failed to build this worker's result, so the result isn't available. The error: The database is down.",
+      );
+      expect(logged).toHaveBeenCalledOnce();
+    } finally {
+      logged.mockRestore();
+    }
+  });
+
+  it("leaves the output alone when it isn't the shape a result needs, such as one with no agentId", async () => {
+    const trip = await moabTrip();
+    const logged = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+    try {
+      const output = await trip.agentOutput("stay-researcher", {
+        status: "completed",
+        content: [{ type: "text", text: "All done!" }],
+      });
+      expect(output).toEqual({});
+      expect(logged).toHaveBeenCalledOnce();
+    } finally {
+      logged.mockRestore();
+    }
+  });
+
   it("leaves the output alone for an agent type that isn't one of our workers", async () => {
-    const trip = await moabHooks();
+    const trip = await moabTrip();
     expect(await trip.result("general-purpose", "a1")).toBeUndefined();
   });
 
   it("leaves the output alone when the worker isn't done, such as one in the background", async () => {
-    const trip = await moabHooks();
+    const trip = await moabTrip();
     const launched = await trip.agentOutput("stay-researcher", {
       status: "async_launched",
       agentId: "a1",
@@ -251,7 +260,7 @@ describe("the result in place of a worker's last message", () => {
 
 describe("sending back a worker that hasn't called report_result", () => {
   it(`sends it back at most ${String(MAX_SEND_BACKS)} times`, async () => {
-    const trip = await moabHooks();
+    const trip = await moabTrip();
     const sendBack = { decision: "block", reason: SEND_BACK_TEXT };
     expect(await trip.stop("stay-researcher", "a1")).toEqual(sendBack);
     expect(await trip.stop("stay-researcher", "a1")).toEqual(sendBack);
@@ -261,13 +270,13 @@ describe("sending back a worker that hasn't called report_result", () => {
   });
 
   it("lets a worker that called it stop", async () => {
-    const trip = await moabHooks();
+    const trip = await moabTrip();
     await trip.report(RESEARCHER, [], []);
     expect(await trip.stop("stay-researcher", "a1")).toEqual({});
   });
 
   it("ignores agent types that aren't our workers", async () => {
-    const trip = await moabHooks();
+    const trip = await moabTrip();
     expect(await trip.stop("general-purpose", "a1")).toEqual({});
     expect(await trip.stop("coordinator", "a1")).toEqual({});
   });
