@@ -13,6 +13,7 @@ import { readItineraryTool } from "./itinerary-tools.js";
 import { rejectPlacesTool } from "./reject-places-tool.js";
 import { selectCandidateTool, selectUserPlaceTool } from "./selection-tools.js";
 import { addStayTool, removeStayTool, updateStayTool } from "./stay-tools.js";
+import { setStayWeatherTool } from "./stay-weather-tool.js";
 import {
   addStopsTool,
   moveStopTool,
@@ -61,6 +62,7 @@ export function createTripServer(
       readWorkerBriefFactsTool(session),
       addLodgingCandidatesTool(session),
       addStopCandidatesTool(session),
+      setStayWeatherTool(session),
     ],
   });
 }

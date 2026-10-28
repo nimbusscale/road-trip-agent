@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import { TEST_USER_ID } from "../auth/test-tokens.js";
 import { checkInDay } from "../domain/check-in.fake.js";
-import { calendarFor } from "../domain/example-trip-parts.fake.js";
+import { CalendarDate } from "../domain/calendar-date.js";
+import { calendarFor, planningFor } from "../domain/example-trip-parts.fake.js";
 import { exampleMoabTrip } from "../domain/itinerary.fake.js";
 import { sanFranciscoExample } from "../domain/san-francisco-example.fake.js";
 import {
@@ -151,6 +152,46 @@ describe("the itinerary view", () => {
     const lodging = view.stays[0]?.lodging.selection;
     expect(lodging?.namedByUser).toBe(false);
     expect(lodging?.sourceLink).toMatch(/^https:/);
+  });
+});
+
+describe("the itinerary view's weather", () => {
+  it("gives each stay's weather text with its label and the date it was written, and none for a stay without one", () => {
+    const { trip, moab } = exampleMoabTrip({ id: TEST_USER_ID });
+    const planning = planningFor(trip, PLANNING);
+    planning.services.stays.setWeatherText(
+      trip.itinerary,
+      moab,
+      "Mild days and cool nights.",
+    );
+    const view = itineraryViewOf(trip, planning.calendar);
+    expect(view.stays.map((stay) => stay.weather)).toEqual([
+      {
+        guidance: "Mild days and cool nights.",
+        label: "seasonalAverages",
+        writtenOnDate: "2026-10-15",
+        isOutOfDate: false,
+      },
+      null,
+    ]);
+  });
+
+  // Seasonal averages go out of date only when a date leaves their window of 7 days on
+  // each side (domain model 4.1).
+  it("marks a stay's weather out of date once its dates leave the window it was written for", () => {
+    const { trip, moab } = exampleMoabTrip({ id: TEST_USER_ID });
+    const planning = planningFor(trip, PLANNING);
+    planning.services.stays.setWeatherText(
+      trip.itinerary,
+      moab,
+      "Mild days and cool nights.",
+    );
+    planning.services.itinerary.setStartDate(
+      trip.itinerary,
+      new CalendarDate(2027, 10, 20),
+    );
+    const view = itineraryViewOf(trip, planning.calendar);
+    expect(view.stays[0]?.weather?.isOutOfDate).toBe(true);
   });
 });
 

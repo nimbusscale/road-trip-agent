@@ -86,6 +86,26 @@ describe("ArchiveClient.seasonalAverages", () => {
     expect(sent[0]?.searchParams.has("models")).toBe(false);
   });
 
+  // Open-Meteo refuses requests sent all at once with "Too many concurrent requests",
+  // as it did when the weather worker looked up three places at once in #64's check.
+  it("asks for one year at a time", async () => {
+    const sent: URL[] = [];
+    const answer = savedFetch(sent);
+    let inFlight = 0;
+    let most = 0;
+    const counting: typeof fetch = async (url) => {
+      inFlight += 1;
+      most = Math.max(most, inFlight);
+      await new Promise((resolve) => setTimeout(resolve, 1));
+      inFlight -= 1;
+      return answer(url);
+    };
+    const client = new ArchiveClient({ fetch: counting });
+    await client.seasonalAverages(MOAB, STAY_DATES, TODAY);
+    expect(sent).toHaveLength(10);
+    expect(most).toBe(1);
+  });
+
   it("sends an identifying User-Agent", async () => {
     const headers: unknown[] = [];
     const client = new ArchiveClient({

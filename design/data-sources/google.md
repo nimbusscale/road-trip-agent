@@ -104,6 +104,8 @@ GET https://weather.googleapis.com/v1/forecast/days:lookup
 
 - **The chance's `type` says what would fall.** It's `RAIN`, `SNOW`, or `RAIN_AND_SNOW`, and the tool names it, such as "40% chance of snow." The type can differ from the conditions text. In Leadville on October 22, 2026, the text was "Light rain" and the type was `SNOW` (checked 2026-10-21).
 
+**The itinerary view credits Google on a forecast.** The weather worker's forecast text is its own reading of Google's data. Google's [Weather API policies](https://developers.google.com/maps/documentation/weather/policies) give the text "Includes data from Google Maps" for "entirely new content" made from the data. The credit goes "near the top or bottom of the content, and within the same visual container", is always visible, and is never changed. So the itinerary view puts it at the bottom of each forecast stay's weather block. Seasonal averages get Open-Meteo's credit there instead ([Open-Meteo design](open-meteo.md), section 4). The credit is one small piece in the front end's code, so every place that shows Google's data gives the same text. Decided on 2026-10-28 in chat, for #64.
+
 ---
 
 ## 4. UI map

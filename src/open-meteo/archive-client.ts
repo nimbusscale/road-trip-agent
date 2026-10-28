@@ -58,15 +58,19 @@ export class ArchiveClient {
       { length: YEARS },
       (unused, index) => lastYear - YEARS + 1 + index,
     );
-    const days = await Promise.all(
-      years.map((year) =>
-        this.#daysOf(
+    // One year at a time. Open-Meteo refuses requests sent all at once with "Too many
+    // concurrent requests", and the weather worker can look up several places at once
+    // (Open-Meteo design 2.2).
+    const days: PastDay[][] = [];
+    for (const year of years) {
+      days.push(
+        await this.#daysOf(
           place,
           inYear(first.plusDays(-WINDOW_DAYS), year - first.year),
           inYear(last.plusDays(WINDOW_DAYS), year - first.year),
         ),
-      ),
-    );
+      );
+    }
     const averages = seasonalAveragesOf(days.flat(), {
       first: years[0] ?? lastYear,
       last: lastYear,

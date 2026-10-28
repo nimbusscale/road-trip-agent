@@ -1,21 +1,24 @@
 import type { Calendar } from "../domain/calendar.js";
-import { clockText, sentence } from "../domain/check-text.js";
+import { clockText, placeText, sentence } from "../domain/check-text.js";
 import {
   minuteOfScheduleTime,
   MINUTES_IN_DAY,
 } from "../domain/day-timeline.js";
 import type { Itinerary } from "../domain/itinerary.js";
+import type { Place } from "../domain/place.js";
 import type { ScheduleEntry } from "../domain/schedule-entry.js";
 import type { Stay } from "../domain/stay.js";
 import type { Stop } from "../domain/stop.js";
+import { milesBetween } from "./search-result-lines.js";
 import { placeLine } from "./stop-lines.js";
 
 // A stay's activities, as read_worker_brief_facts gives them under the stay's line (tool
 // design 2.1): its attraction stops, by the weather rule (technical spec 6.3), in the
 // days' order. Each with its place and short line, or its purpose when it has none, and
-// its date and time. The short line's town is a clue to whether an activity is far from
-// the stay's town (tool design 2.5), but many park attractions have none. #64 settles
-// how the weather worker tells.
+// its date and time. A place also gives how far it is from the stay's town, as the crow
+// flies, since its name and short line often don't say where it is, as for a park
+// attraction with no town. The weather worker judges from it whether the activity needs
+// its own weather (tool design 2.5).
 
 export function activityLines(
   calendar: Calendar,
@@ -30,17 +33,27 @@ export function activityLines(
     "- The stay's activities:",
     ...activities.map((stop) =>
       sentence(
-        `  - ${activityName(stop)}: ${activityWhen(calendar, itinerary, stop)}`,
+        `  - ${activityName(stay, stop)}: ${activityWhen(calendar, itinerary, stop)}`,
       ),
     ),
   ];
 }
 
-function activityName(stop: Stop): string {
+function activityName(stay: Stay, stop: Stop): string {
   const place = stop.selectedPlace;
   return place === null
     ? `${stop.purpose}, no place picked yet`
-    : placeLine(place);
+    : `${placeLine(place)}, ${distanceText(stay, place)}`;
+}
+
+// Such as "about 18 miles from Yosemite Valley", or "less than a mile from Moab".
+function distanceText(stay: Stay, place: Place): string {
+  const town = placeText(stay.place);
+  const miles = Math.round(milesBetween(stay.place, place));
+  if (miles === 0) {
+    return `less than a mile from ${town}`;
+  }
+  return `about ${String(miles)} ${miles === 1 ? "mile" : "miles"} from ${town}`;
 }
 
 // Such as "Monday, October 11, 2027, 9:00 a.m. to 1:00 p.m.". A time after midnight

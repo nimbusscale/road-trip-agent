@@ -44,6 +44,8 @@ export const EXAMPLE_SETTINGS: Settings = {
   stayResearcherEffort: "medium",
   legScoutModel: "claude-sonnet-5-5",
   legScoutEffort: "medium",
+  weatherWorkerModel: "claude-sonnet-5-5",
+  weatherWorkerEffort: "medium",
 };
 
 // The drive buffer setting's starting value.

@@ -25,6 +25,7 @@ This document covers the Open-Meteo Historical Weather API. The app uses it for 
 ### 2.2 Requests
 
 - **One request per year for the last 10 complete years, counted back from today,** not from the trip's year. Planning on October 11, 2026, that is 2016 to 2025, even for a trip in 2027. 2026 isn't complete yet.
+- **The requests go one at a time.** Sent all at once, Open-Meteo refused some with "Too many concurrent requests". That happened in #64's check, when the weather worker looked up three places at once, 30 requests in all. One at a time takes a few seconds per look-up, which is fine for a worker.
 - **Each request covers the stay's dates plus 7 days on each side.** For a stay on October 10 to 12, each year's request covers October 3 to 19.
 - **Parameters:**
   ```
@@ -71,4 +72,4 @@ The tool combines all the days from all 10 years and returns one small summary p
 
 ## 4. Attribution
 
-The data is licensed CC BY 4.0. The UI shows "Weather data by Open-Meteo.com", linked to `https://open-meteo.com/`, wherever seasonal averages appear.
+The data is licensed CC BY 4.0. The UI shows "Weather data by Open-Meteo.com", linked to `https://open-meteo.com/`, wherever seasonal averages appear. In the itinerary view, that's the bottom of each stay's weather block, when its text is from seasonal averages.
