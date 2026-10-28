@@ -7,7 +7,7 @@ For the planning behavior, see the [functional spec](functional-spec.md). For th
 **Left out on purpose:**
 
 - **Memory.** It isn't part of a road trip, like sessions. It's described in the technical spec (section 3.1), and how it's stored is in the [persistence design](persistence.md) (section 8.8).
-- **Worker briefs and option cards.** Neither is stored. A worker brief is written fresh for each worker call (technical spec 5.3). An option card is how the UI shows the newest candidate set of one stop or stay (functional spec 7.5). Whether a card is open is screen state, not saved. The rules they depend on, such as which candidate set a card shows, are on the objects here.
+- **Worker briefs and option cards.** Neither is stored. A worker brief is written fresh for each worker call (technical spec 5.3). An option card is how the UI shows the newest candidate set of one stop or stay (functional spec 7.5). Whether a card shows follows from what's saved: it shows for a stop or stay with candidates and nothing selected. The rules they depend on, such as which candidate set a card shows, are on the objects here.
 
 ---
 
@@ -834,7 +834,7 @@ A candidate is one place offered for a stop or for a stay's lodging, with the re
 | Property | Stored or worked out | Type | Notes |
 |---|---|---|---|
 | `place` | Stored | `Place`, read only | The place it offers. See below |
-| `rationale` | Stored | `string`, read only | One or two sentences on why it was offered here, tied to the user's preferences, such as "Walkable to the barbecue spots." For a place the user named, the user's reason. The option card shows it as a tooltip. The coordinator reads it when the user asks "why that one?" |
+| `rationale` | Stored | `string`, read only | One or two sentences on why it was offered here, tied to the user's preferences, such as "Walkable to the barbecue spots." For a place the user named, the user's reason. The option card shows it. The coordinator reads it when the user asks "why that one?" |
 | `howFound` | Stored | `HowFound`, read only | Google, web search, or specified by the user |
 | `sourceLink` | Stored | `string?`, read only | The listing or page it came from, such as its Google Maps page or an Atlas Obscura page. The option card links to it (functional spec 7.5). Empty only for a place the user named |
 | `notesText` | Stored | `string?`, read only | Notes about the place, such as "closed Mondays" or "reservations advised" (functional spec 7.5). Empty when there are none |

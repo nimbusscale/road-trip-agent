@@ -43,7 +43,7 @@ This document covers the Google Maps Platform APIs the app uses: Routes, Places,
 | Card item (spec 7.5) | Field |
 |---|---|
 | Name, type, location | `displayName`, `primaryTypeDisplayName`, `formattedAddress`, `location`. The type is Google's readable wording, such as "Hotel" or "Mexican Restaurant". `types` is asked for only to tell an address from a named place (2.4) |
-| Rating and review count | `rating`, `userRatingCount`. Shown for restaurants and hotels. For attractions, only where a rating means something (spec 7.5) |
+| Rating and review count | `rating`, `userRatingCount`. Shown for every place that has them, attractions included, and nothing for a place that has none (spec 7.5). Hiding them for some attractions, such as a national park, would take a list of Google place types, and Google has dozens of attraction types, with edge cases such as a state park or a scenic overlook. A rating on a park does no harm, and the review count shows when a rating is thin |
 | Tier signal (spec 7.1) | `priceLevel` and `priceRange` for restaurants. Hotels don't have them, so the agent judges hotel tiers from the summaries |
 | Hours, for notes and feasibility checks | `regularOpeningHours`: `periods` for the checks, `weekdayDescriptions` for notes. `periods` gives each opening and closing as a day and a time, so hours past midnight are clear. Both come in the same field, at the Enterprise price |
 | Source link | `googleMapsUri`. The reviews link is inside `reviewSummary` |
@@ -52,6 +52,9 @@ This document covers the Google Maps Platform APIs the app uses: Routes, Places,
 - **`reviewSummary` is the only field that mentions downsides,** such as "Some reviews mention the food can be dry."
 - **Any field can be missing.** In Lockhart, only 3 of 7 restaurants had an `editorialSummary`. Small motels often have no summaries at all.
 - **Hours are a normal week only.** There are no seasonal hours. Hearst Castle shows 8 AM to 6 PM every day. Seasonal closures aren't checked in code in the MVP (technical spec section 8).
+- **The app never shows a Places summary to the user,** so it needs no "Summarized with Gemini" label. Summaries go only to the workers, in search results, and the card shows the worker's own rationale and notes (spec 7.5). Any screen that ever shows one follows Google's [Places API policies](https://developers.google.com/maps/documentation/places/web-service/policies): the summary's full text, unchanged, with Google's disclosure text just below it, an "About this summary" link, and a "Report summary" link. A review summary also needs a "Review summary" heading and a "See reviews" link.
+- **Places data shown without a Google map needs Google Maps attribution.** That's the Google Maps logo, or the text "Google Maps" where space is short, always visible and never changed. Google says to put it "near the top or bottom of the content, and within the same visual container", so a page footer doesn't count. One credit can cover every card in one box. A card that stands alone, such as one in the chat, needs its own. Today each option card is its own box, with "Google Maps" at its foot. That's always in the right box, wherever the card sits, and the layout may change in #204. The text is one small component in the front end, so other Google data shown off the map can reuse it.
+- **Google's content is set apart from ours.** On a card, Google's name, type, location, rating, and review count come first, on a line of their own. Ours, such as the tier, the rationale, and the notes, sit under them, set apart by a rule on the left.
 
 ### 2.3 Tool rules
 
