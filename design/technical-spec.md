@@ -8,12 +8,14 @@ This document covers how the app works under the hood. It covers the agents: whi
 
 One **coordinator** agent talks to the user for the whole trip. It sends research to **worker** subagents and keeps the conversation, the itinerary's structure, and memory to itself.
 
-| Agent | Talks to the user | Writes the itinerary | Writes memory | Runs |
-|---|---|---|---|---|
-| Coordinator | Yes | Yes | Yes | For the whole session |
-| Stay researcher | No | Adds candidates only | No | Once per stay, in parallel |
-| Leg scout | No | Adds candidates only | No | Once per leg, in parallel |
-| Weather and clothing | No | Saves each stay's weather text only | No | Once most of the fill's selections are made, and again for stays whose weather is out of date |
+| Agent | Agent type | Talks to the user | Writes the itinerary | Writes memory | Runs |
+|---|---|---|---|---|---|
+| Coordinator | `coordinator` | Yes | Yes | Yes | For the whole session |
+| Stay researcher | `stay-researcher` | No | Adds candidates only | No | Once per stay, in parallel |
+| Leg scout | `leg-scout` | No | Adds candidates only | No | Once per leg, in parallel |
+| Weather and clothing | `weather-worker` | No | Saves each stay's weather text only | No | Once most of the fill's selections are made, and again for stays whose weather is out of date |
+
+The **agent type** is the agent's name in the Agent SDK. It names the agent's definition, and the coordinator passes a worker's type to the `Agent` tool to start it (6.5).
 
 A worker is called like a tool. It gets a worker brief, does its work, and returns one result. It can't ask the user anything. If it needs a decision, it says so in its result, and the coordinator asks.
 
@@ -273,7 +275,7 @@ The coordinator starts a worker with the Agent SDK's built-in `Agent` tool. Ever
 **Every agent runs from a definition that lists every tool it gets.** The query's options say which tools exist in the session. Each agent's definition picks the ones that agent is sent.
 
 - **What exists:** the built-in `Agent`, `WebSearch`, and `WebFetch`, in the query's `tools`, and our MCP servers, in its `mcpServers`. The servers are built for each turn with the trip, as before ([tool design](tools.md), section 4).
-- **The coordinator runs as a named agent,** with `agent: "coordinator"` and its definition in `agents`. It's still the session's main agent, with the main transcript. The only change is that its definition's `tools` sets what it's sent. That's its tools from tool design section 3, each by name, and `Agent(stay-researcher, leg-scout)`, with the weather worker's type once it's added. So it doesn't see the workers' tools or web search, though they're in the session. Example: `search_near` is on the `places` server with the coordinator's `find_place`, and only the workers are sent it.
+- **The coordinator runs as a named agent,** with `agent: "coordinator"` and its definition in `agents`. It's still the session's main agent, with the main transcript. The only change is that its definition's `tools` sets what it's sent. That's its tools from tool design section 3, each by name, and `Agent(stay-researcher, leg-scout, weather-worker)`, which names the worker types from section 1. So it doesn't see the workers' tools or web search, though they're in the session. Example: `search_near` is on the `places` server with the coordinator's `find_place`, and only the workers are sent it.
 - **`Agent` names the worker types,** because the coordinator's own definition is an agent type too. With plain `Agent`, the coordinator could start a copy of itself as a worker.
 - **The main agent gets the query's `systemPrompt`,** not its definition's `prompt`. Both are set to the coordinator's instructions, so nothing depends on which one is used.
 - **Each worker's definition lists its tools from tool design section 3, and names no MCP server.** The tools it lists are on the query's servers. A definition must never leave `tools` out. A worker without it gets every tool in the session, `Agent` included.
