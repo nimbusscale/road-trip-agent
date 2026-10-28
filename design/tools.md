@@ -329,11 +329,15 @@ Every worker ends by calling `report_result`. A hook records its input, and code
 
 | Tool | Does | Takes | Returns |
 |---|---|---|---|
-| `report_result` | Ends the worker's work, with what the coordinator should hear besides the candidates | Problems: a list of short sentences, such as "Gifford Homestead is closed on Wednesdays, and Day 4 is a Wednesday" or "Only two places in Torrey fit a quiet B&B." Questions for the user: a list of short sentences, such as "Should the Day 2 lunch be a picnic, since the day is all hiking?" Both are required. Either can be an empty list | "Result recorded. You're done." |
+| `report_result` | Ends the worker's work, with what the coordinator should hear besides the candidates | `problems`: a list of short sentences, such as "Gifford Homestead is closed on Wednesdays, and Day 4 is a Wednesday" or "Only two places in Torrey fit a quiet B&B." `questionsForUser`: a list of short sentences, such as "Should the Day 2 lunch be a picnic, since the day is all hiking?" Both are required. Either can be an empty list | "Result recorded. You're done." |
 
 **A problem is something the coordinator should know. A question needs the user's decision.** A worker can't ask the user anything, so the coordinator asks (technical spec 1). The candidates don't go here: the candidate tools already saved them, and code lists them from those calls.
 
 **A second call replaces the first.** The result uses the last one.
+
+**The questions input is `questionsForUser`, not `questions`.** The name says whose decision a question needs, so the model doesn't have to get that from its instructions alone. Decided on 2026-10-28, while #198 was being built.
+
+**The description tells the worker not to repeat what it added or saved.** The coordinator gets that from the worker's other calls (technical spec 6.5). What a problem and a question are goes in the workers' instructions (section 4), since all three workers share the meaning.
 
 ---
 

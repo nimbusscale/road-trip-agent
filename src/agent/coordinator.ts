@@ -27,6 +27,10 @@ import type { RoutingSession } from "../tools/routing-session.js";
 import type { TripSession } from "../tools/trip-session.js";
 import { createTripServer, TRIP_SERVER_NAME } from "../tools/trip-server.js";
 import {
+  createWorkerServer,
+  WORKER_SERVER_NAME,
+} from "../tools/worker-server.js";
+import {
   COORDINATOR_AGENT_TYPE,
   coordinatorDefinition,
 } from "./coordinator-definition.js";
@@ -34,11 +38,13 @@ import { coordinatorPrompt } from "./coordinator-prompt.js";
 import { sdkUserMessage } from "./sdk-user-message.schema.js";
 import { type TurnEvent, turnEventsOf } from "./turn-event.js";
 import { TurnTrace } from "./turn-trace.js";
+import { workerHooks } from "./worker-hooks.js";
 import type { ReadWorkerTranscript } from "./worker-trace.js";
 
 // The coordinator: the agent the user talks to (technical spec 1). For now it has the
 // trip brief and memory tools, read_itinerary, the tools that build the skeleton,
-// find_place, read_place, and compute_route.
+// find_place, read_place, and compute_route. The session holds the workers' tools too,
+// and the hooks that build a worker's result (technical spec 6.5).
 
 export interface CoordinatorGiven {
   settings: Settings;
@@ -50,6 +56,9 @@ export interface CoordinatorGiven {
   routing: Omit<RoutingSession, "tripId">;
   transcripts: TranscriptAdapter;
 }
+
+// The session's only built-in tools (tool design, section 1).
+const BUILT_IN_TOOLS = ["Agent", "WebSearch", "WebFetch"] as const;
 
 // One conversation: a session, and the user it's for.
 export interface Conversation {
@@ -87,29 +96,35 @@ export function coordinatorOptions(
     // turn's trace (systems design section 10). turnEventsOf() leaves them out.
     includePartialMessages: true,
     env: processEnv,
-    // No settings files, CLAUDE.md, or MCP servers but ours, and no built-in tools yet.
-    // These are the tools that exist in the session. Each agent's definition picks the
-    // ones it's sent (technical spec 6.5).
+    // No settings files, CLAUDE.md, or MCP servers but ours. These are the tools that
+    // exist in the session: the built-in Agent, to start workers, the web tools, which
+    // only workers are sent, and our servers. Each agent's definition picks the ones it's
+    // sent (technical spec 6.5).
     settingSources: [],
     strictMcpConfig: true,
-    tools: [],
+    tools: [...BUILT_IN_TOOLS],
     mcpServers: {
       [TRIP_SERVER_NAME]: createTripServer({ ...trip, tripId }),
       [MEMORY_SERVER_NAME]: createMemoryServer({ ...memory, userId, tripId }),
       [PLACES_SERVER_NAME]: createPlacesServer({ ...places, tripId }),
       [ROUTING_SERVER_NAME]: createRoutingServer({ ...routing, tripId }),
+      [WORKER_SERVER_NAME]: createWorkerServer(),
     },
     // These tools run without asking. Anything else is refused, since nobody is there to
-    // answer a permission prompt. What the coordinator is sent is its definition's
-    // tools, not this list.
+    // answer a permission prompt. The list covers every agent in the session, so it
+    // can't refuse a tool to one agent and allow it to another. Only the definitions do
+    // that. Every tool in the session is some agent's, so the list names each whole
+    // server, and the built-in tools by name (technical spec 6.5).
     allowedTools: [
+      ...BUILT_IN_TOOLS,
       `mcp__${TRIP_SERVER_NAME}`,
       `mcp__${MEMORY_SERVER_NAME}`,
-      `mcp__${PLACES_SERVER_NAME}__find_place`,
-      `mcp__${PLACES_SERVER_NAME}__read_place`,
+      `mcp__${PLACES_SERVER_NAME}`,
       `mcp__${ROUTING_SERVER_NAME}`,
+      `mcp__${WORKER_SERVER_NAME}`,
     ],
     permissionMode: "dontAsk",
+    hooks: workerHooks({ ...trip, tripId }),
     // The transcript goes to Postgres line by line as it's written (persistence design,
     // section 6).
     sessionStore: transcripts,

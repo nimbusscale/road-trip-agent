@@ -14,6 +14,8 @@ import { TripReader } from "../persistence/trip-reader.js";
 import { TripRepository } from "../persistence/trip-repository.js";
 import { findPlaceTool, readPlaceTool } from "./place-tools.js";
 import type { PlacesSession } from "./places-session.js";
+import { searchAlongLegTool } from "./search-along-leg-tool.js";
+import { searchNearTool } from "./search-near-tool.js";
 
 // Part of every tool name the model sees, such as mcp__places__find_place (tool design,
 // section 1).
@@ -56,6 +58,13 @@ export function createPlacesServer(
     // The coordinator looks up every town and place the user names, so these are never
     // left for it to find with a tool search.
     alwaysLoad: true,
-    tools: [findPlaceTool(session), readPlaceTool(session)],
+    tools: [
+      findPlaceTool(session),
+      readPlaceTool(session),
+      // The workers' searches. Each agent's definition lists the tools it's sent, so the
+      // coordinator doesn't see these (tool design, section 3).
+      searchNearTool(session),
+      searchAlongLegTool(session),
+    ],
   });
 }
