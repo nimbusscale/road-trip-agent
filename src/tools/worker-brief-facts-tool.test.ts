@@ -50,12 +50,12 @@ describe("read_worker_brief_facts", () => {
       "- The stay's activities:",
       expect.stringMatching(
         new RegExp(
-          String.raw`^  - Fisher Towers viewpoint ${PLACE}: Sunday, October 10, 2027, \d+:\d\d a\.m\. to \d+:\d\d p\.m\.$`,
+          String.raw`^  - Fisher Towers viewpoint ${PLACE}, .+: Sunday, October 10, 2027, \d+:\d\d a\.m\. to \d+:\d\d p\.m\.$`,
         ),
       ),
       expect.stringMatching(
         new RegExp(
-          String.raw`^  - Delicate Arch trail ${PLACE}: Monday, October 11, 2027, 6:00 a\.m\. to 8:40 a\.m\.$`,
+          String.raw`^  - Delicate Arch trail ${PLACE}, .+: Monday, October 11, 2027, 6:00 a\.m\. to 8:40 a\.m\.$`,
         ),
       ),
       expect.stringMatching(/^ {2}- Windows /),
@@ -68,12 +68,12 @@ describe("read_worker_brief_facts", () => {
     const text = await facts([example.torrey.id]);
     expect(text).toMatch(
       new RegExp(
-        String.raw`  - Goblin Valley State Park ${PLACE}: Wednesday, October 13, 2027, 9:55 a\.m\. to 11:55 a\.m\.\n  - Capitol Gorge `,
+        String.raw`  - Goblin Valley State Park ${PLACE}, .+: Wednesday, October 13, 2027, 9:55 a\.m\. to 11:55 a\.m\.\n  - Capitol Gorge `,
       ),
     );
     expect(text).toMatch(
       new RegExp(
-        String.raw`  - Panorama Point ${PLACE}: Thursday, October 14, 2027, 1:00 a\.m\. to 2:00 a\.m\.$`,
+        String.raw`  - Panorama Point ${PLACE}, .+: Thursday, October 14, 2027, 1:00 a\.m\. to 2:00 a\.m\.$`,
       ),
     );
   });
