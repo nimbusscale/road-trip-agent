@@ -163,7 +163,7 @@ The coordinator's instructions cover:
 - **What a whole read gives.** The coordinator reads the whole itinerary in three cases: at the start of a session, after a resume, and for "what's left to decide?". Each needs the open warnings and the trip as it stands, not every candidate. So a whole read gives each picked place with its town, and counts the other candidates by set, with no names. It leaves out the rationale, the weather text, and each candidate's tier, since the user sees them elsewhere. The rationale shows on the option cards and in the itinerary view, the weather text in the itinerary view, and the tier on the option cards ([tool design](tools.md), 2.1). Read the stop or stay in these cases:
   - **To talk through a stop's or stay's options,** or recommend one, read that stop or stay first.
   - **"Why did we pick that?"** takes a read of the stop, or of the stay for lodging. So does a stay's weather text, such as "What should I pack for Moab?"
-  - **Sending a worker for "More options", "Higher tier", or "Lower tier" takes no read.** The worker reads the candidates already offered itself, with `read_brief_facts` (5.3), so it doesn't find the same top places again.
+  - **Sending a worker for "More options", "Higher tier", or "Lower tier" takes no read.** The worker reads the candidates already offered itself, with `read_worker_brief_facts` (5.3), so it doesn't find the same top places again.
 - **When the user names a place:** a whole read names only the selected places, and only counts the other candidates (7.2). So the coordinator knows another candidate's name only when a scoped read or a worker's reply showed it.
   - **A place it already has an ID for,** such as a selected restaurant from the whole read, it uses that ID.
   - **A place it has no ID for, that may be one the trip offered,** it looks for with `find_in_trip`. `find_in_trip` always returns the closest few, so when a match is close but the coordinator isn't sure it's the place, it asks the user, such as "Did you mean the Desert Pearl Inn, the hotel in Springdale?" for "Desert Rose". A shorter form of a name, such as "the Desert Pearl" for the Desert Pearl Inn, is clear, so the coordinator doesn't ask. When none is close, the place isn't in the trip, so it looks it up with `find_place`. Example: "let's add Arches" on a trip with no Arches gets no "Did you mean Desert View Watchtower?"
@@ -193,27 +193,27 @@ The coordinator's instructions cover:
 
 The coordinator keeps the **trip brief** (functional spec 5.2) current with the trip brief tools (5.1).
 
-A **worker brief** is the part of the trip brief one worker needs. The coordinator writes part of it, in the prompt of the `Agent` call that starts the worker. The worker reads the rest from code, with `read_brief_facts` ([tool design](tools.md), 2.1). The `Agent` tool takes only free text, so a brief can't have a schema. Code already holds most of the facts, so the coordinator doesn't copy them out, and can't copy them wrong. It writes only what takes its judgment.
+A **worker brief** is the part of the trip brief one worker needs. The coordinator writes part of it, in the prompt of the `Agent` call that starts the worker. The worker reads the rest from code, with `read_worker_brief_facts` ([tool design](tools.md), 2.1). The `Agent` tool takes only free text, so a worker brief can't have a schema. Code already holds most of the facts, so the coordinator doesn't copy them out, and can't copy them wrong. It writes only what takes its judgment.
 
 **The coordinator writes:**
 
-- The IDs of the stops or the stay to fill. The worker passes them to `read_brief_facts` first
+- The IDs of the stops or the stay to fill. The worker passes them to `read_worker_brief_facts` first
 - For lodging and meal stops, the user's words that apply: the meal or lodging preferences, and any trip or user memory that fits the stop or stay. The coordinator can add its own reading where a preference is clear, such as "the user wants mid-range for stays of 2+ nights, and this stay is 3 nights" (section 9)
 - Roughly when it expects each stop, in plain words. Example: "they leave at 10:30, so this is lunch, around noon." The schedule can't give this, because a stop with no place has no time in it (domain model 4.1). The worker brief is written fresh and not stored, so unlike a purpose it can say when. In a later session, the coordinator works this out from the stop's position in the day
 - Interests and must-sees that apply here
 - What trip or user memory says to avoid, such as "no chain restaurants." Rejected places are left out by the tools
 - For "More options", "Higher tier", or "Lower tier," the request, such as "something nicer than these" (section 9)
 
-The coordinator's instructions give the prompt a fixed outline, with a heading for each of these. The worker's instructions name the same headings, and every brief reads the same way in a trace. The wording is drafted with the stay researcher (#60).
+The coordinator's instructions give the prompt a fixed outline, with a heading for each of these. The worker's instructions name the same headings, and every worker brief reads the same way in a trace. The wording is drafted with the stay researcher (#60).
 
-**`read_brief_facts` returns, for each ID:**
+**`read_worker_brief_facts` returns, for each ID:**
 
 - **A stay:** its town, its dates and nights, and the lodging candidates already offered
 - **A stop:** its day, with the day's ID and date, its kind, its purpose, such as "dessert" or "sunrise hike," its set time if it has one, and its search area. The day's other stops in order, with their times and purposes, and the names of any that are selected, so the worker knows what comes before and after each of its stops. And the candidates already offered for it. The leg scout uses the day's ID for the along-leg search ([tool design](tools.md), 2.3)
 
-A whole read only counts the candidates already offered (5.2). So without the tool, the coordinator would have to read each stop or stay before writing its brief.
+A whole read only counts the candidates already offered (5.2). So without the tool, the coordinator would have to read each stop or stay before writing its worker brief.
 
-The weather worker's brief gives each stay to write for: its ID, and its town's name and place ID. The weather tool needs a place ID, so the worker passes the town's on its first call. The tool returns the stay's dates and activities (6.3), so this worker has no `read_brief_facts`. Each activity comes with its place's ID, so the worker can ask about a far-off one too, such as Tuolumne Meadows on a Yosemite stay. The coordinator writes the brief from a full read, which has every ID.
+The worker brief for the weather worker gives each stay to write for: its ID, and its town's name and place ID. The weather tool needs a place ID, so the worker passes the town's on its first call. The tool returns the stay's dates and activities (6.3), so this worker has no `read_worker_brief_facts`. Each activity comes with its place's ID, so the worker can ask about a far-off one too, such as Tuolumne Meadows on a Yosemite stay. The coordinator writes the worker brief from a full read, which has every ID.
 
 Workers never see raw user memory or anything about the user beyond their worker brief.
 
@@ -283,13 +283,13 @@ The coordinator starts a worker with the Agent SDK's built-in `Agent` tool. Ever
 - **`CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1` keeps every worker in the foreground.** A background worker's `Agent` call returns at once. Its own last message reaches the coordinator later, as written, in a task notification that skips the hooks below. Two workers in the foreground still run at the same time.
 - **`CLAUDE_AGENT_SDK_DISABLE_BUILTIN_AGENTS=1` leaves only our workers in the `Agent` tool.** Without it, the tool also offers the SDK's own agent types, such as `general-purpose`, which the coordinator may start to do a worker's job. No `Agent(fork)` rule is needed.
 
-**The worker's brief is the `Agent` call's prompt, plus what it reads with `read_brief_facts`** (5.3).
+**The worker brief is the `Agent` call's prompt, plus what it reads with `read_worker_brief_facts`** (5.3).
 
 **The worker ends by calling `report_result`,** with its problems and its questions for the user ([tool design](tools.md), 2.6). Its candidates go through the candidate tools, saved to the stop or stay. The weather worker's text goes through `set_stay_weather`.
 
 **Hooks in our code build the result the coordinator sees.** They're made with each turn's options, and keep what they record in memory for that turn.
 
-- **A `PostToolUse` hook on the workers' tools records each call that succeeds,** under the worker's `agent_id`: the IDs passed to `read_brief_facts`, each candidate tool's and `set_stay_weather`'s reply, and the input to `report_result`. A hook on the coordinator's own calls has no `agent_id`, so those aren't recorded.
+- **A `PostToolUse` hook on the workers' tools records each call that succeeds,** under the worker's `agent_id`: the IDs passed to `read_worker_brief_facts`, each candidate tool's and `set_stay_weather`'s reply, and the input to `report_result`. A hook on the coordinator's own calls has no `agent_id`, so those aren't recorded.
 - **A `SubagentStop` hook sends back a worker that tries to finish without calling `report_result`.** The worker gets "You haven't called report_result. Call it now, with any problems and questions, to end your work." It sends a worker back at most twice, and acts only for our worker types. Without a limit, a worker that can't call the tool is sent back again and again.
 - **A `PostToolUse` hook on `Agent` replaces the worker's last message with a result code builds,** from the calls recorded under the output's `agentId`. It returns the whole `Agent` output object, with its `content` replaced, since a string is ignored with no error. It acts only for our worker types, and only when the call completed.
 - **So no free text from a worker reaches the coordinator.** The worker's last message is still in its transcript, and in the turn's trace.
@@ -297,7 +297,7 @@ The coordinator starts a worker with the Agent SDK's built-in `Agent` tool. Ever
 **The result** has these lines, in this order:
 
 - Each candidate tool reply, or each `set_stay_weather` reply, as the tool gave it, in the order of the calls. A candidate reply names the set, with one line per candidate ([tool design](tools.md), 2.1).
-- The stops and stay from the worker's `read_brief_facts` calls that got no candidates, such as "No candidates added for: Day 4, Stop 1 (stop_…), meal: "breakfast"." A worker that found fewer than three good places still adds the ones it found, and says so in its problems.
+- The stops and stay from the worker's `read_worker_brief_facts` calls that got no candidates, such as "No candidates added for: Day 4, Stop 1 (stop_…), meal: "breakfast"." A worker that found fewer than three good places still adds the ones it found, and says so in its problems.
 - "Problems:" and "Questions for the user:", each with one line per item, or "none". When a worker called `report_result` more than once, the last call counts. When a worker was sent back twice and still didn't call it, a line says "The worker stopped without reporting its problems and questions." in place of both.
 
 The exact wording is drafted with the stay researcher (#60). The SDK wraps the result in a frame that says it's a subagent's report, written by a model, not by the user. The frame is there even though code wrote every line, so the result doesn't say who wrote it.

@@ -35,7 +35,7 @@ Web search is Claude's built-in `WebSearch` and `WebFetch` ([web search design](
 
 ### 2.1 Trip
 
-The coordinator's tools for the trip brief and itinerary, plus the workers' tools for reading their briefs, adding candidates, and saving weather text.
+The coordinator's tools for the trip brief and itinerary, plus the workers' tools for reading their worker briefs, adding candidates, and saving weather text.
 
 **Reading:**
 
@@ -179,9 +179,9 @@ The writing tools:
 
 | Tool | Does | Takes | Returns |
 |---|---|---|---|
-| `read_brief_facts` | Reads the facts for the stops and stay in a worker brief, so the coordinator doesn't copy them into the brief (technical spec 5.3). Called first | The stop and stay IDs from the worker brief, as a list of one or more | For a stay: its town, its dates and nights, and its lodging candidates already offered. For a stop: its day's ID, number, and date, its kind, purpose, set time or "none", and search area, the day's stops in order, with their times, purposes, and selected places, and its candidates already offered. Each candidate with its place ID and name |
+| `read_worker_brief_facts` | Reads the facts for the stops and stay in a worker brief, so the coordinator doesn't copy them into the worker brief (technical spec 5.3). Called first | The stop and stay IDs from the worker brief, as a list of one or more | For a stay: its town, its dates and nights, and its lodging candidates already offered. For a stop: its day's ID, number, and date, its kind, purpose, set time or "none", and search area, the day's stops in order, with their times, purposes, and selected places, and its candidates already offered. Each candidate with its place ID and name |
 
-**It saves the worker a read for each item, and the coordinator one for each brief.** A whole read only counts candidates (above), so without it the coordinator would read each stop or stay to list the candidates already offered. The reply is written in the style of a scoped read, with the same names for days and stops. A stop with no search area, a check-in, gets an error, since no worker fills it (technical spec 6). A bad ID gets an error, as in every tool (section 4). The `Agent` hook uses the IDs passed here to list the brief's items that got no candidates (technical spec 6.5).
+**It saves the worker a read for each item, and the coordinator one for each worker brief.** A whole read only counts candidates (above), so without it the coordinator would read each stop or stay to list the candidates already offered. The reply is written in the style of a scoped read, with the same names for days and stops. A stop with no search area, a check-in, gets an error, since no worker fills it (technical spec 6). A bad ID gets an error, as in every tool (section 4). The `Agent` hook uses the IDs passed here to list the worker brief's items that got no candidates (technical spec 6.5).
 
 ### 2.2 Memory
 
@@ -322,7 +322,7 @@ Every worker ends by calling `report_result`. A hook records its input, and code
 | `trip`: `set_stay_weather` | | | | Yes |
 | `trip`: `add_lodging_candidates` | | Yes | | |
 | `trip`: `add_stop_candidates` | | Yes | Yes | |
-| `trip`: `read_brief_facts` | | Yes | Yes | |
+| `trip`: `read_worker_brief_facts` | | Yes | Yes | |
 | `memory`: `read_memory` | Yes | | | |
 | `memory`: `add_memory_item` | Yes | | | |
 | `memory`: `update_memory_item` | Yes | | | |

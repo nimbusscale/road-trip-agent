@@ -502,7 +502,7 @@ assistant  "No response requested."
 user       "We got cut off. Where are we with the Moab stay?"
 ```
 
-- **The coordinator started a new worker for the same stay,** and told it to check for candidates already saved first. In the app, `read_brief_facts` would return the candidates the first worker saved. The spike's fake didn't keep them across the restart.
+- **The coordinator started a new worker for the same stay,** and told it to check for candidates already saved first. In the app, `read_worker_brief_facts` would return the candidates the first worker saved. The spike's fake didn't keep them across the restart.
 - **The cut-off worker isn't continued.** Its transcript is loaded, but nothing runs it again.
 - **So the transcript adapter doesn't need to leave any lines out.** The spike didn't try it, since the resume worked.
 
