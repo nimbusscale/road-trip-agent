@@ -107,9 +107,11 @@ function StayItem({ stay }: { stay: ShownStay }) {
 function WeatherBlock({ weather }: { weather: ShownWeather | null }) {
   if (weather === null) {
     return (
-      <p>
-        Weather and clothing: <em>not written yet</em>
-      </p>
+      <div className="weather">
+        <p>
+          Weather and clothing: <em>not written yet</em>
+        </p>
+      </div>
     );
   }
   const isForecast = weather.label === "forecast";
