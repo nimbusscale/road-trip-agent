@@ -173,15 +173,15 @@ The writing tools:
 
 **Adding a set to a stop or stay that already has a selection keeps the selection.** That happens when the user asks for more options after choosing. The selected place is still one of the candidates, in an older set. Candidates are never changed after they're written.
 
-**One tool for every stop, because code knows whether a detour applies.** Detour time is the extra driving off a leg's route, and only stops along the leg have one. The stop's search area already says which kind it is (domain model 3.7), so the worker passes the same inputs either way. Example: candidates for Goblin Valley, along the Moab Day 4 leg, get detour times off the Moab-to-Torrey route. Candidates for lunch near the Moab stay don't, because there's no route to detour from. Each worker's brief holds only its own stops, so the stay researcher and the leg scout share the tool.
+**One tool for every stop, because code knows whether a detour applies.** Detour time is the extra driving off a leg's route, and only stops along the leg have one. The stop's search area already says which kind it is (domain model 3.7), so the worker passes the same inputs either way. Example: candidates for Goblin Valley, along the Moab Day 4 leg, get detour times off the Moab-to-Torrey route. Candidates for lunch near the Moab stay don't, because there's no route to detour from. Each worker brief holds only that worker's stops, so the stay researcher and the leg scout share the tool.
 
 **Reading a worker brief (workers):**
 
 | Tool | Does | Takes | Returns |
 |---|---|---|---|
-| `read_worker_brief_facts` | Reads the facts for the stops and stay in a worker brief, so the coordinator doesn't copy them into the worker brief (technical spec 5.3). Called first | The stop and stay IDs from the worker brief, as a list of one or more | For a stay: its town, its dates and nights, and its lodging candidates already offered. For a stop: its day's ID, number, and date, its kind, purpose, set time or "none", and search area, the day's stops in order, with their times, purposes, and selected places, and its candidates already offered. Each candidate with its place ID and name |
+| `read_worker_brief_facts` | Reads the facts for the stops and stay in a worker brief, so the coordinator doesn't copy them into the worker brief (technical spec 5.3). Called first | The stop and stay IDs from the worker brief, as a list of one or more | For a stay: its town, with its place ID, its dates and nights, its activities, and its lodging candidates already offered. Its activities are its attraction stops (technical spec 6.3), each with its place's name and ID, or its purpose if none is selected, and its date and time. For a stop: its day's ID, number, and date, its kind, purpose, set time or "none", and search area, the day's stops in order, with their times, purposes, and selected places, and its candidates already offered. Each candidate with its place ID and name |
 
-**It saves the worker a read for each item, and the coordinator one for each worker brief.** A whole read only counts candidates (above), so without it the coordinator would read each stop or stay to list the candidates already offered. The reply is written in the style of a scoped read, with the same names for days and stops. A stop with no search area, a check-in, gets an error, since no worker fills it (technical spec 6). A bad ID gets an error, as in every tool (section 4). The `Agent` hook uses the IDs passed here to list the worker brief's items that got no candidates (technical spec 6.5).
+**It saves the worker a read for each item, and the coordinator one for each worker brief.** A whole read only counts candidates (above), so without it the coordinator would read each stop or stay to list the candidates already offered. The reply is the same for every worker, so a worker gets some facts it doesn't use, such as lodging candidates for the weather worker. The reply is written in the style of a scoped read, with the same names for days and stops. A stop with no search area, a check-in, gets an error, since no worker fills it (technical spec 6). A bad ID gets an error, as in every tool (section 4). The `Agent` hook uses the IDs passed here to list the worker brief's items that got no candidates, or no weather text (technical spec 6.5).
 
 ### 2.2 Memory
 
@@ -276,7 +276,7 @@ Weather worker only.
 
 | Tool | Does | Takes | Returns |
 |---|---|---|---|
-| `look_up_stay_weather` | Looks up the weather for a stay's dates | Stay ID, and a place ID: the stay's town, from the worker brief, or an attraction far from it, such as Tuolumne Meadows on a Yosemite stay | A daily forecast if every one of the stay's dates is within 7 days (technical spec section 8): highs, lows, conditions, and chances of rain and thunderstorms ([Google design](data-sources/google.md), section 3). Seasonal averages otherwise: average highs and lows, chances of rain and snow, and shares of hot days and freezing nights ([Open-Meteo design](data-sources/open-meteo.md), 2.3). Labeled with which one it is. Also the stay's activities: its attraction stops, each with its place's name and ID, or its purpose if none is selected, and its date and time (technical spec 6.3). An error when a forecast doesn't cover every date |
+| `look_up_stay_weather` | Looks up the weather for a stay's dates | Stay ID, and a place ID: the stay's town, from `read_worker_brief_facts`, or an attraction far from it, such as Tuolumne Meadows on a Yosemite stay | A daily forecast if every one of the stay's dates is within 7 days (technical spec section 8): highs, lows, conditions, and chances of rain and thunderstorms ([Google design](data-sources/google.md), section 3). Seasonal averages otherwise: average highs and lows, chances of rain and snow, and shares of hot days and freezing nights ([Open-Meteo design](data-sources/open-meteo.md), 2.3). Labeled with which one it is. An error when a forecast doesn't cover every date |
 
 **Code picks the source, not the worker.** The dates come from the stay, so the worker can't ask for a forecast too far out.
 
@@ -322,7 +322,7 @@ Every worker ends by calling `report_result`. A hook records its input, and code
 | `trip`: `set_stay_weather` | | | | Yes |
 | `trip`: `add_lodging_candidates` | | Yes | | |
 | `trip`: `add_stop_candidates` | | Yes | Yes | |
-| `trip`: `read_worker_brief_facts` | | Yes | Yes | |
+| `trip`: `read_worker_brief_facts` | | Yes | Yes | Yes |
 | `memory`: `read_memory` | Yes | | | |
 | `memory`: `add_memory_item` | Yes | | | |
 | `memory`: `update_memory_item` | Yes | | | |
@@ -338,7 +338,7 @@ Every worker ends by calling `report_result`. A hook records its input, and code
 | Built-in `WebFetch` | | Yes | | |
 | Built-in `Agent`, to call workers | Yes | | | |
 
-That's 25 tools for the coordinator, counting `Agent`, 8 for the stay researcher, 7 for the leg scout, and 3 for the weather worker. Each agent's definition lists exactly the tools in its column, each by name (technical spec 6.5). The coordinator's `Agent` entry also names the worker types it can start.
+That's 25 tools for the coordinator, counting `Agent`, 8 for the stay researcher, 7 for the leg scout, and 4 for the weather worker. Each agent's definition lists exactly the tools in its column, each by name (technical spec 6.5). The coordinator's `Agent` entry also names the worker types it can start.
 
 **Why only the coordinator gets `find_in_trip`.** Only the coordinator talks to the user, so only it hears a place named. A worker that offers a place already a candidate there gets a refusal from code (section 2.1).
 
