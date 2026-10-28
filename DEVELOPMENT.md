@@ -225,7 +225,7 @@ gh project item-list 1 --owner nimbusscale --format json --limit 200 \
 
 **The implementer opens the PR, posts the decisions comment, and stops.** It doesn't act on the review, since the fix loop handles that (section 7). The session that started the work watches the loop.
 
-**A PR is merged when the loop stops with nothing left for Joe.** That means it has the "ready for Joe" label, and every finding left is a note, or has a "Not fixed" or "Deferred" reply. If any finding is still marked "fix" or "check", or needs attention, the PR isn't merged, and Joe is told. The same goes for a PR that never gets the label. Merge with a merge commit, and don't wait for the deploy.
+**A PR is merged when the loop stops with nothing left for Joe.** That means it has the "ready for Joe" label, and every finding left is a note, or has a "Not fixed" or "Deferred" reply. If any finding is still marked "fix" or "check", or needs attention, the PR isn't merged, and Joe is told. The same goes for a PR that never gets the label. A PR that changes nothing in `src/` or `web/` is one, since the "Code review" workflow doesn't run on it (section 7). It's held as soon as it's opened, with no loop to wait for. A PR whose "Code review" run fails is one too, since a failed review or fix job doesn't add the label. Merge with a merge commit, and don't wait for the deploy.
 
 **When every PR is merged or held, report on all of them at once.** For each PR:
 
