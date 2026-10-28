@@ -241,7 +241,7 @@ Workers never see raw user memory or anything about the user beyond their worker
 
 ### 5.4 Thinking
 
-**The coordinator's thinking comes back as a summary.** The model decides when and how much to think, which is the Agent SDK's default for it (adaptive thinking). Without a summary, the SDK returns each thinking block with no text, only the encrypted form the API needs to go on with the conversation. The summary changes only what's returned, not how much the model thinks or what it costs. The turn's trace shows it, in each model call's span (systems design section 10).
+**The coordinator's thinking comes back as a summary.** The model decides when and how much to think, which is the Agent SDK's default for it (adaptive thinking). Its effort setting guides how much (section 10). Without a summary, the SDK returns each thinking block with no text, only the encrypted form the API needs to go on with the conversation. The summary changes only what's returned, not how much the model thinks or what it costs. The turn's trace shows it, in each model call's span (systems design section 10).
 
 ---
 
@@ -305,9 +305,11 @@ The coordinator starts a worker with the Agent SDK's built-in `Agent` tool. Ever
 - **The coordinator runs as a named agent,** with `agent: "coordinator"` and its definition in `agents`. It's still the session's main agent, with the main transcript. The only change is that its definition's `tools` sets what it's sent. That's its tools from tool design section 3, each by name, and `Agent(stay-researcher, leg-scout, weather-worker)`, which names the worker types from section 1. So it doesn't see the workers' tools or web search, though they're in the session. Example: `search_near` is on the `places` server with the coordinator's `find_place`, and only the workers are sent it.
 - **`Agent` names the worker types,** because the coordinator's own definition is an agent type too. With plain `Agent`, the coordinator could start a copy of itself as a worker.
 - **The main agent gets the query's `systemPrompt`,** not its definition's `prompt`. Both are set to the coordinator's instructions, so nothing depends on which one is used.
-- **The definition's `model` is the coordinator's model, the same as the query's `model`.** The SDK says a named main agent runs on its definition's model, and a definition with no model can get a default subagent model instead. With both set the same, it doesn't matter which one the SDK uses.
-- **Each worker's definition lists its tools from tool design section 3, and names no MCP server.** The tools it lists are on the query's servers. A definition must never leave `tools` out. A worker without it gets every tool in the session, `Agent` included. Its `model` is the worker model setting (section 10). Its `description` is what the coordinator is told about the worker type, with its tools, in the list of agent types.
+- **The definition's `model` and `effort` are the coordinator's, the same as the query's `model` and `effort`.** The SDK says a named main agent runs on its definition's model, and a definition with no model can get a default subagent model instead. With both set the same, it doesn't matter which one the SDK uses. Effort is set both ways for the same reason.
+- **Each worker's definition lists its tools from tool design section 3, and names no MCP server.** The tools it lists are on the query's servers. A definition must never leave `tools` out. A worker without it gets every tool in the session, `Agent` included. Its `model` and `effort` are that worker type's own settings (section 10). Its `description` is what the coordinator is told about the worker type, with its tools, in the list of agent types.
 - **The query's `allowedTools` names each of our servers, plus `Agent`, `WebSearch`, and `WebFetch`.** `allowedTools` lets a tool run without asking, and with `permissionMode: "dontAsk"` any other call is refused. It covers the whole session, workers too, so it can't let a worker call a tool and refuse the coordinator the same tool. Only the definitions can do that. And every tool in the session belongs to some agent, since the query's `tools` and `strictMcpConfig` keep out everything else. So a tool-by-tool list would always end up as every tool in the session, kept by hand as a second copy of the definitions. When that copy fell behind, a worker's call would be refused, and the trace would look like an agent problem when it's an app bug. So `allowedTools` only lets our tools run without a prompt, and the definitions decide who gets which tool. Settled on 2026-10-28 in chat, for #198.
+
+**Each agent has its own model and effort settings** (section 10), so one agent's model or effort can change and be evaluated alone. Each effort starts at the level the agent ran at before it had a setting, which is `medium` for both the coordinator on `claude-opus-5-5` and the stay researcher on `claude-sonnet-5-5`. The SDK's types don't give that default, so it was checked by hand on 0.3.301, on 2026-10-28: with no effort set, the `effort` field of the hook inputs said `medium` for the main agent and for a worker, and with an effort set in the options and the definitions, it said the level set for each.
 
 **Two settings go in the Claude Code process's environment:**
 
@@ -335,9 +337,9 @@ Example, from a stay researcher that filled the Moab stay's lodging and one stop
 
 ```
 Lodging set 1 for Stay 1, Moab (stay_…): 3 candidates.
-- Red Cliffs Lodge (place_…), Lodge, 4.5 stars, $$$, Moab. Why: "On the river, away from the busy main street." Tier: posh.
-- Hoodoo Moab (place_…), Hotel, 4.4 stars, $$$, Moab. Why: "A short walk to the restaurants on Main Street." Tier: mid-range.
-- Moab Springs Ranch (place_…), Lodge, 4.6 stars, $$, Moab. Why: "Quiet cottages at the edge of town." Tier: mid-range.
+- Red Cliffs Lodge (place_…), Lodge, 4.5 stars, $$$, Moab. Why: "On the river, away from the busy main street." Tier: upscale.
+- Hoodoo Moab (place_…), Hotel, 4.4 stars, $$$, Moab. Why: "A short walk to the restaurants on Main Street." Tier: midRange.
+- Moab Springs Ranch (place_…), Lodge, 4.6 stars, $$, Moab. Why: "Quiet cottages at the edge of town." Tier: midRange.
 
 Set 1 for Day 2, Stop 4 (stop_…), meal: "burgers": 2 candidates.
 - Milt's Stop & Eat (place_…), Hamburger restaurant, 4.6 stars, $, Moab. Why: "A classic burger stand since 1954." Tier: value.
@@ -356,7 +358,7 @@ The weather worker's result has one reply per stay it saved, then "No weather sa
 
 The SDK wraps the result in a frame that says it's a subagent's report, written by a model, not by the user. The frame is there even though code wrote every line, so the result doesn't say who wrote it. #198 drafted the wording, for Joe to review in its PR.
 
-**A hook that fails logs the error, and changes nothing.** If the result can't be built, the coordinator gets the worker's own last message instead, and the log says why.
+**A hook that fails logs the error.** When building the result fails, the hook still replaces the worker's last message, with one line: "Code failed to build this worker's result, so the result isn't available. The error: " and the error's message, with its line breaks made spaces. It can't list the stops and stays, since that's the code that failed. So the worker's own text still never reaches the coordinator, and the coordinator can tell that something failed. Its instructions say to tell the user the error as written. This app is for testing and learning, so the user seeing the raw error is wanted. Two failures change nothing. When the `Agent` output isn't the shape the result needs, such as one with no `agentId`, the coordinator gets the worker's own last message. A failure while recording a call or sending a worker back leaves things as they were.
 
 **A worker cut off by a restart** leaves an `Agent` call with no result in the transcript. The SDK fills it in on resume ([persistence design](persistence.md), section 7).
 
@@ -483,7 +485,7 @@ The checks that need judgment stay with the agent: must-sees vs days, seasonal r
 
 ## 10. Settings
 
-Settings are values code uses that aren't part of any trip. They're the same for every user and every trip. They live in a config file that ships with the app. The app loads it when it starts, and settings don't change while it runs. To change one, edit the file and restart the app. In production, build a new container with the new file and deploy it. Each starting value is a first guess, to tune during testing, except the maximum trip length, which comes from functional spec 2, and the coordinator model.
+Settings are values code uses that aren't part of any trip. They're the same for every user and every trip. They live in a config file that ships with the app. The app loads it when it starts, and settings don't change while it runs. To change one, edit the file and restart the app. In production, build a new container with the new file and deploy it. Each starting value is a first guess, to tune during testing, except the maximum trip length, which comes from functional spec 2, and each agent's model and effort.
 
 | Setting | Starting value | What it is |
 |---|---|---|
@@ -500,4 +502,6 @@ Settings are values code uses that aren't part of any trip. They're the same for
 | Maximum memory items | 50 | The most items user memory can hold, and the most each trip's memory can hold. An add over it is refused (3.1) |
 | Maximum memory item length | 300 characters | The longest one memory item can be. An add or update over it is refused (3.1) |
 | Coordinator model | `claude-opus-5-5` | The model the coordinator runs on, given to the Agent SDK. It's an exact model ID, never a short name such as "opus". A short name moves to newer models on its own, so a later run could use a different model |
-| Worker model | `claude-sonnet-5-5` | The model every worker runs on, given in each worker's definition (6.5). An exact model ID, as for the coordinator. Without one, a definition can get a default subagent model. Workers judge tiers and fit places to the user's words, so they get more than the smallest model, and they run many at once in the fill, so they get less than the coordinator's. One setting for all workers until an evaluation shows one worker needs a different model. Decided in #60 |
+| Coordinator effort | `medium` | How much effort the coordinator puts into each reply, which guides how much it thinks: `low`, `medium`, `high`, `xhigh`, or `max`. Given to the Agent SDK in the query's options and the coordinator's definition (6.5). It starts at the level the coordinator ran at before it had a setting (6.5) |
+| Stay researcher model | `claude-sonnet-5-5` | The model the stay researcher runs on, given in its definition (6.5). An exact model ID, as for the coordinator. Without one, a definition can get a default subagent model. It judges tiers and fits places to the user's words, so it gets more than the smallest model, and many run at once in the fill, so it gets less than the coordinator's. Decided in #60 |
+| Stay researcher effort | `medium` | The stay researcher's effort, as for the coordinator, given in its definition (6.5). It starts at the level the stay researcher ran at before it had a setting (6.5) |

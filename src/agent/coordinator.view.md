@@ -2,6 +2,8 @@
 
 Written by `npm run agent-views`, with the real settings.json. Don't edit it by hand.
 
+Model: `claude-opus-5-5`. Effort: `medium`.
+
 ## System prompt
 
 ````text
@@ -247,6 +249,7 @@ Code builds what you get back from what the worker saved. No text the worker wro
 - "No candidates added for:" lists the stops and lodging in the worker brief that got none.
 - "Problems:" and "Questions for the user:" are what the worker reported, or "none".
 - "The worker stopped without reporting its problems and questions." means it ended without saying whether it ran into any.
+- "Code failed to build this worker's result, so the result isn't available." means the app hit an error, so you can't tell what the worker saved. Tell the user the error as written, after "The error:".
 
 Then:
 

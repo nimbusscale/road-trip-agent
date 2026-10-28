@@ -1,4 +1,7 @@
-import type { AgentDefinition } from "@anthropic-ai/claude-agent-sdk";
+import type {
+  AgentDefinition,
+  EffortLevel,
+} from "@anthropic-ai/claude-agent-sdk";
 
 import { MEMORY_SERVER_NAME } from "../tools/memory-server.js";
 import { PLACES_SERVER_NAME } from "../tools/places-server.js";
@@ -53,11 +56,13 @@ export interface CoordinatorDefinitionGiven {
   // The coordinator's instructions, the same text as the query's systemPrompt.
   prompt: string;
   model: string;
+  effort: EffortLevel;
 }
 
 // The main agent gets the query's systemPrompt, not this prompt. Its model is this one,
-// though, and without it the agent could get a default subagent model. Both are set to
-// the query's values, so nothing depends on which one the SDK uses (technical spec 6.5).
+// though, and without it the agent could get a default subagent model. The prompt,
+// model, and effort are set to the query's values, so nothing depends on which one the
+// SDK uses (technical spec 6.5).
 export function coordinatorDefinition(
   given: CoordinatorDefinitionGiven,
 ): AgentDefinition {
@@ -66,6 +71,7 @@ export function coordinatorDefinition(
       "Talks to the user and plans the trip. It's the session's main agent, so it's never started as a worker.",
     prompt: given.prompt,
     model: given.model,
+    effort: given.effort,
     tools: [...COORDINATOR_TOOLS],
   };
 }

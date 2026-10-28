@@ -83,9 +83,10 @@ export function coordinatorOptions(
   const { session, userId } = conversation;
   const tripId = session.tripId;
   const prompt = coordinatorPrompt(settings);
-  const model = settings.coordinatorModel;
   return {
-    model,
+    // The same model and effort as the coordinator's definition (technical spec 6.5).
+    model: settings.coordinatorModel,
+    effort: settings.coordinatorEffort,
     systemPrompt: prompt,
     // The coordinator runs as a named agent, so its definition's tools are what it's
     // sent. The servers below can hold tools that only workers get (technical spec 6.5).
@@ -137,8 +138,8 @@ export function coordinatorOptions(
   };
 }
 
-// The coordinator's definition, and each worker's. The coordinator's model is the same
-// as the query's (technical spec 6.5).
+// The coordinator's definition, and each worker's, each with its own model and effort
+// settings. The coordinator's are the same as the query's (technical spec 6.5).
 function agentsFor(
   prompt: string,
   settings: Settings,
@@ -147,10 +148,12 @@ function agentsFor(
     [COORDINATOR_AGENT_TYPE]: coordinatorDefinition({
       prompt,
       model: settings.coordinatorModel,
+      effort: settings.coordinatorEffort,
     }),
-    [WORKER_TYPE.stayResearcher]: stayResearcherDefinition(
-      settings.workerModel,
-    ),
+    [WORKER_TYPE.stayResearcher]: stayResearcherDefinition({
+      model: settings.stayResearcherModel,
+      effort: settings.stayResearcherEffort,
+    }),
   };
 }
 

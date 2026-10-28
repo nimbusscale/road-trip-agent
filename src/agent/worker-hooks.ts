@@ -15,7 +15,7 @@ import {
   agentStatusSchema,
   completedAgentOutputSchema,
 } from "./worker-hook-input.schema.js";
-import { workerResultText } from "./worker-result.js";
+import { buildFailedText, workerResultText } from "./worker-result.js";
 import { isWorkerType } from "./worker-types.js";
 
 // The hooks that build the result the coordinator sees from a worker (technical spec
@@ -98,10 +98,10 @@ function replaceResult(
       return {};
     }
     const output = completedAgentOutputSchema.parse(input.tool_response);
-    const text = await workerResultText(
-      calls.of(output.agentId),
-      agentType,
-      () => positionsOf(given),
+    const text = await resultOrFailure(input, () =>
+      workerResultText(calls.of(output.agentId), agentType, () =>
+        positionsOf(given),
+      ),
     );
     return {
       hookSpecificOutput: {
@@ -110,6 +110,20 @@ function replaceResult(
       },
     };
   };
+}
+
+// A build that fails still replaces the worker's last message, so the worker's own text
+// never reaches the coordinator, and the coordinator can tell the user what failed.
+async function resultOrFailure(
+  input: HookInput,
+  build: () => Promise<string>,
+): Promise<string> {
+  try {
+    return await build();
+  } catch (error) {
+    logFailure("building the result", input, error);
+    return buildFailedText(error);
+  }
 }
 
 async function positionsOf(given: WorkerHooksGiven): Promise<Positions> {
@@ -141,20 +155,25 @@ function sendBack(
   };
 }
 
-// A hook that fails is logged, and changes nothing. A failed build leaves the worker's
-// own last message as its result, and the log says why.
+// A hook that fails is logged, and changes nothing. A failed build is caught before
+// this, in resultOrFailure(). What gets here is a hook input that isn't the shape the
+// hook needs, such as an Agent output with no agentId.
 function logged(doing: string, hook: HookCallback): HookCallback {
   return async (input, toolUseId, options): Promise<HookJSONOutput> => {
     try {
       return await hook(input, toolUseId, options);
     } catch (error) {
-      console.error(
-        `The worker hook failed while ${doing} (${describe(input)}):`,
-        error,
-      );
+      logFailure(doing, input, error);
       return {};
     }
   };
+}
+
+function logFailure(doing: string, input: HookInput, error: unknown): void {
+  console.error(
+    `The worker hook failed while ${doing} (${describe(input)}):`,
+    error,
+  );
 }
 
 function describe(input: HookInput): string {

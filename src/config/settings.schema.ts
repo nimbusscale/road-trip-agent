@@ -6,6 +6,10 @@ const modelId = z.string().regex(/^claude-/, {
   error: "must be an exact model ID, such as claude-opus-5-5",
 });
 
+// A named effort level, as the Agent SDK takes it. A number, which an agent definition
+// also takes, isn't allowed, since the query's options take only the names.
+const effortLevel = z.enum(["low", "medium", "high", "xhigh", "max"]);
+
 // The settings in technical spec section 10. Each name of a measure ends in its unit.
 export const settingsSchema = z
   .strictObject({
@@ -25,7 +29,9 @@ export const settingsSchema = z
     maximumMemoryItems: z.int().positive(),
     maximumMemoryItemCharacters: z.int().positive(),
     coordinatorModel: modelId,
-    workerModel: modelId,
+    coordinatorEffort: effortLevel,
+    stayResearcherModel: modelId,
+    stayResearcherEffort: effortLevel,
   })
   .refine(
     (settings) =>

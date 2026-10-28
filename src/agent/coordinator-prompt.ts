@@ -1,6 +1,7 @@
 import type { Settings } from "../config/settings.schema.js";
 import { FORGOTTEN_LINE, RESUMED_LINE } from "./app-lines.js";
 import { WORKER_BRIEF_HEADING } from "./worker-instructions.js";
+import { BUILD_FAILED_LINE } from "./worker-result.js";
 import { WORKER_TYPE } from "./worker-types.js";
 
 // The coordinator's instructions (technical spec 5.2). Every number is filled in from
@@ -336,6 +337,7 @@ Code builds what you get back from what the worker saved. No text the worker wro
 - "No candidates added for:" lists the stops and lodging in the worker brief that got none.
 - "Problems:" and "Questions for the user:" are what the worker reported, or "none".
 - "The worker stopped without reporting its problems and questions." means it ended without saying whether it ran into any.
+- "${BUILD_FAILED_LINE}" means the app hit an error, so you can't tell what the worker saved. Tell the user the error as written, after "The error:".
 
 Then:
 

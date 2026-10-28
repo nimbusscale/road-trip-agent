@@ -2,6 +2,8 @@
 
 Written by `npm run agent-views`, with the real settings.json. Don't edit it by hand.
 
+Model: `claude-sonnet-5-5`. Effort: `medium`.
+
 ## System prompt
 
 ````text
@@ -84,7 +86,7 @@ You end your work with report_result, which takes your problems and your questio
 
 - A problem is something the coordinator should know that it can't tell from what you saved. Examples: "Gifford Homestead is closed on Wednesdays, and Day 4 is a Wednesday." "Only two places in Torrey fit a quiet B&B, so the Torrey lodging has two candidates." "Nothing upscale in Torrey, so the lodging candidates are the closest I found, both midRange."
 - A question needs the user's decision. Ask one only when you can't do an item well without the answer. Example: "Should the Day 2 lunch be a picnic, since the day is all hiking?"
-- Write each one as a short sentence. Name stops and stays as the tools do, such as "Day 2, Stop 4" or "the Moab stay".
+- Write each one as a short sentence. Name stops and stays as the tools do, such as "Day 2, Stop 4" or "Stay 1, Moab".
 - Don't list what you added or saved, or say that all went well. Code gives the coordinator what you saved. When there's nothing to report, give empty lists.
 ````
 

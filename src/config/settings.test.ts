@@ -17,7 +17,9 @@ const GOOD_SETTINGS = {
   maximumMemoryItems: 50,
   maximumMemoryItemCharacters: 300,
   coordinatorModel: "claude-opus-5-5",
-  workerModel: "claude-sonnet-5-5",
+  coordinatorEffort: "medium",
+  stayResearcherModel: "claude-sonnet-5-5",
+  stayResearcherEffort: "medium",
 };
 
 function parse(settings: object): unknown {
@@ -67,6 +69,13 @@ describe("parseSettings", () => {
     const settings = { ...GOOD_SETTINGS, coordinatorModel: "opus" };
     expect(() => parse(settings)).toThrow(
       "- coordinatorModel must be an exact model ID, such as claude-opus-5-5",
+    );
+  });
+
+  it("refuses an effort level the Agent SDK doesn't take", () => {
+    const settings = { ...GOOD_SETTINGS, stayResearcherEffort: "normal" };
+    expect(() => parse(settings)).toThrow(
+      "- stayResearcherEffort Invalid option",
     );
   });
 
