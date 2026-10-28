@@ -190,7 +190,9 @@ The agent:
 ### 7.3 Dining
 
 - Restaurants are placed in each day's schedule.
+- By default, each day gets a lunch stop and a dinner stop. On a driving day, lunch is on the way. Breakfast gets a stop only when the user wants local breakfast, not hotel breakfast. Anything the user asks for changes the default, such as "we'll picnic on the drive."
 - The agent asks about breakfast (hotel or local) and other meal habits, and applies the answer.
+- When fewer than three good places fit a meal, the user gets the ones that do. When none fit, the agent says so.
 - Interest-driven trips (for example, barbecue) treat restaurants as attractions in their own right.
 
 ### 7.4 Attractions and stops

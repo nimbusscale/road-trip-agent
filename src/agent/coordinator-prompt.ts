@@ -1,5 +1,7 @@
 import type { Settings } from "../config/settings.schema.js";
 import { FORGOTTEN_LINE, RESUMED_LINE } from "./app-lines.js";
+import { WORKER_BRIEF_HEADING } from "./worker-instructions.js";
+import { WORKER_TYPE } from "./worker-types.js";
 
 // The coordinator's instructions (technical spec 5.2). Every number is filled in from
 // the settings when the app starts, never written into the text, so a changed setting
@@ -39,6 +41,9 @@ export function coordinatorPrompt(settings: CoordinatorPromptSettings): string {
     LAYING_OUT_DAYS,
     FREE_TIME,
     CHECK_INS,
+    WORKERS,
+    WORKER_BRIEFS,
+    WORKER_RESULTS,
     PLACES_THE_USER_NAMES,
     SELECTIONS,
     REJECTIONS,
@@ -163,8 +168,8 @@ What the lines of a read mean:
 - In a read of a stay or stop, "Why" is why the candidate was offered, not why the user chose it. "Named by the user" marks a place the user named, and its "Why" is the user's reason. "Notes" are about the place, such as "reservations advised".
 - An approval line gives what the user agreed to, and their reason. "It no longer applies" means a later change went past it, such as a longer drive, so its warning is open again.`;
 
-// Technical spec 4.1 and 4.2: anchors and stretches, and the discovery, shape, and
-// skeleton rounds, with the must-sees. The fill comes with the workers.
+// Technical spec 4.1 and 4.2: anchors and stretches, and the discovery, shape, skeleton,
+// and fill rounds, with the must-sees. Weather comes with the weather worker (#64).
 const PLANNING = `## How to plan a trip
 
 Plan from broad to narrow. The rounds below are the usual order, but the user can move to any part of the plan at any time.
@@ -181,6 +186,7 @@ The rounds:
 1. Discovery: establish the trip brief. Also set the itinerary's start place, end place, and start date with update_itinerary. Look each place up with find_place first.
 2. Shape: offer two or three sketches of the trip, in plain chat. Each is a name, the rough path, and a few sentences on why someone would pick it. Example: "A loop out of Austin through the Hill Country, 7 days" or "One-way from Dallas to Houston, through Lockhart and Taylor." Sketches come from your own knowledge, not from research. Route each sketch once with compute_route, to get its rough road time, so you don't pitch a trip that can't work. Seasonal closures and hazards also come from your own knowledge at this stage. Skip this round when the user already gave a fixed route.
 3. Skeleton: for the shape the user picks, add each stay with its nights, in order, with add_stay. Look each town up with find_place first. The replies give each leg's road time.
+4. Fill: lay out each day's other stops, and send workers to find places for them and for each stay's lodging (Workers).
 
 While building the skeleton:
 
@@ -221,12 +227,15 @@ const STAY_CHANGES = `## Changes to stays
 
 - Before removing a stay or a night, ask the user what to do with each stop on it, then move or remove them. If the user would rather lose a different day, move that day's stops and its rest day mark first. Say so when a removed day was a rest day the user asked for. If the user agrees to lose it, update restDaysText, along with tripLengthInDays. Change its text to say so, such as "no rest day," since an item can't be emptied once it has a value.
 - After adding or moving a stay, go through the stops the reply listed with the user before moving any of them. Don't move stops onto the new stay's days until the user has confirmed the new stay. Move a stop along the leg to another day only when its place is on that day's road, such as when a new stay splits a leg. The daily driving check catches one that isn't. If the user changes their mind first, removing the stay puts everything back. If stops were already moved onto the new stay's days, move them back first, then remove the stay. A stop near the old stay warns that its search area doesn't fit while its day still starts at the new stay. The warning goes away once the stay is removed.
-- After a stay moves to a different town, or the start or end place changes, talk through the stops near it, and the stay's lodging, with the user. The tools leave them alone, since whether they still fit is a judgment call. Remove the stops that no longer fit. Reject the hotel if it no longer fits, with a reason such as "the stay moved to Bakersfield." Example: moving from Monterey to Carmel keeps every stop and the hotel. Skipping Monterey to drive I-5 to Bakersfield removes every stop on its days and rejects the hotel.`;
+- After a stay moves to a different town, or the start or end place changes, talk through the stops near it, and the stay's lodging, with the user. The tools leave them alone, since whether they still fit is a judgment call. Remove the stops that no longer fit. Reject the hotel if it no longer fits, with a reason such as "the stay moved to Bakersfield." Then send workers for any lodging or stop whose candidates no longer fit. Example: moving from Monterey to Carmel keeps every stop and the hotel. Skipping Monterey to drive I-5 to Bakersfield removes every stop on its days and rejects the hotel.`;
 
 // Technical spec 5.2, and domain model 3.7 for a stop's purpose. What add_stops refuses
-// is in its description (tool design, section 4).
+// is in its description (tool design, section 4). The meals were settled on 2026-10-27,
+// for #60: a fixed default makes the same trip brief get the same meals, so a missing
+// meal in a trace is a bug or a user request, not a model choice.
 const LAYING_OUT_DAYS = `## Laying out days
 
+- Meals: by default, give each day a lunch stop and a dinner stop. On a driving day, lunch is along the leg. Add a breakfast stop only when mealPreferencesText asks for local breakfast, not hotel breakfast. Whatever the user asks for changes the default, such as "we'll picnic on the drive" or pie at a bakery they love. Save it to trip memory when it's for this trip, or to user memory when it's a standing habit.
 - A stop's purpose says what it's for, never when, such as "burgers and shakes" or "a sunrise hike", not "lunch". A stop can move to another time, and its purpose can't change. It can say how long, such as "a long hike in Arches, about 5 hours".
 - Pick a stop's search area by where it falls in the day: near the stay the day starts at, for a stop before the drive, such as breakfast in Monterey; near the stay it ends at, for a stop after the party arrives; or along the leg, for a stop on the way. Near the start place is for the first day, before the drive, and near the end place for the last day, after it.
 - A stop's kind, purpose, and search area can't change. For a different one, remove the stop and add a new one.
@@ -263,6 +272,76 @@ A day ends at the stay where the party sleeps. Without a check-in, every stop th
 - After a check-in, the wait for the next stop with a set time shows as free time just before that stop. Raise it as in Free time. Suggest something that fits the time and the way from the stay to that stop, such as coffee or a walk in town. If the user would rather stay at the hotel until it's time to leave, give the check-in a longer visit time with update_stop, such as 2 hours to check in, freshen up, and rest, so the free time goes away.
 
 Example: on a day that reaches Santa Fe at 2:30 p.m., with a concert at the opera set for 8:00, the user asks to check in first. Add a check-in before the concert. The day then has about 5 hours of free time at the opera before 8:00, so offer dinner in town on the way, or a longer check-in to rest at the hotel.`;
+
+// Technical spec 4.2 for the fill, 5.2 for when a worker is sent again, and section 6
+// for which worker fills which stop. Stops along a leg, or near the start or end place,
+// wait for the leg scout (#61), which changes the last point.
+const WORKERS = `## Workers
+
+Workers find places, and add them to stops and stays as candidates. The user picks one from each set on an option card. Start a worker with the Agent tool: its subagent_type is the worker type, and its prompt is a worker brief (Worker briefs). A worker can't talk to the user.
+
+The stay researcher (agent type ${WORKER_TYPE.stayResearcher}) fills one stay: its lodging, and the stops whose search area is that stay. These can be on the next day, such as breakfast before driving on.
+
+- The fill: once the skeleton is settled, lay out each day's other stops around the must-sees, with the meals in Laying out days, and tell the user what you added. Once they're happy with the stops, send one stay researcher for each stay with something empty: lodging with no candidates, or a stop near the stay with no candidates. Send them all at once, with one Agent call each in the same message.
+- Leave out what needs no worker: a stop or lodging that's already selected, such as a must-see, and check-ins.
+- Send a worker for one stop or lodging again when the user asks for more options, or for something nicer or simpler than these, or when they've turned down every candidate. The worker reads the candidates already offered itself, so you don't need to read the stop or stay first.
+- Stops along a leg, or near the start or end place, have no worker yet. Leave them empty, and tell the user they can name a place for one.`;
+
+// Technical spec 5.3 and section 9: what a worker brief carries, and the wish that covers
+// more than one stay. Each worker's instructions name the same headings.
+const WORKER_BRIEFS = `## Worker briefs
+
+A worker can't see the trip brief, memory, or this conversation. It reads the facts of its stops and stay itself, from their IDs: the town, the dates, each stop's purpose, the day's other stops, and the candidates already offered. So a worker brief holds only what takes your judgment.
+
+Write every worker brief under these headings, in this order, each on its own line. Write "none" under a heading that has nothing for this worker.
+
+- ${WORKER_BRIEF_HEADING.fill} each stop ID, and the stay's ID when its lodging needs candidates, one per line.
+- ${WORKER_BRIEF_HEADING.when} roughly when you expect each stop, in plain words, such as "they leave Moab at 10:30, so this is lunch, around noon". The schedule can't give it, since a stop with no place takes no time in it.
+- ${WORKER_BRIEF_HEADING.lodging} the user's words on places to stay that apply to this stay, from lodgingPreferencesText and memory, quoted. Add your own reading where it's clear, such as "the user wants mid-range for stays of 2+ nights, and this stay is 3 nights".
+- ${WORKER_BRIEF_HEADING.meals} the same for food, from mealPreferencesText and memory, for the meal stops in this worker brief.
+- ${WORKER_BRIEF_HEADING.interests} the ones that apply to these stops, in the user's words.
+- ${WORKER_BRIEF_HEADING.avoid} what memory says to avoid, such as "no chain restaurants". The tools already leave out the places the user rejected.
+- ${WORKER_BRIEF_HEADING.request} what the user asked for when you send a worker for one stop or stay again, such as "more options like these" or "something nicer than these".
+
+Example, for a 2-night stay in Camden, on a trip whose lodgingPreferencesText is "something mid-tier in Bar Harbor, upscale is fine in Camden and Portland, and a B&B could be nice in one of them":
+
+\`\`\`
+${WORKER_BRIEF_HEADING.fill}
+- stay_k7m2x9qa
+- stop_p3w8n4rt
+${WORKER_BRIEF_HEADING.when}
+- stop_p3w8n4rt: they reach Camden around 3:00 p.m., so this is dinner, around 7:00 p.m.
+${WORKER_BRIEF_HEADING.lodging}
+"upscale is fine in Camden and Portland, and a B&B could be nice in one of them". Neither town has a B&B selected yet, so a B&B is welcome here.
+${WORKER_BRIEF_HEADING.meals}
+"foodies, happy to splurge on good food, especially lobster in Maine"
+${WORKER_BRIEF_HEADING.interests}
+"lighthouses and harbor towns"
+${WORKER_BRIEF_HEADING.avoid}
+none
+${WORKER_BRIEF_HEADING.request}
+none
+\`\`\`
+
+- Pass the user's own words, not only a tier. When it's unclear what their words cover, such as whether "mid-range for stays of 2+ nights" covers dinner on the day they arrive, ask the user before you send the worker.
+- A wish that covers more than one stay, such as "a B&B could be nice in one of them", goes to each of those stays' workers until the user picks a B&B in one of them. Then it goes to neither. So check the selected lodging before you write each worker brief.
+- Pass only what applies to this worker's stops and stay. Never copy all of memory into a worker brief.`;
+
+// Technical spec 6.5: the result code builds from the worker's calls.
+const WORKER_RESULTS = `## What a worker returns
+
+Code builds what you get back from what the worker saved. No text the worker wrote itself reaches you.
+
+- "Lodging set 1 for Stay 1, Moab" or "Set 1 for Day 2, Stop 4" names a set the worker added, with one line per candidate: its name, ID, short line, why it was offered, its tier, and any notes.
+- "No candidates added for:" lists the stops and lodging in the worker brief that got none.
+- "Problems:" and "Questions for the user:" are what the worker reported, or "none".
+- "The worker stopped without reporting its problems and questions." means it ended without saying whether it ran into any.
+
+Then:
+
+- The user sees each new set on an option card, with each candidate's details. In chat, say briefly what was found, and recommend one where it helps. Don't list every candidate.
+- Raise the problems the user needs to hear, and ask the questions.
+- When a stop or lodging got no candidates, tell the user, and offer choices, such as a different purpose for the stop, or a place they name.`;
 
 // Technical spec 5.2, "When the user names a place", and 7.1. A whole read lists no
 // other candidate's name, so a guess at which stop or stay holds the place would fail

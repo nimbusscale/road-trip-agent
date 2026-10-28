@@ -8,7 +8,11 @@ import {
   coordinatorGiven,
 } from "./coordinator.fake.js";
 
-const SETTINGS = { ...EXAMPLE_SETTINGS, coordinatorModel: "claude-test-1-2" };
+const SETTINGS = {
+  ...EXAMPLE_SETTINGS,
+  coordinatorModel: "claude-test-1-2",
+  workerModel: "claude-test-3-4",
+};
 
 function given(): ReturnType<typeof coordinatorGiven> {
   return coordinatorGiven(SETTINGS);
@@ -58,6 +62,11 @@ describe("coordinatorOptions", () => {
     const definition = options.agents?.coordinator;
     expect(definition?.prompt).toBe(options.systemPrompt);
     expect(definition?.model).toBe("claude-test-1-2");
+  });
+
+  it("runs the stay researcher on the worker model from the settings", () => {
+    const options = coordinatorOptions(given(), conversation(), false);
+    expect(options.agents?.["stay-researcher"]?.model).toBe("claude-test-3-4");
   });
 
   it("asks for a summary of the model's thinking", () => {

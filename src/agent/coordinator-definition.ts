@@ -4,16 +4,16 @@ import { MEMORY_SERVER_NAME } from "../tools/memory-server.js";
 import { PLACES_SERVER_NAME } from "../tools/places-server.js";
 import { ROUTING_SERVER_NAME } from "../tools/routing-server.js";
 import { TRIP_SERVER_NAME } from "../tools/trip-server.js";
+import { toolsOn } from "./tool-names.js";
+import { WORKER_TYPE } from "./worker-types.js";
 
 // The coordinator's agent type (technical spec section 1). The query runs it as the
 // session's main agent (technical spec 6.5).
 export const COORDINATOR_AGENT_TYPE = "coordinator";
 
-// A tool's name as the model sees it, such as mcp__trip__read_trip_brief (tool design,
-// section 1).
-function toolsOn(serverName: string, toolNames: string[]): string[] {
-  return toolNames.map((toolName) => `mcp__${serverName}__${toolName}`);
-}
+// The worker types the coordinator can start. Agent names them, since plain Agent would
+// let the coordinator start a copy of itself (technical spec 6.5).
+const COORDINATOR_AGENT_ENTRY = `Agent(${WORKER_TYPE.stayResearcher})`;
 
 // The coordinator's tools from tool design section 3 that exist so far, each by name.
 // The definition's list is what the coordinator is sent, so a tool on the same server
@@ -46,6 +46,7 @@ export const COORDINATOR_TOOLS: readonly string[] = [
   ]),
   ...toolsOn(PLACES_SERVER_NAME, ["find_place", "read_place"]),
   ...toolsOn(ROUTING_SERVER_NAME, ["compute_route"]),
+  COORDINATOR_AGENT_ENTRY,
 ];
 
 export interface CoordinatorDefinitionGiven {

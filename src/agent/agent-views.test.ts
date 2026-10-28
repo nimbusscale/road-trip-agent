@@ -1,6 +1,7 @@
 import type {
   AgentDefinition,
   McpServerConfig,
+  Options,
 } from "@anthropic-ai/claude-agent-sdk";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
@@ -10,35 +11,72 @@ import { describe, expect, it } from "vitest";
 import { loadSettings, SETTINGS_PATH } from "../config/settings.js";
 import { coordinatorOptions } from "./coordinator.js";
 import { conversation, coordinatorGiven } from "./coordinator.fake.js";
+import { WORKER_TYPE } from "./worker-types.js";
 
 // What each agent sees on every turn: its system prompt, then each tool in its
 // definition, with its name, description, and input JSON Schema, and the numbers filled
 // in from the real settings.json. A PR's diff of an agent's view file is the change to what its model
 // sees. `npm run agent-views` rewrites the files (DEVELOPMENT.md sections 2 and 5).
 
+function options(): Options {
+  return coordinatorOptions(
+    coordinatorGiven(loadSettings(SETTINGS_PATH)),
+    conversation(),
+    false,
+  );
+}
+
 describe("agent views", () => {
   it("matches the coordinator's view file", async () => {
-    const options = coordinatorOptions(
-      coordinatorGiven(loadSettings(SETTINGS_PATH)),
-      conversation(),
-      false,
-    );
-    if (typeof options.systemPrompt !== "string") {
+    const given = options();
+    if (typeof given.systemPrompt !== "string") {
       throw new Error("The coordinator's system prompt isn't plain text.");
     }
-    const definition = options.agents?.coordinator;
-    if (definition === undefined) {
-      throw new Error("The coordinator has no agent definition.");
-    }
-    const tools = toolsSent(
-      definition,
-      await toolsOf(options.mcpServers ?? {}),
-    );
+    const definition = definitionOf(given, "coordinator");
+    const tools = toolsSent(definition, await toolsOf(given.mcpServers ?? {}));
     await expect(
-      view("coordinator", options.systemPrompt, tools),
+      view("coordinator", given.systemPrompt, tools, workerTypes(given)),
     ).toMatchFileSnapshot("coordinator.view.md");
   });
+
+  // A worker gets its definition's prompt, and the tools its definition lists.
+  it("matches the stay researcher's view file", async () => {
+    const given = options();
+    const definition = definitionOf(given, WORKER_TYPE.stayResearcher);
+    const tools = toolsSent(definition, await toolsOf(given.mcpServers ?? {}));
+    await expect(
+      view("stay researcher", definition.prompt, tools, []),
+    ).toMatchFileSnapshot("stay-researcher.view.md");
+  });
 });
+
+function definitionOf(given: Options, agentType: string): AgentDefinition {
+  const definition = given.agents?.[agentType];
+  if (definition === undefined) {
+    throw new Error(`There's no agent definition for ${agentType}.`);
+  }
+  return definition;
+}
+
+// The worker types the coordinator's Agent entry names, such as
+// Agent(stay-researcher), each with its description and tools, as the coordinator is
+// told about them: one line each, after its first message (research section 2.9).
+function workerTypes(given: Options): string[] {
+  const entry = definitionOf(given, "coordinator").tools?.find((name) =>
+    name.startsWith("Agent("),
+  );
+  if (entry === undefined) {
+    return [];
+  }
+  return entry
+    .slice("Agent(".length, -1)
+    .split(",")
+    .map((agentType) => {
+      const definition = definitionOf(given, agentType.trim());
+      const tools = (definition.tools ?? []).join(", ");
+      return `- ${agentType.trim()}: ${definition.description} (Tools: ${tools})`;
+    });
+}
 
 // Each tool as an MCP client lists it, so the JSON Schema is the one the SDK gets from
 // the Zod schema. Names are given as the model sees them, such as
@@ -84,7 +122,12 @@ function toolsSent(definition: AgentDefinition, listed: Tool[]): ViewTool[] {
 type ViewTool = Tool | { name: string; inputSchema?: undefined };
 
 // Fenced with four backticks, so a prompt or description can hold three.
-function view(agent: string, systemPrompt: string, tools: ViewTool[]): string {
+function view(
+  agent: string,
+  systemPrompt: string,
+  tools: ViewTool[],
+  workerTypeLines: string[],
+): string {
   const toolSections = tools.map((each) =>
     each.inputSchema === undefined
       ? `### ${each.name}`
@@ -103,6 +146,13 @@ function view(agent: string, systemPrompt: string, tools: ViewTool[]): string {
     `\`\`\`\`text\n${systemPrompt}\n\`\`\`\``,
     "## Tools",
     ...toolSections,
+    ...(workerTypeLines.length === 0
+      ? []
+      : [
+          "## Worker types",
+          "The agent types the Agent tool offers.",
+          `\`\`\`\`text\n${workerTypeLines.join("\n")}\n\`\`\`\``,
+        ]),
   ]
     .join("\n\n")
     .concat("\n");
