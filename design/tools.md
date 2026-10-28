@@ -175,6 +175,20 @@ The writing tools:
 
 **One tool for every stop, because code knows whether a detour applies.** Detour time is the extra driving off a leg's route, and only stops along the leg have one. The stop's search area already says which kind it is (domain model 3.7), so the worker passes the same inputs either way. Example: candidates for Goblin Valley, along the Moab Day 4 leg, get detour times off the Moab-to-Torrey route. Candidates for lunch near the Moab stay don't, because there's no route to detour from. Each worker brief holds only that worker's stops, so the stay researcher and the leg scout share the tool.
 
+**What each candidate takes, field by field.** A place ID, a name, a rationale, how it was found ("google" or "webSearch"), the source link, and notes. Lodging candidates and a meal's take a tier, and an attraction's take `visitTimeInMinutes`. Every field is required (section 4). Notes are "" when there are none, and code saves that as no notes. The source link must start with https:// or http://, since the option card links to it, and a link from a web page the worker read shouldn't be able to run a script there. The stop ID doesn't show the stop's kind, so each candidate in `add_stop_candidates` is one of two shapes, one with a tier and one with a visit time. The tool refuses a shape that doesn't fit the stop, and the error says what the stop's kind takes. Decided on 2026-10-28, while #199 was being built.
+
+**The places are checked before any detour time is worked out.** A place that's already a candidate there, a place given twice, or one of the trip's rejected places refuses the call before any call to Google. The error names the place, and for a rejected place gives the user's reason. A check-in gets the same error as in `read_worker_brief_facts`. Decided on 2026-10-28, while #199 was being built.
+
+**Each line of the reply gives the coordinator what it needs to talk about the place,** since code passes the lines on in the worker's result (technical spec 6.5), and a whole read lists no candidates. That's the place's name, ID, and short line, its visit and detour times, its rationale, its tier, and its notes. Not how it was found, or the source link. The first line names the stop or stay as `find_in_trip` does. Decided on 2026-10-28, while #199 was being built.
+
+```
+Set 2 for Day 4, Stop 2 (stop_…), meal: "pie": 2 candidates.
+- Pie shop (place_…), Bakery, 4.6 stars, $, Torrey, detour 12 m when offered. Why: "Famous pie, on the way." Tier: value.
+- Gifford's Bakery (place_…), Bakery, 4.4 stars, $$, Fruita, detour 0 m when offered. Why: "…" Tier: midRange. Notes: "closed Sundays"
+
+Lodging set 1 for Stay 2, Torrey (stay_…): 3 candidates.
+```
+
 **Reading a worker brief (workers):**
 
 | Tool | Does | Takes | Returns |
@@ -188,6 +202,25 @@ The writing tools:
 - **It's much smaller.** A stay read is 4,090 to 12,154 tokens on a busy trip (2.1, above). It gives every candidate in full for every stop on the stay's days, with their rationale, plus the weather text, approvals, and check results. A worker needs only its own items, the day's other stops, and the names of the candidates already offered. Check results could also lead a worker to report problems that aren't its job.
 - **It takes the exact items the worker fills.** The `Agent` hook lists the ones that got nothing from these IDs. A stay read names only the stay, not which of its stops the worker was sent to fill.
 - **It gives a stay's activities by the weather rule** (technical spec 6.3). A stay read doesn't. Example: stops along the last day's leg count with the last stay, but the last day isn't one of that stay's days.
+
+**How the reply is laid out.** Each stay, and each day with stops asked for, is one part, in the order the IDs were given. Stops on the same day share their day's part, so the day's stops are listed once. An ID given twice counts once. A day's part gives the day's line, as a read gives it, then each stop asked for, in the day's order, with its kind, purpose, search area, and set time, given as "none" when it has none. Under each stop asked for come the candidates already offered, each with its set, its place, and whether it's selected, but no rationale. Then every stop on the day, as a whole read gives its line, with its times and selected place. A stay's part gives the stay's line, as a read gives it, its lodging candidates already offered, the same way, and its activities. Decided on 2026-10-28, while #199 was being built.
+
+```
+Stay 1 (stay_…): Moab (place_…), City, Moab. 3 nights, Days 1 to 3, from Sunday, October 10, 2027 to the morning of Wednesday, October 13, 2027.
+- Lodging candidates already offered:
+  - Set 1: Red Cliffs Lodge (place_…), Hotel, 4.5 stars, Moab, selected.
+- The stay's activities:
+  - Delicate Arch trail (place_…): Monday, October 11, 2027, 6:00 a.m. to 8:40 a.m.
+  - a hike, no place picked yet: Monday, October 11, 2027, 1:15 p.m.
+
+Day 4 (day_…), Wednesday, October 13, 2027: Moab → Torrey. Starts 8:00 a.m., the usual start time.
+Stops asked for:
+- Stop 2 (stop_…), meal: "pie". Along the leg. Set time: none.
+  - Candidates already offered: none.
+The day's stops, in order:
+- 9:55 a.m. to 11:55 a.m.: Stop 1 (stop_…), attraction: "hoodoos". Along the leg. Selected: Goblin Valley State Park (place_…), Green River, visit time 2 h.
+- 1:20 p.m.: Stop 2 (stop_…), meal: "pie". Along the leg. No candidates yet.
+```
 
 ### 2.2 Memory
 

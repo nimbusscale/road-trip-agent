@@ -56,9 +56,8 @@ export function stopLines(
   times: string,
   detail: Detail,
 ): string[] {
-  const order = context.calendar.orderOf(context.itinerary, stop);
   return [
-    `- ${times}: Stop ${String(order + 1)} (${stop.id}), ${stop.kind}: "${stop.purpose}". ${stopFacts(context, stop, detail)}`,
+    stopLine(context, stop, times, detail),
     ...indented(
       detail === "slim"
         ? countLines(stop.candidates, stop.selectedPlace, "Candidates")
@@ -75,17 +74,42 @@ export function stopLines(
   ];
 }
 
+// The stop's own line, without its candidates and approvals.
+export function stopLine(
+  context: ReadContext,
+  stop: Stop,
+  times: string,
+  detail: Detail,
+): string {
+  return `- ${times}: ${stopNumberText(context, stop)}. ${stopFacts(context, stop, detail)}`;
+}
+
+// Such as 'Stop 2 (stop_…), meal: "pie"'.
+export function stopNumberText(context: ReadContext, stop: Stop): string {
+  const order = context.calendar.orderOf(context.itinerary, stop);
+  return `Stop ${String(order + 1)} (${stop.id}), ${stop.kind}: "${stop.purpose}"`;
+}
+
 function stopFacts(context: ReadContext, stop: Stop, detail: Detail): string {
   if (stop.searchArea === null) {
     return checkInFacts(context, stop);
   }
-  const area =
-    stop.searchArea === "nearStay"
-      ? `Near the ${stop.searchAreaStay === null ? "" : placeText(stop.searchAreaStay.place)} stay`
-      : SEARCH_AREA_TEXT[stop.searchArea];
-  return [`${area}.`, ...setTimeFacts(stop), selectionText(stop, detail)].join(
-    " ",
-  );
+  return [
+    `${searchAreaText(stop)}.`,
+    ...setTimeFacts(stop),
+    selectionText(stop, detail),
+  ].join(" ");
+}
+
+// Such as "Near the Moab stay" or "Along the leg". Empty for a check-in, which has no
+// search area.
+export function searchAreaText(stop: Stop): string {
+  if (stop.searchArea === null) {
+    return "";
+  }
+  return stop.searchArea === "nearStay"
+    ? `Near the ${stop.searchAreaStay === null ? "" : placeText(stop.searchAreaStay.place)} stay`
+    : SEARCH_AREA_TEXT[stop.searchArea];
 }
 
 // A check-in has no search area or candidates. Its place is where the party sleeps that
@@ -194,13 +218,8 @@ function candidateText(
 ): string {
   const parts = [
     `Set ${String(candidate.setNumber + 1)}: ${placeLine(candidate.place)}`,
+    ...timesOf(candidate),
   ];
-  if (candidate.visitTimeInMinutes !== null) {
-    parts.push(`visit time ${durationText(candidate.visitTimeInMinutes)}`);
-  }
-  if (candidate.detourTimeInMinutes !== null) {
-    parts.push(detourText(candidate.detourTimeInMinutes));
-  }
   if (isSelected) {
     parts.push("selected");
   }
@@ -209,6 +228,37 @@ function candidateText(
     return `${text} ${fullFacts(candidate)}`;
   }
   return isSelected ? `${text} Why: "${candidate.rationale}"` : text;
+}
+
+// Such as "visit time 2 h" and "detour 12 m when offered".
+function timesOf(candidate: Candidate): string[] {
+  return [
+    ...(candidate.visitTimeInMinutes === null
+      ? []
+      : [`visit time ${durationText(candidate.visitTimeInMinutes)}`]),
+    ...(candidate.detourTimeInMinutes === null
+      ? []
+      : [detourText(candidate.detourTimeInMinutes)]),
+  ];
+}
+
+// A candidate a worker just added, for the candidate tools' replies. Code passes the
+// reply on in the worker's result, so the line gives the coordinator what it needs to
+// talk about the place without a read: its place, times, rationale, tier, and notes
+// (technical spec 6.5). Such as '- Gifford Homestead (place_…), Bakery, 4.7 stars, $,
+// Torrey, detour 12 m when offered. Why: "…" Tier: value.'.
+export function addedCandidateLine(candidate: Candidate): string {
+  const facts = [
+    `${[placeLine(candidate.place), ...timesOf(candidate)].join(", ")}.`,
+    `Why: "${candidate.rationale}"`,
+  ];
+  if (candidate.tier !== null) {
+    facts.push(`Tier: ${candidate.tier}.`);
+  }
+  if (candidate.notesText !== null) {
+    facts.push(`Notes: "${candidate.notesText}"`);
+  }
+  return `- ${facts.join(" ")}`;
 }
 
 // Every other stored property: the rationale, the tier the worker judged, how it was

@@ -4,14 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import { loadSettings, SETTINGS_PATH } from "../config/settings.js";
 import { CalendarDate } from "../domain/calendar-date.js";
-import {
-  at,
-  attraction,
-  fillDay,
-  placeNamed,
-  planningFor,
-  routeDay,
-} from "../domain/example-trip-parts.fake.js";
+import { planningFor } from "../domain/example-trip-parts.fake.js";
 import { exampleMoabTrip } from "../domain/itinerary.fake.js";
 import type { Place } from "../domain/place.js";
 import type { Stay } from "../domain/stay.js";
@@ -72,8 +65,8 @@ interface Fixture {
   call: (input: unknown) => Promise<ToolReply>;
 }
 
-// The Moab trip, starting on October 10, 2027 unless a start date is given, with a
-// stargazing stop at 1 a.m. after the Torrey day. Today is `now`.
+// The Moab trip, starting on October 10, 2027 unless a start date is given. Today is
+// `now`.
 async function moabTrip(
   now: Date,
   options: { startDate?: CalendarDate; answers?: Answers } = {},
@@ -89,24 +82,9 @@ async function moabTrip(
   if (torrey === undefined) {
     throw new Error("The Moab trip has a Torrey stay.");
   }
-  const panoramaPoint = placeNamed("Panorama Point");
-  fillDay(planning, torrey.days[0], [
-    [
-      attraction({
-        purpose: "stargazing",
-        searchArea: "nearStay",
-        stay: torrey,
-        setTime: at("01:00", true),
-      }),
-      panoramaPoint,
-      60,
-    ],
-  ]);
-  // Routed, so the stop's time is known. Torrey's day runs late, to 1 a.m.
-  routeDay(planning.calendar, trip.itinerary, torrey.days[0], [600, 10]);
   await fixture.store.add(trip);
   fixture.store.places.rows.push(
-    ...[...places, panoramaPoint].map((place: Place) => ({
+    ...places.map((place: Place) => ({
       tripId: trip.id,
       place,
     })),
@@ -141,7 +119,8 @@ function textOf(reply: ToolReply): string {
 const OCTOBER_21 = new Date("2026-10-21T16:00:00Z");
 
 describe("look_up_stay_weather", () => {
-  it("gives seasonal averages for a stay in October 2027, labeled with the years they come from", async () => {
+  // The stay's activities come from read_worker_brief_facts instead (tool design 2.1).
+  it("gives seasonal averages for a stay in October 2027, labeled with the years they come from, and no activities", async () => {
     const { moab, hosts, call } = await moabTrip(OCTOBER_21);
     const reply = await call({ stayId: moab.id, placeId: moab.place.id });
     expect(reply.isError).toBeUndefined();
@@ -153,11 +132,6 @@ describe("look_up_stay_weather", () => {
       "- Days at or above 90°F: 1%. At or above 100°F: 0%.",
       "- Nights at or below 32°F: 2%.",
       "- Warmest seen: 90°F. Coldest seen: 27°F.",
-      "The stay's activities:",
-      expect.stringMatching(
-        /^- Fisher Towers \(place_\w+\): Sunday, October 10, 2027, 9:45 a\.m\. to 10:45 a\.m\.$/,
-      ),
-      "- a sunrise hike, no place picked yet: Monday, October 11, 2027, 6:00 a.m.",
     ]);
     expect(new Set(hosts)).toEqual(new Set(["archive-api.open-meteo.com"]));
   });
@@ -207,16 +181,6 @@ describe("look_up_stay_weather", () => {
       "Typical for this time of year, based on 2016–2025.",
     );
     expect(hosts).not.toContain("weather.googleapis.com");
-  });
-
-  it("gives an activity after midnight on the date it falls on", async () => {
-    const { torrey, call } = await moabTrip(OCTOBER_21);
-    const text = textOf(
-      await call({ stayId: torrey.id, placeId: torrey.place.id }),
-    );
-    expect(text).toMatch(
-      /- Panorama Point \(place_\w+\): Thursday, October 14, 2027, 1:00 a\.m\. to 2:00 a\.m\.$/,
-    );
   });
 
   it("returns an error, not seasonal averages, when the forecast leaves out a date", async () => {

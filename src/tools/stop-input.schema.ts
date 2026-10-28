@@ -23,7 +23,9 @@ export const NAMED_SEARCH_AREAS = [
 // Such as '"alongLeg", "nearStartPlace", or "nearEndPlace"'.
 export const NAMED_SEARCH_AREA_TEXT = `"alongLeg", "nearStartPlace", or "nearEndPlace"`;
 
-const placeId = z.string().describe("A place ID, such as place_k7m2x9qa.");
+export const placeId = z
+  .string()
+  .describe("A place ID, such as place_k7m2x9qa.");
 
 const stopId = z.string().describe("A stop ID, such as stop_k7m2x9qa.");
 
@@ -48,7 +50,7 @@ const setTime = z
 
 // A number, not an integer: Zod gives every integer a maximum of 2^53 - 1, which the
 // model would read as part of the schema.
-const visitTimeInMinutes = z
+export const visitTimeInMinutes = z
   .number()
   .positive()
   .refine(Number.isInteger, {

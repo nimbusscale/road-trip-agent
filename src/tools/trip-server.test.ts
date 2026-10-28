@@ -2,6 +2,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { describe, expect, it } from "vitest";
 
+import { COORDINATOR_TOOLS } from "../agent/coordinator-definition.js";
 import { NoDrivingRouteError } from "../google/routes-client.js";
 import { setUp } from "../persistence/trip-writer.fake.js";
 import { writeReplyOrReadableError } from "./tool-reply.js";
@@ -56,6 +57,9 @@ describe("createTripServer", () => {
       "select_candidate",
       "select_user_place",
       "reject_places",
+      "read_worker_brief_facts",
+      "add_lodging_candidates",
+      "add_stop_candidates",
     ]);
     expect(
       tools.every((each) => each.inputSchema.additionalProperties === false),
@@ -64,6 +68,21 @@ describe("createTripServer", () => {
     expect(Object.keys(update?.inputSchema.properties ?? {})).toHaveLength(10);
     expect(update?.inputSchema.additionalProperties).toBe(false);
     expect(update?.inputSchema.required).toBeUndefined();
+  });
+
+  // The workers' tools are on the same server, and only the workers' definitions list
+  // them (tool design, section 3).
+  it("leaves the workers' tools out of the coordinator's definition", () => {
+    expect(COORDINATOR_TOOLS).not.toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(
+          /__(read_worker_brief_facts|add_lodging_candidates|add_stop_candidates)$/,
+        ),
+      ]),
+    );
+    expect(COORDINATOR_TOOLS).toContain(
+      `mcp__${TRIP_SERVER_NAME}__read_itinerary`,
+    );
   });
 
   // The limits are settings, so they're filled in, never written into the text.

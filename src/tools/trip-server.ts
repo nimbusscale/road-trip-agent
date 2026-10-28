@@ -3,6 +3,10 @@ import {
   type McpSdkServerConfigWithInstance,
 } from "@anthropic-ai/claude-agent-sdk";
 
+import {
+  addLodgingCandidatesTool,
+  addStopCandidatesTool,
+} from "./candidate-tools.js";
 import { setWaypointsTool, updateDayTool } from "./day-tools.js";
 import { findInTripTool } from "./find-in-trip-tool.js";
 import { readItineraryTool } from "./itinerary-tools.js";
@@ -18,6 +22,7 @@ import {
 import { readTripBriefTool, updateTripBriefTool } from "./trip-brief-tools.js";
 import type { TripSession } from "./trip-session.js";
 import { updateItineraryTool } from "./update-itinerary-tool.js";
+import { readWorkerBriefFactsTool } from "./worker-brief-facts-tool.js";
 
 // Part of every tool name the model sees, such as mcp__trip__read_trip_brief (tool
 // design, section 1).
@@ -51,6 +56,11 @@ export function createTripServer(
       selectCandidateTool(session),
       selectUserPlaceTool(session),
       rejectPlacesTool(session),
+      // The workers' tools. Each agent's definition lists the ones it's sent, so the
+      // coordinator doesn't see these (tool design, section 3).
+      readWorkerBriefFactsTool(session),
+      addLodgingCandidatesTool(session),
+      addStopCandidatesTool(session),
     ],
   });
 }
