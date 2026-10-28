@@ -834,7 +834,7 @@ A candidate is one place offered for a stop or for a stay's lodging, with the re
 | Property | Stored or worked out | Type | Notes |
 |---|---|---|---|
 | `place` | Stored | `Place`, read only | The place it offers. See below |
-| `rationale` | Stored | `string`, read only | One or two sentences on why it was offered here, tied to the user's preferences, such as "Walkable to the barbecue spots, fits mid-range." For a place the user named, the user's reason. The option card shows it as a tooltip. The coordinator reads it when the user asks "why that one?" |
+| `rationale` | Stored | `string`, read only | One or two sentences on why it was offered here, tied to the user's preferences, such as "Walkable to the barbecue spots." For a place the user named, the user's reason. The option card shows it as a tooltip. The coordinator reads it when the user asks "why that one?" |
 | `howFound` | Stored | `HowFound`, read only | Google, web search, or specified by the user |
 | `sourceLink` | Stored | `string?`, read only | The listing or page it came from, such as its Google Maps page or an Atlas Obscura page. The option card links to it (functional spec 7.5). Empty only for a place the user named |
 | `notesText` | Stored | `string?`, read only | Notes about the place, such as "closed Mondays" or "reservations advised" (functional spec 7.5). Empty when there are none |

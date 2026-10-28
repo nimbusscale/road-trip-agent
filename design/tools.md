@@ -337,7 +337,7 @@ Every worker ends by calling `report_result`. A hook records its input, and code
 
 **The questions input is `questionsForUser`, not `questions`.** The name says whose decision a question needs, so the model doesn't have to get that from its instructions alone. Decided on 2026-10-28, while #198 was being built.
 
-**The description tells the worker not to repeat what it added or saved.** The coordinator gets that from the worker's other calls (technical spec 6.5). What a problem and a question are goes in the workers' instructions (section 4), since all three workers share the meaning.
+**The description tells the worker not to repeat what it added or saved.** The coordinator gets that from the worker's other calls (technical spec 6.5). What a problem and a question are goes in the workers' instructions (section 4), since all three workers share the meaning. Technical spec 6.4 has the text.
 
 ---
 

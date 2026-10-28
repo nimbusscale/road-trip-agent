@@ -1,4 +1,5 @@
 import {
+  type AgentDefinition,
   getSubagentMessages,
   type Options,
   query,
@@ -36,15 +37,18 @@ import {
 } from "./coordinator-definition.js";
 import { coordinatorPrompt } from "./coordinator-prompt.js";
 import { sdkUserMessage } from "./sdk-user-message.schema.js";
+import { stayResearcherDefinition } from "./stay-researcher-definition.js";
 import { type TurnEvent, turnEventsOf } from "./turn-event.js";
 import { TurnTrace } from "./turn-trace.js";
 import { workerHooks } from "./worker-hooks.js";
 import type { ReadWorkerTranscript } from "./worker-trace.js";
+import { WORKER_TYPE } from "./worker-types.js";
 
 // The coordinator: the agent the user talks to (technical spec 1). For now it has the
 // trip brief and memory tools, read_itinerary, the tools that build the skeleton,
-// find_place, read_place, and compute_route. The session holds the workers' tools too,
-// and the hooks that build a worker's result (technical spec 6.5).
+// find_place, read_place, compute_route, and Agent, to start the stay researcher. The
+// session holds the workers' tools too, and the hooks that build a worker's result
+// (technical spec 6.5).
 
 export interface CoordinatorGiven {
   settings: Settings;
@@ -86,9 +90,7 @@ export function coordinatorOptions(
     // The coordinator runs as a named agent, so its definition's tools are what it's
     // sent. The servers below can hold tools that only workers get (technical spec 6.5).
     agent: COORDINATOR_AGENT_TYPE,
-    agents: {
-      [COORDINATOR_AGENT_TYPE]: coordinatorDefinition({ prompt, model }),
-    },
+    agents: agentsFor(prompt, settings),
     // Adaptive is the SDK's default for the model. Asking for a summary changes only
     // what comes back, so the turn's trace shows the summaries (technical spec 5.4).
     thinking: { type: "adaptive", display: "summarized" },
@@ -132,6 +134,23 @@ export function coordinatorOptions(
     ...(hasTranscript
       ? { resume: session.agentSessionId }
       : { sessionId: session.agentSessionId }),
+  };
+}
+
+// The coordinator's definition, and each worker's. The coordinator's model is the same
+// as the query's (technical spec 6.5).
+function agentsFor(
+  prompt: string,
+  settings: Settings,
+): Record<string, AgentDefinition> {
+  return {
+    [COORDINATOR_AGENT_TYPE]: coordinatorDefinition({
+      prompt,
+      model: settings.coordinatorModel,
+    }),
+    [WORKER_TYPE.stayResearcher]: stayResearcherDefinition(
+      settings.workerModel,
+    ),
   };
 }
 
