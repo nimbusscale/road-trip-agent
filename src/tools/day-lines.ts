@@ -42,10 +42,9 @@ export function stayLines(
   stay: Stay,
   detail: Detail,
 ): string[] {
-  const order = context.calendar.orderOf(context.itinerary, stay);
   const isSlim = detail === "slim";
   return [
-    `Stay ${String(order + 1)} (${stay.id}): ${placeLine(stay.place)}. ${nightsText(context, stay)}`,
+    stayHeader(context, stay),
     lodgingLine(stay, isSlim),
     ...(isSlim
       ? countLines(stay.lodgingCandidates, stay.lodging, "Lodging candidates")
@@ -57,6 +56,13 @@ export function stayLines(
         )),
     weatherLine(context, stay, isSlim),
   ];
+}
+
+// Such as "Stay 1 (stay_…): Moab (place_…), City, Moab. 3 nights, Days 1 to 3, from
+// Sunday, October 10, 2027 to the morning of Wednesday, October 13, 2027."
+export function stayHeader(context: ReadContext, stay: Stay): string {
+  const order = context.calendar.orderOf(context.itinerary, stay);
+  return `Stay ${String(order + 1)} (${stay.id}): ${placeLine(stay.place)}. ${nightsText(context, stay)}`;
 }
 
 function lodgingLine(stay: Stay, isSlim: boolean): string {
