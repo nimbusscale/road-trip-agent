@@ -2,7 +2,10 @@ import type { ZodType } from "zod";
 
 import { ChatEventParser } from "../../src/shared/chat-event-parser";
 import { errorResponseSchema } from "../../src/shared/error.schema";
-import type { ChatEvent } from "../../src/shared/session.schema";
+import type {
+  ChatEvent,
+  MessageRequest,
+} from "../../src/shared/session.schema";
 import { type ApiRequest, fetchApi } from "./fetch-api";
 
 // A refusal or failure, with a message to show the user.
@@ -67,10 +70,10 @@ export async function downloadFile(
 // design section 4). Resolves once the reply's stream ends.
 export async function sendMessage(
   path: string,
-  text: string,
+  message: MessageRequest,
   onEvent: (event: ChatEvent) => void,
 ): Promise<void> {
-  const response = await fetchApi(path, { method: "POST", body: { text } });
+  const response = await fetchApi(path, { method: "POST", body: message });
   if (!response.ok) {
     throw new ApiError(await errorMessageOf(response));
   }

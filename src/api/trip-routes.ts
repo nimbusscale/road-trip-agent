@@ -6,6 +6,7 @@ import {
 } from "../agent/coordinator-turns.js";
 import { Calendar } from "../domain/calendar.js";
 import type { Trip } from "../domain/trip.js";
+import type { MessageRequest } from "../shared/session.schema.js";
 import type {
   TripListResponse,
   TripPageResponse,
@@ -33,10 +34,10 @@ export function tripRoutes(chat: ChatDependencies): Hono {
   // The "New trip" form. Starting a trip takes two steps, each saved on its own
   // (persistence design, section 8.2).
   routes.post("/trips", messageBody, async (context) => {
-    const { text } = context.req.valid("json");
+    const request = context.req.valid("json");
     const userId = context.get("user").userId;
     const trip = await chat.trips.writer.startTrip({ id: userId });
-    return startSession(context, chat, { tripId: trip.id, userId, text });
+    return startSession(context, chat, { tripId: trip.id, userId, request });
   });
 
   routes.get("/trips/:tripId", async (context) => {
@@ -60,7 +61,7 @@ export function tripRoutes(chat: ChatDependencies): Hono {
   // "Start a new session": the coordinator gets no earlier transcripts (functional
   // spec 10.1).
   routes.post("/trips/:tripId/sessions", messageBody, async (context) => {
-    const { text } = context.req.valid("json");
+    const request = context.req.valid("json");
     const user = context.get("user");
     const trip = await ownedTrip(
       chat.trips.reader,
@@ -71,7 +72,7 @@ export function tripRoutes(chat: ChatDependencies): Hono {
     return startSession(context, chat, {
       tripId: trip.id,
       userId: user.userId,
-      text,
+      request,
     });
   });
 
@@ -137,11 +138,11 @@ async function tripPageOf(
 async function startSession(
   context: Context,
   chat: ChatDependencies,
-  start: { tripId: string; userId: string; text: string },
+  start: { tripId: string; userId: string; request: MessageRequest },
 ): Promise<Response> {
-  const { tripId, userId, text } = start;
-  const session = await chat.sessions.writer.start(tripId, text);
-  const turn = await chat.turns.begin({ session, userId }, text);
+  const { tripId, userId, request } = start;
+  const session = await chat.sessions.writer.start(tripId, request.text);
+  const turn = await chat.turns.begin({ session, userId }, request);
   return streamTurn(context, turn, {
     name: "session",
     data: {

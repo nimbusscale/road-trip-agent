@@ -14,16 +14,16 @@ const SATURDAY = new CalendarDate(2026, 10, 24);
 describe("AppLines", () => {
   it("adds today's date to the first message, and not again on the same date", () => {
     const lines = new AppLines(false);
-    expect(lines.addTo("Hi!", FRIDAY)).toBe(
+    expect(lines.addTo("Hi!", FRIDAY, null)).toBe(
       "Today is Friday, October 23, 2026.\n\nHi!",
     );
-    expect(lines.addTo("Five days.", FRIDAY)).toBe("Five days.");
+    expect(lines.addTo("Five days.", FRIDAY, null)).toBe("Five days.");
   });
 
   it("adds the date again on a later date", () => {
     const lines = new AppLines(false);
-    lines.addTo("Hi!", FRIDAY);
-    expect(lines.addTo("Back again.", SATURDAY)).toBe(
+    lines.addTo("Hi!", FRIDAY, null);
+    expect(lines.addTo("Back again.", SATURDAY, null)).toBe(
       "Today is Saturday, October 24, 2026.\n\nBack again.",
     );
   });
@@ -32,29 +32,43 @@ describe("AppLines", () => {
   // evening. Once a start place is set, the date goes back a day.
   it("adds the date again when it goes back a day", () => {
     const lines = new AppLines(false);
-    lines.addTo("Hi!", SATURDAY);
-    expect(lines.addTo("We start in Austin.", FRIDAY)).toBe(
+    lines.addTo("Hi!", SATURDAY, null);
+    expect(lines.addTo("We start in Austin.", FRIDAY, null)).toBe(
       "Today is Friday, October 23, 2026.\n\nWe start in Austin.",
     );
   });
 
   it("adds the resumed line to the first message after a resume only", () => {
     const lines = new AppLines(true);
-    expect(lines.addTo("Where were we?", FRIDAY)).toBe(
+    expect(lines.addTo("Where were we?", FRIDAY, null)).toBe(
       `Today is Friday, October 23, 2026.\n${RESUMED_LINE}\n\nWhere were we?`,
     );
-    expect(lines.addTo("Five days.", FRIDAY)).toBe("Five days.");
+    expect(lines.addTo("Five days.", FRIDAY, null)).toBe("Five days.");
+  });
+
+  it("adds an option card's IDs to the message sent from it, after the other lines", () => {
+    const lines = new AppLines(true);
+    const card = { holderId: "stay_k7m2x9qa", placeId: "place_p3w8n4rt" };
+    expect(lines.addTo("Select Red Cliffs Lodge.", FRIDAY, card)).toBe(
+      `Today is Friday, October 23, 2026.\n${RESUMED_LINE}\nFrom an option card: stay_k7m2x9qa, place_p3w8n4rt.\n\nSelect Red Cliffs Lodge.`,
+    );
+    expect(
+      lines.addTo("More options.", FRIDAY, {
+        holderId: "stop_k7m2x9qa",
+        placeId: null,
+      }),
+    ).toBe("From an option card: stop_k7m2x9qa.\n\nMore options.");
   });
 
   it("adds the forgotten line to the first message after the user forgets memory items", () => {
     const lines = new AppLines(false);
-    lines.addTo("Hi!", FRIDAY);
+    lines.addTo("Hi!", FRIDAY, null);
     lines.markMemoryForgotten();
     lines.markMemoryForgotten();
-    expect(lines.addTo("Five days.", FRIDAY)).toBe(
+    expect(lines.addTo("Five days.", FRIDAY, null)).toBe(
       `${FORGOTTEN_LINE}\n\nFive days.`,
     );
-    expect(lines.addTo("Six days.", FRIDAY)).toBe("Six days.");
+    expect(lines.addTo("Six days.", FRIDAY, null)).toBe("Six days.");
   });
 });
 
@@ -63,7 +77,8 @@ describe("withoutAppLines", () => {
     const lines = new AppLines(true);
     lines.markMemoryForgotten();
     const message = "Five days.\n\nMaybe six.";
-    expect(withoutAppLines(lines.addTo(message, FRIDAY))).toBe(message);
+    const card = { holderId: "stop_k7m2x9qa", placeId: null };
+    expect(withoutAppLines(lines.addTo(message, FRIDAY, card))).toBe(message);
   });
 
   it("leaves a message with no app lines as it is", () => {

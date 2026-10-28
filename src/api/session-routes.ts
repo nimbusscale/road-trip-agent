@@ -29,14 +29,17 @@ export function sessionRoutes(chat: ChatDependencies): Hono {
 
   // The turn checks again, before each message, that the trip hasn't started.
   routes.post("/sessions/:sessionId/messages", messageBody, async (context) => {
-    const { text } = context.req.valid("json");
+    const request = context.req.valid("json");
     const user = context.get("user");
     const { session } = await ownedSession(
       readers,
       context.req.param("sessionId"),
       user,
     );
-    const turn = await chat.turns.begin({ session, userId: user.userId }, text);
+    const turn = await chat.turns.begin(
+      { session, userId: user.userId },
+      request,
+    );
     return streamTurn(context, turn);
   });
 

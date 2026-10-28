@@ -3,9 +3,24 @@ import { z } from "zod";
 // The shapes of the chat's requests and replies (systems design section 4). The front
 // end parses the replies with these schemas.
 
+// The IDs behind a click on an option card: the stop or stay, and the place for Select.
+// The app adds them to the coordinator's message in a line of its own, which the chat
+// doesn't show, so the coordinator doesn't have to look them up (technical spec 7.2).
+export const optionCardIdsSchema = z.object({
+  holderId: z.string().regex(/^(stop|stay)_[a-z0-9]+$/),
+  placeId: z
+    .string()
+    .regex(/^place_[a-z0-9]+$/)
+    .nullable(),
+});
+
+export type OptionCardIds = z.infer<typeof optionCardIdsSchema>;
+
 // A message the user sends. It starts a trip, or a session, or goes on one.
+// `optionCard` is null for a message the user typed.
 export const messageRequestSchema = z.object({
   text: z.string().trim().min(1, { error: "A message can't be empty." }),
+  optionCard: optionCardIdsSchema.nullable().default(null),
 });
 
 export type MessageRequest = z.infer<typeof messageRequestSchema>;

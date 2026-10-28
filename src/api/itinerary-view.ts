@@ -10,6 +10,7 @@ import type { ScheduleTime } from "../domain/schedule-time.js";
 import type { Stay } from "../domain/stay.js";
 import { StayDay } from "../domain/stay-day.js";
 import type { Stop } from "../domain/stop.js";
+import type { Tier } from "../domain/tier.js";
 import type { Trip } from "../domain/trip.js";
 import type {
   ItineraryResponse,
@@ -17,6 +18,8 @@ import type {
   ShownDay,
   ShownEntry,
   ShownLeg,
+  ShownOption,
+  ShownOptionCard,
   ShownPlace,
   ShownStay,
   ShownStop,
@@ -26,7 +29,7 @@ import { clockTextOf } from "../tools/clock-time.js";
 
 // The itinerary as the view beside the chat shows it (functional spec 9). Stays, days,
 // and stops are counted from 1, as people count them (domain model section 1). Weather
-// and option cards are added by their own issues (#64 and #62).
+// is added by its own issue (#64).
 
 export function itineraryViewOf(
   trip: Trip,
@@ -72,7 +75,7 @@ function stayOf(
     nightCount: stay.nightCount,
     arriveDate: dates[0]?.toText() ?? null,
     leaveDate: dates.at(-1)?.toText() ?? null,
-    lodging: choiceOf(stay.lodging, stay.lodgingCandidates),
+    lodging: choiceOf(stay.lodging, stay.lodgingCandidates, true),
   };
 }
 
@@ -165,7 +168,7 @@ function stopOf(
     kind: stop.kind,
     purpose: stop.purpose,
     setTime: timeText(stop.setTime),
-    choice: choiceOf(stop.selectedPlace, stop.candidates),
+    choice: choiceOf(stop.selectedPlace, stop.candidates, stop.kind === "meal"),
     checkInPlace:
       stop.kind === "checkIn"
         ? placeOrNull(calendar.placeOf(itinerary, stop))
@@ -189,10 +192,12 @@ function arrivalOf(
 }
 
 // The selected place keeps the rationale of the candidate it was picked from
-// (functional spec 7.6).
+// (functional spec 7.6). Lodging and meals have tiers, and attractions don't
+// (functional spec 7.1).
 function choiceOf(
   selected: Place | null,
   candidates: readonly Candidate[],
+  hasTiers: boolean,
 ): ShownChoice {
   const picked =
     selected === null
@@ -203,6 +208,7 @@ function choiceOf(
       status: candidates.length === 0 ? "empty" : "proposed",
       candidateCount: candidates.length,
       selection: null,
+      card: candidates.length === 0 ? null : optionCardOf(candidates, hasTiers),
     };
   }
   return {
@@ -214,6 +220,7 @@ function choiceOf(
       namedByUser: !picked.isFoundByWorker,
       sourceLink: picked.sourceLink,
     },
+    card: null,
   };
 }
 
@@ -233,4 +240,68 @@ function placeOrNull(place: Place | null): ShownPlace | null {
 
 function timeText(time: ScheduleTime | null): string | null {
   return time === null ? null : clockText(minuteOfScheduleTime(time));
+}
+
+// The newest set: the highest set number still there (domain model 3.9).
+function optionCardOf(
+  candidates: readonly Candidate[],
+  hasTiers: boolean,
+): ShownOptionCard {
+  const newest = Math.max(...candidates.map((each) => each.setNumber));
+  const set = candidates.filter((each) => each.setNumber === newest);
+  const everyTier = (tier: Tier) => set.every((each) => each.tier === tier);
+  return {
+    options: set.map((candidate) => optionOf(candidate, hasTiers)),
+    higherTier: hasTiers && !everyTier("upscale"),
+    lowerTier: hasTiers && !everyTier("value"),
+  };
+}
+
+const TIER_TEXT: Record<Tier, string> = {
+  value: "Value",
+  midRange: "Mid-range",
+  upscale: "Upscale",
+};
+
+function optionOf(candidate: Candidate, hasTiers: boolean): ShownOption {
+  const { place, visitTimeInMinutes, detourTimeInMinutes } = candidate;
+  const namedByUser = !candidate.isFoundByWorker;
+  return {
+    place: shownPlaceOf(place),
+    type: place.type,
+    location: place.town ?? place.address,
+    rating: ratingText(place),
+    tier: tierText(candidate, hasTiers),
+    namedByUser,
+    rationale: candidate.rationale,
+    notes: candidate.notesText,
+    sourceLink: candidate.sourceLink,
+    visitTime:
+      visitTimeInMinutes === null ? null : durationText(visitTimeInMinutes),
+    detourTime:
+      detourTimeInMinutes === null ? null : durationText(detourTimeInMinutes),
+  };
+}
+
+// A place the user named has no tier, and shows "Your choice" in its place
+// (functional spec 7.1).
+function tierText(candidate: Candidate, hasTiers: boolean): string | null {
+  if (candidate.tier !== null) {
+    return TIER_TEXT[candidate.tier];
+  }
+  return hasTiers && !candidate.isFoundByWorker ? "Your choice" : null;
+}
+
+// Such as "4.5 stars, 1,234 reviews". Every place shows Google's rating when it has
+// one, attractions included (functional spec 7.5).
+function ratingText({ rating, reviewCount }: Place): string | null {
+  if (rating === null) {
+    return null;
+  }
+  const stars = `${rating.toFixed(1)} stars`;
+  if (reviewCount === null) {
+    return stars;
+  }
+  const reviews = reviewCount === 1 ? "review" : "reviews";
+  return `${stars}, ${reviewCount.toLocaleString("en-US")} ${reviews}`;
 }

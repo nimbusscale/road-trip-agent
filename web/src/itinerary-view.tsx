@@ -9,8 +9,10 @@ import {
   type ShownStop,
   type ShownSummary,
 } from "../../src/shared/itinerary.schema";
+import type { MessageRequest } from "../../src/shared/session.schema";
 import { dayText, tripDatesText } from "./dates";
 import { countText, timesText } from "./itinerary-text";
+import { type CardActions, type CardHolder, OptionCard } from "./option-card";
 import { TripMap } from "./trip-map";
 import { useApiAfterEachTurn } from "./use-api";
 
@@ -18,11 +20,14 @@ interface ItineraryViewProps {
   tripId: string;
   // Read again when a turn ends, since the coordinator may have changed the plan.
   busy: boolean;
+  // Sends an option card's click to the chat. Null where there's no chat, such as on
+  // the trip page, which shows no cards (functional spec 7.5).
+  send: ((message: MessageRequest) => void) | null;
 }
 
 // The whole plan beside the chat: the trip summary, the map, the stays, and each day
 // with its leg and schedule (functional spec 9). Read-only: only the coordinator changes it.
-export function ItineraryView({ tripId, busy }: ItineraryViewProps) {
+export function ItineraryView({ tripId, busy, send }: ItineraryViewProps) {
   const [loaded] = useApiAfterEachTurn(
     `/api/trips/${tripId}/itinerary`,
     itineraryResponseSchema,
@@ -34,10 +39,16 @@ export function ItineraryView({ tripId, busy }: ItineraryViewProps) {
   if (loaded.status === "failed") {
     return <p role="alert">{loaded.message}</p>;
   }
-  return <Itinerary view={loaded.data} />;
+  const cards = send === null ? null : { send, busy };
+  return <Itinerary view={loaded.data} cards={cards} />;
 }
 
-function Itinerary({ view }: { view: ItineraryResponse }) {
+interface ItineraryProps {
+  view: ItineraryResponse;
+  cards: CardActions | null;
+}
+
+function Itinerary({ view, cards }: ItineraryProps) {
   return (
     <>
       <Summary summary={view.summary} />
@@ -48,13 +59,13 @@ function Itinerary({ view }: { view: ItineraryResponse }) {
       ) : (
         <ul className="stays">
           {view.stays.map((stay) => (
-            <StayItem key={stay.id} stay={stay} />
+            <StayItem key={stay.id} stay={stay} cards={cards} />
           ))}
         </ul>
       )}
       <h3>Days</h3>
       {view.days.map((day) => (
-        <DayCard key={day.id} day={day} />
+        <DayCard key={day.id} day={day} cards={cards} />
       ))}
     </>
   );
@@ -81,7 +92,13 @@ function Summary({ summary }: { summary: ShownSummary }) {
   );
 }
 
-function StayItem({ stay }: { stay: ShownStay }) {
+function StayItem({
+  stay,
+  cards,
+}: {
+  stay: ShownStay;
+  cards: CardActions | null;
+}) {
   const dates =
     stay.arriveDate === null || stay.leaveDate === null
       ? ""
@@ -94,12 +111,17 @@ function StayItem({ stay }: { stay: ShownStay }) {
       , {countText(stay.nightCount, "night")}
       {dates}
       <br />
-      Lodging: <Choice choice={stay.lodging} />
+      Lodging:{" "}
+      <Choice
+        choice={stay.lodging}
+        holder={{ id: stay.id, label: `the lodging in ${stay.place.name}` }}
+        cards={cards}
+      />
     </li>
   );
 }
 
-function DayCard({ day }: { day: ShownDay }) {
+function DayCard({ day, cards }: { day: ShownDay; cards: CardActions | null }) {
   const heading = [
     `Day ${String(day.number)}`,
     day.date === null ? null : dayText(day.date),
@@ -118,7 +140,12 @@ function DayCard({ day }: { day: ShownDay }) {
       ) : (
         <ol className="schedule">
           {keyedEntries(day.schedule).map(([key, entry]) => (
-            <EntryItem key={key} entry={entry} />
+            <EntryItem
+              key={key}
+              entry={entry}
+              dayNumber={day.number}
+              cards={cards}
+            />
           ))}
           {day.arrival === null ? null : (
             <li>
@@ -158,18 +185,24 @@ function LegLine({ leg }: { leg: ShownLeg }) {
   );
 }
 
-function EntryItem({ entry }: { entry: ShownEntry }) {
+interface EntryProps {
+  entry: ShownEntry;
+  dayNumber: number;
+  cards: CardActions | null;
+}
+
+function EntryItem(props: EntryProps) {
   return (
     <li>
-      <span className="time">{timesText(entry)}</span>
-      <span>
-        <EntryText entry={entry} />
-      </span>
+      <span className="time">{timesText(props.entry)}</span>
+      <div>
+        <EntryText {...props} />
+      </div>
     </li>
   );
 }
 
-function EntryText({ entry }: { entry: ShownEntry }) {
+function EntryText({ entry, dayNumber, cards }: EntryProps) {
   const { stop } = entry;
   if (stop === null) {
     const name = entry.kind === "drive" ? "Drive" : "Free time";
@@ -182,7 +215,14 @@ function EntryText({ entry }: { entry: ShownEntry }) {
       {stop.kind === "checkIn" ? (
         (stop.checkInPlace?.name ?? <em>no stay to check in at</em>)
       ) : (
-        <Choice choice={stop.choice} />
+        <Choice
+          choice={stop.choice}
+          holder={{
+            id: stop.id,
+            label: `the ${KIND_TEXT[stop.kind].toLowerCase()} "${stop.purpose}" on Day ${String(dayNumber)}`,
+          }}
+          cards={cards}
+        />
       )}
     </>
   );
@@ -194,10 +234,19 @@ const KIND_TEXT: Record<ShownStop["kind"], string> = {
   checkIn: "Check in",
 };
 
-// A stop or lodging: its selected place, with why it was picked, or how far along the
-// choice is (functional spec 7.6).
-function Choice({ choice }: { choice: ShownChoice }) {
-  const { selection } = choice;
+interface ChoiceProps {
+  choice: ShownChoice;
+  holder: CardHolder;
+  cards: CardActions | null;
+}
+
+// A stop or lodging: its selected place, with why it was picked, its option card, or
+// how far along the choice is (functional spec 7.5 and 7.6).
+function Choice({ choice, holder, cards }: ChoiceProps) {
+  const { selection, card } = choice;
+  if (card !== null && cards !== null) {
+    return <OptionCard card={card} holder={holder} actions={cards} />;
+  }
   if (selection === null) {
     return choice.status === "empty" ? (
       <em>no options yet</em>

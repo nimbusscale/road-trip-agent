@@ -48,7 +48,7 @@ export function TripPage({ tripId }: { tripId: string }) {
           </li>
         ))}
       </ul>
-      <ItineraryView tripId={tripId} busy={false} />
+      <ItineraryView tripId={tripId} busy={false} send={null} />
     </>
   );
 }
