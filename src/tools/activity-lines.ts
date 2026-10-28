@@ -13,8 +13,9 @@ import { placeLine } from "./stop-lines.js";
 // A stay's activities, as read_worker_brief_facts gives them under the stay's line (tool
 // design 2.1): its attraction stops, by the weather rule (technical spec 6.3), in the
 // days' order. Each with its place and short line, or its purpose when it has none, and
-// its date and time. The short line's town tells the weather worker whether an activity
-// is far from the stay's town (tool design 2.5).
+// its date and time. The short line's town is a clue to whether an activity is far from
+// the stay's town (tool design 2.5), but many park attractions have none. #64 settles
+// how the weather worker tells.
 
 export function activityLines(
   calendar: Calendar,
