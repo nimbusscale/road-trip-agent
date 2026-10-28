@@ -26,6 +26,10 @@ import {
 import type { RoutingSession } from "../tools/routing-session.js";
 import type { TripSession } from "../tools/trip-session.js";
 import { createTripServer, TRIP_SERVER_NAME } from "../tools/trip-server.js";
+import {
+  COORDINATOR_AGENT_TYPE,
+  coordinatorDefinition,
+} from "./coordinator-definition.js";
 import { coordinatorPrompt } from "./coordinator-prompt.js";
 import { sdkUserMessage } from "./sdk-user-message.schema.js";
 import { type TurnEvent, turnEventsOf } from "./turn-event.js";
@@ -65,9 +69,17 @@ export function coordinatorOptions(
     given;
   const { session, userId } = conversation;
   const tripId = session.tripId;
+  const prompt = coordinatorPrompt(settings);
+  const model = settings.coordinatorModel;
   return {
-    model: settings.coordinatorModel,
-    systemPrompt: coordinatorPrompt(settings),
+    model,
+    systemPrompt: prompt,
+    // The coordinator runs as a named agent, so its definition's tools are what it's
+    // sent. The servers below can hold tools that only workers get (technical spec 6.5).
+    agent: COORDINATOR_AGENT_TYPE,
+    agents: {
+      [COORDINATOR_AGENT_TYPE]: coordinatorDefinition({ prompt, model }),
+    },
     // Adaptive is the SDK's default for the model. Asking for a summary changes only
     // what comes back, so the turn's trace shows the summaries (technical spec 5.4).
     thinking: { type: "adaptive", display: "summarized" },
@@ -75,8 +87,9 @@ export function coordinatorOptions(
     // turn's trace (systems design section 10). turnEventsOf() leaves them out.
     includePartialMessages: true,
     env: processEnv,
-    // No settings files, CLAUDE.md, or MCP servers but ours, and no built-in tools. Each
-    // agent sees only its own tools (technical spec section 2).
+    // No settings files, CLAUDE.md, or MCP servers but ours, and no built-in tools yet.
+    // These are the tools that exist in the session. Each agent's definition picks the
+    // ones it's sent (technical spec 6.5).
     settingSources: [],
     strictMcpConfig: true,
     tools: [],
@@ -86,9 +99,9 @@ export function coordinatorOptions(
       [PLACES_SERVER_NAME]: createPlacesServer({ ...places, tripId }),
       [ROUTING_SERVER_NAME]: createRoutingServer({ ...routing, tripId }),
     },
-    // Every tool on these servers runs without asking. Anything else is refused, since
-    // nobody is there to answer a permission prompt. The places server will hold tools
-    // only workers get, so the coordinator's are named one by one (tool design 3).
+    // These tools run without asking. Anything else is refused, since nobody is there to
+    // answer a permission prompt. What the coordinator is sent is its definition's
+    // tools, not this list.
     allowedTools: [
       `mcp__${TRIP_SERVER_NAME}`,
       `mcp__${MEMORY_SERVER_NAME}`,
