@@ -271,7 +271,7 @@ For each day: day number, date, location, start time, and its schedule: drives, 
 
 ### 9.6 Weather and clothing
 
-Section 8 content, per stay. Each stay's text shows whether it's a forecast or seasonal averages, and the date it was written. It's marked out of date once the stay's town, dates, or activities change in a way the text doesn't cover. The data source's credit sits at the bottom.
+Section 8 content, per stay. Each stay's text shows whether it's a forecast or seasonal averages, and the date it was written. It's marked out of date once the stay's town, dates, or activities change in a way the text doesn't cover. The data source's credit sits at the bottom. A stay with no text yet says "not written yet", with no out-of-date mark, even once other stays have text.
 
 ### 9.7 Units
 
