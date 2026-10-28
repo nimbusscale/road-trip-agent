@@ -45,19 +45,20 @@ async function moabWithPlaces(names: readonly string[]) {
   };
 }
 
-// How many routes went through any of the places named, as a detour time's does. Each
-// test place's Google place ID is made from its name (placeNamed()). The write's
-// finish routes legs too, such as Day 1's, whose waypoint the example sets after routing
-// it.
+// How many routes the write asked for. Each has to go through one of the places named,
+// as a detour time's does, so a write that routes any other leg fails the test. Each
+// test place's Google place ID is made from its name (placeNamed()).
 function routesThrough(
   trip: Awaited<ReturnType<typeof moabWithPlaces>>,
   names: readonly string[],
 ): number {
-  return trip.fixture.routeFinder.routes.filter((path) =>
+  const { routes } = trip.fixture.routeFinder;
+  const isThroughNamed = (path: (typeof routes)[number]) =>
     path.through.some((point) =>
       names.some((name) => point.place.googlePlaceId === `google-${name}`),
-    ),
-  ).length;
+    );
+  expect(routes.every(isThroughNamed)).toBe(true);
+  return routes.length;
 }
 
 // A candidate found on Google, with no notes.
