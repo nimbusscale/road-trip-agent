@@ -67,6 +67,7 @@ Then open the Phoenix UI at `http://127.0.0.1:6006`. Local traces are in the `ro
 - **Rows read from Postgres,** including the plan document ([persistence design](design/persistence.md), section 2).
 - **The Supabase sign-in token's contents,** after its signature is checked ([systems design](design/systems.md), section 3).
 - **Environment variables,** parsed once when the app starts. A missing or bad value stops the app from starting.
+- **The Agent SDK's hook inputs,** such as the tool inputs and replies the worker hooks record ([technical spec](design/technical-spec.md), 6.5).
 
 **Types come from the schemas,** with `z.infer`, not declared a second time.
 
@@ -74,7 +75,7 @@ Then open the Phoenix UI at `http://127.0.0.1:6006`. Local traces are in the `ro
 
 **A parse failure is an error the caller handles,** never a silent pass. Type assertions (`as SomeType`) aren't allowed on outside data. ESLint enforces this where it can.
 
-Worker results aren't on the list. A worker returns text that the coordinator reads, not data our code parses ([technical spec](design/technical-spec.md), section 1).
+A worker's result isn't on the list. Code builds it from the worker's recorded calls, as text the coordinator reads, and no free text from the worker is parsed (technical spec 6.5).
 
 ---
 

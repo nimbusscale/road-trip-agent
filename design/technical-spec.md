@@ -280,6 +280,7 @@ The coordinator starts a worker with the Agent SDK's built-in `Agent` tool. Ever
 - **The main agent gets the query's `systemPrompt`,** not its definition's `prompt`. Both are set to the coordinator's instructions, so nothing depends on which one is used.
 - **The definition's `model` is the coordinator's model, the same as the query's `model`.** The SDK says a named main agent runs on its definition's model, and a definition with no model can get a default subagent model instead. With both set the same, it doesn't matter which one the SDK uses.
 - **Each worker's definition lists its tools from tool design section 3, and names no MCP server.** The tools it lists are on the query's servers. A definition must never leave `tools` out. A worker without it gets every tool in the session, `Agent` included.
+- **The query's `allowedTools` names each of our servers, plus `Agent`, `WebSearch`, and `WebFetch`.** `allowedTools` lets a tool run without asking, and with `permissionMode: "dontAsk"` any other call is refused. It covers the whole session, workers too, so it can't let a worker call a tool and refuse the coordinator the same tool. Only the definitions can do that. And every tool in the session belongs to some agent, since the query's `tools` and `strictMcpConfig` keep out everything else. So a tool-by-tool list would always end up as every tool in the session, kept by hand as a second copy of the definitions. When that copy fell behind, a worker's call would be refused, and the trace would look like an agent problem when it's an app bug. So `allowedTools` only lets our tools run without a prompt, and the definitions decide who gets which tool. Settled on 2026-10-28 in chat, for #198.
 
 **Two settings go in the Claude Code process's environment:**
 
@@ -292,18 +293,43 @@ The coordinator starts a worker with the Agent SDK's built-in `Agent` tool. Ever
 
 **Hooks in our code build the result the coordinator sees.** They're made with each turn's options, and keep what they record in memory for that turn.
 
-- **A `PostToolUse` hook on the workers' tools records each call that succeeds,** under the worker's `agent_id`: the IDs passed to `read_worker_brief_facts`, each candidate tool's and `set_stay_weather`'s reply, and the input to `report_result`.
+- **A `PostToolUse` hook on the workers' tools records each call that succeeds,** under the worker's `agent_id`: the IDs passed to `read_worker_brief_facts`, each candidate tool's and `set_stay_weather`'s reply, and the input to `report_result`. A call the tool refuses fires `PostToolUseFailure` instead, so it isn't recorded (checked by hand on 0.3.301, while #198 was built).
 - **A `SubagentStop` hook sends back a worker that tries to finish without calling `report_result`.** The worker gets "You haven't called report_result. Call it now, with any problems and questions, to end your work." It sends a worker back at most twice, and acts only for our worker types. Without a limit, a worker that can't call the tool is sent back again and again.
 - **A `PostToolUse` hook on `Agent` replaces the worker's last message with a result code builds,** from the calls recorded under the output's `agentId`. It returns the whole `Agent` output object, with its `content` replaced, since a string is ignored with no error. It acts only for our worker types, and only when the call completed.
 - **So no free text from a worker reaches the coordinator.** The worker's last message is still in its transcript, and in the turn's trace.
 
-**The result** has these lines, in this order:
+**The result** has these parts, in this order, with a blank line between parts:
 
 - Each candidate tool reply, or each `set_stay_weather` reply, as the tool gave it, in the order of the calls. A candidate reply names the set, with one line per candidate ([tool design](tools.md), 2.1).
-- The stops and stay from the worker's `read_worker_brief_facts` calls that got no candidates, such as "No candidates added for: Day 4, Stop 1 (stop_…), meal: "breakfast"." A worker that found fewer than three good places still adds the ones it found, and says so in its problems. For the weather worker, it's the stays with no saved text, such as "No weather saved for: Moab stay (stay_…)."
-- "Problems:" and "Questions for the user:", each with one line per item, or "none". When a worker called `report_result` more than once, the last call counts. When a worker was sent back twice and still didn't call it, a line says "The worker stopped without reporting its problems and questions." in place of both.
+- The stops and stays from the worker's `read_worker_brief_facts` calls that got no candidates, after "No candidates added for:", one line each. A stay there means its lodging, as "Lodging for Stay 1, Moab (stay_…)". For the weather worker, it's the stays with no saved text, after "No weather saved for:". Each is named as the tools name it ([tool design](tools.md), 2.1). The part is left out when nothing is missing. A worker that found fewer than three good places still adds the ones it found, and says so in its problems.
+- "Problems:" and "Questions for the user:", each with one line per item, or "none" on the same line. When a worker called `report_result` more than once, the last call counts. When a worker never called it, a line says "The worker stopped without reporting its problems and questions." in place of both.
 
-The exact wording is drafted with the stay researcher (#60). The SDK wraps the result in a frame that says it's a subagent's report, written by a model, not by the user. The frame is there even though code wrote every line, so the result doesn't say who wrote it.
+Example, from a stay researcher that filled the Moab stay's lodging and one stop, and found nothing for another:
+
+```
+Lodging set 1 for Stay 1, Moab (stay_…): 3 candidates.
+- Red Cliffs Lodge (place_…), Lodge, 4.5 stars, $$$, Moab. Why: "On the river, away from the busy main street." Tier: posh.
+- Hoodoo Moab (place_…), Hotel, 4.4 stars, $$$, Moab. Why: "A short walk to the restaurants on Main Street." Tier: mid-range.
+- Moab Springs Ranch (place_…), Lodge, 4.6 stars, $$, Moab. Why: "Quiet cottages at the edge of town." Tier: mid-range.
+
+Set 1 for Day 2, Stop 4 (stop_…), meal: "burgers": 2 candidates.
+- Milt's Stop & Eat (place_…), Hamburger restaurant, 4.6 stars, $, Moab. Why: "A classic burger stand since 1954." Tier: value.
+- Moab Grill (place_…), American restaurant, 4.3 stars, $$, Moab. Why: "Big burgers, and seats for a sit-down lunch." Tier: value.
+
+No candidates added for:
+- Day 2, Stop 1 (stop_…), attraction: "a sunrise hike"
+
+Problems:
+- Only two burger places in Moab fit, so the Day 2 lunch has two candidates.
+- The only sunrise hikes near Moab are already in the trip.
+Questions for the user: none
+```
+
+The weather worker's result has one reply per stay it saved, then "No weather saved for:" with "- Stay 2, Torrey (stay_…)" when one is missing, then its problems and questions.
+
+The SDK wraps the result in a frame that says it's a subagent's report, written by a model, not by the user. The frame is there even though code wrote every line, so the result doesn't say who wrote it. #198 drafted the wording, for Joe to review in its PR.
+
+**A hook that fails logs the error, and changes nothing.** If the result can't be built, the coordinator gets the worker's own last message instead, and the log says why.
 
 **A worker cut off by a restart** leaves an `Agent` call with no result in the transcript. The SDK fills it in on resume ([persistence design](persistence.md), section 7).
 
