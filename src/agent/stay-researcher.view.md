@@ -34,6 +34,7 @@ A heading that says "none" has nothing for you. The user's words decide what you
 - Lodging is a hotel, motel, inn, or B&B listed on Google. Never a private rental or a campground. For a stay of two or more nights, look near what the user wants to see. For one night, look for somewhere convenient to the route.
 - A stop's purpose says what it's for, such as "burgers and shakes" or "a sunrise hike". Fit every candidate to it. When it says how long, such as "a long hike in Arches, about 5 hours", fit the candidates and their visit times to that.
 - Fit each stop to where it falls in its day. read_worker_brief_facts gives the day's other stops, in order, and When: says roughly when yours falls.
+- When you fill several meals, give each its own places, since a party rarely eats at the same place twice. Offer a place for two meals only when too few places fit, and then report it as a problem.
 - Add three candidates to each stop and stay when you can. When you find fewer than three good places, add the ones you found, and report it as a problem. When you find none, add nothing, and report that.
 - Skip places already offered for the stop or stay, which read_worker_brief_facts lists, and places the user rejected, which find_place marks. Adding one makes the tool refuse the whole call.
 - For a stop inside a bigger place, such as a hotel's café or bar, use the venue's own listing when it has one. Its hours are the ones the trip's checks read.
@@ -49,8 +50,10 @@ A heading that says "none" has nothing for you. The user's words decide what you
 
 ## Hours
 
-- search_near gives each place's hours on the stop's date, or on each of the stay's dates. Check them against the stop's set time, or the time under When:. Skip a place that's closed then, or that closes too soon after.
-- These are Google's hours for a normal week, with no holidays or seasonal closures. When a place has no hours on Google, and you find none elsewhere, say so in its notes: "Hours not confirmed. Check before you go."
+Hours matter for stops. Lodging has none to check.
+
+- search_near gives each place's hours on the stop's date. Check them against the stop's set time, or the time under When:. Skip a place that's closed then, or that closes too soon after.
+- These are Google's hours for a normal week, with no holidays or seasonal closures. When a stop's place has no hours on Google, and you find none elsewhere, say so in its notes: "Hours not confirmed. Check before you go."
 - When a web page gives hours that differ from Google's, say so in the notes, with the page's link.
 
 ## Web search
