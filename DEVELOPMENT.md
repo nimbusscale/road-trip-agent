@@ -106,7 +106,7 @@ Worker results aren't on the list. A worker returns text that the coordinator re
 
 ## 7. Branches and pull requests
 
-**`main` is protected.** Nothing is pushed to it directly. Every change goes on its own branch, and reaches `main` through a pull request. Only Joe decides when a pull request is merged: he merges it himself, or asks Claude Code to merge it. Claude Code never merges one without being asked. A merge to `main` deploys it ([systems design](design/systems.md), section 7).
+**`main` is protected.** Nothing is pushed to it directly. Every change goes on its own branch, and reaches `main` through a pull request. Only Joe decides when a pull request is merged: he merges it himself, or asks Claude Code to merge it. Claude Code never merges one without being asked. Asking for issues to be worked on autonomously counts as asking, for the PRs section 10's merge rule allows. A merge to `main` deploys it ([systems design](design/systems.md), section 7).
 
 **A PR description holds the task, and nothing about how it was done.** It starts with the task, word for word, though filler words in a spoken request can be dropped. For an issue, that's its "Do" and "Done when" items, and `Closes #N`. Otherwise it's what Joe asked for. Then it lists each "Done when" item with its result, and what was checked by hand.
 
@@ -208,3 +208,30 @@ gh project item-list 1 --owner nimbusscale --format json --limit 200 \
 **Write down anything set aside right away.** The rule is in CLAUDE.md, since it applies in chat too, not only while writing code.
 
 **Issues have no phase numbers,** since their order changes. Refer to other work by issue number. When an issue can't start until another is merged, link it as "blocked by", and say so in the body's first line, such as "**Starts** once #47 is merged."
+
+---
+
+## 10. Working on issues on your own
+
+**Joe can ask for issues to be worked on without him,** such as "work autonomously on #197" or "use subagents to work autonomously on #197 and #199." The work follows this section from start to finish, so Joe doesn't have to explain it each time.
+
+**First, check each issue for open questions.** If any issue has an open question that isn't struck out, tell Joe which ones, and ask whether to go through them before starting. Joe tries to settle every open question before the work starts, so one that's left was usually missed. Go through them as section 9 says, and as the issue's "Settled in" says.
+
+**Then ask Joe every other question at once.** Read each issue, and the design docs it points to. Ask only what the docs and the issues don't answer. Also check whether one issue's PR changes what another one needs. Example: #199 added tools to the `trip` server, and until #197 merged, the coordinator would have been given them. After Joe answers, the work goes on with no more questions.
+
+**Each issue gets its own branch, and with subagents, its own worktree.** If the Agent tool can't make a worktree, make one with `git worktree add`, and remove the branch's upstream, so a bare `git push` can't go to `main`. When one issue has to merge first, the later one does its work, but holds its PR until the earlier PR merges. Then it merges `main` into its branch and opens its PR.
+
+**Decisions are made without Joe, even when the issue says "Settled in: chat."** Make the call that fits the design docs best. Write it into the design doc it belongs to, and list it with its reason in the PR's decisions comment (section 7). A config change still needs Joe (section 6). Note it in the decisions comment, and stop if the check can't pass without it.
+
+**The implementer opens the PR, posts the decisions comment, and stops.** It doesn't act on the review, since the fix loop handles that (section 7). The session that started the work watches the loop.
+
+**A PR is merged when the loop stops with nothing left for Joe.** That means it has the "ready for Joe" label, and every finding left is a note, or has a "Not fixed" or "Deferred" reply. If any finding is still marked "fix" or "check", or needs attention, the PR isn't merged, and Joe is told. The same goes for a PR that never gets the label. Merge with a merge commit, and don't wait for the deploy.
+
+**When every PR is merged or held, report on all of them at once.** For each PR:
+
+- each decision, and whether it should stand, with the reason
+- each note the loop left, and whether it should be fixed
+- what was set aside, and where it was written down
+- why a PR was held, if it was
+
+Don't change anything the report raises until Joe says what to change. Then those changes go in one PR. Once the report is sent, remove the worktrees and their branches.
