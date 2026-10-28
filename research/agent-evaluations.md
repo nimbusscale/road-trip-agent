@@ -442,6 +442,8 @@ The stream agreed: each worker message's `parent_tool_use_id` was the `Agent` ca
 
 #### Each worker's own tools
 
+#191 later found a way to keep a worker's tools in-process, out of the coordinator's sight: the coordinator runs as a named agent with its own tools list (below). This part is what #182 found without that.
+
 **A worker's own tools have to be on an HTTP MCP server, named in its definition.** The spike tried each way to give the worker its own server:
 
 | Where the worker's server is | What the coordinator is sent | The worker |
@@ -500,7 +502,7 @@ assistant  "No response requested."
 user       "We got cut off. Where are we with the Moab stay?"
 ```
 
-- **The coordinator started a new worker for the same stay,** and told it to check for candidates already saved first. In the app, `read_brief_facts` would return the candidates the first worker saved. The spike's fake didn't keep them across the restart.
+- **The coordinator started a new worker for the same stay,** and told it to check for candidates already saved first. In the app, `read_worker_brief_facts` would return the candidates the first worker saved. The spike's fake didn't keep them across the restart.
 - **The cut-off worker isn't continued.** Its transcript is loaded, but nothing runs it again.
 - **So the transcript adapter doesn't need to leave any lines out.** The spike didn't try it, since the resume worked.
 
@@ -622,7 +624,7 @@ createServer(async (req, res) => {
 ```
 
 - **The spike's server took any request on its port.** Any process that can reach the port can call the worker's tools. In the app, the server has to tell which trip a call is for, so the URL or a header in the definition can carry a key made for the turn.
-- **An HTTP server's config takes `headers`,** beside `url`, in `McpHttpServerConfig` in 0.3.301's `sdk.d.ts`. The spike didn't send any, so it didn't check that they reach the server on every call.
+- **An HTTP server's config takes `headers`,** beside `url`, in `McpHttpServerConfig` in 0.3.301's `sdk.d.ts`. #191 checked that they reach the server on every call (below).
 - **`@modelcontextprotocol/sdk` 1.32.1** is the app's version. The spike added it for the transport.
 
 #### What this means for #60
@@ -634,6 +636,63 @@ These are inputs for #60, which settles each question:
 - **Background workers.** A background worker's result reaches the coordinator as its own free text, in a task notification, so it skips the result pattern. `background: false` in the definition doesn't change that. `CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1` does, and two workers still run at the same time.
 - **How workers get their place searches.** A worker's own tools need an HTTP MCP server named in its definition, such as one with `find_place` and `search_near` for the stay researcher. Any server in the query's own `mcpServers`, in-process or not, is the coordinator's too. The other choice is to keep the searches on an in-process server in the query's `mcpServers`, and refuse the coordinator's calls with a `PreToolUse` hook. Then the coordinator still sees the searches, and its context holds their descriptions.
 - **Only our own workers.** `CLAUDE_AGENT_SDK_DISABLE_BUILTIN_AGENTS=1` leaves only our workers in the `Agent` tool, and refuses any other type by name. No `Agent(fork)` rule is needed.
+
+#### What #191 checked
+
+#191 ran the two checks #182 left open, and a third that came out of them. It used the same spike, versions, and proxy. The branch's README has the command for each run.
+
+**The key in `headers` reaches the HTTP server on every request.** The worker's definition sent `headers: { Authorization: "Bearer <key>" }`, with a random key the server checked. The server logged each request it got, from connecting to the last tool call:
+
+```
+[http] POST server/discover auth=right key
+[http] POST initialize auth=right key
+[http] POST notifications/initialized auth=right key
+[http] GET  auth=right key
+[http] POST tools/list auth=right key
+[http] POST tools/call(read_brief_facts) auth=right key
+[http] POST tools/call(read_brief_facts) auth=right key
+[http] POST tools/call(add_stop_candidates) auth=right key
+[http] POST tools/call(add_stop_candidates) auth=right key
+[http] POST tools/call(report_result) auth=right key
+```
+
+**A worker can't get a built-in tool the session doesn't have.** The query's `tools` was `["Agent"]`, as the app's would be. The worker's definition listed `WebSearch` and `WebFetch` with its own three tools. The worker was sent only its three. It said so in `report_result`: "Web search and page fetch tools (WebSearch, WebFetch) were not available in my toolset."
+
+| Setup | The coordinator is sent | The worker is sent |
+|---|---|---|
+| The query's `tools` is `["Agent"]` | `Agent` and its own tool | Its three tools |
+| The query's `tools` is `["Agent", "WebSearch", "WebFetch"]` | `Agent`, `WebFetch`, `WebSearch`, and its own tool | Its three, `WebSearch`, and `WebFetch` |
+| The same, with both web tools in the query's `disallowedTools` | `Agent` and its own tool | Its three tools |
+| The same as the second row, with the coordinator as a named agent whose `tools` lists `Agent(stay-researcher)` and its own tool | `Agent` and its own tool | Its three, `WebSearch`, and `WebFetch` |
+
+In every row the worker's definition listed both web tools. Where it got them, it searched and fetched pages as told.
+
+**The coordinator can run as a named agent, and then it sees only the tools its definition lists.** `Options.agent` names a definition from `agents` to run on the main thread. It's the same as Claude Code's `--agent` flag. The definition's `tools` then sets what the coordinator is sent, as a worker's does. The query's `tools` becomes the built-in tools that any agent in the session can be given.
+
+- **The main thread still got the query's `systemPrompt`, not the definition's `prompt`.** The spike marked the definition's prompt. The mark showed up only when that definition was started as a worker.
+- **The coordinator's own definition is an agent type too.** With plain `Agent` in its `tools`, the coordinator could start `coordinator` as a worker, and the list of agent types it was told about named `coordinator`.
+- **`Agent(<type>, …)` limits which types the coordinator can start.** With `Agent(stay-researcher)`, the coordinator was refused: "Agent type 'coordinator' not found. Available agents: stay-researcher". The list it was told about named only the worker. With a second worker type, `Agent(stay-researcher, leg-scout)` offered both and still refused `coordinator`.
+- **The hooks still work.** A hook on the main thread has no `agent_id`, so the `PostToolUse` hook on worker tools still records only workers' calls.
+
+**So a worker's own tools can stay on an in-process server.** The worker's server went in the query's `mcpServers`, as the coordinator's servers are. The worker's definition named no server, only the server's tools in its `tools`. The coordinator's definition didn't list them.
+
+- **The coordinator was sent `Agent` and `mcp__trip__read_itinerary`.** The worker was sent its three tools and both web tools.
+- **The coordinator couldn't call the worker's tools.** Asked to add "Test Diner" to a stop itself, it said "`mcp__worker__add_stop_candidates` isn't one of the tools I have."
+- **Two workers at once both worked,** with web search. Each worker hook call had that worker's `agent_id`, and each result held only its own stops.
+- **There was no `strictMcpConfig` message,** since the definition names no server.
+- **The server is built for the turn, with the trip,** like the coordinator's servers. So it needs no key and no listener.
+
+**A resume after a cut-off worker works the same with the coordinator as a named agent.** The store held 16 lines for the coordinator and 15 for the worker. The resume loaded both, and the SDK added the same "interrupted" result. The coordinator started a new worker for the same stay.
+
+**`WebSearch` and `WebFetch` each make a model call on the session's model, not the worker's.** The worker was on `claude-haiku-5-5`. Each of its `WebSearch` calls was a call to `claude-opus-5-5`, with the API's `web_search` tool and the message "Perform a web search for the query: …". Each `WebFetch` was a call to `claude-opus-5-5` with the page's text. The spike didn't look for a setting that changes the model these calls use.
+
+**Some other process on the machine sent requests through the spike's proxy port** during these runs, with the app's real tool lists. The tool lists above leave those requests out.
+
+#### What this means for #191
+
+- **Workers get `WebSearch` and `WebFetch`** when the query's `tools` lists them, and the coordinator runs as a named agent whose `tools` leaves them out.
+- **A worker's own tools can stay in-process.** They go on a server in the query's `mcpServers`, and are named only in that worker's `tools`. The coordinator's definition lists every tool it gets, so it doesn't see them. No HTTP listener or key is needed.
+- **The coordinator's `Agent` entry names the worker types,** as `Agent(stay-researcher, leg-scout)`. Otherwise it can start itself as a worker.
 
 ### 2.9 Claude Code's environment block
 
