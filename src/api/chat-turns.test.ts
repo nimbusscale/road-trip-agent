@@ -167,6 +167,37 @@ describe("the chat's turns", () => {
     }
   });
 
+  // Claude Code adds its own date line, in its process's time zone (technical spec 5.2).
+  it("runs Claude Code in UTC until the trip has a start place", async () => {
+    const chat = await chatApi(PLANNING);
+    await startTrip(chat);
+    expect(chat.sdk.calls[0]?.options.env?.TZ).toBe("UTC");
+  });
+
+  it("runs Claude Code in the start place's time zone, so its date matches the app's on a US evening", async () => {
+    // 7 p.m. on October 15 in Grand Junction, the Moab trip's start place, is already
+    // October 16 in UTC.
+    const chat = await chatApi(new Date("2026-10-16T01:00:00Z"));
+    const { trip, places } = exampleMoabTrip({ id: TEST_USER_ID });
+    await chat.tripStore.add(trip);
+    chat.tripStore.places.rows.push(
+      ...places.map((place) => ({ tripId: trip.id, place })),
+    );
+    const created = await chat.asUser(
+      "POST",
+      `/api/trips/${trip.id}/sessions`,
+      {
+        text: "What's left to decide?",
+      },
+    );
+    await eventsOf(created);
+    const [call] = chat.sdk.calls;
+    expect(call?.message).toBe(
+      "Today is Thursday, October 15, 2026.\n\nWhat's left to decide?",
+    );
+    expect(call?.options.env?.TZ).toBe("America/Denver");
+  });
+
   it("refuses a second message while the last turn is still running", async () => {
     const chat = await chatApi(PLANNING);
     const sessionId = await startTrip(chat);

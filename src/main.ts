@@ -2,7 +2,7 @@ import { serve } from "@hono/node-server";
 
 import { coordinatorAccessFor } from "./agent/coordinator-access.js";
 import { CoordinatorTurns } from "./agent/coordinator-turns.js";
-import { runTurnWithSdk } from "./agent/coordinator.js";
+import { sdkTurnRunner } from "./agent/coordinator.js";
 import { createApi } from "./api/api.js";
 import type { ChatDependencies } from "./api/chat-dependencies.js";
 import { createSupabaseTokenVerifier } from "./auth/token-verifier.js";
@@ -15,6 +15,7 @@ import { createPool, isDatabaseReachable } from "./db/connection.js";
 import type { Connectable, Queryable } from "./persistence/queryable.js";
 import { sessionAccessFor } from "./persistence/session-access.js";
 import { phoenixRatings } from "./tracing/phoenix-ratings.js";
+import { appCommit } from "./tracing/app-commit.js";
 import { isPhoenixReachable, startTracing } from "./tracing/phoenix.js";
 
 // Vite's proxy and Caddy both pass /api to this port.
@@ -24,6 +25,7 @@ function start(): void {
   const env = parseEnv(process.env);
   // Loaded now so a bad file stops the app before it serves anything.
   const settings = loadSettings(SETTINGS_PATH);
+  const commit = appCommit(env.appCommit);
 
   const pool = createPool(env);
   const tracing = startTracing(env);
@@ -31,7 +33,7 @@ function start(): void {
     isDatabaseReachable: () => isDatabaseReachable(pool),
     isPhoenixReachable: () => isPhoenixReachable(env.phoenixUrl),
     verifyToken: createSupabaseTokenVerifier(env.supabaseUrl),
-    chat: chatDependencies(env, pool, settings),
+    chat: chatDependencies(env, pool, settings, commit),
     ratings: phoenixRatings(env.phoenixUrl, env.phoenixProject),
   });
   const server = serve(
@@ -59,6 +61,7 @@ function chatDependencies(
   env: Env,
   pool: Connectable & Queryable,
   settings: Settings,
+  commit: string,
 ): ChatDependencies {
   const coordinator = coordinatorAccessFor({
     env,
@@ -74,7 +77,11 @@ function chatDependencies(
       reader: coordinator.memory.reader,
       writer: coordinator.memory.writer,
     },
-    turns: new CoordinatorTurns({ coordinator, runTurn: runTurnWithSdk, now }),
+    turns: new CoordinatorTurns({
+      coordinator,
+      runTurn: sdkTurnRunner(commit),
+      now,
+    }),
     transcripts: coordinator.transcripts,
     settings,
     now,

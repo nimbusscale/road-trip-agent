@@ -45,6 +45,10 @@ export const envSchema = z.object({
   // The Phoenix project the traces go to: road-trip-agent on the server, and
   // road-trip-agent-local on Joe's machine.
   phoenixProject: requiredText(),
+  // The commit the app image was built from, for each turn's trace (systems design
+  // section 10). The deploy builds it into the image. Locally there's none, and git gives
+  // it instead (appCommit()).
+  appCommit: requiredText().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -61,4 +65,5 @@ export const ENV_NAMES = {
   googleMapsServerKey: "GOOGLE_MAPS_SERVER_KEY",
   phoenixUrl: "PHOENIX_URL",
   phoenixProject: "PHOENIX_PROJECT",
+  appCommit: "APP_COMMIT",
 } as const satisfies Record<keyof Env, string>;

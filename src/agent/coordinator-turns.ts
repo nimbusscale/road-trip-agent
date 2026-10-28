@@ -2,7 +2,7 @@ import type { Options } from "@anthropic-ai/claude-agent-sdk";
 
 import type { CalendarDate } from "../domain/calendar-date.js";
 import type { Trip } from "../domain/trip.js";
-import { startedToday, tripToday } from "../domain/today.js";
+import { startedToday, tripTimeZone, tripToday } from "../domain/today.js";
 import { AppLines } from "./app-lines.js";
 import {
   type Conversation,
@@ -120,12 +120,13 @@ export class CoordinatorTurns {
     const appLines =
       this.#appLines.get(session.id) ?? new AppLines(hasTranscript);
     this.#appLines.set(session.id, appLines);
+    const { startPlace } = trip.itinerary;
     return {
-      message: appLines.addTo(
-        text,
-        tripToday(trip.itinerary.startPlace, moment),
-      ),
-      options: coordinatorOptions(coordinator, conversation, hasTranscript),
+      message: appLines.addTo(text, tripToday(startPlace, moment)),
+      options: coordinatorOptions(coordinator, conversation, {
+        hasTranscript,
+        timeZone: tripTimeZone(startPlace),
+      }),
     };
   }
 

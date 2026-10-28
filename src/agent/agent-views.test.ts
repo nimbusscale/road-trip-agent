@@ -22,7 +22,7 @@ function options(): Options {
   return coordinatorOptions(
     coordinatorGiven(loadSettings(SETTINGS_PATH)),
     conversation(),
-    false,
+    { hasTranscript: false, timeZone: "UTC" },
   );
 }
 
@@ -144,6 +144,17 @@ interface ViewAgent {
   systemPrompt: string;
 }
 
+// A reminder for when an agent does something odd: part of what it read isn't here.
+// What Claude Code adds is harmless apart from its date, which the Claude Code
+// process's time zone makes match the app's (technical spec 5.2).
+const ADDED_TEXT_NOTE = [
+  "It leaves out text that Claude Code adds, which our code doesn't write ([research section 2.9](../../research/agent-evaluations.md#29-claude-codes-environment-block)):",
+  "",
+  "- **The SDK's first line of every system prompt:** \"You are a Claude agent, built on Anthropic's Claude Agent SDK.\"",
+  "- **An environment block after the user's first message,** with the working folder, the model, and the date, such as \"Today's date is 2026-10-27.\" With the Agent tool, it also lists the worker types, and says to start independent ones in one message.",
+  '- **Notes after a worker\'s prompt,** written for coding work, such as "Do not use a colon before tool calls."',
+].join("\n");
+
 // Fenced with four backticks, so a prompt or description can hold three. The model and
 // effort come from the agent's definition. The coordinator's query options have the
 // same ones (technical spec 6.5).
@@ -167,6 +178,7 @@ function view(
   return [
     `# What the ${agent.name} sees`,
     "Written by `npm run agent-views`, with the real settings.json. Don't edit it by hand.",
+    ADDED_TEXT_NOTE,
     `Model: \`${model ?? "not set"}\`. Effort: \`${String(effort ?? "not set")}\`.`,
     "## System prompt",
     `\`\`\`\`text\n${agent.systemPrompt}\n\`\`\`\``,

@@ -7,7 +7,27 @@ import type { Place } from "./place.js";
 // The time zone comes from a lookup table in the library, with no outside call
 // (persistence design, section 5). The calendar's today() uses it with the start place.
 export function todayAt(place: Place, now: Date): CalendarDate {
-  const timeZone = tzLookup(place.latitude, place.longitude);
+  return todayIn(timeZoneAt(place), now);
+}
+
+// The time zone of a trip's today: at its start place, since that is where the trip
+// begins, and UTC until it has one (technical spec 5.2). The coordinator is given the
+// date in it, and Claude Code's own date line uses it too, so the two agree.
+export function tripTimeZone(startPlace: Place | null): string {
+  return startPlace === null ? "UTC" : timeZoneAt(startPlace);
+}
+
+// Today's date for a trip, in tripTimeZone(). The calendar's today() is null until
+// there's a start place instead, since no rule uses today's date before then.
+export function tripToday(startPlace: Place | null, now: Date): CalendarDate {
+  return todayIn(tripTimeZone(startPlace), now);
+}
+
+function timeZoneAt(place: Place): string {
+  return tzLookup(place.latitude, place.longitude);
+}
+
+function todayIn(timeZone: string, now: Date): CalendarDate {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone,
     year: "numeric",
@@ -17,21 +37,6 @@ export function todayAt(place: Place, now: Date): CalendarDate {
   const part = (type: Intl.DateTimeFormatPartTypes): number =>
     Number(parts.find((each) => each.type === type)?.value);
   return new CalendarDate(part("year"), part("month"), part("day"));
-}
-
-// Today's date for a trip: at its start place, since that is where the trip begins,
-// and in UTC until it has one (technical spec 5.2). The coordinator is given this date.
-// The calendar's today() is null until there's a start place instead, since no rule
-// uses today's date before then.
-export function tripToday(startPlace: Place | null, now: Date): CalendarDate {
-  if (startPlace !== null) {
-    return todayAt(startPlace, now);
-  }
-  return new CalendarDate(
-    now.getUTCFullYear(),
-    now.getUTCMonth() + 1,
-    now.getUTCDate(),
-  );
 }
 
 // Today's date at the start place, once the trip has started: once today is on or

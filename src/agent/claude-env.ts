@@ -20,6 +20,11 @@ const WORKER_SETTINGS = [
   ["CLAUDE_AGENT_SDK_DISABLE_BUILTIN_AGENTS", "1"],
 ] as const;
 
+// Run in a git repository, as locally, a worker gets the git status: the branch, the git
+// user's name, and the recent commits. On the server it doesn't, since /app isn't one.
+// So local runs and evaluations match the server (research section 2.9).
+const NO_GIT_STATUS = ["CLAUDE_CODE_DISABLE_GIT_INSTRUCTIONS", "1"] as const;
+
 // The environment for the Claude Code process that the Agent SDK starts. The SDK
 // replaces that process's environment with this one, so it starts from ours.
 //
@@ -38,5 +43,16 @@ export function claudeProcessEnv(
     [ENV_NAMES.claudeCodeOauthToken, oauthToken],
     [CLAUDE_CONFIG_DIR_NAME, CLAUDE_CONFIG_FOLDER],
     ...WORKER_SETTINGS,
+    NO_GIT_STATUS,
   ]);
+}
+
+// The environment for one turn's Claude Code process. Claude Code adds its own date
+// line, in its process's time zone (research section 2.9). In the app's date line's
+// time zone, the two always agree (technical spec 5.2).
+export function inTimeZone(
+  processEnv: Readonly<Record<string, string | undefined>>,
+  timeZone: string,
+): Record<string, string | undefined> {
+  return { ...processEnv, ...Object.fromEntries([["TZ", timeZone]]) };
 }

@@ -43,6 +43,8 @@ export interface TurnTraceGiven {
   message: string;
   agentSessionId: string;
   userId: string;
+  // The commit of the code that ran the turn, from appCommit().
+  commit: string;
   readWorkerTranscript: ReadWorkerTranscript;
 }
 
@@ -52,7 +54,8 @@ interface ToolCall {
 }
 
 // The trace of one coordinator turn, made from the SDK's messages (systems design
-// section 10). The turn's span holds the message the model got and the reply, and an
+// section 10). The turn's span holds the message the model got and the reply, the
+// commit of the code that ran, and an
 // event for the turn's start and for each of the SDK's other system messages, such as a
 // retry. Under it, in order, is a span for each model call, with its thinking, text,
 // tool calls, and tokens, and a span for each tool call. A worker's spans go under the
@@ -87,6 +90,10 @@ export class TurnTrace {
         [SemanticConventions.AGENT_NAME]: "coordinator",
         [SemanticConventions.SESSION_ID]: given.agentSessionId,
         [SemanticConventions.USER_ID]: given.userId,
+        // Phoenix shows metadata on its own tab, and filters on it.
+        [SemanticConventions.METADATA]: JSON.stringify({
+          commit: given.commit,
+        }),
         ...textInput(given.message),
       },
     });
