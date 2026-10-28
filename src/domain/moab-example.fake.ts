@@ -72,6 +72,9 @@ export function moabExample(): MoabExample {
   const day4 = torrey.days[0];
   routeDay(calendar, itinerary, day1, [0, 100, 27, 2]);
   day1?.setWaypoints([deweyBridge()]);
+  // A waypoint needs the leg, so it's set after the first route. Routing again through
+  // it keeps Day 1's route up to date, so no write in a test routes it again.
+  routeDay(calendar, itinerary, day1, [0, 100, 27, 2]);
   routeDay(calendar, itinerary, day2, [22, 9, 27, 5, 13, 13, 5]);
   routeDay(calendar, itinerary, day4, [104, 77, 18, 22, 13]);
   if (day4 !== undefined) {

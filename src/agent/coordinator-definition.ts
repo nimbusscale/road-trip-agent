@@ -54,9 +54,9 @@ export interface CoordinatorDefinitionGiven {
   model: string;
 }
 
-// The main agent gets the query's systemPrompt, not this prompt, and the query's model.
-// Both are set here to the same values anyway, so nothing depends on which one the SDK
-// uses (technical spec 6.5).
+// The main agent gets the query's systemPrompt, not this prompt. Its model is this one,
+// though, and without it the agent could get a default subagent model. Both are set to
+// the query's values, so nothing depends on which one the SDK uses (technical spec 6.5).
 export function coordinatorDefinition(
   given: CoordinatorDefinitionGiven,
 ): AgentDefinition {

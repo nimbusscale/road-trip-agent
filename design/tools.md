@@ -167,7 +167,7 @@ The writing tools:
 
 **The worker gives each lodging and meal candidate its tier.** It says what the place is like, judged by the meanings in functional spec 7.1, not what the worker aimed for (technical spec section 9). A stop or stay has no tier to copy. Attractions have no tier, and neither does a place the user names.
 
-**Each call is one set** of one to three candidates. The tool works out the set number (domain model 3.9). A worker adds all of a stop's or stay's candidates in one call. A second call makes a new set, and the option card shows only the newest set. The tool's reply names the set it made, such as "Set 1 for stop_k7m2x9qa: 3 candidates," with one line per candidate. Code passes those lines on in the worker's result (technical spec 6.5).
+**Each call is one set** of one to three candidates. The tool works out the set number (domain model 3.9). A worker adds all of a stop's or stay's candidates in one call. A second call makes a new set, and the option card shows only the newest set. The tool's reply names the set it made, and the stop or stay, with one line per candidate (below). Code passes those lines on in the worker's result (technical spec 6.5).
 
 **A repeat rejects the whole call.** If any place is already a candidate for the same stop or stay, or is one of the trip's rejected places, nothing is added, and the error names it. So a set is never partly written. The same place can still be a candidate for a different stop or stay. Example: the Palace Hotel can be a lodging candidate for a stay and also a candidate for a stop (domain model 3.9).
 
@@ -193,7 +193,7 @@ Lodging set 1 for Stay 2, Torrey (stay_…): 3 candidates.
 
 | Tool | Does | Takes | Returns |
 |---|---|---|---|
-| `read_worker_brief_facts` | Reads the facts for the stops and stay in a worker brief, so the coordinator doesn't copy them into the worker brief (technical spec 5.3). Called first | The stop and stay IDs from the worker brief, as a list of one or more | For a stay: its town, with its place ID, its dates and nights, its activities, and its lodging candidates already offered. Its activities are its attraction stops (technical spec 6.3), each with its place's name and ID, or its purpose if none is selected, and its date and time. For a stop: its day's ID, number, and date, its kind, purpose, set time or "none", and search area, the day's stops in order, with their times, purposes, and selected places, and its candidates already offered. Each candidate with its place ID and name |
+| `read_worker_brief_facts` | Reads the facts for the stops and stay in a worker brief, so the coordinator doesn't copy them into the worker brief (technical spec 5.3). Called first | The stop and stay IDs from the worker brief, as a list of one or more | For a stay: its town, with its place ID, its dates and nights, its activities, and its lodging candidates already offered. Its activities are its attraction stops (technical spec 6.3), each with its place's name, ID, and short line, or its purpose if none is selected, and its date and time. For a stop: its day's ID, number, and date, its kind, purpose, set time or "none", and search area, the day's stops in order, with their times, purposes, and selected places, and its candidates already offered. Each candidate with its place ID and name |
 
 **It saves the worker a read for each item, and the coordinator one for each worker brief.** A whole read only counts candidates (above), so without it the coordinator would read each stop or stay to list the candidates already offered. The reply is the same for every worker, so a worker gets some facts it doesn't use, such as lodging candidates for the weather worker. The reply is written in the style of a scoped read, with the same names for days and stops. A stop with no search area, a check-in, gets an error, since no worker fills it (technical spec 6). A bad ID gets an error, as in every tool (section 4). The `Agent` hook uses the IDs passed here to list the worker brief's items that got no candidates, or no weather text (technical spec 6.5).
 
@@ -210,7 +210,7 @@ Stay 1 (stay_…): Moab (place_…), City, Moab. 3 nights, Days 1 to 3, from Sun
 - Lodging candidates already offered:
   - Set 1: Red Cliffs Lodge (place_…), Hotel, 4.5 stars, Moab, selected.
 - The stay's activities:
-  - Delicate Arch trail (place_…): Monday, October 11, 2027, 6:00 a.m. to 8:40 a.m.
+  - Delicate Arch trail (place_…), Hiking area, 4.9 stars: Monday, October 11, 2027, 6:00 a.m. to 8:40 a.m.
   - a hike, no place picked yet: Monday, October 11, 2027, 1:15 p.m.
 
 Day 4 (day_…), Wednesday, October 13, 2027: Moab → Torrey. Starts 8:00 a.m., the usual start time.
