@@ -21,23 +21,27 @@ describe("coordinatorOptions", () => {
     );
   });
 
-  it("gives only the trip, memory, places, and routing servers, with no built-in tools and no settings files", () => {
+  it("gives only our servers and three built-in tools, and lets each run without asking, with no settings files", () => {
     const options = coordinatorOptions(given(), conversation(), false);
     expect(Object.keys(options.mcpServers ?? {})).toEqual([
       "trip",
       "memory",
       "places",
       "routing",
+      "worker",
     ]);
-    // The places server will hold the workers' searches too (tool design 3).
+    expect(options.tools).toEqual(["Agent", "WebSearch", "WebFetch"]);
     expect(options.allowedTools).toEqual([
+      "Agent",
+      "WebSearch",
+      "WebFetch",
       "mcp__trip",
       "mcp__memory",
-      "mcp__places__find_place",
-      "mcp__places__read_place",
+      "mcp__places",
       "mcp__routing",
+      "mcp__worker",
     ]);
-    expect(options.tools).toEqual([]);
+    expect(options.permissionMode).toBe("dontAsk");
     expect(options.settingSources).toEqual([]);
     expect(options.strictMcpConfig).toBe(true);
   });

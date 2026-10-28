@@ -176,7 +176,7 @@ describe("read_place", () => {
 });
 
 describe("createPlacesServer", () => {
-  it("lists find_place and read_place, with schemas that refuse other keys", async () => {
+  it("lists the coordinator's tools and the workers' searches, with schemas that refuse other keys", async () => {
     const fixture = setUp();
     const { id: tripId } = await fixture.writer.startTrip(OWNER);
     const server = createPlacesServer({ ...fakePlacesAccess(fixture), tripId });
@@ -188,6 +188,8 @@ describe("createPlacesServer", () => {
     expect(tools.map((each) => each.name)).toEqual([
       "find_place",
       "read_place",
+      "search_near",
+      "search_along_leg",
     ]);
     expect(
       tools.every((each) => each.inputSchema.additionalProperties === false),
