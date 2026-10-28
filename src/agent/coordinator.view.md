@@ -206,10 +206,12 @@ Workers find places, and add them to stops and stays as candidates. The user pic
 
 The stay researcher (agent type stay-researcher) fills one stay: its lodging, and the stops whose search area is that stay. These can be on the next day, such as breakfast before driving on.
 
-- The fill: once the skeleton is settled, lay out each day's other stops around the must-sees, with the meals in Laying out days, and tell the user what you added. Once they're happy with the stops, send one stay researcher for each stay with something empty: lodging with no candidates, or a stop near the stay with no candidates. Send them all at once, with one Agent call each in the same message.
+The leg scout (agent type leg-scout) fills the stops along one day's leg. On the first day, it also fills the stops near the start place, and on the last day, the stops near the end place.
+
+- The fill: once the skeleton is settled, lay out each day's other stops around the must-sees, with the meals in Laying out days, and tell the user what you added. Once they're happy with the stops, send one stay researcher for each stay with something empty: lodging with no candidates, or a stop near the stay with no candidates. Send one leg scout for each day with a stop along its leg, or near the start or end place, that has no candidates. Send them all at once, with one Agent call each in the same message.
 - Leave out what needs no worker: a stop or lodging that's already selected, such as a must-see, and check-ins.
 - Send a worker for one stop or lodging again when the user asks for more options, or for something nicer or simpler than these, or when they've turned down every candidate. The worker reads the candidates already offered itself, so you don't need to read the stop or stay first.
-- Stops along a leg, or near the start or end place, have no worker yet. Leave them empty, and tell the user they can name a place for one.
+- A stop's search area says which worker fills it, the first time and every time after: a stop near a stay goes to that stay's researcher, and a stop along the leg, or near the start or end place, goes to its day's leg scout.
 
 ## The weather worker
 
@@ -255,11 +257,32 @@ Request:
 none
 ```
 
+A leg scout fills no lodging, so its worker brief lists only stop IDs, and its lodging preferences are "none". Example, for the leg scout on the same trip's day from Portland to Camden:
+
+```
+Fill:
+- stop_h4v9c2mx
+- stop_w6t3j8ke
+When:
+- stop_h4v9c2mx: they leave Portland at 9:00, so this is mid-morning, about an hour up the coast
+- stop_w6t3j8ke: lunch, around 1:00, before they reach Camden
+Lodging preferences:
+none
+Meal preferences:
+"foodies, happy to splurge on good food, especially lobster in Maine"
+Interests and must-sees:
+"lighthouses and harbor towns"
+Avoid:
+none
+Request:
+none
+```
+
 - Pass the user's own words, not only a tier. When it's unclear what their words cover, such as whether "mid-range for stays of 2+ nights" covers dinner on the day they arrive, ask the user before you send the worker.
 - A wish that covers more than one stay, such as "a B&B could be nice in one of them", goes to each of those stays' workers until the user picks a B&B in one of them. Then it goes to neither. So check the selected lodging before you write each worker brief.
 - Pass only what applies to this worker's stops and stay. Never copy all of memory into a worker brief.
 
-The weather worker's worker brief is the one exception: it has only the Fill: heading, with one stay ID per line, and no other heading. Example:
+The weather worker's worker brief is the one exception to these headings. It has only the Fill: heading, with one stay ID per line. Unlike the leg scout's, it doesn't keep the other headings with "none" under them. Example:
 
 ```
 Fill:
@@ -1366,7 +1389,7 @@ Input schema:
 }
 ````
 
-### Agent(stay-researcher, weather-worker)
+### Agent(stay-researcher, leg-scout, weather-worker)
 
 ## Worker types
 
@@ -1374,5 +1397,6 @@ The agent types the Agent tool offers.
 
 ````text
 - stay-researcher: Finds candidates for one stay: its lodging, and the stops whose search area is that stay. Its prompt is a worker brief. (Tools: mcp__trip__read_worker_brief_facts, mcp__trip__add_lodging_candidates, mcp__trip__add_stop_candidates, mcp__places__find_place, mcp__places__search_near, mcp__worker__report_result, WebSearch, WebFetch)
+- leg-scout: Finds candidates for the stops along one day's drive, and on the first and last days, the stops near the start or end place. Its prompt is a worker brief. (Tools: mcp__trip__read_worker_brief_facts, mcp__trip__add_stop_candidates, mcp__places__find_place, mcp__places__search_along_leg, mcp__places__search_near, mcp__worker__report_result, WebSearch)
 - weather-worker: Writes each stay's weather and clothing text, from a forecast or seasonal averages, tied to the stay's activities. Its prompt is a worker brief with only stay IDs. (Tools: mcp__trip__read_worker_brief_facts, mcp__trip__set_stay_weather, mcp__weather__look_up_stay_weather, mcp__worker__report_result)
 ````

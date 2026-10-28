@@ -1,5 +1,9 @@
 import type { Settings } from "../config/settings.schema.js";
 import { FORGOTTEN_LINE, RESUMED_LINE } from "./app-lines.js";
+import {
+  COORDINATOR_WEATHER_WORKER,
+  WEATHER_WORKER_BRIEF,
+} from "./coordinator-weather-prompt.js";
 import { WORKER_BRIEF_HEADING } from "./worker-instructions.js";
 import { BUILD_FAILED_LINE } from "./worker-result.js";
 import { WORKER_TYPE } from "./worker-types.js";
@@ -43,7 +47,7 @@ export function coordinatorPrompt(settings: CoordinatorPromptSettings): string {
     FREE_TIME,
     CHECK_INS,
     WORKERS,
-    WEATHER_WORKER,
+    COORDINATOR_WEATHER_WORKER,
     WORKER_BRIEFS,
     WORKER_RESULTS,
     PLACES_THE_USER_NAMES,
@@ -278,30 +282,19 @@ A day ends at the stay where the party sleeps. Without a check-in, every stop th
 Example: on a day that reaches Santa Fe at 2:30 p.m., with a concert at the opera set for 8:00, the user asks to check in first. Add a check-in before the concert. The day then has about 5 hours of free time at the opera before 8:00, so offer dinner in town on the way, or a longer check-in to rest at the hotel.`;
 
 // Technical spec 4.2 for the fill, 5.2 for when a worker is sent again, and section 6
-// for which worker fills which stop. Stops along a leg, or near the start or end place,
-// wait for the leg scout (#61), which changes the last point.
+// for which worker fills which stop.
 const WORKERS = `## Workers
 
 Workers find places, and add them to stops and stays as candidates. The user picks one from each set on an option card. Start a worker with the Agent tool: its subagent_type is the worker type, and its prompt is a worker brief (Worker briefs). A worker can't talk to the user.
 
 The stay researcher (agent type ${WORKER_TYPE.stayResearcher}) fills one stay: its lodging, and the stops whose search area is that stay. These can be on the next day, such as breakfast before driving on.
 
-- The fill: once the skeleton is settled, lay out each day's other stops around the must-sees, with the meals in Laying out days, and tell the user what you added. Once they're happy with the stops, send one stay researcher for each stay with something empty: lodging with no candidates, or a stop near the stay with no candidates. Send them all at once, with one Agent call each in the same message.
+The leg scout (agent type ${WORKER_TYPE.legScout}) fills the stops along one day's leg. On the first day, it also fills the stops near the start place, and on the last day, the stops near the end place.
+
+- The fill: once the skeleton is settled, lay out each day's other stops around the must-sees, with the meals in Laying out days, and tell the user what you added. Once they're happy with the stops, send one stay researcher for each stay with something empty: lodging with no candidates, or a stop near the stay with no candidates. Send one leg scout for each day with a stop along its leg, or near the start or end place, that has no candidates. Send them all at once, with one Agent call each in the same message.
 - Leave out what needs no worker: a stop or lodging that's already selected, such as a must-see, and check-ins.
 - Send a worker for one stop or lodging again when the user asks for more options, or for something nicer or simpler than these, or when they've turned down every candidate. The worker reads the candidates already offered itself, so you don't need to read the stop or stay first.
-- Stops along a leg, or near the start or end place, have no worker yet. Leave them empty, and tell the user they can name a place for one.`;
-
-// Technical spec 4.2 and 5.2: when the weather worker runs, and runs again. The domain
-// model's 4.1 says what marks a stay's weather out of date.
-const WEATHER_WORKER = `## The weather worker
-
-The weather worker (agent type ${WORKER_TYPE.weatherWorker}) writes each stay's weather and clothing text, from a forecast when every one of the stay's dates is within 7 days, and from seasonal averages otherwise. Its advice is tied to the stay's activities, so it runs once the plan is mostly picked. The user reads the text in the itinerary.
-
-- The first run: once the user has made most of the fill's selections, send one weather worker for every stay. A stop with no place picked yet is covered by its purpose.
-- Running it again: code tells you when a stay's weather needs writing again. A write gives a "weather out of date" note for the stay, and a read marks its text out of date. That happens when the stay's town or activities change, when a forecast's dates change, or when seasonal averages' dates move by more than a week. A new stay gets the note too, once other stays have weather. At the end of a turn, once no change is still being discussed, send one weather worker for the stays with the note. Example: adding a Big Sur night and then removing it gives the note and then clears it, so there's nothing to run. You don't need to ask the user first, or raise the note.
-- Don't run it again after a change that gave no note. Example: moving the trip by a day or two leaves seasonal averages as they are, since the days around the new dates are as typical as the old.
-- A forecast isn't refreshed as it ages. Send the weather worker again when the user asks for a new one.
-- When it's done, tell the user in a sentence that each stay's weather and clothing advice is in the itinerary. Raise its problems as for any worker.`;
+- A stop's search area says which worker fills it, the first time and every time after: a stop near a stay goes to that stay's researcher, and a stop along the leg, or near the start or end place, goes to its day's leg scout.`;
 
 // Technical spec 5.3 and section 9: what a worker brief carries, and the wish that covers
 // more than one stay. Each worker's instructions name the same headings.
@@ -339,17 +332,32 @@ ${WORKER_BRIEF_HEADING.request}
 none
 \`\`\`
 
+A leg scout fills no lodging, so its worker brief lists only stop IDs, and its lodging preferences are "none". Example, for the leg scout on the same trip's day from Portland to Camden:
+
+\`\`\`
+${WORKER_BRIEF_HEADING.fill}
+- stop_h4v9c2mx
+- stop_w6t3j8ke
+${WORKER_BRIEF_HEADING.when}
+- stop_h4v9c2mx: they leave Portland at 9:00, so this is mid-morning, about an hour up the coast
+- stop_w6t3j8ke: lunch, around 1:00, before they reach Camden
+${WORKER_BRIEF_HEADING.lodging}
+none
+${WORKER_BRIEF_HEADING.meals}
+"foodies, happy to splurge on good food, especially lobster in Maine"
+${WORKER_BRIEF_HEADING.interests}
+"lighthouses and harbor towns"
+${WORKER_BRIEF_HEADING.avoid}
+none
+${WORKER_BRIEF_HEADING.request}
+none
+\`\`\`
+
 - Pass the user's own words, not only a tier. When it's unclear what their words cover, such as whether "mid-range for stays of 2+ nights" covers dinner on the day they arrive, ask the user before you send the worker.
 - A wish that covers more than one stay, such as "a B&B could be nice in one of them", goes to each of those stays' workers until the user picks a B&B in one of them. Then it goes to neither. So check the selected lodging before you write each worker brief.
 - Pass only what applies to this worker's stops and stay. Never copy all of memory into a worker brief.
 
-The weather worker's worker brief is the one exception: it has only the ${WORKER_BRIEF_HEADING.fill} heading, with one stay ID per line, and no other heading. Example:
-
-\`\`\`
-${WORKER_BRIEF_HEADING.fill}
-- stay_k7m2x9qa
-- stay_p3w8n4rt
-\`\`\``;
+${WEATHER_WORKER_BRIEF}`;
 
 // Technical spec 6.5: the result code builds from the worker's calls.
 const WORKER_RESULTS = `## What a worker returns

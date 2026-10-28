@@ -43,6 +43,7 @@ import {
 } from "./coordinator-definition.js";
 import { inTimeZone } from "./claude-env.js";
 import { coordinatorPrompt } from "./coordinator-prompt.js";
+import { legScoutDefinition } from "./leg-scout-definition.js";
 import { sdkUserMessage } from "./sdk-user-message.schema.js";
 import { stayResearcherDefinition } from "./stay-researcher-definition.js";
 import { type TurnEvent, turnEventsOf } from "./turn-event.js";
@@ -54,9 +55,10 @@ import { WORKER_TYPE } from "./worker-types.js";
 
 // The coordinator: the agent the user talks to (technical spec 1). For now it has the
 // trip brief and memory tools, read_itinerary, the tools that build the skeleton,
-// find_place, read_place, compute_route, and Agent, to start the stay researcher and
-// the weather worker. The session holds the workers' tools too, and the hooks that
-// build a worker's result (technical spec 6.5).
+// find_place, read_place, compute_route, and Agent, to start the stay researcher, the
+// leg scout, and the weather worker. The session holds the workers' tools too, the hooks
+// that build a worker's result, and the hook that limits the leg scout's web search
+// (technical spec 6.5).
 
 export interface CoordinatorGiven {
   settings: Settings;
@@ -179,6 +181,10 @@ function agentsFor(
     [WORKER_TYPE.stayResearcher]: stayResearcherDefinition({
       model: settings.stayResearcherModel,
       effort: settings.stayResearcherEffort,
+    }),
+    [WORKER_TYPE.legScout]: legScoutDefinition({
+      model: settings.legScoutModel,
+      effort: settings.legScoutEffort,
     }),
     [WORKER_TYPE.weatherWorker]: weatherWorkerDefinition({
       model: settings.weatherWorkerModel,
