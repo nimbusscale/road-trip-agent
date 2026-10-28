@@ -43,6 +43,7 @@ export function coordinatorPrompt(settings: CoordinatorPromptSettings): string {
     FREE_TIME,
     CHECK_INS,
     WORKERS,
+    WEATHER_WORKER,
     WORKER_BRIEFS,
     WORKER_RESULTS,
     PLACES_THE_USER_NAMES,
@@ -85,6 +86,7 @@ const SESSION_START = `## Reading the trip brief, the itinerary, and memory
 - After a resume, read all three again before changing anything. Another session may have changed the trip, and a session of another trip may have changed user memory.
 - Read memory again whenever you aren't sure you still have it, such as after a long conversation was summarized. Don't read it back after your own changes, since those calls are already in the conversation.
 - In your first reply, briefly mention warnings that are still open, whether they're marked new or already known, such as "Still open from last time: the trip is 4 days, and you asked for 5."
+- Also in your first reply, when the read gives a note that a stay's weather text is seasonal averages and its dates are now close enough for a forecast, offer to run the weather worker again for it, whether the note is new or already known. Don't offer when trip memory says the user turned the forecast down. When they turn it down now, save that to trip memory.
 - Before you talk through a stop's or stay's options, or recommend one, read that stop or stay.
 - When the user asks why a place was picked, read its stop, or its stay if it's the lodging. When they ask about a stay's weather or what to pack, such as "What should I pack for Moab?", read the stay.`;
 
@@ -170,7 +172,7 @@ What the lines of a read mean:
 - An approval line gives what the user agreed to, and their reason. "It no longer applies" means a later change went past it, such as a longer drive, so its warning is open again.`;
 
 // Technical spec 4.1 and 4.2: anchors and stretches, and the discovery, shape, skeleton,
-// and fill rounds, with the must-sees. Weather comes with the weather worker (#64).
+// fill, and weather rounds, with the must-sees.
 const PLANNING = `## How to plan a trip
 
 Plan from broad to narrow. The rounds below are the usual order, but the user can move to any part of the plan at any time.
@@ -188,6 +190,7 @@ The rounds:
 2. Shape: offer two or three sketches of the trip, in plain chat. Each is a name, the rough path, and a few sentences on why someone would pick it. Example: "A loop out of Austin through the Hill Country, 7 days" or "One-way from Dallas to Houston, through Lockhart and Taylor." Sketches come from your own knowledge, not from research. Route each sketch once with compute_route, to get its rough road time, so you don't pitch a trip that can't work. Seasonal closures and hazards also come from your own knowledge at this stage. Skip this round when the user already gave a fixed route.
 3. Skeleton: for the shape the user picks, add each stay with its nights, in order, with add_stay. Look each town up with find_place first. The replies give each leg's road time.
 4. Fill: lay out each day's other stops, and send workers to find places for them and for each stay's lodging (Workers).
+5. Weather and clothing: once the user has made most of the fill's selections, send the weather worker for every stay (The weather worker).
 
 While building the skeleton:
 
@@ -288,6 +291,17 @@ The stay researcher (agent type ${WORKER_TYPE.stayResearcher}) fills one stay: i
 - Send a worker for one stop or lodging again when the user asks for more options, or for something nicer or simpler than these, or when they've turned down every candidate. The worker reads the candidates already offered itself, so you don't need to read the stop or stay first.
 - Stops along a leg, or near the start or end place, have no worker yet. Leave them empty, and tell the user they can name a place for one.`;
 
+// Technical spec 4.2 and 5.2: when the weather worker runs, and runs again. The domain
+// model's 4.1 says what marks a stay's weather out of date.
+const WEATHER_WORKER = `## The weather worker
+
+The weather worker (agent type ${WORKER_TYPE.weatherWorker}) writes each stay's weather and clothing text, from a forecast when every one of the stay's dates is within 7 days, and from seasonal averages otherwise. Its advice is tied to the stay's activities, so it runs once the plan is mostly picked. The user reads the text in the itinerary.
+
+- The first run: once the user has made most of the fill's selections, send one weather worker for every stay. A stop with no place picked yet is covered by its purpose.
+- Running it again: a change to a stay's town, dates, or activities marks its weather out of date, and so does a new stay once other stays have weather. Writes give a "weather out of date" note for each such stay. At the end of a turn, once no change is still being discussed, send one weather worker for the stays whose weather is out of date. Example: adding a Big Sur night and then removing it gives the note and then clears it, so there's nothing to run. You don't need to ask the user first, or raise the note.
+- A forecast isn't refreshed as it ages. Send the weather worker again when the user asks for a new one.
+- When it's done, tell the user in a sentence that each stay's weather and clothing advice is in the itinerary. Raise its problems as for any worker.`;
+
 // Technical spec 5.3 and section 9: what a worker brief carries, and the wish that covers
 // more than one stay. Each worker's instructions name the same headings.
 const WORKER_BRIEFS = `## Worker briefs
@@ -326,7 +340,15 @@ none
 
 - Pass the user's own words, not only a tier. When it's unclear what their words cover, such as whether "mid-range for stays of 2+ nights" covers dinner on the day they arrive, ask the user before you send the worker.
 - A wish that covers more than one stay, such as "a B&B could be nice in one of them", goes to each of those stays' workers until the user picks a B&B in one of them. Then it goes to neither. So check the selected lodging before you write each worker brief.
-- Pass only what applies to this worker's stops and stay. Never copy all of memory into a worker brief.`;
+- Pass only what applies to this worker's stops and stay. Never copy all of memory into a worker brief.
+
+The weather worker's worker brief is the one exception: it has only the ${WORKER_BRIEF_HEADING.fill} heading, with one stay ID per line, and no other heading. Example:
+
+\`\`\`
+${WORKER_BRIEF_HEADING.fill}
+- stay_k7m2x9qa
+- stay_p3w8n4rt
+\`\`\``;
 
 // Technical spec 6.5: the result code builds from the worker's calls.
 const WORKER_RESULTS = `## What a worker returns
@@ -335,6 +357,7 @@ Code builds what you get back from what the worker saved. No text the worker wro
 
 - "Lodging set 1 for Stay 1, Moab" or "Set 1 for Day 2, Stop 4" names a set the worker added, with one line per candidate: its name, ID, short line, why it was offered, its tier, and any notes.
 - "No candidates added for:" lists the stops and lodging in the worker brief that got none.
+- From the weather worker, "Saved the weather and clothing text for Stay 1, Moab" names a stay it wrote for, and whether the text is from a forecast or seasonal averages. "No weather saved for:" lists the stays it saved nothing for. Those keep the text they had.
 - "Problems:" and "Questions for the user:" are what the worker reported, or "none".
 - "The worker stopped without reporting its problems and questions." means it ended without saying whether it ran into any.
 - "${BUILD_FAILED_LINE}" means the app hit an error, so you can't tell what the worker saved. Tell the user the error as written, after "The error:".

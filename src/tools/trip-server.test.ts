@@ -60,6 +60,7 @@ describe("createTripServer", () => {
       "read_worker_brief_facts",
       "add_lodging_candidates",
       "add_stop_candidates",
+      "set_stay_weather",
     ]);
     expect(
       tools.every((each) => each.inputSchema.additionalProperties === false),
@@ -76,7 +77,7 @@ describe("createTripServer", () => {
     expect(COORDINATOR_TOOLS).not.toEqual(
       expect.arrayContaining([
         expect.stringMatching(
-          /__(read_worker_brief_facts|add_lodging_candidates|add_stop_candidates)$/,
+          /__(read_worker_brief_facts|add_lodging_candidates|add_stop_candidates|set_stay_weather)$/,
         ),
       ]),
     );

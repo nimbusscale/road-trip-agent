@@ -16,7 +16,7 @@ export const COORDINATOR_AGENT_TYPE = "coordinator";
 
 // The worker types the coordinator can start. Agent names them, since plain Agent would
 // let the coordinator start a copy of itself (technical spec 6.5).
-const COORDINATOR_AGENT_ENTRY = `Agent(${WORKER_TYPE.stayResearcher})`;
+const COORDINATOR_AGENT_ENTRY = `Agent(${WORKER_TYPE.stayResearcher}, ${WORKER_TYPE.weatherWorker})`;
 
 // The coordinator's tools from tool design section 3 that exist so far, each by name.
 // The definition's list is what the coordinator is sent, so a tool on the same server

@@ -20,6 +20,8 @@ const GOOD_SETTINGS = {
   coordinatorEffort: "medium",
   stayResearcherModel: "claude-sonnet-5-5",
   stayResearcherEffort: "medium",
+  weatherWorkerModel: "claude-sonnet-5-5",
+  weatherWorkerEffort: "medium",
 };
 
 function parse(settings: object): unknown {

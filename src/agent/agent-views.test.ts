@@ -64,6 +64,23 @@ describe("agent views", () => {
       ),
     ).toMatchFileSnapshot("stay-researcher.view.md");
   });
+
+  it("matches the weather worker's view file", async () => {
+    const given = options();
+    const definition = definitionOf(given, WORKER_TYPE.weatherWorker);
+    const tools = toolsSent(definition, await toolsOf(given.mcpServers ?? {}));
+    await expect(
+      view(
+        {
+          name: "weather worker",
+          definition,
+          systemPrompt: definition.prompt,
+        },
+        tools,
+        [],
+      ),
+    ).toMatchFileSnapshot("weather-worker.view.md");
+  });
 });
 
 function definitionOf(given: Options, agentType: string): AgentDefinition {

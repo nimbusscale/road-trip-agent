@@ -7,6 +7,7 @@ import { memoryAccessFor } from "../tools/memory-server.js";
 import { placesAccessFor } from "../tools/places-server.js";
 import { routingAccessFor } from "../tools/routing-server.js";
 import { tripAccessFor } from "../tools/trip-access.js";
+import { weatherAccessFor } from "../tools/weather-server.js";
 import { claudeProcessEnv } from "./claude-env.js";
 import type { CoordinatorGiven } from "./coordinator.js";
 
@@ -31,6 +32,7 @@ export function coordinatorAccessFor(
     memory: memoryAccessFor({ pool, settings }),
     places: placesAccessFor({ env, pool, settings }),
     routing: routingAccessFor({ env, pool, settings }),
+    weather: weatherAccessFor({ env, pool, settings }),
     transcripts: new TranscriptAdapter({
       pool,
       makeStore: (connection) => new TranscriptRepository(connection),

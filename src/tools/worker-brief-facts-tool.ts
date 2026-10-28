@@ -28,7 +28,7 @@ import { READ_WORKER_BRIEF_FACTS_INPUT } from "./worker-input.schema.js";
 
 export const READ_WORKER_BRIEF_FACTS_DESCRIPTION = `Reads the facts for the stops and stays in a worker brief. Call it first, with every stop and stay ID the worker brief gives, in one call.
 
-A stay gives its town, with its place ID, its nights and dates, the lodging candidates already offered, and its activities: each attraction stop, with its place, or its purpose when it has no place yet, and its date and time.
+A stay gives its town, with its place ID, its nights and dates, the lodging candidates already offered, and its activities: each attraction stop, with its place and how far the place is from the stay's town, as the crow flies, or its purpose when it has no place yet, and its date and time.
 
 A stop gives its day, with the day's ID and date. Under the day come the stop's kind, purpose, search area, set time or "none", and the candidates already offered. Then every stop on the day, in order, with its times, purpose, and selected place. Stops on the same day come under one day.
 

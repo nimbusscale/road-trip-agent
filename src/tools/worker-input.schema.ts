@@ -3,8 +3,8 @@ import { z } from "zod";
 import { TIERS } from "../domain/tier.js";
 import { placeId, visitTimeInMinutes } from "./stop-input.schema.js";
 
-// The inputs of the workers' trip tools: reading a worker brief's facts, and adding
-// candidates (tool design 2.1). Each input says only how to pass its value. What each
+// The inputs of the workers' trip tools: reading a worker brief's facts, adding
+// candidates, and saving a stay's weather text (tool design 2.1). Each input says only how to pass its value. What each
 // item means goes in the workers' instructions (tool design, section 4).
 
 // The ways a worker finds a place. A place the user names comes from the coordinator's
@@ -82,6 +82,15 @@ export const ADD_STOP_CANDIDATES_INPUT = z.strictObject({
     ),
 });
 
+// The stay input is stayId, as in add_lodging_candidates. The Agent hook reads the stay
+// it saved by that name (technical spec 6.5).
+export const SET_STAY_WEATHER_INPUT = z.strictObject({
+  stayId: z.string().describe("A stay ID, such as stay_k7m2x9qa."),
+  guidance: z
+    .string()
+    .describe("Plain text, a few sentences, with no headings or lists."),
+});
+
 export type CandidateInput = z.infer<
   typeof timedCandidate | typeof tieredCandidate
 >;
@@ -89,3 +98,4 @@ export type AddLodgingCandidatesInput = z.infer<
   typeof ADD_LODGING_CANDIDATES_INPUT
 >;
 export type AddStopCandidatesInput = z.infer<typeof ADD_STOP_CANDIDATES_INPUT>;
+export type SetStayWeatherInput = z.infer<typeof SET_STAY_WEATHER_INPUT>;

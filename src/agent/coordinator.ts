@@ -1,6 +1,7 @@
 import {
   type AgentDefinition,
   getSubagentMessages,
+  type McpServerConfig,
   type Options,
   query,
   type SDKMessage,
@@ -28,6 +29,11 @@ import type { RoutingSession } from "../tools/routing-session.js";
 import type { TripSession } from "../tools/trip-session.js";
 import { createTripServer, TRIP_SERVER_NAME } from "../tools/trip-server.js";
 import {
+  createWeatherServer,
+  WEATHER_SERVER_NAME,
+} from "../tools/weather-server.js";
+import type { WeatherSession } from "../tools/weather-session.js";
+import {
   createWorkerServer,
   WORKER_SERVER_NAME,
 } from "../tools/worker-server.js";
@@ -43,13 +49,14 @@ import { type TurnEvent, turnEventsOf } from "./turn-event.js";
 import { TurnTrace } from "./turn-trace.js";
 import { workerHooks } from "./worker-hooks.js";
 import type { ReadWorkerTranscript } from "./worker-trace.js";
+import { weatherWorkerDefinition } from "./weather-worker-definition.js";
 import { WORKER_TYPE } from "./worker-types.js";
 
 // The coordinator: the agent the user talks to (technical spec 1). For now it has the
 // trip brief and memory tools, read_itinerary, the tools that build the skeleton,
-// find_place, read_place, compute_route, and Agent, to start the stay researcher. The
-// session holds the workers' tools too, and the hooks that build a worker's result
-// (technical spec 6.5).
+// find_place, read_place, compute_route, and Agent, to start the stay researcher and
+// the weather worker. The session holds the workers' tools too, and the hooks that
+// build a worker's result (technical spec 6.5).
 
 export interface CoordinatorGiven {
   settings: Settings;
@@ -59,6 +66,7 @@ export interface CoordinatorGiven {
   memory: Omit<MemorySession, "userId" | "tripId">;
   places: Omit<PlacesSession, "tripId">;
   routing: Omit<RoutingSession, "tripId">;
+  weather: Omit<WeatherSession, "tripId">;
   transcripts: TranscriptAdapter;
 }
 
@@ -86,12 +94,12 @@ export function coordinatorOptions(
   conversation: Conversation,
   turn: TurnStart,
 ): Options {
-  const { settings, processEnv, trip, memory, places, routing, transcripts } =
-    given;
-  const { session, userId } = conversation;
+  const { settings, processEnv, trip, transcripts } = given;
+  const { session } = conversation;
   const { hasTranscript, timeZone } = turn;
   const tripId = session.tripId;
   const prompt = coordinatorPrompt(settings);
+  const servers = serversFor(given, conversation);
   return {
     // The same model and effort as the coordinator's definition (technical spec 6.5).
     model: settings.coordinatorModel,
@@ -115,13 +123,7 @@ export function coordinatorOptions(
     settingSources: [],
     strictMcpConfig: true,
     tools: [...BUILT_IN_TOOLS],
-    mcpServers: {
-      [TRIP_SERVER_NAME]: createTripServer({ ...trip, tripId }),
-      [MEMORY_SERVER_NAME]: createMemoryServer({ ...memory, userId, tripId }),
-      [PLACES_SERVER_NAME]: createPlacesServer({ ...places, tripId }),
-      [ROUTING_SERVER_NAME]: createRoutingServer({ ...routing, tripId }),
-      [WORKER_SERVER_NAME]: createWorkerServer(),
-    },
+    mcpServers: servers,
     // These tools run without asking. Anything else is refused, since nobody is there to
     // answer a permission prompt. The list covers every agent in the session, so it
     // can't refuse a tool to one agent and allow it to another. Only the definitions do
@@ -129,11 +131,7 @@ export function coordinatorOptions(
     // server, and the built-in tools by name (technical spec 6.5).
     allowedTools: [
       ...BUILT_IN_TOOLS,
-      `mcp__${TRIP_SERVER_NAME}`,
-      `mcp__${MEMORY_SERVER_NAME}`,
-      `mcp__${PLACES_SERVER_NAME}`,
-      `mcp__${ROUTING_SERVER_NAME}`,
-      `mcp__${WORKER_SERVER_NAME}`,
+      ...Object.keys(servers).map((name) => `mcp__${name}`),
     ],
     permissionMode: "dontAsk",
     hooks: workerHooks({ ...trip, tripId }),
@@ -144,6 +142,25 @@ export function coordinatorOptions(
     ...(hasTranscript
       ? { resume: session.agentSessionId }
       : { sessionId: session.agentSessionId }),
+  };
+}
+
+// Our servers, made for this turn with its trip. Every server is in the session, and each
+// agent's definition picks the tools it's sent (technical spec 6.5).
+function serversFor(
+  given: CoordinatorGiven,
+  conversation: Conversation,
+): Record<string, McpServerConfig> {
+  const { trip, memory, places, routing, weather } = given;
+  const { userId } = conversation;
+  const tripId = conversation.session.tripId;
+  return {
+    [TRIP_SERVER_NAME]: createTripServer({ ...trip, tripId }),
+    [MEMORY_SERVER_NAME]: createMemoryServer({ ...memory, userId, tripId }),
+    [PLACES_SERVER_NAME]: createPlacesServer({ ...places, tripId }),
+    [ROUTING_SERVER_NAME]: createRoutingServer({ ...routing, tripId }),
+    [WEATHER_SERVER_NAME]: createWeatherServer({ ...weather, tripId }),
+    [WORKER_SERVER_NAME]: createWorkerServer(),
   };
 }
 
@@ -162,6 +179,10 @@ function agentsFor(
     [WORKER_TYPE.stayResearcher]: stayResearcherDefinition({
       model: settings.stayResearcherModel,
       effort: settings.stayResearcherEffort,
+    }),
+    [WORKER_TYPE.weatherWorker]: weatherWorkerDefinition({
+      model: settings.weatherWorkerModel,
+      effort: settings.weatherWorkerEffort,
     }),
   };
 }

@@ -32,6 +32,8 @@ export const settingsSchema = z
     coordinatorEffort: effortLevel,
     stayResearcherModel: modelId,
     stayResearcherEffort: effortLevel,
+    weatherWorkerModel: modelId,
+    weatherWorkerEffort: effortLevel,
   })
   .refine(
     (settings) =>
