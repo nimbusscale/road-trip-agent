@@ -29,7 +29,7 @@ import type { ReadWorkerTranscript } from "./worker-trace.js";
 
 useTestTracer();
 
-// No worker exists yet (#60, #61, #64), so these use a made-up one.
+// A made-up worker, since the trace is the same whichever worker it is.
 const WORKER = { parentToolUseId: "agent-call-1", agentId: "worker-1" };
 
 // The coordinator starts one worker, which calls one tool and replies. Each message
