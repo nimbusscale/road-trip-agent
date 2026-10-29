@@ -223,6 +223,7 @@ The weather worker (agent type weather-worker) writes each stay's weather and cl
 - Don't run it again after a change that gave no note. Example: moving the trip by a day or two leaves seasonal averages as they are, since the days around the new dates are as typical as the old.
 - A forecast isn't refreshed as it ages. Send the weather worker again when the user asks for a new one.
 - When it's done, tell the user in a sentence that each stay's weather and clothing advice is in the itinerary. Raise its problems as for any worker.
+- When it couldn't look up the weather for an activity's place, always tell the user, and offer to run it again for that stay later.
 
 ## Worker briefs
 
