@@ -107,7 +107,7 @@ Input schema:
 Description:
 
 ````text
-Saves a stay's weather and clothing text, in place of any it had. The tool labels it a forecast or seasonal averages itself, from the stay's dates, the same way look_up_stay_weather picks which to give. It records the stay's town, dates, and activities with the text, so a later change to any of them marks the text out of date.
+Saves a stay's weather and clothing text, in place of any it had. The tool labels it a forecast or seasonal averages itself, from the stay's dates, the same way look_up_stay_weather picks which to give. It records the stay's town, dates, and activities with the text, so the app can tell when the text no longer fits.
 ````
 
 Input schema:

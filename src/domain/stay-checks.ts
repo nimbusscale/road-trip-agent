@@ -33,15 +33,23 @@ function tripLengthResult(context: CheckContext): CheckResult | null {
   );
 }
 
+// The start of every weather out of date note, so the coordinator's instructions can
+// name it (technical spec section 8).
+export const WEATHER_OUT_OF_DATE_START = "Weather out of date:";
+
 function weatherResult(context: CheckContext, stay: Stay): CheckResult | null {
   if (!context.calendar.isWeatherOutOfDate(context.itinerary, stay)) {
     return null;
   }
   const text =
     stay.weatherText === null
-      ? `${townOf(stay)} has no weather text yet, though other stays do.`
-      : `${townOf(stay)}'s weather text no longer matches its place, dates, or activities.`;
-  return resultFor("weatherOutOfDate", stay.id, text);
+      ? `${townOf(stay)} has no text yet, though other stays do.`
+      : `${townOf(stay)}'s text no longer matches its place, dates, or activities.`;
+  return resultFor(
+    "weatherOutOfDate",
+    stay.id,
+    `${WEATHER_OUT_OF_DATE_START} ${text}`,
+  );
 }
 
 // Seasonal averages that could now be a forecast: every one of the stay's dates is
