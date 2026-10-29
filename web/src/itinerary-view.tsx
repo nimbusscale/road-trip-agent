@@ -11,7 +11,7 @@ import {
   type ShownWeather,
 } from "../../src/shared/itinerary.schema";
 import type { MessageRequest } from "../../src/shared/session.schema";
-import { GoogleMapsCredit, OpenMeteoCredit } from "./credits";
+import { GoogleWeatherCredit, OpenMeteoCredit } from "./credits";
 import { dayText, tripDatesText } from "./dates";
 import { countText, timesText } from "./itinerary-text";
 import { type CardActions, type CardHolder, OptionCard } from "./option-card";
@@ -155,7 +155,7 @@ function WeatherBlock({ weather }: { weather: ShownWeather | null }) {
         ) : null}
       </p>
       <p>{weather.guidance}</p>
-      {isForecast ? <GoogleMapsCredit /> : <OpenMeteoCredit />}
+      {isForecast ? <GoogleWeatherCredit /> : <OpenMeteoCredit />}
     </div>
   );
 }
