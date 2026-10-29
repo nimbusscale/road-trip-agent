@@ -1,5 +1,7 @@
 // Instruction text that more than one agent's prompt includes, written once (tool design,
-// section 4). The leg scout (#61) and the weather worker (#64) include these word for word.
+// section 4), so a change reaches every worker that reads it (technical spec 6.2). The leg
+// scout (#61) and the weather worker (#64) include these word for word, and #221 moved the
+// rest of the stay researcher's and leg scout's shared rules here.
 
 // The worker brief's headings, in order (technical spec 5.3). The coordinator writes a
 // worker brief under them, and each worker's instructions say what each one holds, so
@@ -40,3 +42,50 @@ You end your work with report_result, which takes your problems and your questio
 - A question needs the user's decision. Ask one only when you can't do an item well without the answer. Example: "Should the Day 2 lunch be a picnic, since the day is all hiking?"
 - Write each one as a short sentence. Name stops and stays as the tools do, such as "Day 2, Stop 4" or "Stay 1, Moab".
 - Don't list what you added or saved, or say that all went well. Code gives the coordinator what you saved. When there's nothing to report, give empty lists.`;
+
+// Code builds a worker's result from its calls, not from its messages (technical spec 6.5).
+export const OWN_MESSAGES = `Nobody reads your own messages. The coordinator gets only what your tool calls saved, and what you pass to report_result. So keep your messages short.`;
+
+// Technical spec 5.3: the worker brief's outline, from the worker's side. The stay
+// researcher and the leg scout differ only in what they fill, so each passes in its own
+// lines for those headings.
+export function workerBriefSection(lines: {
+  fill: string;
+  lodging: string;
+  request: string;
+}): string {
+  return `## The worker brief
+
+The coordinator's message to you is your worker brief. It has these headings, in this order:
+
+- ${WORKER_BRIEF_HEADING.fill} ${lines.fill}
+- ${WORKER_BRIEF_HEADING.when} roughly when each stop falls in its day, such as "lunch, around noon". The schedule can't say yet, since a stop with no place takes no time in it.
+- ${WORKER_BRIEF_HEADING.lodging} ${lines.lodging}
+- ${WORKER_BRIEF_HEADING.meals} the user's words on food that apply here, and the coordinator's reading of them.
+- ${WORKER_BRIEF_HEADING.interests} the ones that apply here, in the user's words.
+- ${WORKER_BRIEF_HEADING.avoid} what the user doesn't want, such as "no chain restaurants".
+- ${WORKER_BRIEF_HEADING.request} ${lines.request}
+
+A heading that says "none" has nothing for you. The user's words decide what you look for, over your own idea of a good trip.`;
+}
+
+// Technical spec 6.1: in #60's chat check, the Moab researcher offered the same three
+// places for two dinners.
+export const MEALS_GET_OWN_PLACES = `When you fill several meals, give each its own places, since a party rarely eats at the same place twice. Offer a place for two meals only when too few places fit, and then report it as a problem.`;
+
+// Functional spec 7.5. The stay researcher passes "stop and stay", and the leg scout
+// "stop".
+export function threeCandidates(filled: string): string {
+  return `Add three candidates to each ${filled} when you can. When you find fewer than three good places, add the ones you found, and report it as a problem. When you find none, add nothing, and report that.`;
+}
+
+// Technical spec 6.4. The stay researcher passes "stop or stay", and the leg scout "stop".
+export function skipOfferedPlaces(filled: string): string {
+  return `Skip places already offered for the ${filled}, which read_worker_brief_facts lists, and places the user rejected, which find_place marks. Adding one makes the tool refuse the whole call.`;
+}
+
+// Technical spec 6.1, settled on 2026-10-27 for #60.
+export const SEARCH_AGAIN = `When the results don't fit, search again with other words. Report that nothing fits only after more than one search.`;
+
+// Web search design, section 3.
+export const EMPTY_ATLAS_OBSCURA = `An empty Atlas Obscura result is normal. Move on.`;

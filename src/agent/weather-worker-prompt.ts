@@ -1,4 +1,5 @@
 import {
+  OWN_MESSAGES,
   PROBLEMS_AND_QUESTIONS,
   WORKER_BRIEF_HEADING,
 } from "./worker-instructions.js";
@@ -27,7 +28,7 @@ const WORK = `## Your work, in order
 3. Write each stay's text, and save it with set_stay_weather.
 4. Call report_result last.
 
-Nobody reads your own messages. The coordinator gets only what your tool calls saved, and what you pass to report_result. So keep your messages short.`;
+${OWN_MESSAGES}`;
 
 // Technical spec 5.3: the weather worker's worker brief has only the one heading.
 const WORKER_BRIEF = `## The worker brief
