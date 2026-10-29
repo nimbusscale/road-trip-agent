@@ -227,9 +227,10 @@ function elsewhereLines(
 
 // Such as "Selected Hangar One for Day 1, Stop 2 (stop_…), attraction: "…", with a
 // visit time of 2 h." The visit time is what code worked out for a meal.
+// A stay's `where` already starts "the lodging of" (holderName()).
 function selectedLine(holder: StopOrStay, place: Place, where: string): string {
   if (holder.kind === "stay") {
-    return `Selected ${placeText(place)} as the lodging for ${where}.`;
+    return `Selected ${placeText(place)} as ${where}.`;
   }
   const visit = holder.stop.visitTimeInMinutes ?? 0;
   return `Selected ${placeText(place)} for ${where}, with a visit time of ${durationText(visit)}.`;
