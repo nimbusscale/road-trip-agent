@@ -42,7 +42,7 @@ const WHERE_TO_LOOK_UP = `## Where to look up the weather
 - Each activity's place comes with how far it is from the stay's town, as the crow flies. It tells you where the place is when its name and address don't. A place near the town, at about the same height, needs no look-up of its own.
 - An activity with no place picked yet has nothing to look up. Write for it from its purpose and the town's weather.
 - Use only the stay IDs from your worker brief, and place IDs from read_worker_brief_facts. Never make one up.
-- When look_up_stay_weather gives an error for a stay's town, such as a forecast that leaves out one of the stay's dates, save nothing for that stay, and report it as a problem. The stay keeps the text it had. When it gives an error for an activity's place, write from the town's weather, and report that as a problem.`;
+- When look_up_stay_weather gives an error for a stay's town, such as a forecast that leaves out one of the stay's dates, save nothing for that stay, and report it as a problem. The stay keeps the text it had. When it gives an error for an activity's place, write from the town's weather, and say in the text that the weather for that place wasn't available, so the user should check before going. Example: "Weather for Goblin Valley wasn't available. It's lower than Torrey and often warmer, so check before you go." Report it as a problem too.`;
 
 // Technical spec 6.3, and functional spec 8 for what the text covers.
 const WHAT_TO_WRITE = `## What to write

@@ -153,6 +153,27 @@ describe("select_candidate", () => {
     );
   });
 
+  it("selects an older lodging candidate, and names the lodging once", async () => {
+    const { selectUserPlace, selectCandidate, example } = await plannedMoab();
+    const moabHotel = present(example.moab.lodging);
+    await selectUserPlace({
+      stopOrStayId: example.moab.id,
+      placeId: present(example.torrey.lodging).id,
+      name: "Torrey hotel",
+      reason: "the user asked for it",
+    });
+    expect(
+      textOf(
+        await selectCandidate({
+          stopOrStayId: example.moab.id,
+          placeId: moabHotel.id,
+        }),
+      ),
+    ).toContain(
+      `Selected Moab hotel as the lodging of Stay 1, Moab (${example.moab.id}).`,
+    );
+  });
+
   it("selects an older candidate, and refuses a place that isn't one", async () => {
     const { selectUserPlace, selectCandidate, example } = await plannedMoab();
     const dinner = present(example.moab.days[2]?.stops[0]);
