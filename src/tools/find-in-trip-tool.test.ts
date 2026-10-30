@@ -10,6 +10,7 @@ import {
   PLANNED_AT,
   type Planning,
   planningFor,
+  EXAMPLE_SETTINGS,
 } from "../domain/example-trip-parts.fake.js";
 import { present, workerOffer } from "../domain/itinerary.fake.js";
 import type { Place } from "../domain/place.js";
@@ -46,7 +47,7 @@ interface SmallTrip {
 // Watchtower offered along the way, and Cliff Palace picked. Rose Well Camp is
 // rejected. A search saved Desert Rose Inn, but it was never offered.
 function smallTrip(): SmallTrip {
-  const trip = newTrip(OWNER, PLANNED_AT);
+  const trip = newTrip(OWNER, PLANNED_AT, EXAMPLE_SETTINGS);
   const planning = planningFor(trip);
   const { itinerary, services } = planning;
   const lasVegas = placeNamed("Las Vegas");
@@ -248,7 +249,7 @@ describe("find_in_trip", () => {
   });
 
   it("gives the start and end place a line each when they differ", async () => {
-    const trip = newTrip(OWNER, PLANNED_AT);
+    const trip = newTrip(OWNER, PLANNED_AT, EXAMPLE_SETTINGS);
     const { itinerary, services } = planningFor(trip);
     services.itinerary.setStartPlace(itinerary, placeNamed("Las Vegas"));
     itinerary.endPlace = placeNamed("Salt Lake City");
@@ -263,7 +264,7 @@ describe("find_in_trip", () => {
   });
 
   it("returns every place when the trip has fewer than 5", async () => {
-    const trip = newTrip(OWNER, PLANNED_AT);
+    const trip = newTrip(OWNER, PLANNED_AT, EXAMPLE_SETTINGS);
     const { itinerary, services } = planningFor(trip);
     services.itinerary.setStartPlace(itinerary, placeNamed("Las Vegas"));
     const find = await finderFor(trip);
@@ -275,7 +276,7 @@ describe("find_in_trip", () => {
   });
 
   it("says so, with no error, when the trip has no places", async () => {
-    const find = await finderFor(newTrip(OWNER, PLANNED_AT));
+    const find = await finderFor(newTrip(OWNER, PLANNED_AT, EXAMPLE_SETTINGS));
     const reply = await find("Desert Rose");
     expect(reply.isError).toBeUndefined();
     expect(textOf(reply)).toBe(

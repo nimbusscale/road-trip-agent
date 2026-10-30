@@ -20,6 +20,7 @@ import type { User } from "./user.js";
 import { VIA_SERVICE } from "./via-service.js";
 import { Waypoint } from "./waypoint.js";
 import { ActivityRecord, WeatherText } from "./weather-text.js";
+import { EXAMPLE_SETTINGS } from "./example-trip-parts.fake.js";
 
 // A trip for tests, like the Moab example (domain model 5.2), with something of every
 // kind: stays, days, a rest day, stops with candidates and set times, approvals, legs,
@@ -35,7 +36,11 @@ export interface ExampleTrip {
 
 export function exampleMoabTrip(owner: User): ExampleTrip {
   const places = examplePlaces();
-  const trip = newTrip(owner, new Date("2026-10-15T09:00:00Z"));
+  const trip = newTrip(
+    owner,
+    new Date("2026-10-15T09:00:00Z"),
+    EXAMPLE_SETTINGS,
+  );
   const itinerary = trip.itinerary;
   itinerary[VIA_SERVICE].setStartPlace(places.grandJunction);
   itinerary.endPlace = places.saltLakeCity;

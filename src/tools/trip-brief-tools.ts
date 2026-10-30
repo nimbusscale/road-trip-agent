@@ -78,9 +78,8 @@ export function tripBriefLines(brief: TripBrief): string[] {
     `tripLengthInDays: ${shown(brief.tripLengthInDays)}`,
     `interestsText: ${brief.interestsText ?? NOT_SET}`,
     `mustSeesText: ${brief.mustSeesText ?? NOT_SET}`,
-    `comfortableDrivingInHours: ${shown(brief.comfortableDrivingInHours)}`,
+    `comfortableDrivingInHours: ${String(brief.comfortableDrivingInHours)}`,
     `routePreference: ${brief.routePreference ?? NOT_SET}`,
-    `restDaysText: ${brief.restDaysText ?? NOT_SET}`,
     `usualStartTime: ${clockTextOf(brief.usualStartTime)}`,
     `mealPreferencesText: ${brief.mealPreferencesText ?? NOT_SET}`,
     `lodgingPreferencesText: ${brief.lodgingPreferencesText ?? NOT_SET}`,
@@ -108,7 +107,6 @@ function applyItems(
     service.setComfortableDriving(brief, value);
   });
   whenGiven(items.routePreference, (value) => (brief.routePreference = value));
-  whenGiven(items.restDaysText, (value) => (brief.restDaysText = value));
   whenGiven(items.usualStartTime, (value) => {
     brief.usualStartTime = timeOfDayFromClockText(value);
   });

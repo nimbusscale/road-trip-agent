@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { planningFor } from "../domain/example-trip-parts.fake.js";
+import {
+  planningFor,
+  EXAMPLE_SETTINGS,
+} from "../domain/example-trip-parts.fake.js";
 import { exampleMoabTrip } from "../domain/itinerary.fake.js";
 import { exampleAddress, examplePlace } from "../domain/place.fake.js";
 import { newTrip } from "../domain/trip.js";
@@ -14,7 +17,7 @@ const OWNER = { id: "4f6c1d0e-2a8b-4c3d-9e7f-1a2b3c4d5e6f" };
 function editableWith(
   ...places: ReturnType<typeof examplePlace>[]
 ): EditableTrip {
-  return new EditableTrip(newTrip(OWNER, new Date()), places);
+  return new EditableTrip(newTrip(OWNER, new Date(), EXAMPLE_SETTINGS), places);
 }
 
 describe("EditableTrip", () => {

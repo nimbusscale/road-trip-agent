@@ -6,6 +6,7 @@ import {
   OWNER,
   PLANNED_AT,
   planningFor,
+  EXAMPLE_SETTINGS,
 } from "../domain/example-trip-parts.fake.js";
 import { present } from "../domain/itinerary.fake.js";
 import { placeAt, SAN_LUIS_OBISPO } from "../domain/legs.fake.js";
@@ -209,7 +210,7 @@ describe("search_near", () => {
   });
 
   it("gives no hours before the trip has a start date, and says why", async () => {
-    const planning = planningFor(newTrip(OWNER, PLANNED_AT));
+    const planning = planningFor(newTrip(OWNER, PLANNED_AT, EXAMPLE_SETTINGS));
     const { itinerary, services } = planning;
     services.itinerary.setStartPlace(itinerary, SAN_LUIS_OBISPO);
     const lunch = meal({ purpose: "lunch", searchArea: "nearStartPlace" });

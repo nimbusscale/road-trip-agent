@@ -6,6 +6,7 @@ import { FAKE_POOL, FakeMemoryStore } from "./fake-memory-store.js";
 import { MemoryWriter } from "./memory-writer.js";
 import { tripStartedCheckUsing } from "./trip-started-check.js";
 import { FakePool, FakeTripStore } from "./trip-store.fake.js";
+import { EXAMPLE_SETTINGS } from "../domain/example-trip-parts.fake.js";
 
 const OWNER = { id: "4f6c1d0e-2a8b-4c3d-9e7f-1a2b3c4d5e6f" };
 const PLANNING = new Date("2026-10-15T09:00:00Z");
@@ -27,7 +28,7 @@ async function storedMoabTrip(store: FakeTripStore): Promise<string> {
 describe("tripStartedCheckUsing", () => {
   it("says a new trip hasn't started", async () => {
     const store = new FakeTripStore();
-    const trip = newTrip(OWNER, PLANNING);
+    const trip = newTrip(OWNER, PLANNING, EXAMPLE_SETTINGS);
     await store.add(trip);
     const hasTripStarted = tripStartedCheckUsing(
       () => store,

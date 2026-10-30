@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import { CalendarDate } from "./calendar-date.js";
-import { calendarFor, OWNER } from "./example-trip-parts.fake.js";
+import {
+  calendarFor,
+  OWNER,
+  EXAMPLE_SETTINGS,
+} from "./example-trip-parts.fake.js";
 import { namedPlace, present } from "./itinerary.fake.js";
 import { moabExample } from "./moab-example.fake.js";
 import { RuleError } from "./rule-error.js";
@@ -49,7 +53,7 @@ describe("the calendar's lookups", () => {
   });
 
   it("has no dates while there's no start date", () => {
-    const trip = newTrip(OWNER, new Date());
+    const trip = newTrip(OWNER, new Date(), EXAMPLE_SETTINGS);
     const calendar = calendarFor(trip);
     expect(calendar.dateOf(trip.itinerary, trip.itinerary.lastDay)).toBeNull();
   });
@@ -107,7 +111,7 @@ describe("the calendar's lookups", () => {
     const moab = moabExample();
     const day2 = present(moab.trip.itinerary.days[1]);
     expect(moab.calendar.locationOf(moab.trip.itinerary, day2)).toBe("Moab");
-    const newOne = newTrip(OWNER, new Date());
+    const newOne = newTrip(OWNER, new Date(), EXAMPLE_SETTINGS);
     expect(
       calendarFor(newOne).locationOf(
         newOne.itinerary,
@@ -128,7 +132,7 @@ describe("the calendar's today()", () => {
   });
 
   it("is empty while there's no start place", () => {
-    const trip = newTrip(OWNER, new Date());
+    const trip = newTrip(OWNER, new Date(), EXAMPLE_SETTINGS);
     expect(calendarFor(trip).today(trip.itinerary)).toBeNull();
   });
 });

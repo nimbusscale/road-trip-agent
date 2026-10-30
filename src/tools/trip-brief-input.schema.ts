@@ -38,7 +38,6 @@ export function updateTripBriefInput(limits: TripBriefSettings) {
         `Hours, such as 5 or 6.5. At most ${String(limits.maximumDailyDrivingHours)}.`,
       ),
     routePreference: z.enum(ROUTE_TYPES).optional(),
-    restDaysText: z.string().optional().describe("In the user's words."),
     usualStartTime: z
       .string()
       .regex(CLOCK_TIME_TEXT, { error: CLOCK_TIME_ERROR })

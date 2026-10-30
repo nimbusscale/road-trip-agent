@@ -105,8 +105,8 @@ export class TripWriter {
   }
 
   async startTrip(owner: User): Promise<Trip> {
-    const { pool, storeFor, clock } = this.#options;
-    const trip = newTrip(owner, clock.now());
+    const { pool, storeFor, settings, clock } = this.#options;
+    const trip = newTrip(owner, clock.now(), settings);
     await inTransaction(pool, (client) => storeFor(client).add(trip));
     return trip;
   }

@@ -15,6 +15,7 @@ import {
   type Planning,
   planningFor,
   routeDay,
+  EXAMPLE_SETTINGS,
 } from "./example-trip-parts.fake.js";
 import { examplePlace } from "./place.fake.js";
 import type { Stay } from "./stay.js";
@@ -45,7 +46,7 @@ export interface MoabExample {
 }
 
 export function moabExample(): MoabExample {
-  const trip = newTrip(OWNER, PLANNED_AT);
+  const trip = newTrip(OWNER, PLANNED_AT, EXAMPLE_SETTINGS);
   const planning = planningFor(trip);
   const { itinerary, calendar, services } = planning;
   // The brief items the example uses, which the checks compare against.

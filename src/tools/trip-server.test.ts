@@ -66,7 +66,7 @@ describe("createTripServer", () => {
       tools.every((each) => each.inputSchema.additionalProperties === false),
     ).toBe(true);
     const update = tools.find((each) => each.name === "update_trip_brief");
-    expect(Object.keys(update?.inputSchema.properties ?? {})).toHaveLength(10);
+    expect(Object.keys(update?.inputSchema.properties ?? {})).toHaveLength(9);
     expect(update?.inputSchema.additionalProperties).toBe(false);
     expect(update?.inputSchema.required).toBeUndefined();
   });

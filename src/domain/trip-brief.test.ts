@@ -16,9 +16,8 @@ const EMPTY_BRIEF: TripBriefFields = {
   tripLengthInDays: null,
   interestsText: null,
   mustSeesText: null,
-  comfortableDrivingInHours: null,
+  comfortableDrivingInHours: 4,
   routePreference: null,
-  restDaysText: null,
   usualStartTime: DEFAULT_USUAL_START_TIME,
   mealPreferencesText: null,
   lodgingPreferencesText: null,
@@ -33,7 +32,6 @@ const TEXT_ITEMS = [
   "focus",
   "interestsText",
   "mustSeesText",
-  "restDaysText",
   "mealPreferencesText",
   "lodgingPreferencesText",
 ] as const;
@@ -43,7 +41,7 @@ function emptyBrief(): TripBrief {
 }
 
 describe("TripBrief", () => {
-  it("starts empty, except for its usual start time", () => {
+  it("starts empty, except for the items with a default", () => {
     const brief = emptyBrief();
     expect(brief.focus).toBeNull();
     expect(brief.tripLengthInDays).toBeNull();

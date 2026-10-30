@@ -25,6 +25,7 @@ export const settingsSchema = z
     maximumTripLengthDays: z.int().positive(),
     maximumDailyDrivingHours: z.number().positive().max(24),
     recommendedDailyDrivingHours: z.number().positive(),
+    defaultComfortableDrivingHours: z.number().positive(),
     mealVisitMinutes: z.int().positive(),
     checkInVisitMinutes: z.int().positive(),
     maximumMemoryItems: z.int().positive(),
@@ -45,6 +46,16 @@ export const settingsSchema = z
     {
       error: "can't be more than maximumDailyDrivingHours",
       path: ["recommendedDailyDrivingHours"],
+    },
+  )
+  // A new trip's brief starts with it, so it has to fit the brief's own limit.
+  .refine(
+    (settings) =>
+      settings.defaultComfortableDrivingHours <=
+      settings.maximumDailyDrivingHours,
+    {
+      error: "can't be more than maximumDailyDrivingHours",
+      path: ["defaultComfortableDrivingHours"],
     },
   );
 

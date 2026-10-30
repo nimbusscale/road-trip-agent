@@ -1,3 +1,4 @@
+import type { Settings } from "../config/settings.schema.js";
 import { newId } from "../ids/new-id.js";
 import { Itinerary } from "./itinerary.js";
 import { LastDay } from "./last-day.js";
@@ -55,9 +56,16 @@ export class Trip {
   }
 }
 
-// A new trip: a brief that holds only its usual start time, and an itinerary that
-// holds only its last day (domain model 3.1, "A new trip").
-export function newTrip(owner: User, now: Date): Trip {
+export type NewTripSettings = Pick<Settings, "defaultComfortableDrivingHours">;
+
+// A new trip: a brief that holds only its usual start time and the default comfortable
+// driving hours, and an itinerary that holds only its last day (domain model 3.1, "A
+// new trip").
+export function newTrip(
+  owner: User,
+  now: Date,
+  settings: NewTripSettings,
+): Trip {
   return new Trip({
     id: newId("trip"),
     owner,
@@ -67,9 +75,8 @@ export function newTrip(owner: User, now: Date): Trip {
       tripLengthInDays: null,
       interestsText: null,
       mustSeesText: null,
-      comfortableDrivingInHours: null,
+      comfortableDrivingInHours: settings.defaultComfortableDrivingHours,
       routePreference: null,
-      restDaysText: null,
       usualStartTime: DEFAULT_USUAL_START_TIME,
       mealPreferencesText: null,
       lodgingPreferencesText: null,

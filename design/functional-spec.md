@@ -100,19 +100,22 @@ The agent handles all of these:
 
 ### 5.2 Trip brief
 
-The trip brief holds the items below. The agent establishes each one, whether or not the user volunteers it. When user memory already holds a value, the agent confirms it instead of asking from scratch.
+The trip brief holds the items below. The agent establishes each required one, whether or not the user volunteers it. When user memory already holds a value, the agent confirms it instead of asking from scratch.
+
+The agent asks for each item once the plan needs it, not all at once. It asks first for what it needs to sketch the trip (5.3): the focus, trip length, interests and must-sees, the start and end points, and the start date. It asks the rest later, such as the meal and lodging preferences before it fills in places. It doesn't ask about driving hours or rest days during discovery. Until the user sees each day's drive, they have nothing to judge them by.
 
 | Item | Required | Notes |
 |---|---|---|
 | Focus | Yes | What the trip is about, such as a region, a route, or a theme. Examples: "Pacific Coast Highway," "Texas barbecue," "somewhere warm with good hiking" |
 | Trip length | Yes | Number of days. Maximum 14 days |
 | Interests and must-sees | Yes | Includes why they matter to the user. Asked even when the user gives a precise route |
-| Comfortable driving hours per day | Yes | Expressed in hours, not miles. A default for the trip, not a hard limit. A day can go over it when the user agrees. The app has a daily driving maximum that no day can go over, even with the user's agreement. The agent also has a recommended figure. When the user gives more than that, the agent checks that they mean it, and pushes back, since more means most of the day in the car, with little time to see anything |
+| Comfortable driving hours per day | No | Expressed in hours, not miles. Starts at a default, a setting in technical spec section 10, until the user says otherwise. A default for the trip, not a hard limit. A day can go over it when the user agrees. The agent doesn't ask for it up front. When a day's drive goes over it, the agent asks whether that day is OK, and whether that much driving is normal for the user. A yes for that day approves the day. A yes for normal raises the trip's comfortable driving hours, and is saved to user memory. The app has a daily driving maximum that no day can go over, even with the user's agreement. The agent also has a recommended figure, and never suggests a day over it on its own. When the user gives more than that, the agent checks that they mean it, and pushes back, since more means most of the day in the car, with little time to see anything |
 | Route preference | Yes | Scenic or fastest. A default for the trip. A leg can differ when the user agrees |
-| Rest days | No | Days with no driving, in the user's words, such as "one day off in Moab." The agent decides which days |
 | Usual start time | No | When the party usually gets going each day. Defaults to 8 a.m. A day can start at another time when the user agrees, such as for a sunrise hike |
 | Meal preferences | Yes | Hotel breakfast vs local food scene, cuisines, food interests, and how much the user likes to spend on food. In the user's words, such as "foodies, willing to splurge on good food, especially lobster" |
 | Lodging preferences | Yes | What the user wants from places to stay, in their words, such as "something mid-tier in Bar Harbor, upscale OK in Camden and Portland, a B&B could be a good option in one of them" (section 7.2) |
+
+There's no item for rest days, days with no driving. The agent offers one only when the trip calls for one: a trip of about a week or more, or several long driving days in a row. Otherwise a rest day comes up only when the user raises it. A wish for one, such as "one day off in Moab," goes in trip memory, and a standing habit, such as "we always take a day off mid-trip," in user memory. The agent marks the day itself in the itinerary.
 
 There's no item for a total trip budget, such as "under $3,000." The app never shows prices (7.1), so the agent says it can't plan to one. A preference for free activities goes in interests, since attractions have no tier. A lodging wish that comes up later in the chat, after discovery, goes in trip memory, or in user memory when it's a standing preference (section 10).
 
@@ -124,7 +127,7 @@ Planning a trip involves the activities below. They are not steps in a fixed ord
 
 | Activity | What the user gets |
 |---|---|
-| Discovery | The agent establishes the items in 5.2. It asks a few questions at a time, and doesn't hold back a first proposal until every item is answered |
+| Discovery | The agent establishes the items in 5.2. It asks a few questions at a time, first the ones it needs for the sketches, and doesn't hold back a first proposal until every item is answered |
 | Shape | When the route is open, two or three short sketches of the trip to choose from. Each has a name, the rough path, and a few sentences on why it fits the user, with why each town on the path does. Not offered when the user gives a fixed route |
 | Skeleton | Start, end, stays, nights per stay, and legs with drive times |
 | Feasibility | The checks in section 6, with conflicts resolved with the user |
@@ -343,7 +346,7 @@ User memory doesn't hold a dislike of one specific place, since it means nothing
 
 ## 11. Acceptance scenarios
 
-**S1. Specific route.** User asks for the Pacific Coast Highway, San Francisco to Los Angeles. The agent still asks about interests, must-sees, dates, driving hours, and lodging preferences before proposing stays and nights.
+**S1. Specific route.** User asks for the Pacific Coast Highway, San Francisco to Los Angeles. The agent still asks about interests, must-sees, dates, and lodging preferences before proposing stays and nights. It doesn't ask about driving hours.
 
 **S2. Theme and region.** User wants Texas barbecue over seven days with no start or end in mind. The agent proposes a start and end (loop or one-way), stays, and drive times, with barbecue restaurants treated as primary attractions.
 
@@ -359,7 +362,7 @@ User memory doesn't hold a dislike of one specific place, since it means nothing
 
 **S8. User isolation.** User B signs in and starts a trip. The agent shows no knowledge of user A's preferences or trips.
 
-**S9. Cross-trip memory.** On a second trip, the agent opens by confirming the user's usual driving hours and meal preferences rather than asking from scratch.
+**S9. Cross-trip memory.** On a second trip, the agent plans with the user's usual driving hours, and says so. It confirms their meal preferences rather than asking from scratch.
 
 **S10. Per-trip override.** User memory says the user usually drives up to 6 hours a day. On a new trip, the user says "only 4 hours a day this time." The agent plans for 4 hours, asks whether this changes their usual limit, and leaves user memory unchanged when the user says it is a one-off. On the user's next trip, the agent again proposes 6 hours.
 

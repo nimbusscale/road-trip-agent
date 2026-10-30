@@ -13,6 +13,7 @@ import {
   type Planning,
   planningFor,
   routeDay,
+  EXAMPLE_SETTINGS,
 } from "./example-trip-parts.fake.js";
 import type { Place } from "./place.js";
 import { examplePlace } from "./place.fake.js";
@@ -42,7 +43,7 @@ export interface SanFranciscoExample {
 const DAY_2_SEGMENTS = [9, 13, 13, 31, 81, 54, 4, 5];
 
 export function sanFranciscoExample(): SanFranciscoExample {
-  const trip = newTrip(OWNER, PLANNED_AT);
+  const trip = newTrip(OWNER, PLANNED_AT, EXAMPLE_SETTINGS);
   const planning = planningFor(trip);
   const { itinerary, calendar, services } = planning;
   services.itinerary.setStartPlace(itinerary, sanFrancisco());

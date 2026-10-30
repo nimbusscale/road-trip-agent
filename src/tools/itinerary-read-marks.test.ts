@@ -110,7 +110,7 @@ describe("read_itinerary's marks", () => {
   });
 
   it("reads a new trip, with nothing set yet", async () => {
-    const trip = newTrip(OWNER, PLANNED_AT);
+    const trip = newTrip(OWNER, PLANNED_AT, EXAMPLE_SETTINGS);
     const read = await readerFor(trip);
     expect(textOf(await read("all")).split("\n")).toEqual([
       "The whole itinerary.",

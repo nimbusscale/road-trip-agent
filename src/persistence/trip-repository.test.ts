@@ -14,6 +14,7 @@ import {
   TripStartedError,
 } from "./trip-errors.js";
 import { LOCK_WAIT, TripRepository } from "./trip-repository.js";
+import { EXAMPLE_SETTINGS } from "../domain/example-trip-parts.fake.js";
 
 const OWNER = { id: "4f6c1d0e-2a8b-4c3d-9e7f-1a2b3c4d5e6f" };
 // The column's name, as pg gives it back. Only *.schema.ts files spell out snake_case.
@@ -49,7 +50,11 @@ class FakeConnection implements Queryable {
 }
 
 function storedRow(): { row: unknown; tripId: string } {
-  const trip = newTrip(OWNER, new Date("2026-10-15T09:00:00Z"));
+  const trip = newTrip(
+    OWNER,
+    new Date("2026-10-15T09:00:00Z"),
+    EXAMPLE_SETTINGS,
+  );
   trip.tripBrief.focus = "Pacific Coast Highway";
   return { row: pgRow(trip.id, planDocumentOf(trip)), tripId: trip.id };
 }
@@ -116,7 +121,7 @@ describe("TripRepository", () => {
 
   it("parses a stored time of day, and refuses one that isn't HH:MM", async () => {
     const { tripId } = storedRow();
-    const plan = planDocumentOf(newTrip(OWNER, new Date()));
+    const plan = planDocumentOf(newTrip(OWNER, new Date(), EXAMPLE_SETTINGS));
     plan.tripBrief.usualStartTime = "13:00";
     const good = new TripRepository(new FakeConnection([pgRow(tripId, plan)]));
     const trip = await good.load(tripId);
@@ -130,7 +135,7 @@ describe("TripRepository", () => {
 
   it("refuses a stored plan that breaks an object's rule", async () => {
     const { tripId } = storedRow();
-    const trip = newTrip(OWNER, new Date());
+    const trip = newTrip(OWNER, new Date(), EXAMPLE_SETTINGS);
     const plan = planDocumentOf(trip);
     plan.tripBrief.tripLengthInDays = 0;
     const repository = new TripRepository(

@@ -47,7 +47,7 @@ function textOf(reply: ToolReply): string {
 }
 
 describe("read_trip_brief", () => {
-  it("shows every item of a new trip's brief, with the usual start time it starts with", async () => {
+  it("shows every item of a new trip's brief, with the comfortable driving hours and usual start time it starts with", async () => {
     const { read } = await newTripTools();
     expect(await read()).toBe(
       [
@@ -55,9 +55,8 @@ describe("read_trip_brief", () => {
         "tripLengthInDays: not set",
         "interestsText: not set",
         "mustSeesText: not set",
-        "comfortableDrivingInHours: not set",
+        "comfortableDrivingInHours: 4",
         "routePreference: not set",
-        "restDaysText: not set",
         "usualStartTime: 8:00 a.m.",
         "mealPreferencesText: not set",
         "lodgingPreferencesText: not set",
@@ -76,7 +75,6 @@ describe("update_trip_brief", () => {
       mustSeesText: "Big Sur, which Sam has never seen",
       comfortableDrivingInHours: 5.5,
       routePreference: "scenic",
-      restDaysText: "no rest day",
       usualStartTime: "7:30 a.m.",
       mealPreferencesText: "local seafood over hotel breakfast",
       lodgingPreferencesText: "a B&B in one of the towns",
@@ -91,7 +89,6 @@ describe("update_trip_brief", () => {
         "mustSeesText: Big Sur, which Sam has never seen",
         "comfortableDrivingInHours: 5.5",
         "routePreference: scenic",
-        "restDaysText: no rest day",
         "usualStartTime: 7:30 a.m.",
         "mealPreferencesText: local seafood over hotel breakfast",
         "lodgingPreferencesText: a B&B in one of the towns",

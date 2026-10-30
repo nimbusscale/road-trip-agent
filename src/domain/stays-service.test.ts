@@ -6,6 +6,7 @@ import {
   placeNamed,
   type Planning,
   planningFor,
+  EXAMPLE_SETTINGS,
 } from "./example-trip-parts.fake.js";
 import { present, userOffer, workerOffer } from "./itinerary.fake.js";
 import { moabExample } from "./moab-example.fake.js";
@@ -16,7 +17,7 @@ import { newTrip } from "./trip.js";
 
 // A trip with its ends and start date set, and no stays yet.
 function readyToAddStays(): Planning {
-  const planning = planningFor(newTrip(OWNER, new Date()));
+  const planning = planningFor(newTrip(OWNER, new Date(), EXAMPLE_SETTINGS));
   const { itinerary, services } = planning;
   services.itinerary.setStartPlace(itinerary, placeNamed("Grand Junction"));
   itinerary.endPlace = placeNamed("Salt Lake City");
@@ -55,7 +56,7 @@ describe("StaysService.addStay", () => {
   });
 
   it("refuses until the itinerary has its start place, end place, and start date", () => {
-    const planning = planningFor(newTrip(OWNER, new Date()));
+    const planning = planningFor(newTrip(OWNER, new Date(), EXAMPLE_SETTINGS));
     planning.services.itinerary.setStartPlace(
       planning.itinerary,
       placeNamed("Grand Junction"),

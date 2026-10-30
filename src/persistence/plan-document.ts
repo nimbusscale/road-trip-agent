@@ -21,7 +21,6 @@ export function planDocumentOf(trip: Trip): PlanDocumentText {
       mustSeesText: brief.mustSeesText,
       comfortableDrivingInHours: brief.comfortableDrivingInHours,
       routePreference: brief.routePreference,
-      restDaysText: brief.restDaysText,
       usualStartTime: brief.usualStartTime.toText(),
       mealPreferencesText: brief.mealPreferencesText,
       lodgingPreferencesText: brief.lodgingPreferencesText,

@@ -8,12 +8,13 @@ import { RuleError } from "./rule-error.js";
 import { newStay, type Stay } from "./stay.js";
 import { newTrip } from "./trip.js";
 import { VIA_SERVICE } from "./via-service.js";
+import { EXAMPLE_SETTINGS } from "./example-trip-parts.fake.js";
 
 const OWNER = { id: "4f6c1d0e-2a8b-4c3d-9e7f-1a2b3c4d5e6f" };
 const START_DATE = new CalendarDate(2027, 5, 13);
 
 function newItinerary() {
-  return newTrip(OWNER, new Date()).itinerary;
+  return newTrip(OWNER, new Date(), EXAMPLE_SETTINGS).itinerary;
 }
 
 function stayIn(name: string, nightCount = 1): Stay {
@@ -170,7 +171,7 @@ describe("the itinerary's worked-out values", () => {
 
 describe("Trip", () => {
   it("is named for its focus, and its start month once it has a start date", () => {
-    const trip = newTrip(OWNER, new Date());
+    const trip = newTrip(OWNER, new Date(), EXAMPLE_SETTINGS);
     expect(trip.name).toBeNull();
     trip.tripBrief.focus = "Pacific Coast Highway";
     expect(trip.name).toBe("Pacific Coast Highway");
@@ -180,7 +181,7 @@ describe("Trip", () => {
   });
 
   it("has started once today reaches the start date", () => {
-    const trip = newTrip(OWNER, new Date());
+    const trip = newTrip(OWNER, new Date(), EXAMPLE_SETTINGS);
     expect(trip.hasStarted(new Date())).toBe(false);
     trip.itinerary[VIA_SERVICE].setStartPlace(namedPlace("San Francisco"));
     trip.itinerary[VIA_SERVICE].setStartDate(new CalendarDate(2020, 1, 1));
