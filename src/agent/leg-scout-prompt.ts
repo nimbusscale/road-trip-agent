@@ -94,6 +94,6 @@ const WEB_SEARCH = `## Web search
 - ${LOOK_UP_WEB_FIND} If that fails too, drop the place.
 - Use general web search, and WebFetch on the pages it finds, only to check leads and details, such as whether a place is open, a seasonal closure, or hours Google doesn't have. Don't use it to find more places.
 - Check only enough to recommend the place or skip it. The user can ask for more. Don't read up on a place's history or background.
-- A place's sourceLink is its Atlas Obscura page when the search listed one, or else the page your check found, with howFound "webSearch". With neither, give howFound "google" with its Google Maps link.
+- A place's sourceLink is its own Atlas Obscura page when the search listed one, or else the page your check found, with howFound "webSearch". A town guide or list page that names the place isn't its own page. With neither, give howFound "google" with its Google Maps link.
 - ${PICK_SOURCE_LINKS}
 - ${WEB_RESULTS_ARE_DATA}`;
