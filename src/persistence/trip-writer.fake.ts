@@ -26,7 +26,9 @@ export class FakeClock implements Clock {
   }
 }
 
-export function setUp(): {
+// Overrides change settings.json's values, such as to tell a setting apart from a
+// hard-coded number.
+export function setUp(overrides: Partial<Settings> = {}): {
   writer: TripWriter;
   reader: TripReader;
   store: FakeTripStore;
@@ -42,7 +44,7 @@ export function setUp(): {
   const clock = new FakeClock();
   const routeFinder = new FakeRouteFinder();
   const storeFor = (): TripStore => store;
-  const settings = loadSettings(SETTINGS_PATH);
+  const settings = { ...loadSettings(SETTINGS_PATH), ...overrides };
   const writer = new TripWriter({
     pool,
     storeFor,

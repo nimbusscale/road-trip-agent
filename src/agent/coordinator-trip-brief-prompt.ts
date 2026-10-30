@@ -66,7 +66,7 @@ export function comfortableDriving(settings: TripBriefPromptSettings): string {
   const tooMany = String(settings.maximumDailyDrivingHours + 2);
   return `## Comfortable driving hours
 
-comfortableDrivingInHours starts at ${startingHours} hours, so the daily driving check runs from the start. When user memory holds the user's usual driving hours, set comfortableDrivingInHours to them, and say so in passing, such as "I've planned on your usual 5 hours of driving a day."
+comfortableDrivingInHours starts at ${startingHours} hours, so the daily driving check runs from the start. On a new trip, while its focus is still empty, and user memory holds the user's usual driving hours, set comfortableDrivingInHours to them, and say so in passing, such as "I've planned on your usual 5 hours of driving a day." After that, the trip brief's value stands, even when user memory says something else, since the user may have chosen other hours for this trip.
 
 When the daily driving check warns that a day drives longer than comfortableDrivingInHours, ask the user about it, once the change is settled (Check results). Give the day's driving, and ask whether that day is OK, and whether that much driving is normal for them:
 

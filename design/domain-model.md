@@ -1025,7 +1025,7 @@ The two trip brief items whose limits are settings. Every other item is set dire
 - **`setTripLength(brief : TripBrief, tripLengthInDays : integer)`** (the tool `update_trip_brief`). Sets `tripLengthInDays`.
   - **Refused:** when it's more than the maximum trip length, a setting (technical spec section 10). The coordinator explains the limit and offers a trip of the maximum length (functional spec 6.1). By the brief's own rules: when it's less than 1, or empty.
 - **`setComfortableDriving(brief : TripBrief, comfortableDrivingInHours : decimal)`** (the tool `update_trip_brief`). Sets `comfortableDrivingInHours`.
-  - **Refused:** when it's more than the maximum daily driving, a setting (technical spec section 10). The error gives the limit, and the coordinator decides with the user what to do next (technical spec 5.2, comfortable driving hours). By the brief's own rules: when it isn't more than 0, or is empty.
+  - **Refused:** when it's more than the maximum daily driving, a setting (technical spec section 10). The error gives the limit, and the coordinator decides with the user what to do next (technical spec 5.2, comfortable driving hours). By the brief's own rules: when it isn't more than 0.
 
 ### 4.3 RejectionsService
 

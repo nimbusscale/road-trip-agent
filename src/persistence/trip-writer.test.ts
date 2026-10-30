@@ -17,14 +17,15 @@ const OWNER = { id: "4f6c1d0e-2a8b-4c3d-9e7f-1a2b3c4d5e6f" };
 
 describe("TripWriter.startTrip", () => {
   it("adds a new trip, with a brief that holds only its defaults, and only a last day", async () => {
-    const { writer, reader } = setUp();
+    // Unlike settings.json's 4, so the brief shows it takes the setting.
+    const { writer, reader } = setUp({ defaultComfortableDrivingHours: 3 });
     const started = await writer.startTrip(OWNER);
     const trip = await reader.read(started.id);
     expect(trip.id).toMatch(/^trip_/);
     expect(trip.owner).toEqual(OWNER);
     expect(trip.tripBrief.id).toMatch(/^brief_/);
     expect(trip.tripBrief.focus).toBeNull();
-    expect(trip.tripBrief.comfortableDrivingInHours).toBe(4);
+    expect(trip.tripBrief.comfortableDrivingInHours).toBe(3);
     expect(trip.tripBrief.usualStartTime.toText()).toBe("08:00");
     expect(trip.itinerary.id).toMatch(/^itin_/);
     expect(trip.itinerary.lastDay.id).toMatch(/^day_/);

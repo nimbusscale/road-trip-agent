@@ -24,6 +24,7 @@ describe("coordinatorPrompt", () => {
       "The app plans at most 9 hours of driving in a day, and recommends 7 or less.",
     );
     expect(prompt).toContain("comfortableDrivingInHours starts at 3 hours");
+    expect(prompt).toContain("It's 3 hours until the user says otherwise");
     expect(prompt).toContain('"we can drive 11 hours if we have to."');
     // The memory example's date isn't a setting.
     expect(prompt.replace("February 14", "")).not.toMatch(/\b(6|12|14)\b/);
