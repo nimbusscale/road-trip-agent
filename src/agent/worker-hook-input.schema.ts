@@ -46,9 +46,3 @@ export const completedAgentOutputSchema = z.looseObject({
   status: z.literal("completed"),
   agentId: z.string(),
 });
-
-// The domains a WebSearch call is limited to (WebSearchInput in the SDK's
-// sdk-tools.d.ts). A search with no limit has no allowed_domains.
-export const webSearchDomainsSchema = z
-  .looseObject({ allowed_domains: z.array(z.string()).optional() })
-  .transform((input) => input.allowed_domains ?? []);

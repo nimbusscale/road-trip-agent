@@ -1408,6 +1408,6 @@ The agent types the Agent tool offers.
 
 ````text
 - stay-researcher: Finds candidates for one stay: its lodging, and the stops whose search area is that stay. Its prompt is a worker brief. (Tools: mcp__trip__read_worker_brief_facts, mcp__trip__add_lodging_candidates, mcp__trip__add_stop_candidates, mcp__places__find_place, mcp__places__search_near, mcp__worker__report_result, WebSearch, WebFetch)
-- leg-scout: Finds candidates for the stops along one day's drive, and on the first and last days, the stops near the start or end place. Its prompt is a worker brief. (Tools: mcp__trip__read_worker_brief_facts, mcp__trip__add_stop_candidates, mcp__places__find_place, mcp__places__search_along_leg, mcp__places__search_near, mcp__worker__report_result, WebSearch)
+- leg-scout: Finds candidates for the stops along one day's drive, and on the first and last days, the stops near the start or end place. Its prompt is a worker brief. (Tools: mcp__trip__read_worker_brief_facts, mcp__trip__add_stop_candidates, mcp__places__find_place, mcp__places__search_along_leg, mcp__places__search_near, mcp__worker__report_result, WebSearch, WebFetch)
 - weather-worker: Writes each stay's weather and clothing text, from a forecast or seasonal averages, tied to the stay's activities. Its prompt is a worker brief with only stay IDs. (Tools: mcp__trip__read_worker_brief_facts, mcp__trip__set_stay_weather, mcp__weather__look_up_stay_weather, mcp__worker__report_result)
 ````
