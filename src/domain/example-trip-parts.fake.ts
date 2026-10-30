@@ -31,6 +31,7 @@ export const EXAMPLE_SETTINGS: Settings = {
   driveBufferPercent: 10,
   alongLegEndDistanceMiles: 2,
   nearDistanceMiles: 15,
+  nearCutoffDistanceMiles: 100,
   maximumTripLengthDays: 14,
   maximumDailyDrivingHours: 12,
   recommendedDailyDrivingHours: 6,

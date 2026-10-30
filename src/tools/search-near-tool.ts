@@ -37,14 +37,20 @@ const METERS_PER_MILE = 1609.344;
 const PAST_MIDNIGHT_NOTE =
   "Google lists hours that run past midnight on the day they open.";
 
-export function searchNearDescription(nearDistanceMiles: number): string {
-  return `Searches Google for places near one of your stops or stays, such as hotels for a stay, or restaurants for a meal near it. It searches around the stay's selected lodging, or its town while none is selected. For a stop near the trip's start or end place, it searches around that place. It favors places within ${String(nearDistanceMiles)} miles, and a query that names somewhere farther, such as "restaurants in Tuolumne Meadows", searches there. Returns up to ${String(SEARCH_NEAR_RESULTS)} places, best match first, each with its place ID, type, address, distance in a straight line, rating and review count, price level, links, and what Google and the public say about it. Each place's opening hours are given for the stop's date, or for each of the stay's dates. For a stop after midnight, they're given for the day before too, since Google lists hours that run past midnight on the day they open, such as Friday's "11:00 AM – 2:00 AM". They're Google's hours for a normal week, with no holidays or seasonal closures. Places the user rejected for this trip are left out. Every place found is saved to the trip, so its place ID works in the other tools.`;
+export function searchNearDescription(
+  nearDistanceMiles: number,
+  cutoffMiles: number,
+): string {
+  return `Searches Google for places near one of your stops or stays, such as hotels for a stay, or restaurants for a meal near it. It searches around the stay's selected lodging, or its town while none is selected. For a stop near the trip's start or end place, it searches around that place. It favors places within ${String(nearDistanceMiles)} miles, and a query that names somewhere farther, such as "restaurants in Tuolumne Meadows", searches there. Places more than ${String(cutoffMiles)} miles away in a straight line are left out. A query about a style alone, such as "Victorian house", can find little nearby, since Google matches it anywhere. Then naming the area in the query, such as "Victorian house inn Portland Maine", can help. Returns up to ${String(SEARCH_NEAR_RESULTS)} places, best match first, each with its place ID, type, address, distance in a straight line, rating and review count, price level, links, and what Google and the public say about it. Each place's opening hours are given for the stop's date, or for each of the stay's dates. For a stop after midnight, they're given for the day before too, since Google lists hours that run past midnight on the day they open, such as Friday's "11:00 AM – 2:00 AM". They're Google's hours for a normal week, with no holidays or seasonal closures. Places the user rejected for this trip are left out. Every place found is saved to the trip, so its place ID works in the other tools.`;
 }
 
 export function searchNearTool(session: PlacesSession): StrictToolDefinition {
   return strictTool(
     "search_near",
-    searchNearDescription(session.settings.nearDistanceMiles),
+    searchNearDescription(
+      session.settings.nearDistanceMiles,
+      session.settings.nearCutoffDistanceMiles,
+    ),
     SEARCH_NEAR_INPUT,
     ({ stopOrStayId, query }) =>
       readReplyOrReadableError(() => searchNear(session, stopOrStayId, query)),
@@ -72,11 +78,19 @@ async function searchNear(
     SEARCH_NEAR_RESULTS,
   );
   const around = `around ${placeText(point)} (${point.id})`;
-  if (found.length === 0) {
-    return textReply([`Google found no places for "${query}" ${around}.`]);
+  const { near, tooFar } = withinCutoff(
+    found,
+    point,
+    session.settings.nearCutoffDistanceMiles,
+  );
+  if (near.length === 0) {
+    return textReply([
+      `Google found no places for "${query}" ${around}.`,
+      ...leftOutLines([tooFar]),
+    ]);
   }
   // A place the trip already has comes back as first stored, with its ID.
-  const saved = await session.placeWriter.save(session.tripId, found);
+  const saved = await session.placeWriter.save(session.tripId, near);
   const rejected = rejectedIds(trip.itinerary.rejectedPlaces);
   const kept = saved.filter((place) => !rejected.has(place.id));
   return textReply([
@@ -90,8 +104,35 @@ async function searchNear(
     ),
     ...leftOutLines([
       [saved.length - kept.length, "the user rejected for this trip"],
+      tooFar,
     ]),
   ]);
+}
+
+interface WithinCutoff {
+  near: Place[];
+  // How many places were dropped, and why.
+  tooFar: [count: number, why: string];
+}
+
+// The bias lets a query about a style alone find places across the country, which a
+// search near a stay never needs. They're dropped before they're saved, as the crow
+// flies from the point (tool design 2.3).
+function withinCutoff(
+  found: readonly Place[],
+  point: Place,
+  cutoffMiles: number,
+): WithinCutoff {
+  const near = found.filter(
+    (place) => milesBetween(point, place) <= cutoffMiles,
+  );
+  return {
+    near,
+    tooFar: [
+      found.length - near.length,
+      `more than ${String(cutoffMiles)} miles away`,
+    ],
+  };
 }
 
 // The searches need only the calendar's lookups, such as a day's date.

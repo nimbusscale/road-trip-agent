@@ -1,9 +1,6 @@
-import { readFileSync } from "node:fs";
-
 import { describe, expect, it } from "vitest";
 
 import {
-  at,
   lodgeAt,
   meal,
   OWNER,
@@ -12,97 +9,24 @@ import {
   EXAMPLE_SETTINGS,
 } from "../domain/example-trip-parts.fake.js";
 import { present } from "../domain/itinerary.fake.js";
-import {
-  placeAt,
-  SAN_LUIS_OBISPO,
-  sanFranciscoDay2,
-} from "../domain/legs.fake.js";
+import { placeAt, SAN_LUIS_OBISPO } from "../domain/legs.fake.js";
 import { examplePlace } from "../domain/place.fake.js";
 import { RejectedPlace } from "../domain/rejected-place.js";
-import { newTrip, type Trip } from "../domain/trip.js";
-import { setUp } from "../persistence/trip-writer.fake.js";
-import { fakePlacesAccess } from "./places-session.fake.js";
-import { searchNearTool } from "./search-near-tool.js";
-import { storeTrip, textOf } from "./stored-trip.fake.js";
-import type { ToolReply } from "./tool-reply.js";
-
-// Google's answers for hotels and for tri-tip near San Luis Obispo, on 2026-10-26, cut
-// down to a few places (DEVELOPMENT.md section 5).
-function savedResponse(name: "near-slo-hotels" | "near-slo-tri-tip"): string {
-  return readFileSync(
-    new URL(`../google/saved-responses/${name}.json`, import.meta.url),
-    "utf8",
-  );
-}
+import { newTrip } from "../domain/trip.js";
+import {
+  moved,
+  planned,
+  savedResponse,
+  searchFor,
+  stopWithPurpose,
+} from "./search-near-tool.fake.js";
+import { textOf } from "./stored-trip.fake.js";
 
 const LA_QUINTA_GOOGLE_ID = "ChIJJ2oN6zzx7IARcmLTRboAx8s";
 
-// San Francisco Day 2 (domain model 5.1), from Monterey to San Luis Obispo on Friday,
-// May 14, 2027, with dinner near the San Luis Obispo stay at 6:30, stargazing after
-// midnight, and a stop along the leg. Day 1 has coffee near the start place.
-function planned(): ReturnType<typeof sanFranciscoDay2> {
-  const planning = sanFranciscoDay2();
-  const { itinerary, services, day2 } = planning;
-  const sanLuisObispo = present(itinerary.stays[1]);
-  services.stops.addStops(
-    itinerary,
-    day2,
-    [
-      meal({ purpose: "walk", searchArea: "alongLeg" }),
-      meal({
-        purpose: "tri-tip",
-        searchArea: "nearStay",
-        stay: sanLuisObispo,
-        setTime: at("18:30"),
-      }),
-      meal({
-        purpose: "a late bite",
-        searchArea: "nearStay",
-        stay: sanLuisObispo,
-        setTime: at("01:00", true),
-      }),
-    ],
-    day2.stops.at(-1) ?? null,
-  );
-  services.stops.addStops(
-    itinerary,
-    present(itinerary.days[0]),
-    [meal({ purpose: "coffee", searchArea: "nearStartPlace" })],
-    null,
-  );
-  return planning;
-}
-
-interface Search {
-  search: (input: unknown) => Promise<ToolReply>;
-  // Each request body sent to Google.
-  sent: unknown[];
-  fixture: ReturnType<typeof setUp>;
-}
-
-async function searchFor(trip: Trip, body: string): Promise<Search> {
-  const fixture = setUp();
-  await storeTrip(fixture, trip);
-  const sent: unknown[] = [];
-  const fetchFake: typeof fetch = (url, init) => {
-    sent.push(typeof init?.body === "string" ? JSON.parse(init.body) : null);
-    return Promise.resolve(new Response(body));
-  };
-  const session = {
-    ...fakePlacesAccess(fixture, fetchFake),
-    tripId: trip.id,
-  };
-  const tool = searchNearTool(session);
-  return { search: (input) => tool.handler(input), sent, fixture };
-}
-
-function stopWithPurpose(
-  planning: ReturnType<typeof sanFranciscoDay2>,
-  purpose: string,
-): string {
-  const stops = planning.itinerary.days.flatMap((day) => day.stops);
-  return present(stops.find((stop) => stop.purpose === purpose)).id;
-}
+// The trip's start place. The saved answers are near San Luis Obispo, past the cutoff
+// distance from it, so the start place's search gets them moved there.
+const SAN_FRANCISCO = { latitude: 37.7749, longitude: -122.4194 };
 
 describe("search_near", () => {
   it("searches around a stay's town, favoring places within the near distance, and gives hours for each of the stay's dates", async () => {
@@ -218,7 +142,7 @@ describe("search_near", () => {
     const planning = planned();
     const { search, sent } = await searchFor(
       planning.trip,
-      savedResponse("near-slo-tri-tip"),
+      moved(savedResponse("near-slo-tri-tip"), SAN_FRANCISCO),
     );
     const reply = await search({
       stopOrStayId: stopWithPurpose(planning, "coffee"),
