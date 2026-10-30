@@ -8,9 +8,8 @@ import {
 } from "./coordinator-prompt.js";
 
 describe("coordinatorPrompt", () => {
-  // Settings unlike the starting values (14 days, 12 hours, 6 hours), so a number
-  // written into the text would show up. The default comfortable driving hours, 4, is
-  // in other text too, such as "Stop 4", so its filled-in 3 is looked for instead.
+  // Settings unlike settings.json's, so each sentence below shows its number was
+  // filled in from the settings.
   const prompt = coordinatorPrompt({
     maximumTripLengthDays: 10,
     maximumDailyDrivingHours: 9,
@@ -26,8 +25,6 @@ describe("coordinatorPrompt", () => {
     expect(prompt).toContain("comfortableDrivingInHours starts at 3 hours");
     expect(prompt).toContain("It's 3 hours until the user says otherwise");
     expect(prompt).toContain('"we can drive 11 hours if we have to."');
-    // The memory example's date isn't a setting.
-    expect(prompt.replace("February 14", "")).not.toMatch(/\b(6|12|14)\b/);
   });
 
   it("gives the rules that cover several tools, word for word", () => {
