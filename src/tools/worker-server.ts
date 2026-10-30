@@ -16,6 +16,12 @@ export const REPORT_RESULT_NAME = "report_result";
 export const REPORT_RESULT_DESCRIPTION =
   "Ends your work. Call it last, once your other calls are done, with your problems and your questions for the user. The coordinator gets what you added or saved from those calls, so don't repeat it here. A second call replaces the first.";
 
+// The worker's last message is thrown away, so the reply asks for one word, to save the
+// output tokens of a closing summary (#232). The worker still ends with a message, which
+// the Agent hook replaces with the result (technical spec 6.5).
+export const REPORT_RESULT_REPLY =
+  'Result recorded. Nobody reads your messages, so reply with only the word "done".';
+
 // The tool does nothing itself. A hook records its input, and code builds the result
 // the coordinator sees from it (technical spec 6.5).
 export function reportResultTool(): StrictToolDefinition {
@@ -23,7 +29,7 @@ export function reportResultTool(): StrictToolDefinition {
     REPORT_RESULT_NAME,
     REPORT_RESULT_DESCRIPTION,
     REPORT_RESULT_INPUT,
-    () => Promise.resolve(textReply(["Result recorded. You're done."])),
+    () => Promise.resolve(textReply([REPORT_RESULT_REPLY])),
   );
 }
 

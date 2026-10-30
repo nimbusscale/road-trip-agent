@@ -44,7 +44,9 @@ You end your work with report_result, which takes your problems and your questio
 - Don't list what you added or saved, or say that all went well. Code gives the coordinator what you saved. When there's nothing to report, give empty lists.`;
 
 // Code builds a worker's result from its calls, not from its messages (technical spec 6.5).
-export const OWN_MESSAGES = `Nobody reads your own messages. The coordinator gets only what your tool calls saved, and what you pass to report_result. So keep your messages short.`;
+// Claude Code's own note on a worker's prompt says the opposite, and workers still wrote a
+// summary after report_result, so the last message gets its own rule (#232).
+export const OWN_MESSAGES = `Nobody reads your own messages. The coordinator gets only what your tool calls saved, and what you pass to report_result. So keep your messages short, and after report_result, reply with only the word "done".`;
 
 // Technical spec 5.3: the worker brief's outline, from the worker's side. The stay
 // researcher and the leg scout differ only in what they fill, so each passes in its own
