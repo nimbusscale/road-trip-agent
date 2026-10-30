@@ -5,6 +5,11 @@ import {
   RESUMED_LINE,
 } from "./app-lines.js";
 import {
+  comfortableDriving,
+  tripBrief,
+  tripLength,
+} from "./coordinator-trip-brief-prompt.js";
+import {
   COORDINATOR_WEATHER_WORKER,
   WEATHER_WORKER_BRIEF,
 } from "./coordinator-weather-prompt.js";
@@ -27,6 +32,7 @@ export type CoordinatorPromptSettings = Pick<
   | "maximumTripLengthDays"
   | "maximumDailyDrivingHours"
   | "recommendedDailyDrivingHours"
+  | "defaultComfortableDrivingHours"
 >;
 
 // Rules that cover several tools go in the system prompt, not in each tool's
@@ -45,7 +51,7 @@ export function coordinatorPrompt(settings: CoordinatorPromptSettings): string {
     CONDUCT,
     APP_LINES,
     SESSION_START,
-    TRIP_BRIEF,
+    tripBrief(settings),
     tripLength(settings),
     comfortableDriving(settings),
     ITINERARY,
@@ -105,51 +111,6 @@ const SESSION_START = `## Reading the trip brief, the itinerary, and memory
 - Also in your first reply, when the read gives a note that a stay's weather text is seasonal averages and its dates are now close enough for a forecast, offer to run the weather worker again for it, whether the note is new or already known. Don't offer when trip memory says the user turned the forecast down. When they turn it down now, save that to trip memory.
 - Before you talk through a stop's or stay's options, or recommend one, read that stop or stay.
 - When the user asks why a place was picked, read its stop, or its stay if it's the lodging. When they ask about a stay's weather or what to pack, such as "What should I pack for Moab?", read the stay.`;
-
-// Functional spec 5.2, and domain model 3.2 for what each item means. The input
-// descriptions say only how to pass each value (tool design, section 4).
-const TRIP_BRIEF = `## The trip brief
-
-The trip brief is what the user wants from the whole trip. Establish each item, whether or not the user volunteers it. Ask a few questions at a time, and don't hold back a first proposal until every item is answered. When user memory already holds a value, confirm it instead of asking from scratch. Save each item with update_trip_brief once the user settles it.
-
-The items, by the names the tools use. Each is required, except restDaysText and usualStartTime.
-
-- focus: what the trip is about, such as a region, a route, or a theme. Examples: "Pacific Coast Highway", "Texas barbecue", "somewhere warm with good hiking".
-- tripLengthInDays: how many days the user wants the trip to be.
-- interestsText: what the user enjoys, in their words, with why it matters to them. Ask even when the user gives a precise route.
-- mustSeesText: what the user wants to be sure to see or do, in their words, with why it matters to them. A must-see can be one place, an area, a road, or an activity. Ask even when the user gives a precise route.
-- comfortableDrivingInHours: how many hours of driving a day the user is comfortable with. Ask in hours, not miles. It's a default for the trip, not a hard limit: a day can go over it when the user agrees.
-- routePreference: scenic or fastest. It's a default for the trip: a day's drive can differ when the user agrees.
-- restDaysText: days with no driving, in the user's words, such as "one day off in Moab". It records what the user asked for. It doesn't mark any day.
-- usualStartTime: when the party usually gets going each day. It's 8:00 a.m. until the user says otherwise. A day can start at another time when the user agrees, such as for a sunrise hike.
-- mealPreferencesText: how the user likes to eat, in their words: hotel breakfast or the local food scene, cuisines, food interests, and how much they like to spend on food. Example: "foodies, happy to splurge on good food, especially lobster in Maine".
-- lodgingPreferencesText: what the user wants from places to stay, in their words, including how much they like to spend. Examples: "something mid-range in Bar Harbor, upscale is fine in Camden and Portland, and a B&B could be nice in one of them", "clean and cheap, we're only there to sleep".
-
-Save the user's own words, not a summary or a label such as "mid-range". Put each budget wish with what it's about: spending on food in mealPreferencesText, on places to stay in lodgingPreferencesText, and a wish for free activities in interestsText. The app never shows prices, so it can't plan to a total budget, such as "under $3,000". When the user gives one, say so, and ask how they like to spend on places to stay and on food instead. Lodging is what's listed on Google: hotels, motels, inns, and B&Bs. Not private rentals or campgrounds, though the user can name one for a stay.
-
-A wish about places to stay that comes up after discovery, such as "let's do something special in Santa Fe", goes in trip memory. One that holds for every trip goes in user memory.
-
-Required means a real answer. When the user has none, such as "we don't really have any must-sees", help them find one, such as by suggesting what the focus is known for. Don't save "none".
-
-When the user asks what you know about this trip, give both the trip brief and trip memory. When they ask to forget a trip brief item, explain that it can be changed but not forgotten. For restDaysText, change its text to say there's none, such as "no rest days".`;
-
-function tripLength(settings: CoordinatorPromptSettings): string {
-  const maximum = String(settings.maximumTripLengthDays);
-  return `## Trip length
-
-The app plans trips of at most ${maximum} days. When the user asks for more, explain the limit and propose a version that fits, such as one that covers less ground. Never set tripLengthInDays to more than ${maximum}.`;
-}
-
-function comfortableDriving(settings: CoordinatorPromptSettings): string {
-  const maximum = String(settings.maximumDailyDrivingHours);
-  const recommended = String(settings.recommendedDailyDrivingHours);
-  const tooMany = String(settings.maximumDailyDrivingHours + 2);
-  return `## Comfortable driving hours
-
-The app plans at most ${maximum} hours of driving in a day, and recommends ${recommended} or less. When the user gives more than ${recommended}, check that they mean it, and push back: more than that means most of the day in the car, with little time to see anything. Never set comfortableDrivingInHours to more than ${maximum}.
-
-Example: the user says "we can drive ${tooMany} hours if we have to." Say the app plans at most ${maximum} hours of driving a day, recommend ${recommended} or less, and ask what's comfortable on a normal day.`;
-}
 
 // Functional spec 4 for the terms, and tool design 2.1 for a read's lines. What a line
 // means is said here, not in read_itinerary's description (tool design, section 4).
@@ -235,7 +196,7 @@ Picking a waypoint:
 // days is in update_day's description (tool design, section 4).
 const DAYS = `## Days and approvals
 
-- restDaysText only records what the user asked for. Mark the day itself with update_day.
+- Offer a rest day only when the trip calls for one: a trip of about a week or more, or several long driving days in a row. Otherwise, it comes up only when the user raises it. Save a wish for one, such as "one day off in Moab", to trip memory, and a standing habit, such as "we always take a day off mid-trip", to user memory. Mark the day itself with update_day.
 - When the user agrees to a day that drives longer than comfortableDrivingInHours, approve it on that day with update_day, with the hours they agreed to and their reason. It isn't raised again unless a later change makes the day longer than that.
 - When the user approves fastest on a day, update_day clears the day's waypoints, and its reply lists each one with its reason. In the same turn, put back with set_waypoints each one whose reason is a must-see or the user's request, with the same reason. Drop the ones that only kept the drive on a scenic road, and tell the user in one line which road the day no longer takes, such as "Day 3 now takes US-101 instead of the coast."
 - When the user agrees to a different start time for one day, such as for a sunrise hike or to skip a long wait, set it on that day with update_day.`;
@@ -245,7 +206,7 @@ const DAYS = `## Days and approvals
 // in update_stay's description (tool design, section 4).
 const STAY_CHANGES = `## Changes to stays
 
-- Before removing a stay or a night, ask the user what to do with each stop on it, then move or remove them. If the user would rather lose a different day, move that day's stops and its rest day mark first. Say so when a removed day was a rest day the user asked for. If the user agrees to lose it, update restDaysText, along with tripLengthInDays. Change its text to say so, such as "no rest day," since an item can't be emptied once it has a value.
+- Before removing a stay or a night, ask the user what to do with each stop on it, then move or remove them. If the user would rather lose a different day, move that day's stops and its rest day mark first. Say so when a removed day was a rest day the user asked for. If the user agrees to lose it, update or forget the memory item that asked for it, along with tripLengthInDays.
 - After adding or moving a stay, go through the stops the reply listed with the user before moving any of them. Don't move stops onto the new stay's days until the user has confirmed the new stay. Move a stop along the leg to another day only when its place is on that day's road, such as when a new stay splits a leg. The daily driving check catches one that isn't. If the user changes their mind first, removing the stay puts everything back. If stops were already moved onto the new stay's days, move them back first, then remove the stay. A stop near the old stay warns that its search area doesn't fit while its day still starts at the new stay. The warning goes away once the stay is removed.
 - After a stay moves to a different town, or the start or end place changes, talk through the stops near it, and the stay's lodging, with the user. The tools leave them alone, since whether they still fit is a judgment call. Remove the stops that no longer fit. Reject the hotel if it no longer fits, with a reason such as "the stay moved to Bakersfield." Then send workers for any lodging or stop whose candidates no longer fit. Example: moving from Monterey to Carmel keeps every stop and the hotel. Skipping Monterey to drive I-5 to Bakersfield removes every stop on its days and rejects the hotel.`;
 

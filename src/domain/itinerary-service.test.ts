@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import { CalendarDate } from "./calendar-date.js";
-import { OWNER, placeNamed, planningFor } from "./example-trip-parts.fake.js";
+import {
+  OWNER,
+  placeNamed,
+  planningFor,
+  EXAMPLE_SETTINGS,
+} from "./example-trip-parts.fake.js";
 import { examplePlace } from "./place.fake.js";
 import { newTrip } from "./trip.js";
 
@@ -25,7 +30,7 @@ const PITTSBURGH = examplePlace({
 });
 
 function planningInMoab(now = EVENING_IN_MOAB) {
-  const planning = planningFor(newTrip(OWNER, now), now);
+  const planning = planningFor(newTrip(OWNER, now, EXAMPLE_SETTINGS), now);
   planning.services.itinerary.setStartPlace(planning.itinerary, MOAB);
   return planning;
 }
@@ -58,14 +63,18 @@ describe("ItineraryService.setStartDate", () => {
   });
 
   it("refuses a start date while there's no start place, by the itinerary's own rule", () => {
-    const { itinerary, services } = planningFor(newTrip(OWNER, new Date()));
+    const { itinerary, services } = planningFor(
+      newTrip(OWNER, new Date(), EXAMPLE_SETTINGS),
+    );
     expect(() => {
       services.itinerary.setStartDate(itinerary, new CalendarDate(2030, 1, 1));
     }).toThrow("The itinerary needs a start place before a start date");
   });
 
   it("goes by the start place set in the same write", () => {
-    const { itinerary, services } = planningFor(newTrip(OWNER, new Date()));
+    const { itinerary, services } = planningFor(
+      newTrip(OWNER, new Date(), EXAMPLE_SETTINGS),
+    );
     services.itinerary.setStartPlace(itinerary, placeNamed("Lockhart"));
     services.itinerary.setStartDate(itinerary, new CalendarDate(2030, 1, 1));
     expect(itinerary.startDate?.toText()).toBe("2030-01-01");
@@ -77,7 +86,9 @@ const LATE_IN_MOAB = new Date("2027-10-10T05:00:00Z");
 
 describe("ItineraryService.setStartPlace", () => {
   it("sets the start place while there's no start date", () => {
-    const { itinerary, services } = planningFor(newTrip(OWNER, LATE_IN_MOAB));
+    const { itinerary, services } = planningFor(
+      newTrip(OWNER, LATE_IN_MOAB, EXAMPLE_SETTINGS),
+    );
     services.itinerary.setStartPlace(itinerary, PITTSBURGH);
     expect(itinerary.startPlace).toBe(PITTSBURGH);
   });

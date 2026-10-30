@@ -12,6 +12,7 @@ const GOOD_SETTINGS = {
   maximumTripLengthDays: 14,
   maximumDailyDrivingHours: 12,
   recommendedDailyDrivingHours: 6,
+  defaultComfortableDrivingHours: 4,
   mealVisitMinutes: 60,
   checkInVisitMinutes: 30,
   maximumMemoryItems: 50,
@@ -102,6 +103,13 @@ describe("parseSettings", () => {
     const settings = { ...GOOD_SETTINGS, recommendedDailyDrivingHours: 13 };
     expect(() => parse(settings)).toThrow(
       "- recommendedDailyDrivingHours can't be more than maximumDailyDrivingHours",
+    );
+  });
+
+  it("refuses a default comfortable driving above the maximum", () => {
+    const settings = { ...GOOD_SETTINGS, defaultComfortableDrivingHours: 13 };
+    expect(() => parse(settings)).toThrow(
+      "- defaultComfortableDrivingHours can't be more than maximumDailyDrivingHours",
     );
   });
 });

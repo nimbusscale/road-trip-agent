@@ -8,6 +8,7 @@ import {
   PLANNED_AT,
   type Planning,
   planningFor,
+  EXAMPLE_SETTINGS,
 } from "./example-trip-parts.fake.js";
 import { present } from "./itinerary.fake.js";
 import { legsFor, placeAt, type WithLegs } from "./legs.fake.js";
@@ -40,7 +41,7 @@ export interface CheckInDay extends Planning, WithLegs {
 }
 
 export function checkInDay(): CheckInDay {
-  const planning = planningFor(newTrip(OWNER, PLANNED_AT));
+  const planning = planningFor(newTrip(OWNER, PLANNED_AT, EXAMPLE_SETTINGS));
   const { itinerary, services } = planning;
   services.itinerary.setStartPlace(itinerary, NATICK);
   itinerary.endPlace = NATICK;

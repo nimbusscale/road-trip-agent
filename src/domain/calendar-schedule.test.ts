@@ -13,6 +13,7 @@ import {
   placeNamed,
   planningFor,
   routeDay,
+  EXAMPLE_SETTINGS,
 } from "./example-trip-parts.fake.js";
 import type { Itinerary } from "./itinerary.js";
 import { present } from "./itinerary.fake.js";
@@ -202,7 +203,7 @@ describe("a day's schedule", () => {
   });
 
   it("has no drives on a day that stays put with no selected stop", () => {
-    const trip = newTrip(OWNER, new Date());
+    const trip = newTrip(OWNER, new Date(), EXAMPLE_SETTINGS);
     const itinerary = trip.itinerary;
     itinerary[VIA_SERVICE].setStartPlace(placeNamed("Grand Junction"));
     itinerary.endPlace = placeNamed("Salt Lake City");
@@ -225,7 +226,7 @@ describe("a day's schedule", () => {
   });
 
   it("has no drives, and no stop times, on a day whose ends aren't known yet", () => {
-    const trip = newTrip(OWNER, new Date());
+    const trip = newTrip(OWNER, new Date(), EXAMPLE_SETTINGS);
     const itinerary = trip.itinerary;
     const calendar = calendarFor(trip);
     const onlyDay = present(itinerary.days[0]);

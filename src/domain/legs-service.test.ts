@@ -7,6 +7,7 @@ import {
   PLANNED_AT,
   placeNamed,
   planningFor,
+  EXAMPLE_SETTINGS,
 } from "./example-trip-parts.fake.js";
 import { present } from "./itinerary.fake.js";
 import { exampleWaypoint } from "./place.fake.js";
@@ -47,7 +48,7 @@ describe("LegsService.updateLegs: which days have a leg", () => {
   });
 
   it("gives no leg until both ends are known: a new trip's only day has none", async () => {
-    const planning = planningFor(newTrip(OWNER, PLANNED_AT));
+    const planning = planningFor(newTrip(OWNER, PLANNED_AT, EXAMPLE_SETTINGS));
     const { legs, finder } = legsFor(planning);
     expect(await legs.updateLegs(planning.itinerary)).toEqual([]);
     expect(planning.itinerary.lastDay.leg).toBeNull();

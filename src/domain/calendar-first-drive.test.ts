@@ -10,6 +10,7 @@ import {
   placeNamed,
   planningFor,
   routeDay,
+  EXAMPLE_SETTINGS,
 } from "./example-trip-parts.fake.js";
 import { present } from "./itinerary.fake.js";
 import { describeEntry } from "./schedule-entry.fake.js";
@@ -32,7 +33,7 @@ function barHarborDay(
   before: (startStay: Stay | null) => readonly Stop[],
   { startTime = "10:00", afterPortland = false } = {},
 ) {
-  const trip = newTrip(OWNER, new Date());
+  const trip = newTrip(OWNER, new Date(), EXAMPLE_SETTINGS);
   const itinerary = trip.itinerary;
   const calendar = calendarFor(trip);
   itinerary[VIA_SERVICE].setStartPlace(placeNamed("Natick"));

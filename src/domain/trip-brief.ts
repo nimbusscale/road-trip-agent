@@ -11,9 +11,8 @@ export interface TripBriefFields {
   tripLengthInDays: number | null;
   interestsText: string | null;
   mustSeesText: string | null;
-  comfortableDrivingInHours: number | null;
+  comfortableDrivingInHours: number;
   routePreference: RouteType | null;
-  restDaysText: string | null;
   usualStartTime: TimeOfDay;
   mealPreferencesText: string | null;
   lodgingPreferencesText: string | null;
@@ -22,7 +21,7 @@ export interface TripBriefFields {
 export const DEFAULT_USUAL_START_TIME = EIGHT_A_M;
 
 // What the user wants from the trip (domain model section 3.2). Every item but
-// usualStartTime is {keepsValue}. tripLengthInDays and comfortableDrivingInHours are
+// comfortableDrivingInHours and usualStartTime is {keepsValue}. tripLengthInDays and comfortableDrivingInHours are
 // {viaService}: TripBriefService sets them, since their limits are settings.
 export class TripBrief {
   readonly id: string;
@@ -30,9 +29,9 @@ export class TripBrief {
   #tripLengthInDays: number | null;
   #interestsText: string | null;
   #mustSeesText: string | null;
-  #comfortableDrivingInHours: number | null;
+  // Never empty: a new trip starts with the default comfortable driving hours.
+  #comfortableDrivingInHours: number;
   #routePreference: RouteType | null;
-  #restDaysText: string | null;
   #mealPreferencesText: string | null;
   #lodgingPreferencesText: string | null;
   // Never empty. A TimeOfDay is always a valid time, so it has no rules to run here.
@@ -63,15 +62,10 @@ export class TripBrief {
       fields.mustSeesText,
       keptItemText("mustSeesText"),
     );
-    this.#comfortableDrivingInHours = startingValue(
+    this.#comfortableDrivingInHours = checkedComfortableDriving(
       fields.comfortableDrivingInHours,
-      checkedComfortableDriving,
     );
     this.#routePreference = fields.routePreference;
-    this.#restDaysText = startingValue(
-      fields.restDaysText,
-      keptItemText("restDaysText"),
-    );
     this.usualStartTime = fields.usualStartTime;
     this.#mealPreferencesText = startingValue(
       fields.mealPreferencesText,
@@ -111,7 +105,7 @@ export class TripBrief {
     this.#mustSeesText = keptText(value, itemName("mustSeesText"));
   }
 
-  get comfortableDrivingInHours(): number | null {
+  get comfortableDrivingInHours(): number {
     return this.#comfortableDrivingInHours;
   }
 
@@ -121,14 +115,6 @@ export class TripBrief {
 
   set routePreference(value: RouteType | null) {
     this.#routePreference = keptValue(value, itemName("routePreference"));
-  }
-
-  get restDaysText(): string | null {
-    return this.#restDaysText;
-  }
-
-  set restDaysText(value: string | null) {
-    this.#restDaysText = keptText(value, itemName("restDaysText"));
   }
 
   get mealPreferencesText(): string | null {

@@ -27,11 +27,11 @@ export function isDriveHoursApprovalApplying(
 }
 
 // A warning when the day drives longer than the brief's comfortable driving hours, or
-// longer than the hours the user approved for it. Skipped while the brief has none.
+// longer than the hours the user approved for it.
 function drivingResult(context: CheckContext, day: Day): CheckResult | null {
   const comfortable = context.tripBrief.comfortableDrivingInHours;
   const driving = context.calendar.drivingInMinutesOf(context.itinerary, day);
-  if (comfortable === null || day.leg === null || driving === null) {
+  if (day.leg === null || driving === null) {
     return null;
   }
   const approved = approvedHoursOf(day);

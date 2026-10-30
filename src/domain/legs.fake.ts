@@ -7,6 +7,7 @@ import {
   PLANNED_AT,
   type Planning,
   planningFor,
+  EXAMPLE_SETTINGS,
 } from "./example-trip-parts.fake.js";
 import { present } from "./itinerary.fake.js";
 import { type LegChange, LegsService } from "./legs-service.js";
@@ -58,7 +59,7 @@ export function legsFor(planning: Planning): WithLegs {
 // San Francisco Day 2 (domain model 5.1) with only First Awakenings selected, and the
 // stays' towns where the party sleeps. Its legs aren't routed yet.
 export function sanFranciscoDay2(): Planning & WithLegs & { day2: StayDay } {
-  const planning = planningFor(newTrip(OWNER, PLANNED_AT));
+  const planning = planningFor(newTrip(OWNER, PLANNED_AT, EXAMPLE_SETTINGS));
   const { itinerary, services } = planning;
   services.itinerary.setStartPlace(
     itinerary,

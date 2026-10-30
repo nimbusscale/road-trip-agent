@@ -9,6 +9,7 @@ import {
   type Planning,
   planningFor,
   routeDay,
+  EXAMPLE_SETTINGS,
 } from "./example-trip-parts.fake.js";
 import { OpeningPeriod } from "./opening-period.js";
 import type { Place } from "./place.js";
@@ -89,7 +90,11 @@ export interface FourteenDayExample {
 
 export function fourteenDayExample(): FourteenDayExample {
   placeCount = 0;
-  const trip = newTrip(OWNER, new Date("2026-10-15T16:00:00Z"));
+  const trip = newTrip(
+    OWNER,
+    new Date("2026-10-15T16:00:00Z"),
+    EXAMPLE_SETTINGS,
+  );
   const planning = planningFor(trip);
   const { itinerary, services } = planning;
   services.tripBrief.setTripLength(trip.tripBrief, 14);

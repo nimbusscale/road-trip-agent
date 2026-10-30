@@ -16,7 +16,7 @@ import { setUp, STARTED, WRITTEN } from "./trip-writer.fake.js";
 const OWNER = { id: "4f6c1d0e-2a8b-4c3d-9e7f-1a2b3c4d5e6f" };
 
 describe("TripWriter.startTrip", () => {
-  it("adds a new trip, with an empty brief and only a last day", async () => {
+  it("adds a new trip, with a brief that holds only its defaults, and only a last day", async () => {
     const { writer, reader } = setUp();
     const started = await writer.startTrip(OWNER);
     const trip = await reader.read(started.id);
@@ -24,6 +24,7 @@ describe("TripWriter.startTrip", () => {
     expect(trip.owner).toEqual(OWNER);
     expect(trip.tripBrief.id).toMatch(/^brief_/);
     expect(trip.tripBrief.focus).toBeNull();
+    expect(trip.tripBrief.comfortableDrivingInHours).toBe(4);
     expect(trip.tripBrief.usualStartTime.toText()).toBe("08:00");
     expect(trip.itinerary.id).toMatch(/^itin_/);
     expect(trip.itinerary.lastDay.id).toMatch(/^day_/);

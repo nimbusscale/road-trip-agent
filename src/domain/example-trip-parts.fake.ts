@@ -34,6 +34,7 @@ export const EXAMPLE_SETTINGS: Settings = {
   maximumTripLengthDays: 14,
   maximumDailyDrivingHours: 12,
   recommendedDailyDrivingHours: 6,
+  defaultComfortableDrivingHours: 4,
   mealVisitMinutes: 60,
   checkInVisitMinutes: 30,
   maximumMemoryItems: 50,
