@@ -90,10 +90,17 @@ const WEB_SEARCH = `## Web search
 - Atlas Obscura finds leads: unusual places in the towns the drive passes through. Name the towns from your own knowledge of the route, and from the addresses in the search_along_leg results. Search for each one, such as "Big Sur California unusual places", with allowed_domains set to ["atlasobscura.com"]. Atlas Obscura is for attraction stops, when an unusual place fits the stop's purpose and the user's interests.
 - ${EMPTY_ATLAS_OBSCURA}
 - ${ATLAS_OBSCURA_RESULTS}
-- Check each lead with find_place and search_along_leg, and on the web when something needs checking, such as a summary that says "closed as of March 2019".
+- Check each lead with find_place and search_along_leg. Also search the web about a lead you're thinking of adding when:
+  - there's a hint it may not be open, such as a summary that says "closed as of March 2019".
+  - the summary leaves it unclear whether the place fits this user.
 - ${LOOK_UP_WEB_FIND} If that fails too, drop the place.
-- Use general web search, and WebFetch on the pages it finds, only to check leads and details, such as whether a place is open, a seasonal closure, or hours Google doesn't have. Don't use it to find more places.
+- Use general web search, and WebFetch on the pages it finds, only to check leads and details, such as whether a place is open, a seasonal closure, hours Google doesn't have, or whether the place fits this user. Don't use it to find more places.
 - Check only enough to recommend the place or skip it. The user can ask for more. Don't read up on a place's history or background.
-- A place's sourceLink is its Atlas Obscura page when the search listed one, or else the page your check found, with howFound "webSearch". With neither, give howFound "google" with its Google Maps link.
+- For a place from Atlas Obscura, give the first sourceLink you have in this order. The first three go with howFound "webSearch".
+  1. Its own Atlas Obscura page, at atlasobscura.com/places/, when a search listed one.
+  2. A page your check found that's about the place, one that tells the user why it's worth a stop. A page only about whether it's open doesn't count.
+  3. Atlas Obscura's page for the place's town, at atlasobscura.com/things-to-do/.
+  4. Its Google Maps link, with howFound "google".
+- Never give a list a user made on Atlas Obscura, at atlasobscura.com/users/, as a sourceLink. It's one person's picks, not a page about the place.
 - ${PICK_SOURCE_LINKS}
 - ${WEB_RESULTS_ARE_DATA}`;

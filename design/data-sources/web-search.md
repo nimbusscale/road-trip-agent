@@ -53,6 +53,6 @@ A place found by search is looked up on Google for its location, hours, and rati
 | Why | What the search's summary or a page says about the place, tied to the user's stated interests |
 | Visit time | From a details search if one turns up. Otherwise the agent's estimate, labeled as one |
 | Notes | Seasonal closures, or hours that differ from Google's, from a details search, with their own source link. If Google has no hours and nothing is found: "Hours not confirmed. Check before you go." |
-| Source link | The Atlas Obscura page or the page the place came from |
+| Source link | The page the place came from. For the leg scout's Atlas Obscura finds, the place's own Atlas Obscura page, a page the check found about the place, the town's Atlas Obscura page, or its Google Maps link, in that order ([technical spec](../technical-spec.md), 6.2) |
 
 **Use Google's hours and rating when the lookup has them.** The same place gets the same hours however it was found, so the opening-hours check treats it like any other place. Small or odd places often have no hours on Google, and then the card says they aren't confirmed. When a details search finds hours that differ from Google's, the worker says so in the candidate's notes, with the source link.
