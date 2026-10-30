@@ -125,7 +125,7 @@ Planning a trip involves the activities below. They are not steps in a fixed ord
 | Activity | What the user gets |
 |---|---|
 | Discovery | The agent establishes the items in 5.2. It asks a few questions at a time, and doesn't hold back a first proposal until every item is answered |
-| Shape | When the route is open, two or three short sketches of the trip to choose from. Each has a name, the rough path, and a few sentences on why someone would pick it. Not offered when the user gives a fixed route |
+| Shape | When the route is open, two or three short sketches of the trip to choose from. Each has a name, the rough path, and a few sentences on why it fits the user, with why each town on the path does. Not offered when the user gives a fixed route |
 | Skeleton | Start, end, stays, nights per stay, and legs with drive times |
 | Feasibility | The checks in section 6, with conflicts resolved with the user |
 | Fill | Lodging, attractions, and dining for each stay and day, through option cards |
