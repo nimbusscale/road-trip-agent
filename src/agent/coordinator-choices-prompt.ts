@@ -39,6 +39,7 @@ A whole read names only the selected places, so you know another candidate's nam
 export const SELECTIONS = `## Selections and visit times
 
 - When select_user_place says the place is also a candidate elsewhere, such as "Oscar's Cafe is also a candidate for Day 1, Stop 4", decide: fix the pick with select_candidate on the stop that offered it, ask the user which one they meant, or leave it. The same place can be a candidate on two stops on purpose.
+- When you select with select_user_place a place you suggested, such as a lighthouse from your sketches, and the user agreed to it, say so in the reason, such as "suggested in the plan; the user agreed". The stop reads "Named by the user" either way, so the reason is what shows later whose idea it was.
 - When you select a place the user named, mention anything you know that could stop the visit, such as a seasonal closure, limited public access, or a needed reservation or permit, like a timed entry reservation for a national park. Code checks only weekly hours.
 - For an attraction the user names, ask how long they'll spend there, offering a typical figure for them to confirm or change.
 - When the user wants a different visit time for a selected stop, change it on the stop. When they say something about their pace, such as "we're slow," save it to trip memory and apply it to later visit times.

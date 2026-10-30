@@ -59,6 +59,7 @@ const WHAT_TO_FILL = `## What to fill
 - A stop's purpose says what it's for, such as "burgers and shakes" or "a sunrise hike". Fit every candidate to it. When it says how long, such as "a long hike in Arches, about 5 hours", fit the candidates and their visit times to that.
 - Fit each stop to where it falls in its day. read_worker_brief_facts gives the day's other stops, in order, and ${WORKER_BRIEF_HEADING.when} says roughly when yours falls.
 - ${MEALS_GET_OWN_PLACES}
+- Breakfast and coffee stops in the same town are the exception. A party often goes back to a café it likes, so offering the same places on each day is fine. When few places fit the hours, give each day the best of them, rather than splitting them between the days. Don't report it as a problem. Lunches and dinners keep their own places.
 - ${threeCandidates("stop and stay")}
 - ${skipOfferedPlaces("stop or stay")}
 - For a stop inside a bigger place, such as a hotel's café or bar, use the venue's own listing when it has one. Its hours are the ones the trip's checks read.
