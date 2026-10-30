@@ -138,9 +138,8 @@ classDiagram
         tripLengthInDays : integer? #123;keepsValue#125; #123;viaService#125;
         interestsText : string? #123;keepsValue#125;
         mustSeesText : string? #123;keepsValue#125;
-        comfortableDrivingInHours : decimal? #123;keepsValue#125; #123;viaService#125;
+        comfortableDrivingInHours : decimal = default comfortable driving hours #123;viaService#125;
         routePreference : RouteType? #123;keepsValue#125;
-        restDaysText : string? #123;keepsValue#125;
         usualStartTime : time = 8:00 a.m.
         mealPreferencesText : string? #123;keepsValue#125;
         lodgingPreferencesText : string? #123;keepsValue#125;
@@ -406,7 +405,7 @@ The trip is one planned road trip. Everything else in this model belongs to a tr
 
 **Sessions aren't part of the trip.** A session is a conversation about the trip, not part of the plan, so it isn't in this model. The trip doesn't hold its sessions, and nothing here creates one. The [persistence design](persistence.md), section 8.5, covers them.
 
-**A new trip** is created by code outside the trip, when the user starts a new conversation from the home screen. It starts with a trip brief that holds only its usual start time, and an itinerary holding only its last day, with no rejected places or check results.
+**A new trip** is created by code outside the trip, when the user starts a new conversation from the home screen. It starts with a trip brief that holds only its comfortable driving hours, from the default comfortable driving hours setting (technical spec section 10), and its usual start time, and an itinerary holding only its last day, with no rejected places or check results.
 
 **Rules:**
 
@@ -423,7 +422,7 @@ The trip brief holds what the user wants from the trip: the items in functional 
 
 **Held as:** an entity held by the trip. Its `id` has the prefix `brief_` (technical spec 7.1). Agents never see it: a trip has one brief, so the tools find it from the trip.
 
-**Created and changed by:** the app creates it with the trip, empty except for `usualStartTime`. Each item is set directly, except `tripLengthInDays` and `comfortableDrivingInHours`. Their limits are settings, so they change through `TripBriefService` (section 4.2). Today only the coordinator sets them, through the tool `update_trip_brief`. Workers never read it. Each gets the parts it needs in its worker brief (technical spec 5.3).
+**Created and changed by:** the app creates it with the trip, empty except for `comfortableDrivingInHours` and `usualStartTime`. Each item is set directly, except `tripLengthInDays` and `comfortableDrivingInHours`. Their limits are settings, so they change through `TripBriefService` (section 4.2). Today only the coordinator sets them, through the tool `update_trip_brief`. Workers never read it. Each gets the parts it needs in its worker brief (technical spec 5.3).
 
 | Property | Stored or worked out | Type | Notes |
 |---|---|---|---|
@@ -432,9 +431,8 @@ The trip brief holds what the user wants from the trip: the items in functional 
 | `tripLengthInDays` | Stored | `integer?`, keeps its value, via service | How many days the user wants. At least 1. Changes only through `TripBriefService.setTripLength()`, which also refuses more than the maximum trip length (section 4.2). The trip length check compares the itinerary's `dayCount` with it |
 | `interestsText` | Stored | `string?`, keeps its value | In the user's words, with why they matter |
 | `mustSeesText` | Stored | `string?`, keeps its value | In the user's words, with why they matter. A must-see can be one place, an area, a road, or an activity. It records no kind and links to no place. A must-see that is one place is linked through the stop the coordinator selects for it |
-| `comfortableDrivingInHours` | Stored | `decimal?`, keeps its value, via service | How much driving the user is comfortable with in one day. More than 0. Changes only through `TripBriefService.setComfortableDriving()`, which also refuses more than the maximum daily driving (section 4.2). The daily driving check compares each day with it. It's a default, not a hard limit: a day can go over it with a drive hours approval |
+| `comfortableDrivingInHours` | Stored | `decimal`, via service, starts at a setting | How much driving the user is comfortable with in one day. More than 0. It starts at the default comfortable driving hours setting (technical spec section 10), as `usualStartTime` starts at 8:00 a.m. Changes only through `TripBriefService.setComfortableDriving()`, which also refuses more than the maximum daily driving (section 4.2). The daily driving check compares each day with it. It's a default, not a hard limit: a day can go over it with a drive hours approval |
 | `routePreference` | Stored | `RouteType?`, keeps its value | Scenic or fastest. The coordinator steers each day's drive toward it with waypoints, except on a day that holds a route type approval. Code doesn't read it (see Leg) |
-| `restDaysText` | Stored | `string?`, keeps its value | In the user's words, such as "one day off in Moab." The coordinator decides which days, and marks them on the days |
 | `usualStartTime` | Stored | `time`, 8:00 a.m. by default | When the party usually gets going. A day without a start time of its own starts at this time |
 | `mealPreferencesText` | Stored | `string?`, keeps its value | In the user's words, such as "local cafés over hotel breakfast," including how much they like to spend on food, such as "foodies, willing to splurge on good food" |
 | `lodgingPreferencesText` | Stored | `string?`, keeps its value | What the user wants from places to stay, in their words, such as "mid-range for stays of 2+ nights, a B&B in one of the towns." The coordinator passes the words that apply to each stay's researcher (technical spec section 9). Code doesn't read it |
@@ -447,10 +445,10 @@ The trip brief holds what the user wants from the trip: the items in functional 
 
 **Rules:**
 
-- **An item can be changed, but never emptied** (functional spec 10.5: trip brief items can be changed but not forgotten). Every item but `usualStartTime` is `{keepsValue}`, and `usualStartTime` is never empty. The coordinator needs every item it has to plan.
+- **An item can be changed, but never emptied** (functional spec 10.5: trip brief items can be changed but not forgotten). Every item but `comfortableDrivingInHours` and `usualStartTime` is `{keepsValue}`, and those two are never empty. The coordinator needs every item it has to plan.
 - **`tripLengthInDays` is at least 1.** The maximum trip length is a setting, so `TripBriefService` holds that limit (section 4.2).
 - **`comfortableDrivingInHours` is more than 0.** The maximum daily driving is a setting, so `TripBriefService` holds that limit (section 4.2).
-- **A check that compares against an empty item is skipped** (technical spec section 8). Example: during discovery, setting the start and end places routes the last day's leg before the user has given comfortable driving hours, so the daily driving check doesn't run yet.
+- **A check that compares against an empty item is skipped** (technical spec section 8). Example: the trip length check doesn't run before the brief has a trip length. Comfortable driving hours is never empty, so the daily driving check runs from the start.
 - **Changing the brief never changes the itinerary** (see Trip). Example: if the user shortens the trip from five days to four, nothing in the itinerary moves. The trip length check warns, and the coordinator removes a night with the user.
 
 ### 3.3 Check result
@@ -641,7 +639,7 @@ A day is one day of the trip, with a schedule (functional spec 4). There are two
 
 | Property | Stored or worked out | Type | Notes |
 |---|---|---|---|
-| `isRestDay` | Stored | `boolean`, via service, false by default | A day with no driving (functional spec 5.2). The coordinator decides which days, from the trip brief's `restDaysText`. Changes only through `DaysService.setRestDay()` |
+| `isRestDay` | Stored | `boolean`, via service, false by default | A day with no driving (functional spec 5.2). The coordinator decides which days with the user, and keeps a wish for one in memory (technical spec 5.2). Changes only through `DaysService.setRestDay()` |
 
 **LastDay** adds nothing. It's its own kind so that it can't be a rest day, and so that only the itinerary can hold it.
 
