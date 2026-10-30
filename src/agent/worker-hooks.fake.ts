@@ -12,7 +12,6 @@ import {
   type Caller,
   subagentStop,
   toolCall,
-  webSearchCall,
 } from "./fake-hook-inputs.schema.js";
 import { workerHooks } from "./worker-hooks.js";
 
@@ -25,7 +24,6 @@ export const SET_STAY_WEATHER = "mcp__trip__set_stay_weather";
 const REPORT_RESULT = "mcp__worker__report_result";
 
 export const RESEARCHER = { agentId: "a1", agentType: "stay-researcher" };
-export const LEG_SCOUT = { agentId: "a2", agentType: "leg-scout" };
 
 export async function moabHooks() {
   const planned = await plannedMoab();
@@ -74,25 +72,6 @@ export async function moabHooks() {
         .spyOn(planned.fixture.reader, "read")
         .mockRejectedValue(new Error(message)),
   };
-}
-
-// The hook on WebSearch, which runs before each search. It reads nothing from the trip.
-export async function webSearchHook() {
-  const planned = await plannedMoab();
-  const hooks = workerHooks({
-    ...planned.fixture,
-    tripId: planned.example.trip.id,
-  });
-  const hook = hooks.PreToolUse?.find((each) => each.matcher === "WebSearch")
-    ?.hooks[0];
-  if (hook === undefined) {
-    throw new Error("No PreToolUse hook on WebSearch.");
-  }
-  return (
-    caller: Caller,
-    query: string,
-    allowedDomains: string[] | undefined,
-  ) => run(hook, webSearchCall(caller, query, allowedDomains));
 }
 
 function run(hook: HookCallback, input: HookInput): Promise<HookJSONOutput> {

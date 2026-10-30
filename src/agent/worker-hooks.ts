@@ -15,7 +15,6 @@ import {
   agentStatusSchema,
   completedAgentOutputSchema,
 } from "./worker-hook-input.schema.js";
-import { legScoutWebSearchHook } from "./web-search-hook.js";
 import { buildFailedText, workerResultText } from "./worker-result.js";
 import { isWorkerType } from "./worker-types.js";
 
@@ -39,7 +38,6 @@ export type WorkerHooks = Partial<Record<HookEvent, HookCallbackMatcher[]>>;
 // The SDK's names for the hook events, which aren't camelCase.
 const POST_TOOL_USE = "PostToolUse" satisfies HookEvent;
 const SUBAGENT_STOP = "SubagentStop" satisfies HookEvent;
-const PRE_TOOL_USE = "PreToolUse" satisfies HookEvent;
 
 export function workerHooks(given: WorkerHooksGiven): WorkerHooks {
   const calls = new WorkerCalls();
@@ -59,9 +57,6 @@ export function workerHooks(given: WorkerHooksGiven): WorkerHooks {
     [SUBAGENT_STOP]: [
       { hooks: [logged("sending back a worker", sendBack(calls, sendBacks))] },
     ],
-    // Not logged(), since a hook that fails would let the search through. It never
-    // throws: an input it can't read is refused.
-    [PRE_TOOL_USE]: [{ matcher: "WebSearch", hooks: [legScoutWebSearchHook] }],
   };
 }
 

@@ -13,8 +13,8 @@ import { legScoutPrompt } from "./leg-scout-prompt.js";
 import { toolsOn } from "./tool-names.js";
 
 // The leg scout's tools from tool design section 3, each by name, as for the stay
-// researcher (technical spec 6.5). WebSearch is limited to Atlas Obscura by a hook
-// (web-search-hook.ts), and there's no WebFetch, since Atlas Obscura blocks it.
+// researcher (technical spec 6.5). It gets both web tools, as the stay researcher does, to
+// check what it finds on Atlas Obscura (technical spec 6.2).
 export const LEG_SCOUT_TOOLS: readonly string[] = [
   ...toolsOn(TRIP_SERVER_NAME, [
     "read_worker_brief_facts",
@@ -27,6 +27,7 @@ export const LEG_SCOUT_TOOLS: readonly string[] = [
   ]),
   ...toolsOn(WORKER_SERVER_NAME, [REPORT_RESULT_NAME]),
   "WebSearch",
+  "WebFetch",
 ];
 
 // The leg scout's own model and effort settings (technical spec section 10).

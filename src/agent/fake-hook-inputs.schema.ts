@@ -2,7 +2,6 @@ import { randomUUID } from "node:crypto";
 
 import type {
   PostToolUseHookInput,
-  PreToolUseHookInput,
   SubagentStopHookInput,
 } from "@anthropic-ai/claude-agent-sdk";
 
@@ -88,26 +87,5 @@ export function subagentStop(
     agent_transcript_path: "",
     agent_type: agentType,
     last_assistant_message: "I added three places. All done!",
-  };
-}
-
-// A WebSearch call, before it runs. With no domains, the search has no limit, and its
-// input has no allowed_domains.
-export function webSearchCall(
-  caller: Caller,
-  query: string,
-  allowedDomains: string[] | undefined,
-): PreToolUseHookInput {
-  return {
-    ...BASE,
-    hook_event_name: "PreToolUse",
-    ...("agentId" in caller ? { agent_id: caller.agentId } : {}),
-    agent_type: caller.agentType,
-    tool_name: "WebSearch",
-    tool_input:
-      allowedDomains === undefined
-        ? { query }
-        : { query, allowed_domains: allowedDomains },
-    tool_use_id: randomUUID(),
   };
 }
