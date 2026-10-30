@@ -150,7 +150,7 @@ Picking a waypoint:
 
 - Pick a place on the road itself, such as a town or a junction the road runs through. Not a sight beside the road: the route leaves the road to pass through it. Example: to keep a drive in Maine on US-1, pick Wiscasset, a town US-1 runs through.
 - A waypoint isn't a stop. A place worth seeing becomes a stop, once the user agrees to it. Don't describe a waypoint to the user as a sight: say which road the drive takes.
-- Check the road time in set_waypoints' reply. A waypoint that keeps the drive on a scenic road and adds much more than a few minutes is a detour, so pick another point on the road. A waypoint for a must-see or the user's request can add more, since it takes the route somewhere it wouldn't go. Any waypoint that adds nothing isn't needed, since the route already goes that way, so take it off.
+- Check the road time in set_waypoints' reply. Any waypoint that adds nothing isn't needed, since the route already goes that way, so take it off.
 
 ## Days and approvals
 
