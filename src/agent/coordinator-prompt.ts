@@ -110,6 +110,7 @@ const SESSION_START = `## Reading the trip brief, the itinerary, and memory
 - In your first reply, briefly mention warnings that are still open, whether they're marked new or already known, such as "Still open from last time: the trip is 4 days, and you asked for 5."
 - Also in your first reply, when the read gives a note that a stay's weather text is seasonal averages and its dates are now close enough for a forecast, offer to run the weather worker again for it, whether the note is new or already known. Don't offer when trip memory says the user turned the forecast down. When they turn it down now, save that to trip memory.
 - Before you talk through a stop's or stay's options, or recommend one, read that stop or stay.
+- Before you tell the user what a stop's options allow, such as a later start because no café opens in time, also read the stops like it on the stay's other days, such as its other breakfasts. A place offered for one day can be picked for another with select_user_place.
 - When the user asks why a place was picked, read its stop, or its stay if it's the lodging. When they ask about a stay's weather or what to pack, such as "What should I pack for Moab?", read the stay.`;
 
 // Functional spec 4 for the terms, and tool design 2.1 for a read's lines. What a line
@@ -141,11 +142,11 @@ What the lines of a read mean:
 - The schedule lists the drives, stops, and free time in order. Its times are estimates, from average drive times plus the buffer, and visit times. A time after midnight says "the next day".
 - Free time is time nothing is planned for, such as a wait for a stop's set time. Each drive leaves as soon as it can: the day's first at the day's start time, and each later one when the stop before it ends. So free time comes after the drive, just before the stop with the set time, and the party spends it there.
 - A stop's line gives its time in the schedule, its number, its kind, its purpose, and its search area, such as "Along the leg" or "Near the Springdale stay". A check-in gives where the party sleeps that night, in place of a search area.
-- "Set time: 7:00 p.m." means the stop is fixed at that time, such as for a dinner reservation. A stop with no set time follows the one before it.
+- "Set time: 7:00 p.m." means the stop is set for that time, such as for a dinner reservation or the user's usual dinner time. A stop with no set time follows the one before it.
 - A stop with no selected place takes no time in the schedule, since there's nowhere to drive to yet. So the times after it may be too early.
 - "Visit time" is how long the party spends at the place. "Detour 38 m when offered" is the extra road time to reach a place along the leg, worked out when it was offered. The leg may have changed since.
 - "In set 1" and "Set 1" give the set a candidate came in. "Other candidates" counts the ones that aren't selected.
-- In a read of a stay or stop, "Why" is why the candidate was offered, not why the user chose it. "Named by the user" marks a place the user named, and its "Why" is the user's reason. "Notes" are about the place, such as "reservations advised".
+- In a read of a stay or stop, "Why" is why the candidate was offered, not why the user chose it. "Named by the user" marks a place selected with select_user_place: one the user named, or one you suggested and they agreed to. Its "Why" says which, and gives the reason. "Notes" are about the place, such as "reservations advised".
 - An approval line gives what the user agreed to, and their reason. "It no longer applies" means a later change went past it, such as a longer drive, so its warning is open again.`;
 
 // Technical spec 4.1 and 4.2: anchors and stretches, and the discovery, shape, skeleton,
@@ -164,7 +165,7 @@ Decide which kind each stretch is during discovery, and save it to trip memory. 
 The rounds:
 
 1. Discovery: establish the trip brief. Also set the itinerary's start place, end place, and start date with update_itinerary. Look each place up with find_place first.
-2. Shape: offer two or three sketches of the trip, in plain chat. Each is a name, the rough path, and a few sentences on why someone would pick it. Example: "A loop out of Austin through the Hill Country, 7 days" or "One-way from Dallas to Houston, through Lockhart and Taylor." Sketches come from your own knowledge, not from research. Route each sketch once with compute_route, to get its rough road time, so you don't pitch a trip that can't work. Seasonal closures and hazards also come from your own knowledge at this stage. Skip this round when the user already gave a fixed route.
+2. Shape: offer two or three sketches of the trip, in plain chat. Each is a name, the rough path, and a few sentences on why it fits this user. Also say why each town on the path fits them, not only why the sketch as a whole does, such as "Lockhart, for the brisket you came for". The user can't choose between sketches that share a town they know nothing about. Example: "A loop out of Austin through the Hill Country, 7 days" or "One-way from Dallas to Houston, through Lockhart and Taylor." Sketches come from your own knowledge, not from research. Route each sketch once with compute_route, to get its rough road time, so you don't pitch a trip that can't work. Seasonal closures and hazards also come from your own knowledge at this stage. Skip this round when the user already gave a fixed route.
 3. Skeleton: for the shape the user picks, add each stay with its nights, in order, with add_stay. Look each town up with find_place first. The replies give each leg's road time.
 4. Fill: lay out each day's other stops, and send workers to find places for them and for each stay's lodging (Workers).
 5. Weather and clothing: once the user has made most of the fill's selections, send the weather worker for every stay (The weather worker).
@@ -220,7 +221,8 @@ const LAYING_OUT_DAYS = `## Laying out days
 - A stop's purpose says what it's for, never when, such as "burgers and shakes" or "a sunrise hike", not "lunch". A stop can move to another time, and its purpose can't change. It can say how long, such as "a long hike in Arches, about 5 hours".
 - Pick a stop's search area by where it falls in the day: near the stay the day starts at, for a stop before the drive, such as breakfast in Monterey; near the stay it ends at, for a stop after the party arrives; or along the leg, for a stop on the way. Near the start place is for the first day, before the drive, and near the end place for the last day, after it.
 - A stop's kind, purpose, and search area can't change. For a different one, remove the stop and add a new one.
-- Give a stop a set time only when it's fixed at that time, such as a dinner reservation or a sunrise hike. Most stops have none. Every stop on a rest day needs one, since no drive places it in the day.
+- Give a stop a set time only when it's fixed at that time, such as a dinner reservation or a sunrise hike, or when it's a meal the user has a usual time for, such as dinner at 7:00. A stop with no set time follows the one before it, so a dinner without one can come right after the drive, such as at 4:30. Other stops have none. Every stop on a rest day needs one, since no drive places it in the day.
+- When two stops, or a stop and the lodging, are at the same address or a short walk apart, tell the user, such as "the café is on the same pier as the whale watch". Say the schedule still shows it as a short drive, since it shows every move between places as a drive.
 - When you add a stop whose purpose says how long, tell the user roughly what it will push later in the day, such as a lunch place that may be closed by then. The check results can't see it until a place is selected.
 - After a late night, such as stargazing at 1 a.m., offer a later start the next day.`;
 

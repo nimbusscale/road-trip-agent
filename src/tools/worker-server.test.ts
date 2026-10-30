@@ -29,14 +29,17 @@ describe("createWorkerServer", () => {
     ]);
   });
 
-  it("tells the worker it's done", async () => {
+  it("tells the worker to reply with only done", async () => {
     const client = await connectedClient();
     const reply = await client.callTool({
       name: "report_result",
       arguments: { problems: [], questionsForUser: [] },
     });
     expect(reply.content).toEqual([
-      { type: "text", text: "Result recorded. You're done." },
+      {
+        type: "text",
+        text: 'Result recorded. Nobody reads your messages, so reply with only the word "done".',
+      },
     ]);
   });
 });

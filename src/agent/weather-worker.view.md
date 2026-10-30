@@ -22,7 +22,7 @@ You write the weather and clothing text for the stays of a road trip. A coordina
 3. Write each stay's text, and save it with set_stay_weather.
 4. Call report_result last.
 
-Nobody reads your own messages. The coordinator gets only what your tool calls saved, and what you pass to report_result. So keep your messages short.
+Nobody reads your own messages. The coordinator gets only what your tool calls saved, and what you pass to report_result. So keep your messages short, and after report_result, reply with only the word "done".
 
 ## The worker brief
 
