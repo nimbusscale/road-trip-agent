@@ -34,6 +34,47 @@ export function shownMessagesOf(lines: readonly unknown[]): ShownMessage[] {
 // So the next turn is this plus one, and an evaluation finds that turn's message in the
 // transcript by the same count (persistence design, section 8.9).
 export function userMessageCount(lines: readonly unknown[]): number {
-  return shownMessagesOf(lines).filter((message) => message.role === "user")
-    .length;
+  return userMessageLinesOf(lines).length;
+}
+
+// For evaluation tooling: where turn `turn`'s user message is in the coordinator's
+// transcript lines, counted as userMessageCount() counts them. The message has to end
+// with the words its trip version saved, after any lines the app added. If it doesn't,
+// the count no longer matches the one the version was saved with, so this throws rather
+// than pair the version with the wrong moment (persistence design, section 8.9).
+export function turnMessageIndex(
+  lines: readonly unknown[],
+  turn: number,
+  userMessage: string,
+): number {
+  if (userMessage === "") {
+    throw new Error(
+      `Turn ${String(turn)}'s trip version has no user message, so its place in the transcript can't be checked.`,
+    );
+  }
+  const found = userMessageLinesOf(lines)[turn - 1];
+  if (found === undefined) {
+    throw new Error(`The transcript has no turn ${String(turn)}.`);
+  }
+  if (found.text !== userMessage && !found.text.endsWith(`\n${userMessage}`)) {
+    throw new Error(
+      `Turn ${String(turn)}'s message in the transcript isn't the one its trip version saved.`,
+    );
+  }
+  return found.index;
+}
+
+// Each user message the browser shows, with its line's place in the list, and its text
+// as stored, with the app's lines.
+function userMessageLinesOf(
+  lines: readonly unknown[],
+): { index: number; text: string }[] {
+  return lines.flatMap((line, index) => {
+    const parsed = shownLineSchema.safeParse(line);
+    return parsed.success &&
+      parsed.data.role === "user" &&
+      parsed.data.text !== ""
+      ? [{ index, text: parsed.data.text }]
+      : [];
+  });
 }
