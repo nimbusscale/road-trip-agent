@@ -47,7 +47,7 @@ describe("the chat's turns", () => {
     ]);
     const [call] = chat.sdk.calls;
     expect(call?.message).toBe(
-      "Today is Thursday, October 15, 2026.\n\nPlan a trip to Utah",
+      "For planning this trip, today's date is Thursday, October 15, 2026.\n\nPlan a trip to Utah",
     );
     const agentSessionId = chat.sessionStore.rows[0]?.agentSessionId;
     expect(call?.options.sessionId).toBe(agentSessionId);
@@ -79,7 +79,7 @@ describe("the chat's turns", () => {
     ]);
     expect(chat.sdk.calls.map((call) => call.message).slice(1)).toEqual([
       "Five days.",
-      `Today is Thursday, October 15, 2026.\n${RESUMED_LINE}\n\nMake it six.`,
+      `For planning this trip, today's date is Thursday, October 15, 2026.\n${RESUMED_LINE}\n\nMake it six.`,
     ]);
     expect(sessionResponseSchema.parse(await resumed.json())).toEqual({
       sessionId,
@@ -228,7 +228,7 @@ describe("the chat's turns", () => {
     await eventsOf(created);
     const [call] = chat.sdk.calls;
     expect(call?.message).toBe(
-      "Today is Thursday, October 15, 2026.\n\nWhat's left to decide?",
+      "For planning this trip, today's date is Thursday, October 15, 2026.\n\nWhat's left to decide?",
     );
     expect(call?.options.env?.TZ).toBe("America/Denver");
   });

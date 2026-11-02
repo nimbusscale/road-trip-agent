@@ -15,7 +15,7 @@ describe("AppLines", () => {
   it("adds today's date to the first message, and not again on the same date", () => {
     const lines = new AppLines(false);
     expect(lines.addTo("Hi!", FRIDAY, null)).toBe(
-      "Today is Friday, October 23, 2026.\n\nHi!",
+      "For planning this trip, today's date is Friday, October 23, 2026.\n\nHi!",
     );
     expect(lines.addTo("Five days.", FRIDAY, null)).toBe("Five days.");
   });
@@ -24,7 +24,7 @@ describe("AppLines", () => {
     const lines = new AppLines(false);
     lines.addTo("Hi!", FRIDAY, null);
     expect(lines.addTo("Back again.", SATURDAY, null)).toBe(
-      "Today is Saturday, October 24, 2026.\n\nBack again.",
+      "For planning this trip, today's date is Saturday, October 24, 2026.\n\nBack again.",
     );
   });
 
@@ -34,14 +34,14 @@ describe("AppLines", () => {
     const lines = new AppLines(false);
     lines.addTo("Hi!", SATURDAY, null);
     expect(lines.addTo("We start in Austin.", FRIDAY, null)).toBe(
-      "Today is Friday, October 23, 2026.\n\nWe start in Austin.",
+      "For planning this trip, today's date is Friday, October 23, 2026.\n\nWe start in Austin.",
     );
   });
 
   it("adds the resumed line to the first message after a resume only", () => {
     const lines = new AppLines(true);
     expect(lines.addTo("Where were we?", FRIDAY, null)).toBe(
-      `Today is Friday, October 23, 2026.\n${RESUMED_LINE}\n\nWhere were we?`,
+      `For planning this trip, today's date is Friday, October 23, 2026.\n${RESUMED_LINE}\n\nWhere were we?`,
     );
     expect(lines.addTo("Five days.", FRIDAY, null)).toBe("Five days.");
   });
@@ -50,7 +50,7 @@ describe("AppLines", () => {
     const lines = new AppLines(true);
     const card = { holderId: "stay_k7m2x9qa", placeId: "place_p3w8n4rt" };
     expect(lines.addTo("Select Red Cliffs Lodge.", FRIDAY, card)).toBe(
-      `Today is Friday, October 23, 2026.\n${RESUMED_LINE}\nFrom an option card: stay_k7m2x9qa, place_p3w8n4rt.\n\nSelect Red Cliffs Lodge.`,
+      `For planning this trip, today's date is Friday, October 23, 2026.\n${RESUMED_LINE}\nFrom an option card: stay_k7m2x9qa, place_p3w8n4rt.\n\nSelect Red Cliffs Lodge.`,
     );
     expect(
       lines.addTo("More options.", FRIDAY, {
@@ -70,6 +70,18 @@ describe("AppLines", () => {
     );
     expect(lines.addTo("Six days.", FRIDAY, null)).toBe("Six days.");
   });
+
+  it("gives a run's first message exactly the recorded turn's lines", () => {
+    const recorded = [RESUMED_LINE, "From an option card: stop_k7m2x9qa."];
+    const lines = AppLines.recorded(recorded);
+    lines.markMemoryForgotten();
+    expect(lines.addTo("More options.", FRIDAY, null)).toBe(
+      `${RESUMED_LINE}\nFrom an option card: stop_k7m2x9qa.\n\nMore options.`,
+    );
+    expect(AppLines.recorded([]).addTo("Five days.", FRIDAY, null)).toBe(
+      "Five days.",
+    );
+  });
 });
 
 describe("withoutAppLines", () => {
@@ -79,6 +91,15 @@ describe("withoutAppLines", () => {
     const message = "Five days.\n\nMaybe six.";
     const card = { holderId: "stop_k7m2x9qa", placeId: null };
     expect(withoutAppLines(lines.addTo(message, FRIDAY, card))).toBe(message);
+  });
+
+  // Sessions recorded before the wording changed keep the old one (#245).
+  it("takes off a date line in the wording before #245", () => {
+    expect(
+      withoutAppLines(
+        `Today is Friday, October 23, 2026.\n${RESUMED_LINE}\n\nWhere were we?`,
+      ),
+    ).toBe("Where were we?");
   });
 
   it("leaves a message with no app lines as it is", () => {

@@ -73,6 +73,7 @@ async function chat(): Promise<void> {
       pool,
       settings,
       processEnv: process.env,
+      now: () => new Date(),
     });
     const turns = terminalTurns(given, pool, commit);
     const { conversation, firstText } = await start(

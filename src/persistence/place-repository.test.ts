@@ -129,19 +129,19 @@ describe("PlaceRepository", () => {
     const connection = new FakeConnection();
     const repository = new PlaceRepository(connection);
     expect(await repository.addPlaces(TRIP_ID, [])).toEqual([]);
-    await repository.fillNames([]);
+    await repository.fillNames(TRIP_ID, []);
     expect(connection.calls).toEqual([]);
   });
 
-  it("fills a name only where the row has none", async () => {
+  it("fills a name only where the trip's row has none", async () => {
     const connection = new FakeConnection();
     const address = exampleAddress();
     address.fillName("Mike's house");
-    await new PlaceRepository(connection).fillNames([address]);
+    await new PlaceRepository(connection).fillNames(TRIP_ID, [address]);
     expect(connection.calls).toEqual([
       {
-        text: "UPDATE places SET name = $2 WHERE id = $1 AND name IS NULL",
-        values: [address.id, "Mike's house"],
+        text: "UPDATE places SET name = $3 WHERE trip_id = $1 AND id = $2 AND name IS NULL",
+        values: [TRIP_ID, address.id, "Mike's house"],
       },
     ]);
   });

@@ -100,7 +100,10 @@ export async function startLocalTrip(
   if (await local.hasTrip(session.tripId)) {
     await writer.deleteTrip(session.tripId);
   }
-  await local.removeMemoryItems(memory.map((item) => item.id));
+  await local.removeMemoryItems(
+    trip.ownerId,
+    memory.map((item) => item.id),
+  );
   const userMemoryBefore = memory.filter(
     (item) => item.tripId === null && item.createdDateTime < firstTurnAt,
   );
@@ -138,6 +141,7 @@ export function newReplay(
   );
   return {
     tripId: session.tripId,
+    ownerId: trip.ownerId,
     tools: replayTools(pool, writer, settings, { live, clock }),
     clock,
     seen,
@@ -175,7 +179,7 @@ function replayTools(
     now: () => clock.at,
   });
   const memory = memoryTools({
-    ...memoryAccessFor({ pool, settings }),
+    ...memoryAccessFor({ pool, settings, now: () => clock.at }),
     userId: live.trip.ownerId,
     tripId,
   });

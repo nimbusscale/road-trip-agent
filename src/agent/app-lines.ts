@@ -20,9 +20,19 @@ export class AppLines {
   #lastDate: CalendarDate | null = null;
   #resumedLinePending: boolean;
   #forgottenLinePending = false;
+  #recordedLines: readonly string[] | null = null;
 
   constructor(resumed: boolean) {
     this.#resumedLinePending = resumed;
+  }
+
+  // For a run from a recorded turn (#245): the first message gets exactly the recorded
+  // turn's lines, and none of the app's own, so the coordinator can't tell the run from
+  // the recorded session.
+  static recorded(lines: readonly string[]): AppLines {
+    const appLines = new AppLines(false);
+    appLines.#recordedLines = lines;
+    return appLines;
   }
 
   markMemoryForgotten(): void {
@@ -34,9 +44,14 @@ export class AppLines {
     today: CalendarDate,
     optionCard: OptionCardIds | null,
   ): string {
+    if (this.#recordedLines !== null) {
+      const recorded = this.#recordedLines;
+      this.#recordedLines = null;
+      return withLines(recorded, text);
+    }
     const lines: string[] = [];
     if (this.#lastDate === null || today.compareTo(this.#lastDate) !== 0) {
-      lines.push(`Today is ${today.longText}.`);
+      lines.push(dateLine(today.longText));
       this.#lastDate = today;
     }
     if (this.#resumedLinePending) {
@@ -50,8 +65,20 @@ export class AppLines {
     if (optionCard !== null) {
       lines.push(optionCardLine(optionCard));
     }
-    return lines.length === 0 ? text : [...lines, "", text].join("\n");
+    return withLines(lines, text);
   }
+}
+
+// The app's lines, then a blank line, then the user's own words.
+function withLines(lines: readonly string[], text: string): string {
+  return lines.length === 0 ? text : [...lines, "", text].join("\n");
+}
+
+// Such as "For planning this trip, today's date is Sunday, October 10, 2027." It names
+// the trip, so it doesn't read like Claude Code's own date line, which a run from a
+// recorded turn can't match (technical spec 5.2).
+export function dateLine(longDate: string): string {
+  return `${DATE_LINE_START}${longDate}.`;
 }
 
 // Such as "From an option card: stop_k7m2x9qa, place_p3w8n4rt."
@@ -60,25 +87,49 @@ function optionCardLine({ holderId, placeId }: OptionCardIds): string {
   return `${OPTION_CARD_LINE_START} ${ids.join(", ")}.`;
 }
 
-// Such as "Today is Sunday, October 10, 2027."
-const DATE_LINE = /^Today is [A-Z][a-z]+, [A-Z][a-z]+ \d{1,2}, \d{4}\.$/;
+const DATE_LINE_START = "For planning this trip, today's date is ";
+
+// A date as longText gives it, such as "Sunday, October 10, 2027".
+const LONG_DATE = String.raw`[A-Z][a-z]+, [A-Z][a-z]+ \d{1,2}, \d{4}`;
+
+const DATE_LINE = new RegExp(String.raw`^${DATE_LINE_START}${LONG_DATE}\.$`);
+
+// The date line's wording before #245, such as "Today is Sunday, October 10, 2027."
+// Sessions started before then keep it in their earlier messages.
+const OLD_DATE_LINE = new RegExp(String.raw`^Today is ${LONG_DATE}\.$`);
 
 const OPTION_CARD_LINE = /^From an option card: [a-z0-9_, ]+\.$/;
+
+function isAppLine(line: string): boolean {
+  return (
+    line === RESUMED_LINE ||
+    line === FORGOTTEN_LINE ||
+    DATE_LINE.test(line) ||
+    OLD_DATE_LINE.test(line) ||
+    OPTION_CARD_LINE.test(line)
+  );
+}
+
+// The lines the app added to the start of a stored message, and the user's own words
+// after them. A message with no app lines has none.
+export function appLinesOf(message: string): {
+  lines: string[];
+  ownWords: string;
+} {
+  const lines = message.split("\n");
+  const firstOwn = lines.findIndex((line) => !isAppLine(line));
+  // The app's lines are followed by one blank line.
+  if (firstOwn <= 0 || lines[firstOwn] !== "") {
+    return { lines: [], ownWords: message };
+  }
+  return {
+    lines: lines.slice(0, firstOwn),
+    ownWords: lines.slice(firstOwn + 1).join("\n"),
+  };
+}
 
 // The user's own words from a stored message, without the lines the app added, for
 // showing a resumed session. A message with no app lines comes back as it is.
 export function withoutAppLines(message: string): string {
-  const lines = message.split("\n");
-  const firstOwn = lines.findIndex(
-    (line) =>
-      line !== RESUMED_LINE &&
-      line !== FORGOTTEN_LINE &&
-      !DATE_LINE.test(line) &&
-      !OPTION_CARD_LINE.test(line),
-  );
-  // The app's lines are followed by one blank line.
-  if (firstOwn <= 0 || lines[firstOwn] !== "") {
-    return message;
-  }
-  return lines.slice(firstOwn + 1).join("\n");
+  return appLinesOf(message).ownWords;
 }

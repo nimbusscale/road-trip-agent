@@ -109,11 +109,17 @@ export class LocalRebuildRepository extends TripRowReader {
     return countRowSchema.parse(rows[0]) > 0;
   }
 
-  // An earlier run's user memory items. Trip memory goes with the trip.
-  async removeMemoryItems(ids: readonly string[]): Promise<void> {
-    await this.connection.query("DELETE FROM memory_items WHERE id = ANY($1)", [
-      ids,
-    ]);
+  // An earlier run's user memory items. Trip memory goes with the trip. A run from a
+  // recorded turn (#245) keeps copies with the same IDs for its own test user, so only
+  // the owner's are removed.
+  async removeMemoryItems(
+    userId: string,
+    ids: readonly string[],
+  ): Promise<void> {
+    await this.connection.query(
+      "DELETE FROM memory_items WHERE user_id = $1 AND id = ANY($2)",
+      [userId, ids],
+    );
   }
 
   async userMemoryCount(userId: string): Promise<number> {
@@ -136,10 +142,10 @@ export class LocalRebuildRepository extends TripRowReader {
     );
   }
 
-  async hasPlace(placeId: string): Promise<boolean> {
+  async hasPlace(tripId: string, placeId: string): Promise<boolean> {
     const { rows } = await this.connection.query(
-      "SELECT count(*) AS count FROM places WHERE id = $1",
-      [placeId],
+      "SELECT count(*) AS count FROM places WHERE trip_id = $1 AND id = $2",
+      [tripId, placeId],
     );
     return countRowSchema.parse(rows[0]) > 0;
   }
@@ -159,10 +165,14 @@ export class LocalRebuildRepository extends TripRowReader {
 
   // Today's code saves a memory item with the time it runs. The live row's time keeps
   // the items in the order the coordinator read them.
-  async setMemoryCreated(itemId: string, at: Date): Promise<void> {
+  async setMemoryCreated(
+    userId: string,
+    itemId: string,
+    at: Date,
+  ): Promise<void> {
     await this.connection.query(
-      "UPDATE memory_items SET created_date_time = $2 WHERE id = $1",
-      [itemId, at],
+      "UPDATE memory_items SET created_date_time = $3 WHERE user_id = $1 AND id = $2",
+      [userId, itemId, at],
     );
   }
 }

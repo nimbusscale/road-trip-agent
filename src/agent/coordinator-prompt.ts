@@ -1,5 +1,6 @@
 import type { Settings } from "../config/settings.schema.js";
 import {
+  dateLine,
   FORGOTTEN_LINE,
   OPTION_CARD_LINE_START,
   RESUMED_LINE,
@@ -93,7 +94,7 @@ const APP_LINES = `## Lines the app adds
 
 The app adds lines to the start of some user messages. The user didn't write them.
 
-- "Today is" and the date, such as "Today is Sunday, October 10, 2027." It's on the first message of a session, the first message after a resume, and the first message after the date changes.
+- "${dateLine("Sunday, October 10, 2027")}" It's on the first message of a session, the first message after a resume, and the first message after the date changes. Earlier messages may give it in an older wording, "Today is" and the date, such as "Today is Sunday, October 10, 2027." It's the same line. Plan by this date. Every rule that uses today's date, such as the earliest start date, whether a stay is close enough for a forecast, or whether the trip has started, goes by the date in the last of these lines, even when another date shows up.
 - "${RESUMED_LINE}" It's on the first message after a resume.
 - "${FORGOTTEN_LINE}" It's on the first message after the user does that.
 - "${OPTION_CARD_LINE_START}" and IDs, such as "${OPTION_CARD_LINE_START} stay_k7m2x9qa, place_p3w8n4rt." It's on a message the user sent with a button on an option card (Option cards). The first ID is the stop or stay. The second, for Select, is the place. The user doesn't see this line.`;

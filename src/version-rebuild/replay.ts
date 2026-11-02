@@ -20,6 +20,8 @@ export interface ReplayClock {
 
 export interface Replay {
   readonly tripId: string;
+  // The trip's owner, whose memory the coordinator reads.
+  readonly ownerId: string;
   // Each tool, by its name as the model sees it, such as mcp__trip__read_itinerary.
   readonly tools: ReadonlyMap<string, StrictToolDefinition>;
   readonly clock: ReplayClock;
@@ -89,7 +91,7 @@ async function copyPlaces(
   ids: readonly string[],
 ): Promise<void> {
   for (const id of ids.filter((each) => each.startsWith("place_"))) {
-    if (await replay.local.hasPlace(id)) {
+    if (await replay.local.hasPlace(replay.tripId, id)) {
       continue;
     }
     const row = replay.livePlaces.get(id);
@@ -204,7 +206,7 @@ async function keepMemoryTimes(
 ): Promise<void> {
   for (const id of newIds.filter((each) => each.startsWith("mem_"))) {
     const at = replay.liveMemory.get(id)?.createdDateTime ?? call.answeredAt;
-    await replay.local.setMemoryCreated(id, at);
+    await replay.local.setMemoryCreated(replay.ownerId, id, at);
   }
 }
 

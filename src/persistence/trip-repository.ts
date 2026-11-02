@@ -87,7 +87,7 @@ export class TripRepository implements TripStore {
       trip.id,
       JSON.stringify(planDocumentOf(trip)),
     ]);
-    await this.#places.fillNames(editableTrip.namedPlaces);
+    await this.#places.fillNames(trip.id, editableTrip.namedPlaces);
   }
 
   // Takes the row lock, so it has to run inside a transaction (TripWriter's). "For

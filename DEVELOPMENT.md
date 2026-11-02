@@ -23,6 +23,7 @@ Claude Code writes the code, Joe reviews the code he cares about, and the tools 
 | `npm run ask-claude` | Sends Claude one question through the Agent SDK, on the plan's token, and prints the reply. Dev only. A question can follow, as in `npm run ask-claude -- "your question"` |
 | `npm run chat` | Chats with the coordinator in the terminal, against the local database, and prints each tool call and its reply. Dev only. With no options, it starts a new trip for a dev user. `-- --user <uuid>` starts one for another user, `-- --trip <trip ID>` starts a new session on a trip, and `-- --resume <session ID>` resumes a session. Ctrl-D ends it |
 | `npm run rebuild-versions` | Rebuilds the trip versions of a session recorded before versions were saved (persistence design, section 8.9). One-time, dev only. It reads the live database through the SSH tunnel to the server's Postgres, and needs its login in `LIVE_POSTGRES_PORT`, `LIVE_POSTGRES_USER`, `LIVE_POSTGRES_PASSWORD`, and `LIVE_POSTGRES_DB`. The comment at the top of `src/version-rebuild/rebuild-versions.ts` gives its options |
+| `npm run run-turn` | Starts a run from one turn of a recorded session, and runs that turn on today's code, for an agent evaluation (persistence design, section 8.9). Dev only. Section 5 says how to use it |
 | `npm run build` | Builds the app into `dist/app` and the front end into `dist/web`, as the images do |
 | `npm run check` | Runs every check below, stopping at the first failure |
 | `npm run format` | Formats the code in `src/` and `web/` with Prettier |
@@ -93,6 +94,18 @@ A worker's result isn't on the list. Code builds it from the worker's recorded c
 **A fix for a bug comes with a test that fails without the fix, and passes with it.** The test goes through the path where the bug was, not only the part the fix changed. Check it against the code without the fix. This applies to fixes for review findings too ([code review design](design/code-review.md), section 3.4).
 
 **Each agent has a view file of what its model sees on every turn,** such as `src/agent/coordinator.view.md`. It holds the agent's model and effort, then its system prompt, built with the real `settings.json`, then each tool's name, description, and input JSON Schema, as an MCP client lists them. Those are the tools in the agent's definition (technical spec 6.5). A built-in tool, such as `Agent` or `WebSearch`, is listed by name only, since Claude Code writes its text. The coordinator's view also lists each worker type's description and tools, as the coordinator is told about them. So a PR's diff of the file is the change to what the model sees, with the numbers filled in. A note at its top says it leaves out the text Claude Code adds, such as the SDK's first line of every system prompt, and gives an example of each part ([research](research/agent-evaluations.md), section 2.9). It's a reminder for when an agent does something odd. Each turn's trace holds the commit of the code that ran, so the view files at that commit show what each agent was given ([systems design](design/systems.md), section 10). A test (`src/agent/agent-views.test.ts`) builds each view and fails, with the lines that differ, when it doesn't match the file. A change to anything an agent reads, or to a setting it shows, comes with its rewritten view file in the same commit. Run `npm run agent-views` to rewrite it. Each issue that adds an agent adds its view to the test.
+
+**A run starts from any turn of a recorded session,** with `npm run run-turn` (persistence design, section 8.9). It gives the coordinator the conversation before that turn, as recorded, and the trip as it stood when the turn started. Then it runs that one turn on today's code, with the recorded message or a new one:
+
+```sh
+npm run run-turn -- <agent session ID> <turn> --recorded-message
+npm run run-turn -- <agent session ID> <turn> --message "Can we add a night in Camden?"
+```
+
+- **It reads the session from the live database,** through an SSH tunnel to the server's Postgres. The local Postgres already has port 5432, so the tunnel uses another, such as `ssh -N -L 15432:127.0.0.1:5432 root@projects.jjk3.com`. The login is the server's `.env` values, in `LIVE_POSTGRES_PORT` (the tunnel's port), `LIVE_POSTGRES_USER`, `LIVE_POSTGRES_PASSWORD`, and `LIVE_POSTGRES_DB`. It writes nothing there.
+- **The turn runs against the local database,** so the local Postgres needs to be up, and migrated. Bring up the Phoenix tunnel too (section 2), or the turn's trace is lost.
+- **It prints the run's new user, trip, session, and agent session IDs,** each tool call, the turn's span ID, and the reply. A scorer reads what the turn saved from the local database by those IDs. Each run leaves its rows there.
+- **The session needs a trip version for the turn,** with its user message. A session recorded before versions were saved needs `npm run rebuild-versions` first.
 
 **Tests that need the real agent run on their own,** outside `npm run check`. Examples: the acceptance scenarios (functional spec 11) and the memory tests (technical spec 3.1). They cost money and their results vary from run to run. How they run is settled when the first one is written.
 

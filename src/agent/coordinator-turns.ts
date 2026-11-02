@@ -71,6 +71,12 @@ export class CoordinatorTurns {
     this.#appLines.set(sessionId, new AppLines(true));
   }
 
+  // A run from a recorded turn (#245): the next message gets exactly the recorded turn's
+  // app lines, and none of the app's own, such as the resumed line.
+  markRecorded(sessionId: string, appLines: readonly string[]): void {
+    this.#appLines.set(sessionId, AppLines.recorded(appLines));
+  }
+
   // The user forgot memory items in the chat view, so the next message tells the
   // coordinator to read memory again. A session with no lines kept here gets the resumed
   // line on its next message, which says that already.

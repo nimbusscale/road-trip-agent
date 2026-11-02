@@ -64,13 +64,14 @@ function chatDependencies(
   settings: Settings,
   commit: string,
 ): ChatDependencies {
+  const now = (): Date => new Date();
   const coordinator = coordinatorAccessFor({
     env,
     pool,
     settings,
     processEnv: process.env,
+    now,
   });
-  const now = (): Date => new Date();
   return {
     trips: { reader: coordinator.trip.reader, writer: coordinator.trip.writer },
     sessions: sessionAccessFor(pool),
