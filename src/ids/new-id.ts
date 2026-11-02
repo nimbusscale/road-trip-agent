@@ -21,8 +21,23 @@ export type IdKind = keyof typeof ID_PREFIXES;
 export const ID_CHARACTERS = "abcdefghjkmnpqrstuvwxyz23456789";
 export const ID_RANDOM_LENGTH = 8;
 
+// Chooses the ID for a new item, or leaves it random by returning undefined.
+export type IdChooser = (kind: IdKind) => string | undefined;
+
+let idChooser: IdChooser | null = null;
+
+// Only for rebuilding a session's trip versions (#244), which replays its recorded calls
+// and gives each new item the ID its recorded reply gave it. The app never sets one.
+export function chooseNewIdsWith(chooser: IdChooser | null): void {
+  idChooser = chooser;
+}
+
 // Random, not counted, so an ID an agent makes up doesn't land on a real item.
 export function newId(kind: IdKind): string {
+  const chosen = idChooser?.(kind);
+  if (chosen !== undefined) {
+    return chosen;
+  }
   let random = "";
   for (let index = 0; index < ID_RANDOM_LENGTH; index++) {
     random += ID_CHARACTERS.charAt(randomInt(ID_CHARACTERS.length));
