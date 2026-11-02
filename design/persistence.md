@@ -51,6 +51,8 @@ A trip is stored in four kinds of record:
 
 Sharing Google's facts across trips while keeping the name per trip would work, but it adds code and saves only a few Google calls. It isn't in the MVP.
 
+**A place's key is its trip and its ID, and a memory item's is its user and its ID.** Every query already names the trip or the user. A run from a recorded turn copies a trip version into a new trip, for a new test user, and keeps the recorded IDs, since the copied conversation names them (section 8.9). So the same place ID can be in several trips, and the same memory item ID can be held by several users. Decided by Joe on 2026-11-02, in #245. Sharing one place row between trips was the other choice. It would need a table that links trips and places, and memory would still need copying, since a run can change or forget a memory item.
+
 **Memory items are stored apart from the plan,** one row each (section 8.8). User memory belongs to a user, not to any trip. Trip memory belongs to a trip, but it isn't part of the plan. So changing memory isn't a write, and takes no row lock (section 4). A memory change and a write to the plan can't lose each other's work, since they save different rows.
 
 ---
@@ -440,7 +442,7 @@ A **repository** is a class that reads and saves one kind of record (section 2).
 - **`addPlaces(tripId, places)`** adds each place as a row, unless the trip already has one with that Google place ID (section 3). It adds them in Google place ID order (section 4). It returns the stored places in the order given, so the caller gets the existing `id` for a place the trip already had.
 - **`loadForTrip(tripId)`** loads every place the trip has.
 - **`get(tripId, placeId)`** loads one of the trip's places, or nothing if the trip has no place with that ID.
-- **`fillNames(places)`** sets each place's name on its row, only where the row has none.
+- **`fillNames(tripId, places)`** sets each place's name on the trip's row, only where the row has none.
 
 **SessionRepository** reads and saves session rows (section 6).
 
@@ -531,6 +533,14 @@ A **`TripVersionSource`** says which turn a version is for, and what it copies:
 - **Each recorded read runs again, and the replies are compared.** So are the rebuilt trip and the live one at the end. The report quotes the trip, so it's written outside the repo.
 - **Where code can't decide, Claude's choices go in a file outside the repo:** a call rewritten into today's shape, a place no reply names, and a check that didn't run then, such as the daily driving check on a brief with no comfortable driving hours, before #230. That check's results are dropped until the call that set them, so the versions hold the check results the coordinator saw.
 - **A memory item forgotten in the chat view** shows only as the app's line on the next message, which doesn't say which item. The rebuild stops at one rather than guess.
+
+**A run starts from any turn of a recorded session** (#245). `npm run run-turn` takes the agent session ID, the turn, and the message: the recorded one, or new text. It reads the session from the live database, and runs the turn in the local database, through the same code as `npm run chat`, with today's instructions and tools. The turn's trace goes to Phoenix, as for any local turn. So an evaluation can score what the coordinator says and saves, with the conversation and the trip fixed, and only the instructions, the tools, or the model changed.
+
+- **Each run gets a new test user, trip, and session.** It copies the turn's version into the new trip: the plan, the places, and the memory, with the user's memory moved to the test user. The IDs inside stay the same, since the conversation names them. The run's rows stay in the local database, so a scorer can read what the turn saved.
+- **It copies every transcript line before the turn's user message,** the coordinator's and the workers'. `turnMessageIndex()` finds the message. Workers run only inside a coordinator turn, so in the order stored, every worker line from an earlier turn comes before the message. The SDK's queue markers for the message, just before it, are left out, since the run's own message gets its own.
+- **The copied lines are the recorded ones,** with only the agent session ID changed. The SDK writes that ID into each line, and doesn't send it to the model. Nothing else changes, not even a date line in the old wording (technical spec 5.2). The API ties each of the coordinator's thinking blocks to the conversation before it, and drops the block when that has changed. In #245, rewriting the first message's date line dropped all 17 of the Bar Harbor session's earlier thinking blocks by turn 5. Changing the system prompt dropped none. The recorded lines never name the trip's, session's, or user's own IDs, so nothing else needs rewriting.
+- **The coordinator can't tell a run from the recorded session.** Its message has exactly the recorded turn's app lines, and the app adds none of its own, such as the resumed line. A new message keeps them, with only the user's words replaced. The app's clock starts at the version's `savedDateTime` and runs on from there, for the tools' rules that use today's date, such as the weather tools and the started-trip check.
+- **Two differences are accepted.** Claude Code adds lines of its own on resume, from the machine it runs on. "The date has changed. Today's date is now 2026-11-02." gives today's date (technical spec 5.2). An environment line gives the run's working folder, whether it's a git repository, the shell, and the OS version, which all differ from the server's. Matching them would mean running the turn on the server. If runs show the coordinator reacting to either, it gets looked at again.
 
 **Deleting a trip deletes its versions,** in the same transaction as the rest of the trip (section 6).
 

@@ -49,7 +49,10 @@ export class FakeTripStore implements TripStore {
   save(editableTrip: EditableTrip, now: Date): Promise<void> {
     editableTrip.refuseIfStarted(now);
     this.#store(editableTrip.trip);
-    return this.places.fillNames(editableTrip.namedPlaces);
+    return this.places.fillNames(
+      editableTrip.trip.id,
+      editableTrip.namedPlaces,
+    );
   }
 
   // The trip's row only. Its sessions, places, and memory are in other fakes, and the

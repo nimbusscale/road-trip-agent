@@ -8,7 +8,8 @@ import { MemoryReader } from "../persistence/memory-reader.js";
 import { MemoryRepository } from "../persistence/memory-repository.js";
 import { MemoryWriter } from "../persistence/memory-writer.js";
 import type { Connectable, Queryable } from "../persistence/queryable.js";
-import { tripStartedCheck } from "../persistence/trip-started-check.js";
+import { tripStartedCheckUsing } from "../persistence/trip-started-check.js";
+import { TripRepository } from "../persistence/trip-repository.js";
 import {
   addMemoryItemTool,
   forgetMemoryItemTool,
@@ -25,6 +26,8 @@ export const MEMORY_SERVER_NAME = "memory";
 export interface MemoryAccessGiven {
   pool: Connectable & Queryable;
   settings: Settings;
+  // The current moment, for the started-trip check.
+  now: () => Date;
 }
 
 // The app's writer and reader for memory, made once when it starts and shared by every
@@ -32,14 +35,17 @@ export interface MemoryAccessGiven {
 export function memoryAccessFor(
   given: MemoryAccessGiven,
 ): Omit<MemorySession, "userId" | "tripId"> {
-  const { pool, settings } = given;
+  const { pool, settings, now } = given;
   const makeStore = (connection: Queryable): MemoryRepository =>
     new MemoryRepository(connection);
   return {
     writer: new MemoryWriter({
       pool,
       makeStore,
-      hasTripStarted: tripStartedCheck,
+      hasTripStarted: tripStartedCheckUsing(
+        (connection) => new TripRepository(connection),
+        now,
+      ),
       limits: settings,
     }),
     reader: new MemoryReader({ pool, makeStore }),

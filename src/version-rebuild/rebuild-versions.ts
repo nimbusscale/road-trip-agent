@@ -17,17 +17,13 @@ import { Pool } from "pg";
 
 import { turnMessageIndex } from "../agent/shown-messages.js";
 import { parseEnv } from "../config/env.js";
+import { livePoolConfigOf } from "../config/live-env.schema.js";
 import { loadSettings, SETTINGS_PATH } from "../config/settings.js";
 import { createPool } from "../db/connection.js";
 import { inTransaction } from "../persistence/transaction.js";
 import { TripVersionRepository } from "../persistence/trip-version-repository.js";
 import { jsonDifferences } from "./differences.js";
-import {
-  LIVE_ENV_NAMES,
-  liveEnvSchema,
-  NO_CHOICES,
-  rebuildChoicesSchema,
-} from "./rebuild-input.schema.js";
+import { NO_CHOICES, rebuildChoicesSchema } from "./rebuild-input.schema.js";
 import type { RebuildReport } from "./rebuild-report.js";
 import {
   LiveSessionRepository,
@@ -49,9 +45,6 @@ const ARGS = {
   "write-live": { type: "boolean", default: false },
 } as const;
 
-// The tunnel's end on this machine (DEVELOPMENT.md section 2).
-const TUNNEL_HOST = "127.0.0.1";
-
 async function main(): Promise<void> {
   const { values, positionals } = parseArgs({
     options: ARGS,
@@ -62,7 +55,7 @@ async function main(): Promise<void> {
     throw new Error("Give the agent session ID, and --report <file>.");
   }
   const localPool = createPool(parseEnv(process.env));
-  const livePool = new Pool({ host: TUNNEL_HOST, ...liveEnv() });
+  const livePool = new Pool(livePoolConfigOf(process.env));
   try {
     const liveRows = new LiveSessionRepository(livePool);
     const live = await readLiveSession(livePool, liveRows, agentSessionId);
@@ -76,17 +69,6 @@ async function main(): Promise<void> {
   } finally {
     await Promise.all([localPool.end(), livePool.end()]);
   }
-}
-
-function liveEnv(): ReturnType<typeof liveEnvSchema.parse> {
-  return liveEnvSchema.parse(
-    Object.fromEntries(
-      Object.entries(LIVE_ENV_NAMES).map(([key, name]) => [
-        key,
-        process.env[name],
-      ]),
-    ),
-  );
 }
 
 // Replays every turn, saving each one's version first, as the app does (persistence

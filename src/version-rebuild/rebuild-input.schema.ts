@@ -2,25 +2,6 @@ import { z } from "zod";
 
 // What the trip versions rebuild reads from outside the repo (#244).
 
-// The live database, reached through an SSH tunnel to the server's Postgres (systems
-// design, section 2). Only the rebuild uses these, so they're not in the app's env.
-export const liveEnvSchema = z.object({
-  port: z.coerce.number().int().positive(),
-  user: z.string().min(1),
-  password: z.string().min(1),
-  database: z.string().min(1),
-});
-
-// Each value's environment variable.
-export const LIVE_ENV_NAMES = {
-  port: "LIVE_POSTGRES_PORT",
-  user: "LIVE_POSTGRES_USER",
-  password: "LIVE_POSTGRES_PASSWORD",
-  database: "LIVE_POSTGRES_DB",
-} as const;
-
-export type LiveEnv = z.infer<typeof liveEnvSchema>;
-
 // What Claude decided where code can't, for one session. It holds the session's data,
 // so it's kept outside the repo, and given to the rebuild as a file.
 export const rebuildChoicesSchema = z.strictObject({

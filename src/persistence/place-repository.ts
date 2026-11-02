@@ -14,7 +14,7 @@ export interface PlaceStore {
   // Undefined when the trip has no place with this ID.
   get(tripId: string, placeId: string): Promise<Place | undefined>;
   // Sets each place's name on its row, only where the row has none.
-  fillNames(places: readonly Place[]): Promise<void>;
+  fillNames(tripId: string, places: readonly Place[]): Promise<void>;
 }
 
 export const PLACE_COLUMNS = [
@@ -78,11 +78,11 @@ export class PlaceRepository implements PlaceStore {
     return rows.length === 0 ? undefined : toPlace(rows[0]);
   }
 
-  async fillNames(places: readonly Place[]): Promise<void> {
+  async fillNames(tripId: string, places: readonly Place[]): Promise<void> {
     for (const place of places) {
       await this.connection.query(
-        "UPDATE places SET name = $2 WHERE id = $1 AND name IS NULL",
-        [place.id, place.name],
+        "UPDATE places SET name = $3 WHERE trip_id = $1 AND id = $2 AND name IS NULL",
+        [tripId, place.id, place.name],
       );
     }
   }

@@ -25,6 +25,7 @@ export interface PlacesAccessGiven {
   env: Env;
   pool: Connectable & Queryable;
   settings: Settings;
+  now: () => Date;
 }
 
 // What every session's places server shares, made once when the app starts. Places come
@@ -32,7 +33,7 @@ export interface PlacesAccessGiven {
 export function placesAccessFor(
   given: PlacesAccessGiven,
 ): Omit<PlacesSession, "tripId"> {
-  const { env, pool, settings } = given;
+  const { env, pool, settings, now } = given;
   const makeStore = (connection: Queryable): PlaceRepository =>
     new PlaceRepository(connection);
   return {
@@ -44,7 +45,7 @@ export function placesAccessFor(
     placeWriter: new PlaceWriter({ pool, makeStore }),
     google: new PlacesClient({ apiKey: env.googleMapsServerKey, fetch }),
     settings,
-    now: () => new Date(),
+    now,
   };
 }
 

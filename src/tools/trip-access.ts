@@ -11,6 +11,9 @@ export interface TripAccessGiven {
   env: Env;
   pool: Connectable & Queryable;
   settings: Settings;
+  // The current moment: the system clock in the app, and the recorded turn's time in a
+  // run from one (#245).
+  now: () => Date;
 }
 
 // The app's writer and reader for trips, made once when it starts and shared by every
@@ -19,7 +22,7 @@ export interface TripAccessGiven {
 export function tripAccessFor(
   given: TripAccessGiven,
 ): Omit<TripSession, "tripId"> {
-  const { env, pool, settings } = given;
+  const { env, pool, settings, now } = given;
   const storeFor = (connection: Queryable): TripRepository =>
     new TripRepository(connection);
   return {
@@ -27,11 +30,11 @@ export function tripAccessFor(
       pool,
       storeFor,
       settings,
-      clock: SYSTEM_CLOCK,
+      clock: { now, pause: (milliseconds) => SYSTEM_CLOCK.pause(milliseconds) },
       routeFinder: new RoutesClient({ apiKey: env.googleMapsServerKey, fetch }),
     }),
     reader: new TripReader(pool, storeFor),
     settings,
-    now: () => new Date(),
+    now,
   };
 }

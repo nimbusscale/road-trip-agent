@@ -23,6 +23,7 @@ export interface WeatherAccessGiven {
   env: Env;
   pool: Queryable;
   settings: Settings;
+  now: () => Date;
 }
 
 // What every session's weather server shares, made once when the app starts. The
@@ -31,7 +32,7 @@ export interface WeatherAccessGiven {
 export function weatherAccessFor(
   given: WeatherAccessGiven,
 ): Omit<WeatherSession, "tripId"> {
-  const { env, pool, settings } = given;
+  const { env, pool, settings, now } = given;
   return {
     reader: new TripReader(
       pool,
@@ -42,7 +43,7 @@ export function weatherAccessFor(
       makeStore: (connection) => new PlaceRepository(connection),
     }),
     settings,
-    now: () => new Date(),
+    now,
     forecasts: new WeatherClient({ apiKey: env.googleMapsServerKey, fetch }),
     averages: new ArchiveClient({ fetch }),
   };

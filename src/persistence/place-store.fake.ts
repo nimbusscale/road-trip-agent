@@ -38,9 +38,11 @@ export class FakePlaceStore implements PlaceStore {
     return Promise.resolve(place === undefined ? undefined : copyOf(place));
   }
 
-  fillNames(places: readonly Place[]): Promise<void> {
+  fillNames(tripId: string, places: readonly Place[]): Promise<void> {
     for (const place of places) {
-      const row = this.rows.find((stored) => stored.place.id === place.id);
+      const row = this.rows.find(
+        (stored) => stored.tripId === tripId && stored.place.id === place.id,
+      );
       if (row?.place.name === null && place.name !== null) {
         row.place = copyOf(place);
       }
