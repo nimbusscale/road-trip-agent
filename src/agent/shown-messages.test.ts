@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { shownMessagesOf } from "./shown-messages.js";
+import { shownMessagesOf, userMessageCount } from "./shown-messages.js";
 
 // Shaped like the lines the Agent SDK stores, cut down to what's read.
 const LINES = [
@@ -52,5 +52,16 @@ describe("shownMessagesOf", () => {
       { role: "user", text: "Plan a Texas BBQ trip" },
       { role: "coordinator", text: "Great idea.\n\nHow many days?" },
     ]);
+  });
+});
+
+describe("userMessageCount", () => {
+  // A trip version's turn number comes from it (persistence design, section 8.9).
+  it("counts the user's messages, but not a tool's reply or a line the SDK added", () => {
+    const secondMessage = {
+      type: "user",
+      message: { role: "user", content: "Five days." },
+    };
+    expect(userMessageCount([...LINES, secondMessage])).toBe(2);
   });
 });

@@ -25,6 +25,7 @@ import { loadSettings, SETTINGS_PATH } from "./config/settings.js";
 import { createPool } from "./db/connection.js";
 import type { Connectable, Queryable } from "./persistence/queryable.js";
 import { sessionAccessFor } from "./persistence/session-access.js";
+import { tripVersionWriterFor } from "./persistence/trip-version-writer.js";
 import type { MessageRequest } from "./shared/session.schema.js";
 import { appCommit } from "./tracing/app-commit.js";
 import { startTracing } from "./tracing/phoenix.js";
@@ -73,11 +74,7 @@ async function chat(): Promise<void> {
       settings,
       processEnv: process.env,
     });
-    const turns = new CoordinatorTurns({
-      coordinator: given,
-      runTurn: sdkTurnRunner(commit),
-      now: () => new Date(),
-    });
+    const turns = terminalTurns(given, pool, commit);
     const { conversation, firstText } = await start(
       args,
       given,
@@ -98,6 +95,19 @@ async function chat(): Promise<void> {
     await pool.end();
     await tracing.shutdown();
   }
+}
+
+function terminalTurns(
+  given: CoordinatorGiven,
+  pool: Connectable,
+  commit: string,
+): CoordinatorTurns {
+  return new CoordinatorTurns({
+    coordinator: given,
+    runTurn: sdkTurnRunner(commit),
+    versions: tripVersionWriterFor(pool),
+    now: () => new Date(),
+  });
 }
 
 // A message typed in the terminal, which has no option cards.

@@ -29,3 +29,11 @@ export function shownMessagesOf(lines: readonly unknown[]): ShownMessage[] {
   }
   return messages;
 }
+
+// The user messages in the coordinator's transcript lines, as the browser shows them.
+// So the next turn is this plus one, and an evaluation finds that turn's message in the
+// transcript by the same count (persistence design, section 8.9).
+export function userMessageCount(lines: readonly unknown[]): number {
+  return shownMessagesOf(lines).filter((message) => message.role === "user")
+    .length;
+}

@@ -13,6 +13,8 @@ import { SessionReader } from "../persistence/session-reader.js";
 import { SessionWriter } from "../persistence/session-writer.js";
 import { TranscriptAdapter } from "../persistence/transcript-adapter.js";
 import { tripStartedCheckUsing } from "../persistence/trip-started-check.js";
+import { FakeTripVersionStore } from "../persistence/trip-version-store.fake.js";
+import { TripVersionWriter } from "../persistence/trip-version-writer.js";
 import { setUp } from "../persistence/trip-writer.fake.js";
 import { fakePlacesAccess } from "../tools/places-session.fake.js";
 import type { FakeTripStore } from "../persistence/trip-store.fake.js";
@@ -27,6 +29,7 @@ export interface ChatSetUp {
   sessionStore: FakeSessionRowStore;
   transcriptStore: FakeTranscriptLineStore;
   memoryStore: FakeMemoryStore;
+  versionStore: FakeTripVersionStore;
 }
 
 // `now` is the time the started-trip checks go by.
@@ -53,18 +56,16 @@ export function chatSetUp(now: Date): ChatSetUp {
     transcripts,
   };
   const sdk = new FakeSdk();
-  const sessions = { pool: trips.pool, makeStore: () => sessionStore };
+  const versionStore = new FakeTripVersionStore();
   return {
     chat: {
       trips: { reader: trips.reader, writer: trips.writer },
-      sessions: {
-        reader: new SessionReader(sessions),
-        writer: new SessionWriter(sessions),
-      },
+      sessions: fakeSessionAccess(sessionStore),
       memory,
       turns: new CoordinatorTurns({
         coordinator,
         runTurn: sdk.runTurn,
+        versions: fakeVersionWriter(versionStore),
         now: () => now,
       }),
       transcripts,
@@ -76,7 +77,22 @@ export function chatSetUp(now: Date): ChatSetUp {
     sessionStore,
     transcriptStore,
     memoryStore,
+    versionStore,
   };
+}
+
+function fakeSessionAccess(
+  store: FakeSessionRowStore,
+): ChatDependencies["sessions"] {
+  const sessions = { pool: FAKE_POOL, makeStore: () => store };
+  return {
+    reader: new SessionReader(sessions),
+    writer: new SessionWriter(sessions),
+  };
+}
+
+function fakeVersionWriter(store: FakeTripVersionStore): TripVersionWriter {
+  return new TripVersionWriter({ pool: FAKE_POOL, makeStore: () => store });
 }
 
 // One memory for the coordinator's tools and the chat view's memory list. A trip
