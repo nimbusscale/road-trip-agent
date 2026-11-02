@@ -128,6 +128,7 @@ export class CoordinatorTurns {
     await this.given.versions.save({
       sessionId: session.id,
       turn: userMessageCount(lines ?? []) + 1,
+      userMessage: text,
       savedDateTime: moment,
       tripId: session.tripId,
       userId: conversation.userId,

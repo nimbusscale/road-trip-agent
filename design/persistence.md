@@ -16,7 +16,7 @@ What a write is, and what it changes, is in the [domain model](domain-model.md),
 
 **The app sends SQL to Postgres with node-postgres (`pg`).** There's no ORM: most of a trip is one JSON document (section 2), so mapping classes to tables would be code for nothing. Rows read back are parsed with Zod ([DEVELOPMENT.md](../DEVELOPMENT.md), section 4). Every value goes into a query as a parameter, such as `$1`, never joined into the SQL text.
 
-**Migrations are SQL files in `migrations/`, run by node-pg-migrate.** `npm run migrate` runs the new ones locally. A deploy runs them from the new `app` image ([systems design](systems.md), section 7). node-pg-migrate records each one in the `pgmigrations` table, and holds a lock while it runs, so two runs can't overlap. Migrations only go forward: a bad one is fixed by a new one.
+**Migrations are SQL files in `migrations/`, run by node-pg-migrate.** `npm run migrate` runs the new ones locally. A deploy runs them from the new `app` image ([systems design](systems.md), section 7). node-pg-migrate records each one in the `pgmigrations` table, and holds a lock while it runs, so two runs can't overlap. Migrations only go forward: a bad one is fixed by a new one. A migration that changes a plan document, a place row, or a memory item row changes the trip versions' copies the same way (section 8.9).
 
 The options compared for both are in [research/server-libraries.md](../research/server-libraries.md).
 
@@ -467,7 +467,7 @@ Each of these takes the user's ID, or an item that holds it, and puts it in the 
 
 **TripVersionRepository** saves trip version rows (section 8.9).
 
-- **`saveFrom(source)`** copies the trip's plan, its places, and the memory `MemoryReader.read()` would return, into the version row for the source's session and turn. It's one statement, so its reads all see the same moment, with no lock. A row already saved for that session and turn is replaced.
+- **`saveFrom(source)`** copies the trip's plan, its places, and the memory `MemoryReader.read()` would return, into the version row for the source's session and turn, with the source's user message. It's one statement, so its reads all see the same moment, with no lock. A row already saved for that session and turn is replaced.
 
 **TranscriptAdapter** is section 6's adapter for the Agent SDK's `sessionStore` option. The SDK sets its operations, so they aren't listed here. The app hands one to the SDK, with the "eager" setting, each time it starts or resumes a session. It stores each transcript line as a row with `TranscriptRepository`, and gives the lines back on resume. It stores each batch only after the one before it is stored, so the lines keep the SDK's order.
 
@@ -503,11 +503,11 @@ A **trip version** is a copy of everything the coordinator reads about a trip, a
 
 **Only evaluation tooling reads versions.** The app never does, and the coordinator never sees them. So the app has no reader for them.
 
-**A version holds** the plan document (section 2), the trip's places, and the memory the coordinator reads: the user's memory and the trip's memory, as `MemoryReader.read()` returns it. Each is the stored form, as rows turned into JSON with their column names, so restoring one is a copy back into the tables. Each version is whole, not a list of changes. A session has tens of turns, so the size is fine.
+**A version holds** the plan document (section 2), the trip's places, and the memory the coordinator reads: the user's memory and the trip's memory, as `MemoryReader.read()` returns it. Each is the stored form, as rows turned into JSON with their column names, so restoring one is a copy back into the tables. It also holds the turn's user message: the user's own words, without the app's lines (technical spec 5.2). Each version is whole, not a list of changes. A session has tens of turns, so the size is fine.
 
 **One is saved at the start of every coordinator turn,** before the coordinator runs. `CoordinatorTurns` saves it, for the app's API and `npm run chat` alike, after the checks that can refuse the message, such as a closed chat or a turn already running. So a refused message saves nothing. The start, not the end of the turn before, since changes can come between turns, such as another session's edits, or a memory item the user forgot in the chat view's memory list.
 
-**Each version is keyed by its session and its turn.** The turn is the number of the user's messages in the coordinator's transcript, counting this one, as the browser shows them (`userMessageCount()` in `src/agent/shown-messages.ts`). Turn 1 is the session's first message. So an evaluation cuts the transcript right before the turn's user message by the same count. When a turn fails before its message reaches the transcript, the next turn gets the same number. Its version replaces the first, since that's the turn the transcript holds.
+**Each version is keyed by its session and its turn.** The turn is the number of the user's messages in the coordinator's transcript, counting this one, as the browser shows them (`userMessageCount()` in `src/agent/shown-messages.ts`). Turn 1 is the session's first message. So an evaluation cuts the transcript right before the turn's user message by the same count, with `turnMessageIndex()`, next to it. That checks that the message it finds ends with the one the version saved, and throws if it doesn't. So a later change to how messages are counted, such as to what the browser shows, can't pair a version with the wrong moment in the conversation. Versions saved before the message was kept have an empty one, so they can't be used. When a turn fails before its message reaches the transcript, the next turn gets the same number. Its version replaces the first, since that's the turn the transcript holds.
 
 **TripVersionWriter** saves versions.
 
@@ -519,6 +519,7 @@ A **`TripVersionSource`** says which turn a version is for, and what it copies:
 |---|---|
 | `sessionId` | The session's `id` |
 | `turn` | The turn's number in the session, from 1 |
+| `userMessage` | The turn's message: the user's own words, without the app's lines |
 | `savedDateTime` | When the turn started |
 | `tripId` | The session's trip |
 | `userId` | The user whose memory the coordinator reads: the trip's owner |

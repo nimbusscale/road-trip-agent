@@ -6,6 +6,9 @@ export interface TripVersionSource {
   // The session's user messages so far, counting this turn's, the way the browser shows
   // them.
   turn: number;
+  // The turn's message: the user's own words, without the app's lines. Evaluation
+  // tooling checks the transcript's message for the turn against it.
+  userMessage: string;
   savedDateTime: Date;
   tripId: string;
   // The user whose memory the coordinator reads: the trip's owner.
@@ -25,8 +28,8 @@ export interface TripVersionStore {
 // version is the one an evaluation needs.
 const SAVE_VERSION = `
   INSERT INTO trip_versions
-    (session_id, turn, saved_date_time, plan, places, memory_items)
-  SELECT $1, $2, $3, trips.plan,
+    (session_id, turn, user_message, saved_date_time, plan, places, memory_items)
+  SELECT $1, $2, $6, $3, trips.plan,
     (SELECT coalesce(jsonb_agg(to_jsonb(place) ORDER BY place.id), '[]'::jsonb)
        FROM places place WHERE place.trip_id = trips.id),
     (SELECT coalesce(
@@ -35,6 +38,7 @@ const SAVE_VERSION = `
        WHERE item.user_id = $5 AND (item.trip_id IS NULL OR item.trip_id = trips.id))
   FROM trips WHERE trips.id = $4
   ON CONFLICT (session_id, turn) DO UPDATE SET
+    user_message = excluded.user_message,
     saved_date_time = excluded.saved_date_time,
     plan = excluded.plan,
     places = excluded.places,
@@ -44,13 +48,15 @@ export class TripVersionRepository implements TripVersionStore {
   constructor(private readonly connection: Queryable) {}
 
   async saveFrom(source: TripVersionSource): Promise<void> {
-    const { sessionId, turn, savedDateTime, tripId, userId } = source;
+    const { sessionId, turn, userMessage, savedDateTime, tripId, userId } =
+      source;
     await this.connection.query(SAVE_VERSION, [
       sessionId,
       turn,
       savedDateTime,
       tripId,
       userId,
+      userMessage,
     ]);
   }
 }

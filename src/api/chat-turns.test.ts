@@ -240,13 +240,16 @@ describe("the chat's turns", () => {
     await eventsOf(await send(chat, sessionId, "Make it six."));
     const tripId = chat.sessionStore.rows[0]?.tripId;
     expect(chat.versionStore.saved).toEqual(
-      [1, 2, 3].map((turn) => ({
-        sessionId,
-        turn,
-        savedDateTime: PLANNING,
-        tripId,
-        userId: TEST_USER_ID,
-      })),
+      ["Plan a trip to Utah", "Five days.", "Make it six."].map(
+        (userMessage, index) => ({
+          sessionId,
+          turn: index + 1,
+          userMessage,
+          savedDateTime: PLANNING,
+          tripId,
+          userId: TEST_USER_ID,
+        }),
+      ),
     );
   });
 
