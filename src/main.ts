@@ -14,6 +14,7 @@ import { loadSettings, SETTINGS_PATH } from "./config/settings.js";
 import { createPool, isDatabaseReachable } from "./db/connection.js";
 import type { Connectable, Queryable } from "./persistence/queryable.js";
 import { sessionAccessFor } from "./persistence/session-access.js";
+import { tripVersionWriterFor } from "./persistence/trip-version-writer.js";
 import { phoenixRatings } from "./tracing/phoenix-ratings.js";
 import { appCommit } from "./tracing/app-commit.js";
 import { isPhoenixReachable, startTracing } from "./tracing/phoenix.js";
@@ -80,6 +81,7 @@ function chatDependencies(
     turns: new CoordinatorTurns({
       coordinator,
       runTurn: sdkTurnRunner(commit),
+      versions: tripVersionWriterFor(pool),
       now,
     }),
     transcripts: coordinator.transcripts,

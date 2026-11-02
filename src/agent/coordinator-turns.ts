@@ -2,6 +2,7 @@ import type { Options } from "@anthropic-ai/claude-agent-sdk";
 
 import type { CalendarDate } from "../domain/calendar-date.js";
 import type { Trip } from "../domain/trip.js";
+import type { TripVersionWriter } from "../persistence/trip-version-writer.js";
 import type { MessageRequest } from "../shared/session.schema.js";
 import { startedToday, tripTimeZone, tripToday } from "../domain/today.js";
 import { AppLines } from "./app-lines.js";
@@ -11,11 +12,13 @@ import {
   coordinatorOptions,
   type RunTurn,
 } from "./coordinator.js";
+import { userMessageCount } from "./shown-messages.js";
 import { Turn } from "./turn.js";
 
 export interface CoordinatorTurnsGiven {
   coordinator: CoordinatorGiven;
   runTurn: RunTurn;
+  versions: TripVersionWriter;
   now: () => Date;
 }
 
@@ -82,7 +85,8 @@ export class CoordinatorTurns {
   // Starts a turn with the user's message, and returns it once it's running. Refuses a
   // message while the session's last turn is still running, and once the trip has
   // started. The trip is read before each message, since a tool may have changed its
-  // start date or start place.
+  // start date or start place. A turn that isn't refused saves a trip version first
+  // (persistence design, section 8.9).
   async begin(
     conversation: Conversation,
     request: MessageRequest,
@@ -114,11 +118,20 @@ export class CoordinatorTurns {
     const trip = await coordinator.trip.reader.read(session.tripId);
     const moment = now();
     refuseIfChatClosed(trip, moment);
-    const hasTranscript =
-      (await coordinator.transcripts.load({
-        projectKey: "",
-        sessionId: session.agentSessionId,
-      })) !== null;
+    const lines = await coordinator.transcripts.load({
+      projectKey: "",
+      sessionId: session.agentSessionId,
+    });
+    const hasTranscript = lines !== null;
+    // Saved here, as the coordinator will find the trip, so the changes made between
+    // turns are in it, such as a memory item forgotten in the chat view.
+    await this.given.versions.save({
+      sessionId: session.id,
+      turn: userMessageCount(lines ?? []) + 1,
+      savedDateTime: moment,
+      tripId: session.tripId,
+      userId: conversation.userId,
+    });
     // A session with a transcript and no lines kept here was last open before a
     // restart, so it counts as resumed.
     const appLines =

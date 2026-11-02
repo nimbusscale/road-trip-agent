@@ -19,6 +19,8 @@ const SELECT_TRIP = "SELECT id, owner_id, plan FROM trips";
 const REMOVE_TRIP = [
   `DELETE FROM transcript_lines WHERE agent_session_id IN
      (SELECT agent_session_id FROM sessions WHERE trip_id = $1)`,
+  `DELETE FROM trip_versions WHERE session_id IN
+     (SELECT id FROM sessions WHERE trip_id = $1)`,
   "DELETE FROM sessions WHERE trip_id = $1",
   "DELETE FROM memory_items WHERE trip_id = $1",
   "DELETE FROM places WHERE trip_id = $1",
@@ -33,7 +35,7 @@ export interface TripStore {
   add(trip: Trip): Promise<void>;
   // `now` is the time the started-trip lock goes by.
   save(editableTrip: EditableTrip, now: Date): Promise<void>;
-  // Removes the trip, with its sessions, transcripts, places, and trip memory.
+  // Removes the trip, with its sessions, transcripts, versions, places, and trip memory.
   remove(tripId: string): Promise<void>;
 }
 

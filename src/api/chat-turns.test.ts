@@ -233,6 +233,23 @@ describe("the chat's turns", () => {
     expect(call?.options.env?.TZ).toBe("America/Denver");
   });
 
+  it("saves a trip version at the start of each turn, numbered by the session's user messages", async () => {
+    const chat = await chatApi(PLANNING);
+    const sessionId = await startTrip(chat);
+    await eventsOf(await send(chat, sessionId, "Five days."));
+    await eventsOf(await send(chat, sessionId, "Make it six."));
+    const tripId = chat.sessionStore.rows[0]?.tripId;
+    expect(chat.versionStore.saved).toEqual(
+      [1, 2, 3].map((turn) => ({
+        sessionId,
+        turn,
+        savedDateTime: PLANNING,
+        tripId,
+        userId: TEST_USER_ID,
+      })),
+    );
+  });
+
   it("refuses a second message while the last turn is still running", async () => {
     const chat = await chatApi(PLANNING);
     const sessionId = await startTrip(chat);
@@ -244,6 +261,9 @@ describe("the chat's turns", () => {
     hold.resolve(undefined);
     await eventsOf(first);
     expect(chat.sdk.calls).toHaveLength(2);
+    expect(chat.versionStore.saved.map((version) => version.turn)).toEqual([
+      1, 2,
+    ]);
   });
 });
 
@@ -283,6 +303,7 @@ describe("the chat of a trip that has started", () => {
       "The trip has started, so its chat is closed. Today is Sunday, October 10, 2027 at its start place.",
     );
     expect(chat.sdk.calls).toEqual([]);
+    expect(chat.versionStore.saved).toEqual([]);
     expect(chat.sessionStore.rows).toHaveLength(1);
   });
 

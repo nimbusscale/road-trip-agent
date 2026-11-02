@@ -1,6 +1,6 @@
 # Road Trip Planner: Persistence (MVP)
 
-This document covers how a trip, its sessions, and memory are stored and saved: what is stored together, what a write does with storage, how two writes to one trip are kept apart, how the started-trip lock is checked at save, how sessions and their transcripts are kept, how memory is kept, and which classes do each of these. It stays at the level of design. The database library and the migration tool are in section 1. The table layout and indexes are settled during development.
+This document covers how a trip, its sessions, and memory are stored and saved: what is stored together, what a write does with storage, how two writes to one trip are kept apart, how the started-trip lock is checked at save, how sessions and their transcripts are kept, how memory is kept, how a copy of the trip is kept for each turn, and which classes do each of these. It stays at the level of design. The database library and the migration tool are in section 1. The table layout and indexes are settled during development.
 
 What a write is, and what it changes, is in the [domain model](domain-model.md), section 1, "A write." This document adds what a write does with storage. What memory holds, and the rules for writing it, are in the [technical spec](technical-spec.md), section 3.1.
 
@@ -8,7 +8,7 @@ What a write is, and what it changes, is in the [domain model](domain-model.md),
 
 ## 1. Storage
 
-**One Postgres database holds everything:** trips, their places, their sessions, the session transcripts, and memory.
+**One Postgres database holds everything:** trips, their places, their sessions, the session transcripts, memory, and trip versions (section 8.9).
 
 - **Not in the app's memory.** The app runs in a container that can restart at any time ([Google design](data-sources/google.md), section 5). Anything held only in memory goes with it. It also wouldn't work across more than one copy of the app.
 - **Not in object storage.** S3-style object storage, DigitalOcean Spaces, holds only the nightly backups ([systems design](systems.md), section 9). It suits large files written once. Transcripts are the opposite: many small additions, read back in order (section 6). Object storage can't add to a file that already exists, so each addition would be its own small file. One store is also simpler to run and back up.
@@ -141,7 +141,7 @@ A resumed run doesn't write here. Its files go in the temporary folder the SDK m
 
 Transcripts don't go through a write, and take no row lock.
 
-**Deleting a trip removes everything that belongs to it,** in one transaction: its transcript lines, including its workers', its sessions, its trip memory items, its places, and its row. User memory stays, since it isn't part of any trip. A deleted trip is gone, not hidden. `TripWriter.deleteTrip()` does it (section 8.2).
+**Deleting a trip removes everything that belongs to it,** in one transaction: its transcript lines, including its workers', its trip versions (section 8.9), its sessions, its trip memory items, its places, and its row. User memory stays, since it isn't part of any trip. A deleted trip is gone, not hidden. `TripWriter.deleteTrip()` does it (section 8.2).
 
 - **It takes the row lock first,** "for update," with the same 5-second wait as a write. So it waits for a write in progress, and refuses with the busy error if that takes too long. Unlike a write's lock, it also makes a place insert's foreign-key check wait, so no place is added once the trip's places are removed.
 - **It isn't a write.** It doesn't load the plan or check the started-trip lock, so a started trip can be deleted.
@@ -166,7 +166,7 @@ The user can resume the session. **A resumed coordinator reads the trip brief, t
 
 This section names the classes that read and save a trip and its sessions, and what each one does. Like the domain model's operations, they're guidance for development: development can change them, but each change is flagged and written back here. They don't depend on the database library.
 
-**Eight classes are the only way in.** Tools, the app, and any later web form use a writer and a reader for each kind of record: `TripWriter` and `TripReader`, `PlaceWriter` and `PlaceReader`, `SessionWriter` and `SessionReader`, and `MemoryWriter` and `MemoryReader`. The other classes are inside persistence, and nothing outside it can reach them. So no tool opens a transaction, takes the row lock, or saves a trip on its own.
+**Nine classes are the only way in.** Tools, the app, and any later web form use a writer and a reader for each kind of record: `TripWriter` and `TripReader`, `PlaceWriter` and `PlaceReader`, `SessionWriter` and `SessionReader`, and `MemoryWriter` and `MemoryReader`. Trip versions have only a writer, `TripVersionWriter`, since the app never reads them (section 8.9). The other classes are inside persistence, and nothing outside it can reach them. So no tool opens a transaction, takes the row lock, or saves a trip on its own.
 
 ### 8.1 Class diagram
 
@@ -210,6 +210,10 @@ classDiagram
 
     class MemoryReader {
         read(userId : string, tripId : string) List~MemoryItem~
+    }
+
+    class TripVersionWriter {
+        save(source : TripVersionSource)
     }
 
     class MemoryItem {
@@ -275,6 +279,10 @@ classDiagram
         remove(userId : string, itemId : string)
     }
 
+    class TripVersionRepository {
+        saveFrom(source : TripVersionSource)
+    }
+
     class TranscriptAdapter {
         <<SDK sessionStore>>
     }
@@ -298,9 +306,10 @@ classDiagram
     MemoryWriter ..> TripRepository
     MemoryReader ..> MemoryRepository
     TranscriptAdapter ..> TranscriptRepository
+    TripVersionWriter ..> TripVersionRepository
 ```
 
-The arrows mean "uses." `Trip`, `Place`, `User`, `LegChange`, and `CheckComparison` are the domain model's. `Session` isn't part of the domain model: it's in section 8.5. Neither is `MemoryItem`: it's in section 8.8. `WriteResult` is in section 8.2. A `Line` is one transcript line, as the SDK wrote it (section 6).
+The arrows mean "uses." `Trip`, `Place`, `User`, `LegChange`, and `CheckComparison` are the domain model's. `Session` isn't part of the domain model: it's in section 8.5. Neither is `MemoryItem`: it's in section 8.8. `WriteResult` is in section 8.2. `TripVersionSource` is in section 8.9. A `Line` is one transcript line, as the SDK wrote it (section 6).
 
 The fixed list that the classes above use:
 
@@ -424,7 +433,7 @@ A **repository** is a class that reads and saves one kind of record (section 2).
 - **`listForOwner(owner)`** loads every trip the user owns.
 - **`add(trip)`** adds a new trip's row.
 - **`save(editableTrip, now)`** checks the started-trip lock with `editableTrip.refuseIfStarted(now)`, and refuses when the trip has started by `now` (section 5). Otherwise it saves the plan document. Then it passes each place in `unnamedPlaceIds` that now has a name to `PlaceRepository.fillNames()`. `TripWriter` passes the time from its clock.
-- **`remove(tripId)`** takes the row lock "for update," then removes the trip's transcript lines, sessions, trip memory items, places, and row, in that order, since each row goes before the rows it links to (section 6). It's the one query that reaches other records' tables, so that deleting a trip stays one call in one transaction.
+- **`remove(tripId)`** takes the row lock "for update," then removes the trip's transcript lines, trip versions, sessions, trip memory items, places, and row, in that order, since each row goes before the rows it links to (section 6). It's the one query that reaches other records' tables, so that deleting a trip stays one call in one transaction.
 
 **PlaceRepository** reads and saves place rows.
 
@@ -456,6 +465,10 @@ Each of these takes the user's ID, or an item that holds it, and puts it in the 
 - **`loadLines(agentSessionId, workerKey)`** loads one transcript's lines, in the order added.
 - **`listWorkerKeys(agentSessionId)`** lists the keys of the session's worker transcripts.
 
+**TripVersionRepository** saves trip version rows (section 8.9).
+
+- **`saveFrom(source)`** copies the trip's plan, its places, and the memory `MemoryReader.read()` would return, into the version row for the source's session and turn. It's one statement, so its reads all see the same moment, with no lock. A row already saved for that session and turn is replaced.
+
 **TranscriptAdapter** is section 6's adapter for the Agent SDK's `sessionStore` option. The SDK sets its operations, so they aren't listed here. The app hands one to the SDK, with the "eager" setting, each time it starts or resumes a session. It stores each transcript line as a row with `TranscriptRepository`, and gives the lines back on resume. It stores each batch only after the one before it is stored, so the lines keep the SDK's order.
 
 ### 8.8 Memory
@@ -476,10 +489,42 @@ A **memory item** is one plain-text note in user memory or in one trip's memory 
 
 - **`add(userId, tripId, text)`** adds an item, with a new `id` and the time now. `tripId` is the session's trip for a trip item, and empty for a user item. It refuses text over the maximum memory item length, and an add when that memory already holds the maximum memory items (technical spec section 10).
 - **`update(userId, tripId, itemId, text)`** replaces an item's text. It refuses text over the maximum memory item length.
-- **`forget(userId, tripId, itemId)`** removes the item's row. A forgotten item is gone, not hidden, so it can't affect anything again (functional spec 10.5).
+- **`forget(userId, tripId, itemId)`** removes the item's row. A forgotten item is gone, not hidden, so it can't affect anything again (functional spec 10.5). Its copy stays in the trip versions saved before, which the app never reads (section 8.9).
 - **Each refuses an `itemId` that isn't the user's,** or that is another trip's item, with "no such memory item." That's the same error as an ID that doesn't exist, so it doesn't say whether another user's item exists.
 - **Each refuses a change to a trip item on a started trip** (section 5). It loads the trip with `TripRepository.load()`, without the row lock, and checks whether the trip has started right before it saves. The error gives today's date at the start place, like the plan's. User items can change on any day.
 
 **MemoryReader** reads memory.
 
 - **`read(userId, tripId)`** returns all of the user's memory and all of this trip's memory, in the order created. The tool `read_memory` uses it (tool design 2.2).
+
+### 8.9 Trip versions
+
+A **trip version** is a copy of everything the coordinator reads about a trip, as it stood when one turn started. It's for agent evaluations: an evaluation can start from a real conversation at a chosen turn, with the transcript before that turn and the trip as the coordinator found it. The transcript already keeps the conversation (section 6). Nothing else keeps the trip as it was, since its row holds only the trip as it is now.
+
+**Only evaluation tooling reads versions.** The app never does, and the coordinator never sees them. So the app has no reader for them.
+
+**A version holds** the plan document (section 2), the trip's places, and the memory the coordinator reads: the user's memory and the trip's memory, as `MemoryReader.read()` returns it. Each is the stored form, as rows turned into JSON with their column names, so restoring one is a copy back into the tables. Each version is whole, not a list of changes. A session has tens of turns, so the size is fine.
+
+**One is saved at the start of every coordinator turn,** before the coordinator runs. `CoordinatorTurns` saves it, for the app's API and `npm run chat` alike, after the checks that can refuse the message, such as a closed chat or a turn already running. So a refused message saves nothing. The start, not the end of the turn before, since changes can come between turns, such as another session's edits, or a memory item the user forgot in the chat view's memory list.
+
+**Each version is keyed by its session and its turn.** The turn is the number of the user's messages in the coordinator's transcript, counting this one, as the browser shows them (`userMessageCount()` in `src/agent/shown-messages.ts`). Turn 1 is the session's first message. So an evaluation cuts the transcript right before the turn's user message by the same count. When a turn fails before its message reaches the transcript, the next turn gets the same number. Its version replaces the first, since that's the turn the transcript holds.
+
+**TripVersionWriter** saves versions.
+
+- **`save(source)`** saves the version with `TripVersionRepository.saveFrom()` (section 8.7). It takes no row lock, and doesn't load the plan for a write, so it never waits for one.
+
+A **`TripVersionSource`** says which turn a version is for, and what it copies:
+
+| Property | Holds |
+|---|---|
+| `sessionId` | The session's `id` |
+| `turn` | The turn's number in the session, from 1 |
+| `savedDateTime` | When the turn started |
+| `tripId` | The session's trip |
+| `userId` | The user whose memory the coordinator reads: the trip's owner |
+
+**Deleting a trip deletes its versions,** in the same transaction as the rest of the trip (section 6).
+
+**A forgotten memory item stays in older versions.** "Forgotten items no longer influence recommendations" (functional spec 10.5) still holds, since the app never reads versions. The transcript already keeps the user's words, so versions keep nothing that wasn't kept already.
+
+**A migration that changes a plan document, a place row, or a memory item row changes the versions' copies the same way.** An evaluation runs a turn on today's code, so a version has to load the way a trip row does today. Example: the migration that dropped the trip brief's `restDaysText` would remove it from each version's plan too.
