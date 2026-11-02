@@ -524,6 +524,14 @@ A **`TripVersionSource`** says which turn a version is for, and what it copies:
 | `tripId` | The session's trip |
 | `userId` | The user whose memory the coordinator reads: the trip's owner |
 
+**A session recorded before versions were saved can have them rebuilt,** once, from its transcript (#244). `npm run rebuild-versions` reads the session from the live database, replays it in the local database through today's code, from an empty trip, and saves each turn's version as `CoordinatorTurns` does. Then it adds them to the live session. Only a session that is its trip's only one can be rebuilt.
+
+- **Each recorded save call runs again through today's tool,** the coordinator's and each worker's, in the order they reached the trip: a read by when it was called, and a change by when it was answered. A call refused when it was made saved nothing, so it's left out. Each new item gets the ID its recorded reply gave it.
+- **Places are copied from the live trip's place rows,** from the search whose reply first names them. Legs are routed by Google again, as today's code does in the finish. A memory item keeps its live row's created time, so memory reads in the same order.
+- **Each recorded read runs again, and the replies are compared.** So are the rebuilt trip and the live one at the end. The report quotes the trip, so it's written outside the repo.
+- **Where code can't decide, Claude's choices go in a file outside the repo:** a call rewritten into today's shape, a place no reply names, and a check that didn't run then, such as the daily driving check on a brief with no comfortable driving hours, before #230. That check's results are dropped until the call that set them, so the versions hold the check results the coordinator saw.
+- **A memory item forgotten in the chat view** shows only as the app's line on the next message, which doesn't say which item. The rebuild stops at one rather than guess.
+
 **Deleting a trip deletes its versions,** in the same transaction as the rest of the trip (section 6).
 
 **A forgotten memory item stays in older versions.** "Forgotten items no longer influence recommendations" (functional spec 10.5) still holds, since the app never reads versions. The transcript already keeps the user's words, so versions keep nothing that wasn't kept already.

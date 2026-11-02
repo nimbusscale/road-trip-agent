@@ -22,6 +22,7 @@ Claude Code writes the code, Joe reviews the code he cares about, and the tools 
 | `npm run migrate` | Runs the database migrations that haven't run yet ([persistence design](design/persistence.md), section 1) |
 | `npm run ask-claude` | Sends Claude one question through the Agent SDK, on the plan's token, and prints the reply. Dev only. A question can follow, as in `npm run ask-claude -- "your question"` |
 | `npm run chat` | Chats with the coordinator in the terminal, against the local database, and prints each tool call and its reply. Dev only. With no options, it starts a new trip for a dev user. `-- --user <uuid>` starts one for another user, `-- --trip <trip ID>` starts a new session on a trip, and `-- --resume <session ID>` resumes a session. Ctrl-D ends it |
+| `npm run rebuild-versions` | Rebuilds the trip versions of a session recorded before versions were saved (persistence design, section 8.9). One-time, dev only. It reads the live database through the SSH tunnel to the server's Postgres, and needs its login in `LIVE_POSTGRES_PORT`, `LIVE_POSTGRES_USER`, `LIVE_POSTGRES_PASSWORD`, and `LIVE_POSTGRES_DB`. The comment at the top of `src/version-rebuild/rebuild-versions.ts` gives its options |
 | `npm run build` | Builds the app into `dist/app` and the front end into `dist/web`, as the images do |
 | `npm run check` | Runs every check below, stopping at the first failure |
 | `npm run format` | Formats the code in `src/` and `web/` with Prettier |

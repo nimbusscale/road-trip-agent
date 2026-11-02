@@ -20,6 +20,7 @@ import {
   removeStopsTool,
   updateStopTool,
 } from "./stop-tools.js";
+import type { StrictToolDefinition } from "./strict-tool.js";
 import { readTripBriefTool, updateTripBriefTool } from "./trip-brief-tools.js";
 import type { TripSession } from "./trip-session.js";
 import { updateItineraryTool } from "./update-itinerary-tool.js";
@@ -39,30 +40,35 @@ export function createTripServer(
     // The coordinator uses these tools in most turns, so they're never left for it to
     // find with a tool search.
     alwaysLoad: true,
-    tools: [
-      readTripBriefTool(session),
-      updateTripBriefTool(session),
-      readItineraryTool(session),
-      findInTripTool(session),
-      updateItineraryTool(session),
-      addStayTool(session),
-      updateStayTool(session),
-      removeStayTool(session),
-      updateDayTool(session),
-      addStopsTool(session),
-      updateStopTool(session),
-      moveStopTool(session),
-      removeStopsTool(session),
-      setWaypointsTool(session),
-      selectCandidateTool(session),
-      selectUserPlaceTool(session),
-      rejectPlacesTool(session),
-      // The workers' tools. Each agent's definition lists the ones it's sent, so the
-      // coordinator doesn't see these (tool design, section 3).
-      readWorkerBriefFactsTool(session),
-      addLodgingCandidatesTool(session),
-      addStopCandidatesTool(session),
-      setStayWeatherTool(session),
-    ],
+    tools: tripTools(session),
   });
+}
+
+// The trip server's tools. The trip versions rebuild calls them directly too (#244).
+export function tripTools(session: TripSession): StrictToolDefinition[] {
+  return [
+    readTripBriefTool(session),
+    updateTripBriefTool(session),
+    readItineraryTool(session),
+    findInTripTool(session),
+    updateItineraryTool(session),
+    addStayTool(session),
+    updateStayTool(session),
+    removeStayTool(session),
+    updateDayTool(session),
+    addStopsTool(session),
+    updateStopTool(session),
+    moveStopTool(session),
+    removeStopsTool(session),
+    setWaypointsTool(session),
+    selectCandidateTool(session),
+    selectUserPlaceTool(session),
+    rejectPlacesTool(session),
+    // The workers' tools. Each agent's definition lists the ones it's sent, so the
+    // coordinator doesn't see these (tool design, section 3).
+    readWorkerBriefFactsTool(session),
+    addLodgingCandidatesTool(session),
+    addStopCandidatesTool(session),
+    setStayWeatherTool(session),
+  ];
 }

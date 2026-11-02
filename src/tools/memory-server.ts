@@ -16,6 +16,7 @@ import {
   updateMemoryItemTool,
 } from "./memory-tools.js";
 import type { MemorySession } from "./memory-session.js";
+import type { StrictToolDefinition } from "./strict-tool.js";
 
 // Part of every tool name the model sees, such as mcp__memory__read_memory (tool
 // design, section 1).
@@ -56,11 +57,16 @@ export function createMemoryServer(
     // The coordinator reads memory at the start of every session, so it's never left
     // for it to find with a tool search.
     alwaysLoad: true,
-    tools: [
-      readMemoryTool(session),
-      addMemoryItemTool(session),
-      updateMemoryItemTool(session),
-      forgetMemoryItemTool(session),
-    ],
+    tools: memoryTools(session),
   });
+}
+
+// The memory server's tools. The trip versions rebuild calls them directly too (#244).
+export function memoryTools(session: MemorySession): StrictToolDefinition[] {
+  return [
+    readMemoryTool(session),
+    addMemoryItemTool(session),
+    updateMemoryItemTool(session),
+    forgetMemoryItemTool(session),
+  ];
 }
