@@ -4,6 +4,7 @@ node_modules/
 coverage/
 dist/
 .claude/worktrees/
+phoenix-tutorials/
 
 # Empty files Claude Code's sandbox makes while a command runs, for the paths it
 # protects that don't exist yet. Listed so the fixer's `git add -A` skips them (code
