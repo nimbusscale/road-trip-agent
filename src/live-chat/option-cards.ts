@@ -16,9 +16,11 @@ import {
 import type { MessageRequest } from "../shared/session.schema.js";
 import { LiveChatError } from "./site-api.js";
 
-// The option cards open in the itinerary (functional spec 7.5), numbered for the
-// terminal, since it has no buttons to click. A card's number and its options' numbers
-// are the order the itinerary view shows them in, so they hold until the plan changes.
+// The option cards open in the itinerary (functional spec 7.5), named for the terminal,
+// since it has no buttons to click. A card is named by its stop's or stay's ID, which
+// doesn't change when another card closes, so a simulated user that clicks from an old
+// list of cards can't hit the wrong one (#66). Its options are numbered in the order the
+// card shows them, and that changes only when the card's own options do.
 export interface OpenCard {
   holder: CardHolder;
   card: ShownOptionCard;
@@ -62,10 +64,10 @@ export function cardsText(cards: readonly OpenCard[]): string {
   return cards.map(cardText).join("\n\n");
 }
 
-function cardText({ holder, card }: OpenCard, index: number): string {
+function cardText({ holder, card }: OpenCard): string {
   const buttons = ["Select", ...cardAsks(card).map((ask) => ask.label)];
   return [
-    `Option card ${String(index + 1)}: ${holder.label}`,
+    `Option card ${holder.id}: ${holder.label}`,
     ...card.options.flatMap(optionLines),
     `  Buttons: ${buttons.join(", ")}`,
     "  Google Maps",
@@ -90,14 +92,14 @@ function optionLines(option: ShownOption, index: number): string[] {
 // Select on an option, as its button sends it.
 export function selectRequest(
   cards: readonly OpenCard[],
-  cardNumber: number,
+  cardId: string,
   optionNumber: number,
 ): MessageRequest {
-  const { holder, card } = cardNumbered(cards, cardNumber);
+  const { holder, card } = cardNamed(cards, cardId);
   const option = card.options[optionNumber - 1];
   if (option === undefined) {
     throw new LiveChatError(
-      `Option card ${String(cardNumber)} has no option ${String(optionNumber)}. Its options are 1 to ${String(card.options.length)}.`,
+      `Option card ${cardId} has no option ${String(optionNumber)}. Its options are 1 to ${String(card.options.length)}.`,
     );
   }
   return selectMessage(option, holder);
@@ -107,26 +109,26 @@ export function selectRequest(
 // doesn't show is refused, as the page offers no way to click it.
 export function askRequest(
   cards: readonly OpenCard[],
-  cardNumber: number,
+  cardId: string,
   label: string,
 ): MessageRequest {
-  const { holder, card } = cardNumbered(cards, cardNumber);
+  const { holder, card } = cardNamed(cards, cardId);
   const ask = cardAsks(card).find((each) => each.label === label);
   if (ask === undefined) {
-    throw new LiveChatError(
-      `Option card ${String(cardNumber)} has no ${label} button.`,
-    );
+    throw new LiveChatError(`Option card ${cardId} has no ${label} button.`);
   }
   return askMessage(ask, holder);
 }
 
-function cardNumbered(cards: readonly OpenCard[], number: number): OpenCard {
-  const card = cards[number - 1];
+// A card that has closed since the user last looked is refused, never swapped for
+// another.
+function cardNamed(cards: readonly OpenCard[], id: string): OpenCard {
+  const card = cards.find((each) => each.holder.id === id);
   if (card === undefined) {
     throw new LiveChatError(
       cards.length === 0
-        ? "No option cards are open."
-        : `There's no option card ${String(number)}. The open cards are 1 to ${String(cards.length)}.`,
+        ? `Option card ${id} isn't open. No option cards are open.`
+        : `Option card ${id} isn't open. The open cards are ${cards.map((each) => each.holder.id).join(", ")}.`,
     );
   }
   return card;

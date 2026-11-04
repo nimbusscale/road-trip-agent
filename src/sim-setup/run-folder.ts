@@ -168,13 +168,24 @@ function shellQuoted(value: string): string {
 }
 
 // Values exported in the shell win over the repo's .env, which tsx loads with
-// --env-file, so the bot user's values are the ones used.
+// --env-file, so the bot user's values are the ones used. A harness can run several
+// commands at once, but a person clicks one thing at a time, and each can change the
+// trip. So a command refuses to start while another one in the run is still going. It
+// locks chat.sh itself, and the lock goes when the command exits, however it ends.
+export const BUSY_MESSAGE =
+  "Another ./chat.sh command is still running. Wait for its output, then run this one again.";
+
 function chatScript(repoDir: string): string {
   return [
     "#!/bin/sh",
     "# Runs npm run live-chat in the repo, as this run's bot user, on this run's site.",
     "# Usage: ./chat.sh <action> [arguments], with a message on standard input.",
     "set -e",
+    'exec 9<"$0"',
+    "if ! flock -n 9; then",
+    `  echo ${shellQuoted(BUSY_MESSAGE)} >&2`,
+    "  exit 1",
+    "fi",
     'run_dir=$(cd "$(dirname "$0")" && pwd)',
     "set -a",
     '. "$run_dir/account.env"',

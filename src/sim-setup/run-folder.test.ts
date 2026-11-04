@@ -1,4 +1,4 @@
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import {
   mkdirSync,
   mkdtempSync,
@@ -12,7 +12,7 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { type RunPlaces, setUpRun } from "./run-folder.js";
+import { BUSY_MESSAGE, type RunPlaces, setUpRun } from "./run-folder.js";
 
 // A password with characters a shell would otherwise read: a quote, $, and *.
 const PASSWORD = "it's $HOME*x";
@@ -87,6 +87,20 @@ describe("setUpRun", () => {
     expect(readFileSync(join(runDir, "trip.md"), "utf8")).toBe(
       "An old run's notes.",
     );
+  });
+
+  it("refuses a chat.sh command while another one in the run is still going", () => {
+    const runDir = setUpRun(CHOICE, places);
+
+    // flock holds chat.sh's lock while the second command starts, as a command still
+    // running would.
+    const second = spawnSync("flock", ["chat.sh", "./chat.sh", "whoami"], {
+      cwd: runDir,
+      encoding: "utf8",
+    });
+
+    expect(second.status).toBe(1);
+    expect(second.stderr.trim()).toBe(BUSY_MESSAGE);
   });
 
   it("names the trips there are when the trip isn't one", () => {

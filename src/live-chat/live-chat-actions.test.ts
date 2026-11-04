@@ -180,10 +180,13 @@ describe("npm run live-chat", () => {
     ]);
   });
 
-  it("selects an option by its card's and its own number, as a click on Select does", async () => {
+  it("selects an option by its card's ID and its own number, as a click on Select does", async () => {
     const api = new FakeSiteApi(REPLY);
     const { print } = printed();
-    await selectOption(api, print, "session_1", { card: 2, option: 2 });
+    await selectOption(api, print, "session_1", {
+      card: "stop_dinner",
+      option: 2,
+    });
     expect(api.sent).toEqual([
       {
         path: "/api/sessions/session_1/messages",
@@ -199,8 +202,27 @@ describe("npm run live-chat", () => {
     const api = new FakeSiteApi(REPLY);
     const { print } = printed();
     await expect(
-      askOnCard(api, print, "session_1", { card: 1, label: "Higher tier" }),
+      askOnCard(api, print, "session_1", {
+        card: "stay_moab",
+        label: "Higher tier",
+      }),
     ).rejects.toThrow(LiveChatError);
+    expect(api.sent).toEqual([]);
+  });
+
+  // A simulated user that clicks from an old list of cards, after a card before it
+  // closed, would hit the wrong card if cards were numbered by place in the list (#66).
+  it("refuses a card that has closed, and sends nothing", async () => {
+    const api = new FakeSiteApi(REPLY);
+    const { print } = printed();
+    await expect(
+      selectOption(api, print, "session_1", {
+        card: "stop_breakfast",
+        option: 1,
+      }),
+    ).rejects.toThrow(
+      "Option card stop_breakfast isn't open. The open cards are stay_moab, stop_dinner.",
+    );
     expect(api.sent).toEqual([]);
   });
 

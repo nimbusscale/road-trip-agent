@@ -11,10 +11,10 @@
 // npm run live-chat -- open <session ID>                    an old session, as a resume
 // npm run live-chat -- itinerary <session ID>
 // npm run live-chat -- cards <session ID>                   the open option cards
-// npm run live-chat -- select <session ID> <card> <option>
-// npm run live-chat -- more <session ID> <card>             More options
-// npm run live-chat -- higher <session ID> <card>           Higher tier
-// npm run live-chat -- lower <session ID> <card>            Lower tier
+// npm run live-chat -- select <session ID> <card ID> <option>
+// npm run live-chat -- more <session ID> <card ID>          More options
+// npm run live-chat -- higher <session ID> <card ID>        Higher tier
+// npm run live-chat -- lower <session ID> <card ID>         Lower tier
 //
 // It signs in as LIVE_CHAT_EMAIL, with LIVE_CHAT_PASSWORD, to LIVE_CHAT_SITE, such as
 // http://localhost:5173 with npm run dev, or https://roadtrip.jjk3.com.
@@ -100,11 +100,11 @@ const ACTIONS: Record<string, Action> = {
     },
   },
   select: {
-    args: ["session ID", "card", "option"],
+    args: ["session ID", "card ID", "option"],
     readsMessage: false,
     run: (api, { args, print }) =>
       selectOption(api, print, arg(args, 0), {
-        card: numberArg(args, 1),
+        card: arg(args, 1),
         option: numberArg(args, 2),
       }),
   },
@@ -115,11 +115,11 @@ const ACTIONS: Record<string, Action> = {
 
 function cardAskAction(label: string): Action {
   return {
-    args: ["session ID", "card"],
+    args: ["session ID", "card ID"],
     readsMessage: false,
     run: (api, { args, print }) =>
       askOnCard(api, print, arg(args, 0), {
-        card: numberArg(args, 1),
+        card: arg(args, 1),
         label,
       }),
   };

@@ -109,7 +109,7 @@ export async function printItinerary(
     `/api/trips/${encodeURIComponent(tripId)}/itinerary`,
     itineraryResponseSchema,
   );
-  print(itineraryText(view, openCardsOf(view)));
+  print(itineraryText(view));
 }
 
 export async function printCards(
@@ -121,16 +121,17 @@ export async function printCards(
   print(cardsText(await openCards(api, tripId)));
 }
 
-// Select on an option of an open card, by the numbers the cards action prints.
+// Select on an option of an open card, by the card's ID and the option's number, as the
+// cards action prints them.
 export async function selectOption(
   api: SiteApi,
   print: Print,
   sessionId: string,
-  numbers: { card: number; option: number },
+  pick: { card: string; option: number },
 ): Promise<boolean> {
   const { tripId } = await readSession(api, sessionId);
   const cards = await openCards(api, tripId);
-  const message = selectRequest(cards, numbers.card, numbers.option);
+  const message = selectRequest(cards, pick.card, pick.option);
   return sendClick(api, print, { sessionId, tripId, message });
 }
 
@@ -139,7 +140,7 @@ export async function askOnCard(
   api: SiteApi,
   print: Print,
   sessionId: string,
-  ask: { card: number; label: string },
+  ask: { card: string; label: string },
 ): Promise<boolean> {
   const { tripId } = await readSession(api, sessionId);
   const cards = await openCards(api, tripId);

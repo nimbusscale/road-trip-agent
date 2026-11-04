@@ -52,7 +52,7 @@ It makes the run folder `~/tmp/road-trip-sims/<bot user>-<trip>-<persona>/`, suc
 
 - `instructions.md`, and copies of the trip file and the persona file, named plainly `trip.md` and `persona.md`, so nothing hints at other trips.
 - `account.env`, the bot user's email and password, plus `LIVE_CHAT_SITE` for the site.
-- `chat.sh`, which loads `account.env` and runs `npm run live-chat` in the repo, passing its arguments and standard input through. Values set in the shell win over the repo's `.env`, so the bot user's values are the ones used.
+- `chat.sh`, which loads `account.env` and runs `npm run live-chat` in the repo, passing its arguments and standard input through. Values set in the shell win over the repo's `.env`, so the bot user's values are the ones used. It also refuses to start while another `chat.sh` command in the run is still going, since a harness can run several at once, but a person clicks one thing at a time. It uses `flock`, which Linux has.
 
 ## Start a harness
 
