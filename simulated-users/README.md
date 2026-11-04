@@ -39,7 +39,7 @@ Do this once for each harness and model pair.
    LIVE_CHAT_PASSWORD=<its password>
    ```
 
-3. Sign the harness in, if it's new. Claude Code signs in once in its own config folder, `~/tmp/road-trip-sims/.claude/` (Start a harness, below).
+3. Sign the harness in, if it's new. Claude Code signs in once in its own config folder, `~/tmp/road-trip-sims/.claude/` (Start a harness, below). Codex uses Joe's own sign-in, in `~/.codex/`, so it needs nothing here.
 
 Then Claude Code adds the bot user to `bot-users.md`, and checks the harness.
 
@@ -75,6 +75,8 @@ Claude Code cuts a command off after 2 minutes by default. Its config folder's `
 
 Checked on 2026-11-04 with Claude Code 2.1.318.
 
+Codex needs no setting. It let the command run the whole 5½ minutes, and checked on it a few times while it waited. Checked on 2026-11-04 with Codex CLI 0.166.0.
+
 **It leaves a log of the run.** Checking a run needs each command the simulated user ran, and what came back (Check a run, below). Find the harness's way to write that log, such as Claude Code's `--output-format stream-json`, and add it to "Start a harness". Without a log, `./chat.sh open <session ID>` prints a session's chat, but not what the simulated user read from `cards` and `itinerary`, or the commands the harness refused.
 
 ## Pick the site
@@ -104,7 +106,7 @@ Start each harness in the run folder. A folder inside the repo would load the re
 | Harness | Start command, in the run folder |
 |---|---|
 | Claude Code | `CLAUDE_CONFIG_DIR=~/tmp/road-trip-sims/.claude claude --model <model>`. Its own config folder keeps out Joe's `CLAUDE.md`, settings, and memory |
-| Codex | `codex -m <model>`. It reads only `AGENTS.md`, and Joe has none |
+| Codex | `codex --ignore-user-config --ignore-rules -m <model> -s workspace-write -c sandbox_workspace_write.network_access=true`. It reads only `AGENTS.md`, and Joe has none. The flags are explained under its headless start, below |
 | opencode | `OPENCODE_DISABLE_CLAUDE_CODE=1 opencode -m <model>`. Without the variable, opencode falls back to `~/.claude/CLAUDE.md` when it has no `AGENTS.md` of its own |
 
 Give every harness the same opening prompt:
@@ -126,13 +128,30 @@ echo "Read instructions.md, trip.md, and persona.md, then plan the trip." \
 
 `--allowedTools` lets it run `./chat.sh` and nothing else that needs permission. `--output-format stream-json --verbose` writes each step to `run.jsonl` as it happens, so the run can be watched, and each command it ran and what came back can be read afterward. Write `run.jsonl` outside the run folder, or the simulated user can read its own log.
 
-**Other harnesses may have a headless mode too,** such as `codex exec` or `opencode run`. Check it the first time it's used, and add its command here. It needs the same three things: only `./chat.sh` is allowed, each command and its output goes to a log, and the log is outside the run folder.
+**Codex can run headless too,** with `codex exec`. The `-` at the end reads the opening prompt from standard input:
+
+```sh
+echo "Read instructions.md, trip.md, and persona.md, then plan the trip." \
+  | codex exec --ignore-user-config --ignore-rules --skip-git-repo-check \
+      -m gpt-6.1-terra -s workspace-write \
+      -c sandbox_workspace_write.network_access=true --json - \
+  > run.jsonl
+```
+
+- `--ignore-user-config` and `--ignore-rules` leave out Joe's `~/.codex/config.toml` and its rules, which turn on plugins and an MCP server a simulated user shouldn't have, such as a browser. Codex still signs in with Joe's account.
+- `-s workspace-write` lets commands write only in the run folder. Network access is off in that sandbox by default, and `chat.sh` needs it, so the `-c` setting turns it on.
+- `--skip-git-repo-check` lets it start in the run folder, which isn't a Git repo.
+- `--json` writes each step to `run.jsonl` as it happens.
+
+Codex can't be limited to `./chat.sh` the way Claude Code is. It reads files with shell commands, such as `cat trip.md`, so it has to be allowed to run them. The sandbox keeps it from changing anything outside the run folder, but not from reading outside it. So when checking a Codex run, look in the log for any command other than `./chat.sh` that reads a file outside the run folder.
+
+**Other harnesses may have a headless mode too,** such as `opencode run`. Check it the first time it's used, and add its command here. It needs the same three things: only `./chat.sh` is allowed, or failing that, nothing outside the run folder can be changed. Each command and its output goes to a log. The log is outside the run folder.
 
 **Run one pair at a time.** When several harness and model pairs play the same trip, start each run after the last one ends. They all use the app's Claude plan, so runs at the same time would slow each other's turns. Someone else may be using the live site during a run, such as Joe planning a real trip. That's fine. Their turns are kept apart from the run's by user ID.
 
 ## Check a run
 
-**Read the run's log first.** It shows each message the simulated user sent, each card it clicked, and what came back, so the first two checks below are judged on it. In Claude Code's `run.jsonl`, each line is one JSON event. The commands are the `tool_use` items in `assistant` events, and their output is the `tool_result` items in the `user` events after them. The last line, of type `result`, holds the simulated user's final note, its number of turns, and its cost. A short script that prints the commands and their output in order makes the log easy to read.
+**Read the run's log first.** It shows each message the simulated user sent, each card it clicked, and what came back, so the first two checks below are judged on it. In Claude Code's `run.jsonl`, each line is one JSON event. The commands are the `tool_use` items in `assistant` events, and their output is the `tool_result` items in the `user` events after them. The last line, of type `result`, holds the simulated user's final note, its number of turns, and its cost. In Codex's `run.jsonl`, the commands are the `item.completed` events whose item is a `command_execution`, with the command and its `aggregated_output`. The simulated user's own words are the `agent_message` items, and the last one is its final note. Codex logs tokens, not a cost. A short script that prints the commands and their output in order makes the log easy to read.
 
 The final note is the simulated user's own account, so check it against the log. It can be wrong, such as blaming the planner for a mix-up that was its own.
 
