@@ -14,21 +14,15 @@ import {
   STOP_KIND_TEXT,
   timesText,
 } from "../shared/itinerary-text.js";
-import type { OpenCard } from "./option-cards.js";
 
 // The itinerary as the itinerary view shows it (functional spec 9), as text: the trip
 // summary, the stays, and each day with its leg and schedule. There's no map. An open
-// option card shows only its number, since the cards action prints the cards.
-export function itineraryText(
-  view: ItineraryResponse,
-  cards: readonly OpenCard[],
-): string {
-  const cardNumber = (holderId: string): number =>
-    cards.findIndex((each) => each.holder.id === holderId) + 1;
+// option card shows only its ID, since the cards action prints the cards.
+export function itineraryText(view: ItineraryResponse): string {
   const stays =
     view.stays.length === 0
       ? ["No stays yet."]
-      : view.stays.flatMap((stay) => stayLines(stay, cardNumber));
+      : view.stays.flatMap((stay) => stayLines(stay));
   return [
     ...summaryLines(view.summary),
     "",
@@ -36,11 +30,9 @@ export function itineraryText(
     ...stays,
     "",
     "Days",
-    ...view.days.flatMap((day) => ["", ...dayLines(day, cardNumber)]),
+    ...view.days.flatMap((day) => ["", ...dayLines(day)]),
   ].join("\n");
 }
-
-type CardNumber = (holderId: string) => number;
 
 function summaryLines(summary: ShownSummary): string[] {
   const { startPlace, endPlace } = summary;
@@ -53,14 +45,14 @@ function summaryLines(summary: ShownSummary): string[] {
   ];
 }
 
-function stayLines(stay: ShownStay, cardNumber: CardNumber): string[] {
+function stayLines(stay: ShownStay): string[] {
   const dates =
     stay.arriveDate === null || stay.leaveDate === null
       ? ""
       : `, ${dayText(stay.arriveDate)} to ${dayText(stay.leaveDate)}`;
   return [
     `Stay ${String(stay.number)}: ${stay.place.name}, ${countText(stay.nightCount, "night")}${dates}`,
-    ...choiceLines("  Lodging: ", stay.lodging, cardNumber(stay.id)),
+    ...choiceLines("  Lodging: ", stay.lodging, stay.id),
     ...weatherLines(stay.weather),
   ];
 }
@@ -84,7 +76,7 @@ function weatherLines(weather: ShownWeather | null): string[] {
   ];
 }
 
-function dayLines(day: ShownDay, cardNumber: CardNumber): string[] {
+function dayLines(day: ShownDay): string[] {
   const heading = [
     `Day ${String(day.number)}`,
     day.date === null ? null : dayText(day.date),
@@ -94,7 +86,7 @@ function dayLines(day: ShownDay, cardNumber: CardNumber): string[] {
     day.schedule.length === 0
       ? ["  Nothing scheduled yet."]
       : [
-          ...day.schedule.flatMap((entry) => entryLines(entry, cardNumber)),
+          ...day.schedule.flatMap((entry) => entryLines(entry)),
           ...(day.arrival === null
             ? []
             : [
@@ -131,7 +123,7 @@ function legLines(leg: ShownLeg): string[] {
   ];
 }
 
-function entryLines(entry: ShownEntry, cardNumber: CardNumber): string[] {
+function entryLines(entry: ShownEntry): string[] {
   const times = timesText(entry);
   const prefix = `  ${times === "" ? "" : `${times}: `}`;
   const { stop } = entry;
@@ -146,19 +138,19 @@ function entryLines(entry: ShownEntry, cardNumber: CardNumber): string[] {
   if (stop.kind === "checkIn") {
     return [`${label}${stop.checkInPlace?.name ?? "no stay to check in at"}`];
   }
-  return choiceLines(label, stop.choice, cardNumber(stop.id));
+  return choiceLines(label, stop.choice, stop.id);
 }
 
-// A selected place with why it was picked, an open card by its number, or how far
+// A selected place with why it was picked, an open card by its ID, or how far
 // along the choice is (functional spec 7.5 and 7.6).
 function choiceLines(
   label: string,
   choice: ShownChoice,
-  cardNumber: number,
+  holderId: string,
 ): string[] {
   const { selection } = choice;
-  if (choice.card !== null && cardNumber > 0) {
-    return [`${label}option card ${String(cardNumber)} is open`];
+  if (choice.card !== null) {
+    return [`${label}option card ${holderId} is open`];
   }
   if (selection === null) {
     return [
