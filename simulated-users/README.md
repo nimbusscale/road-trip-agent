@@ -150,7 +150,7 @@ For a local run, the project is `road-trip-agent-local`. A reply with a `next_cu
 **Judge the run against the trip file, not against an earlier run.** Live places and the coordinator's choices change from run to run, so two good runs can end with different hotels. What to check:
 
 - **The simulated user stuck to the trip file.** It didn't make up a fact that contradicts it, such as a different budget. Where the trip file has no answer, a made-up one that fits the trip is fine.
-- **It acted like a user.** It gave one or two facts at a time, answered only what was asked, and made the trip file's changes at the right points.
+- **It acted like a user, as its persona says.** It made the trip file's changes at the right points. Unless the persona says otherwise, it gave one or two facts at a time, and answered only what was asked.
 - **The trip brief matches the trip file's facts.** Read the brief as it ended, from the last `mcp__trip__read_trip_brief` span, whose `output.value` holds the whole brief. A trip file whose last change starts a new session gives one: the coordinator reads the brief on a session's first turn. Don't check it from an earlier turn, since a change can move an item and move it back, such as a trip length that goes up a day and back down. Some facts are kept in the itinerary instead, such as the start date and the end place. Check those in the last itinerary in the log, or run `./chat.sh itinerary <session ID>` in the run folder. When a fact is missing from the brief, check the log for whether the simulated user gave it, and as what. Example: a must-see it only asked for as a dessert stop becomes a stop, not a must-see.
 
 **Expect the coordinator to handle a change in more than one good way.** The same request can get different good answers. Example: asked to spend longer at a stop, it may trim the time a little to keep dinner on time, or ask first. Either is fine.
@@ -173,5 +173,6 @@ A trip file goes in `trips/`, and has these sections: what the user knows, what 
 - **Changes happen in one sitting.** A change may start a new session right away, but never on a later day, since nothing fakes the date.
 - **End with a new session that asks what's left to decide.** It shows what the coordinator says at the start of a session, and gives a final read of the trip brief to check.
 - **Give the simulated user a limit,** such as stopping after 80 messages, so a stuck run can't go on and on.
+- **Leave how the user gives facts to the persona,** such as one at a time or most at once. A trip file says which facts the user has, not how fast it gives them, so any persona can play it.
 
-A persona file goes in `personas/`. It holds only how the user talks and acts, with nothing about any one trip. `personas/easygoing.md` is the example.
+A persona file goes in `personas/`. It holds only how the user talks and acts, with nothing about any one trip. `personas/easygoing.md` is the example. Give each new persona something the others don't make the coordinator do, such as the over-sharer's first message, which gives most of the trip at once.
