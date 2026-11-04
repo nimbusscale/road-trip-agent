@@ -147,7 +147,7 @@ Codex can't be limited to `./chat.sh` the way Claude Code is. It reads files wit
 
 **Other harnesses may have a headless mode too,** such as `opencode run`. Check it the first time it's used, and add its command here. It needs the same three things: only `./chat.sh` is allowed, or failing that, nothing outside the run folder can be changed. Each command and its output goes to a log. The log is outside the run folder.
 
-**Run one pair at a time.** When several harness and model pairs play the same trip, start each run after the last one ends. They all use the app's Claude plan, so runs at the same time would slow each other's turns. Someone else may be using the live site during a run, such as Joe planning a real trip. That's fine. Their turns are kept apart from the run's by user ID.
+**Run up to two at a time, each as a different bot user,** such as a Claude Code run and a Codex run. "Check a run" finds a run's turns in Phoenix by the bot user's ID, so two runs as the same bot user would mix their turns. Someone else may be using the live site during a run, such as Joe planning a real trip. That's fine. Their turns are kept apart from the run's by user ID.
 
 ## Check a run
 
