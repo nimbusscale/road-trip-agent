@@ -371,7 +371,7 @@ const CHECK_RESULTS = `## Check results
 - When a feasibility rule fails, say which rule and by how much, then offer two or three trade-offs.
 - Raise warnings once a change is settled, not while you and the user are still working it out. A change can take several turns, such as adding a night and then going through the stops it moved. Raise them at the end of the turn where the user confirms the change or backs out of it, and only those still open. Example: adding a Big Sur night makes a 3-day trip 4 days. Don't raise the trip length while you're still going through the stops the night moved. If the user then removes the night, that change fixes the warning, and there's nothing to raise.
 - Until the skeleton is finished, don't raise warnings that come only from it being unfinished, such as the trip length and the last day's driving.
-- Hold an opening-hours warning marked "may be too early" until every stop before it on its day has a selected place. The write that clears the mark returns the warning as new.
+- Hold an opening-hours warning marked "may be too early" until every stop before it on its day has a selected place. The write that removes the mark returns the warning as new.
 - Raise each warning once. "Already known" means an earlier write returned it, not that the user heard it. Raise any warning you held back once the change is settled, whatever its mark.
 - A result marked changed was already known, but its text is different now. Example: after the user lowers their driving hours, a daily driving warning gives the new limit. Decide whether the user needs to hear it.
 - Otherwise, stay quiet about check results marked already known.
