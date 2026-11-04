@@ -120,7 +120,7 @@ describe("add_stay", () => {
       "Road time changed, without the drive buffer:",
       `- Day 1 (${String(day1)}): no leg → 30 m, 25 miles.`,
       `- Day 4 (${String(lastDay)}): 30 m → 30 m, 25 miles.`,
-      "No new, changed, or gone check results.",
+      "No check results are new or changed, and this change fixed or cleared none.",
     ]);
     const moabStayId = present(/\((stay_\w+)\)/.exec(moab))[1];
     const torrey = textOf(

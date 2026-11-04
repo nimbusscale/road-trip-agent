@@ -31,7 +31,10 @@ describe("checkResultLines", () => {
           result({ isApproved: true }),
           result({ subjectId: "day_b", text: "Not touched." }),
         ],
-        goneResults: [result({ subjectId: "day_c", text: "Day 4 was late." })],
+        goneResults: [
+          result({ subjectId: "day_c", text: "Day 4 was late." }),
+          result({ check: "stopOrder", text: "A faster order." }),
+        ],
       },
       new Set(["day_a"]),
     );
@@ -40,7 +43,8 @@ describe("checkResultLines", () => {
       "- New note: A faster order.",
       "- Changed warning: Day 5 has 6 h of driving, over the comfortable 5 h.",
       "- Already known warning, approved: Day 2 has 7 h of driving, over the comfortable 6 h.",
-      "- Gone: Day 4 was late.",
+      '- Fixed by this change: the earlier warning that said "Day 4 was late."',
+      '- Cleared by this change: the earlier note that said "A faster order."',
     ]);
   });
 
@@ -76,6 +80,8 @@ describe("checkResultLines", () => {
         },
         new Set(["itin_a"]),
       ),
-    ).toEqual(["No new, changed, or gone check results."]);
+    ).toEqual([
+      "No check results are new or changed, and this change fixed or cleared none.",
+    ]);
   });
 });
