@@ -70,7 +70,7 @@
     "format": "prettier --write src web",
     "format:check": "prettier --check src web",
     "typecheck": "tsc --noEmit && tsc --noEmit -p web",
-    "lint": "eslint . --max-warnings 0",
+    "lint": "eslint src web eslint.config.mjs vite.config.ts vitest.config.ts --max-warnings 0",
     "test": "vitest run --update=none",
     "agent-views": "vitest run --update=all src/agent/agent-views.test.ts"
   }
