@@ -200,7 +200,7 @@ function arg(args: readonly string[], index: number): string {
 function numberArg(args: readonly string[], index: number): number {
   const text = arg(args, index);
   if (!/^[1-9]\d*$/.test(text)) {
-    throw new LiveChatError(`"${text}" isn't a card or option number.`);
+    throw new LiveChatError(`"${text}" isn't an option number.`);
   }
   return Number(text);
 }

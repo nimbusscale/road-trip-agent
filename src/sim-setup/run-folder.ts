@@ -88,7 +88,8 @@ export function setUpRun(choice: RunChoice, places: RunPlaces): string {
 }
 
 function siteAddress(site: string): string {
-  const address = SITES[site];
+  // Only the sites' own keys, since every object also has keys such as "constructor".
+  const address = Object.hasOwn(SITES, site) ? SITES[site] : undefined;
   if (address === undefined) {
     throw new SimSetupError(
       `"${site}" isn't a site. Use one of: ${Object.keys(SITES).join(", ")}.`,

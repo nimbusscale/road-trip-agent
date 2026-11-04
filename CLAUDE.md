@@ -27,6 +27,10 @@ It is not a product. Joe is the main user, and a family member or friend may try
 - Report bugs, security problems, and anything that would make an agent's behavior hard to trace. Don't report missing production safeguards, version updates, or code-quality points that don't make the code harder to read or change.
 - When reviewing a PR, start from the task in its description. Don't read the PR's conversation comments, such as with `gh pr view --comments`, or the comments on its issue. They hold the implementer's reasons, which would color the review. Inline review comments are fine to read. Before posting findings, read them, and don't post a finding that an earlier inline comment already makes. The exception is when the lines it points to have changed since, and the problem is still there. Then post it again, and say the change didn't fix it.
 
+## Simulated users
+
+Run a simulated user only when Joe asks for one, or an issue does. Don't start one on your own, such as to check a change. Before running one, or writing a trip or persona file, read [simulated-users/README.md](simulated-users/README.md).
+
 ## Writing code
 
 - Read [DEVELOPMENT.md](DEVELOPMENT.md) before writing, changing, or reviewing code.
