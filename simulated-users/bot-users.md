@@ -5,3 +5,4 @@ Each bot user's Supabase user ID, with its email. Phoenix shows only the user's 
 | User ID | Email | Harness | Model |
 |---|---|---|---|
 | `d37cc40c-3a8f-4ece-ba59-f1309c7b3e39` | `claude-code-sonnet@jjk3.com` | Claude Code | Sonnet |
+| `f2ac916b-a094-482f-a851-3989b12c1943` | `codex-gpt-terra@jjk3.com` | Codex | gpt-6.1-terra |
