@@ -75,6 +75,8 @@ Claude Code cuts a command off after 2 minutes by default. Its config folder's `
 
 Checked on 2026-11-04 with Claude Code 2.1.318.
 
+**It leaves a log of the run.** Checking a run needs each command the simulated user ran, and what came back (Check a run, below). Find the harness's way to write that log, such as Claude Code's `--output-format stream-json`, and add it to "Start a harness". Without a log, `./chat.sh open <session ID>` prints a session's chat, but not what the simulated user read from `cards` and `itinerary`, or the commands the harness refused.
+
 ## Pick the site
 
 `road-trip-agent-local`, the local Phoenix project, is for development, and its traces are throwaway. `road-trip-agent`, the server's project, holds the sessions to be evaluated (systems design, section 10). So a run that tries out a change to a trip file, a persona, or the instructions plays against the local stack. A run recorded for the evaluations plays against the live site.
@@ -124,29 +126,44 @@ echo "Read instructions.md, trip.md, and persona.md, then plan the trip." \
 
 `--allowedTools` lets it run `./chat.sh` and nothing else that needs permission. `--output-format stream-json --verbose` writes each step to `run.jsonl` as it happens, so the run can be watched, and each command it ran and what came back can be read afterward. Write `run.jsonl` outside the run folder, or the simulated user can read its own log.
 
-**Run one pair at a time.** When several harness and model pairs play the same trip, start each run after the last one ends. They all use the app's Claude plan, so runs at the same time would slow each other's turns, and mix up any reading of how much of the plan a run used.
+**Other harnesses may have a headless mode too,** such as `codex exec` or `opencode run`. Check it the first time it's used, and add its command here. It needs the same three things: only `./chat.sh` is allowed, each command and its output goes to a log, and the log is outside the run folder.
 
-**What a run takes.** The San Francisco trip, with Claude Code and Sonnet, took 30 to 36 of the simulated user's messages, and 10 to 17 minutes. The simulated user's own usage was about $0.40 a run. Measured on 2026-11-04, in #66.
+**Run one pair at a time.** When several harness and model pairs play the same trip, start each run after the last one ends. They all use the app's Claude plan, so runs at the same time would slow each other's turns. Someone else may be using the live site during a run, such as Joe planning a real trip. That's fine. Their turns are kept apart from the run's by user ID.
 
 ## Check a run
 
-**Find its sessions in Phoenix by the bot user's ID,** the `user.id` on each `coordinator.turn` span. Check it's the bot user's ID from `bot-users.md`, since that's how a session is traced back to who played it. Phoenix's `session.id` is the agent session ID, not the session ID `chat.sh` prints.
+**Read the run's log first.** It shows each message the simulated user sent, each card it clicked, and what came back, so the first two checks below are judged on it. In Claude Code's `run.jsonl`, each line is one JSON event. The commands are the `tool_use` items in `assistant` events, and their output is the `tool_result` items in the `user` events after them. The last line, of type `result`, holds the simulated user's final note, its number of turns, and its cost. A short script that prints the commands and their output in order makes the log easy to read.
+
+The final note is the simulated user's own account, so check it against the log. It can be wrong, such as blaming the planner for a mix-up that was its own.
+
+**Find its sessions in Phoenix by the bot user's ID.** Bring up the Phoenix tunnel (DEVELOPMENT.md section 2). Then read the spans from Phoenix's REST API, from the time the run started, such as:
+
+```sh
+curl -s "http://127.0.0.1:6006/v1/projects/road-trip-agent/spans?start_time=2026-11-04T19:59:00Z&limit=1000"
+```
+
+For a local run, the project is `road-trip-agent-local`. A reply with a `next_cursor` has more pages: pass it back as `cursor`. Each span has a `name`, a `status_code`, and a `context.trace_id`. Its `attributes` hold `user.id`, `session.id`, `input.value`, and `output.value`.
+
+- Keep only the traces whose `coordinator.turn` span has the bot user's `user.id`, from `bot-users.md`. Other people's turns are in the same project. A worker's spans, such as `stay-researcher.turn`, have no `user.id`, but they're in the same trace as the coordinator turn that started them.
+- Phoenix's `session.id` is the agent session ID, not the session ID `chat.sh` prints. To match them, go by time: a new session's turns start after the last turn of the session before it.
 
 **Judge the run against the trip file, not against an earlier run.** Live places and the coordinator's choices change from run to run, so two good runs can end with different hotels. What to check:
 
-- **The simulated user stuck to the trip file.** It didn't make up a fact that contradicts it, such as a different budget.
-- **It acted like a user.** It gave one or two facts at a time, answered only what was asked, and made the trip file's changes at the right points. The run's log shows each message it sent.
-- **The trip brief matches the trip file's facts.** Read the brief as it ended, from the last `mcp__trip__read_trip_brief` span, whose reply holds the whole brief. A trip file whose last change starts a new session gives one: the coordinator reads the brief on a session's first turn. Don't check it from an earlier turn, since a change can move an item and move it back. On the San Francisco trip, the trip length goes from 3 days to 4 and back to 3.
+- **The simulated user stuck to the trip file.** It didn't make up a fact that contradicts it, such as a different budget. Where the trip file has no answer, a made-up one that fits the trip is fine.
+- **It acted like a user.** It gave one or two facts at a time, answered only what was asked, and made the trip file's changes at the right points.
+- **The trip brief matches the trip file's facts.** Read the brief as it ended, from the last `mcp__trip__read_trip_brief` span, whose `output.value` holds the whole brief. A trip file whose last change starts a new session gives one: the coordinator reads the brief on a session's first turn. Don't check it from an earlier turn, since a change can move an item and move it back, such as a trip length that goes up a day and back down. Some facts are kept in the itinerary instead, such as the start date and the end place. Check those in the last itinerary in the log, or run `./chat.sh itinerary <session ID>` in the run folder. When a fact is missing from the brief, check the log for whether the simulated user gave it, and as what. Example: a must-see it only asked for as a dessert stop becomes a stop, not a must-see.
 
-**Expect the coordinator to handle a change in more than one good way.** On the San Francisco runs:
+**Expect the coordinator to handle a change in more than one good way.** The same request can get different good answers. Example: asked to spend longer at a stop, it may trim the time a little to keep dinner on time, or ask first. Either is fine.
 
-- On "Take the second one," it sometimes picked a hotel, and sometimes asked which one was meant.
-- Five hours at the Boardwalk sometimes came out at 4 hours 40 minutes, to keep dinner on time.
-- For the Big Sur night, it once moved the start a day earlier, instead of the arrival a day later.
+**Expect small slips from the simulated user too.** A slip it recovers from isn't a failure, such as a command the harness refused, or a fact it held back and gave later. Note it in the results. A run fails a check only when the simulated user broke the trip file or the instructions, or the brief doesn't match.
 
-Each of these is fine. A run fails a check only when the simulated user broke the trip file or the instructions, or the brief doesn't match.
+**Look at the refused tool calls,** the spans whose `status_code` is `ERROR`. When an agent fixes its call and goes on, that's agent behavior, not an app bug. If the same refusal comes up again and again, it's worth a Triage issue.
 
-**Mark a run that fails a check** with a session annotation in Phoenix, saying it isn't for evaluation, since a failed run stays in Phoenix. If it failed because of the setup, fix the setup, the trip file, the persona file, or the instructions, and run again. File each app bug as a new issue.
+**File an app bug when it matters to the app:** it changes what the agents see or do, or what a real user sees on the page. A flaw only in what `live-chat` prints, which no agent reads, is worth filing only if it misled the simulated user.
+
+**Mark a run that fails a check** with a session annotation in Phoenix, saying it isn't for evaluation, since a failed run stays in Phoenix. If it failed because of the setup, fix the setup, the trip file, the persona file, or the instructions, and run again.
+
+**Write the results in the run's issue,** as a comment. Give the trip and session IDs, the Phoenix session IDs, each check's result with any slips, and the issues filed. Don't add a run's details to this README, or to any other file used across runs. A run needs a PR only when the setup, a trip file, a persona file, or the instructions change.
 
 ## Add a trip or a persona
 
