@@ -17,11 +17,22 @@ export function checkResultLines(
     ...comparison.knownResults
       .filter((result) => touchedIds.has(result.subjectId))
       .map((result) => `- ${describe("Already known", result)}`),
-    ...comparison.goneResults.map((result) => `- Gone: ${result.text}`),
+    ...comparison.goneResults.map((result) => `- ${describeGone(result)}`),
   ];
   return lines.length === 0
-    ? ["No new, changed, or gone check results."]
+    ? [
+        "No check results are new or changed, and this change fixed or cleared none.",
+      ]
     : ["Check results:", ...lines];
+}
+
+// A gone result's saved text still reads like a problem that's there, so the line says
+// first that this change ended it, and quotes the text as what was true before. Judges
+// read "Gone:" and "No longer applies:" lines as open warnings (#252). A note isn't a
+// problem, so it's cleared, not fixed.
+function describeGone(result: CheckResult): string {
+  const verb = result.level === "warning" ? "Fixed" : "Cleared";
+  return `${verb} by this change: the earlier ${result.level} that said "${result.text}"`;
 }
 
 // Such as "New warning, approved: ...". An opening-hours warning with a stop before it

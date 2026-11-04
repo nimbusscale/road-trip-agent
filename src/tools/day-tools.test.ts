@@ -244,8 +244,12 @@ describe("update_day: approving a route type", () => {
         approveRouteType: { routeType: "scenic", reason: "the river road" },
       }),
     );
-    expect(reply).not.toContain("cleared");
-    expect(reply).not.toContain("Road time changed");
+    expect(reply).toBe(
+      [
+        `Changed Day 1 (${dayId}).`,
+        "No check results are new or changed, and this change fixed or cleared none.",
+      ].join("\n"),
+    );
     expect(await trip.read(dayId)).toContain(
       `  - Waypoint: ${placeLine(dewey)}. Reason: "steer onto UT-128".`,
     );

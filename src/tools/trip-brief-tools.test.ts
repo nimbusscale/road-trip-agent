@@ -249,13 +249,13 @@ describe("update_trip_brief's check results", () => {
       [
         "Changed the trip brief.",
         "Check results:",
-        "- Gone: The trip is 1 day, and the brief asks for 3.",
+        '- Fixed by this change: the earlier warning that said "The trip is 1 day, and the brief asks for 3."',
       ].join("\n"),
     );
     expect(textOf(await update({ focus: "Big Sur" }))).toBe(
       [
         "Changed the trip brief.",
-        "No new, changed, or gone check results.",
+        "No check results are new or changed, and this change fixed or cleared none.",
       ].join("\n"),
     );
   });
