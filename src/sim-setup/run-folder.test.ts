@@ -103,6 +103,13 @@ describe("setUpRun", () => {
     expect(second.stderr.trim()).toBe(BUSY_MESSAGE);
   });
 
+  // A name such as "constructor" is a key every object has, but isn't a site.
+  it("refuses a site name that isn't one of its own sites", () => {
+    expect(() => setUpRun({ ...CHOICE, site: "constructor" }, places)).toThrow(
+      '"constructor" isn\'t a site. Use one of: local, live.',
+    );
+  });
+
   it("names the trips there are when the trip isn't one", () => {
     expect(() => setUpRun({ ...CHOICE, trip: "denver" }, places)).toThrow(
       'There\'s no trip file named "denver". Use one of: moab, sf.',
