@@ -81,8 +81,7 @@ export class HttpSiteApi implements SiteApi {
     }
     const parser = new ChatEventParser();
     const decoder = new TextDecoder();
-    const chunks: AsyncIterable<unknown> = response;
-    for await (const chunk of chunks) {
+    for await (const chunk of chunksUntilClosed(response)) {
       if (chunk instanceof Uint8Array) {
         yield* parser.push(decoder.decode(chunk, { stream: true }));
       }
@@ -94,10 +93,15 @@ export class HttpSiteApi implements SiteApi {
     schema: ZodType<T>,
     method: "GET" | "POST",
   ): Promise<T> {
-    const response = await fetch(`${this.#site}${path}`, {
-      method,
-      headers: new Headers([["Authorization", `Bearer ${this.#token}`]]),
-    });
+    let response: Response;
+    try {
+      response = await fetch(`${this.#site}${path}`, {
+        method,
+        headers: new Headers([["Authorization", `Bearer ${this.#token}`]]),
+      });
+    } catch (error) {
+      throw this.#unreachable(error);
+    }
     const text = await response.text();
     if (!response.ok) {
       throw new LiveChatError(errorMessageOf(text, response.status));
@@ -116,9 +120,34 @@ export class HttpSiteApi implements SiteApi {
       outgoing.setHeader("Authorization", `Bearer ${this.#token}`);
       outgoing.setHeader("Content-Type", "application/json");
       outgoing.on("response", resolve);
-      outgoing.on("error", reject);
+      outgoing.on("error", (error) => {
+        reject(this.#unreachable(error));
+      });
       outgoing.end(body);
     });
+  }
+
+  // Such as when npm run dev isn't running.
+  #unreachable(error: unknown): LiveChatError {
+    const cause = error instanceof Error ? error.cause : undefined;
+    const reason = cause instanceof Error ? cause : error;
+    return new LiveChatError(
+      `Couldn't reach ${this.#site}: ${reason instanceof Error ? reason.message : String(reason)}`,
+    );
+  }
+}
+
+// A reply's chunks until its connection closes. A connection dropped partway through,
+// such as by a restart or a network blip, ends the chunks as a clean close does, so
+// the turn is printed as cut off.
+async function* chunksUntilClosed(
+  response: IncomingMessage,
+): AsyncIterable<unknown> {
+  const chunks: AsyncIterable<unknown> = response;
+  try {
+    yield* chunks;
+  } catch {
+    return;
   }
 }
 
