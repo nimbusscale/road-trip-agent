@@ -50,7 +50,7 @@ Make each change at the point it says, in your own words.
 2. **The pie.** If the planner says Gifford Homestead is closed when you'd get there, first say you want to keep it anyway. Then change your mind, and ask for somewhere else for pie. If it offers some, pick one. Later, after at least one other change, say you've forgotten which pie places it offered, and ask what they were. If the planner never says Gifford Homestead is closed, skip this change.
 3. **A longer day.** If the planner says Day 4's drive is over what you're comfortable with, agree to the longer day, since you want to see the hoodoos and Capitol Reef on the way.
 4. **A day later.** After the itinerary shows the weather and what to pack, say you have to leave a day later, on Monday, October 11. Keep everything else the same.
-5. **One night less in Moab.** After change 4 is done, say you'd like only 2 nights in Moab, and accept that the trip gets a day shorter. Then ask for a 5-hour hike in Arches on the morning of Day 2. Deal with anything that change causes.
+5. **One night less in Moab.** After change 4 is done, say you'd like only 2 nights in Moab, and accept that the trip gets a day shorter. Then ask for a 5-hour hike in Arches on the morning of Day 2. It's one long hike, on top of the sunrise hike, and you want it enough to give up other Day 2 plans if it doesn't fit. Deal with anything that change causes.
 6. **A new session.** After changes 1 to 5 are done, start a new session on the trip with `./chat.sh new-session <trip ID>`. Ask "why did we pick that Moab hotel?" Then ask what's left to decide, and settle whatever it says.
 
 ## When the trip is planned
