@@ -60,6 +60,7 @@
     "migrate": "tsx --env-file=.env src/migrate.ts",
     "ask-claude": "tsx --env-file=.env src/ask-claude.ts",
     "chat": "tsx --env-file=.env src/chat.ts",
+    "live-chat": "tsx --env-file=.env src/live-chat/live-chat.ts",
     "rebuild-versions": "tsx --env-file=.env src/version-rebuild/rebuild-versions.ts",
     "run-turn": "tsx --env-file=.env src/turn-run/run-turn.ts",
     "build": "npm run build:app && npm run build:web",

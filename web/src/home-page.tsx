@@ -5,7 +5,7 @@ import {
   tripListResponseSchema,
 } from "../../src/shared/trip.schema";
 import { callApiForChange, messageOf } from "./api-client";
-import { momentText, tripDatesText } from "./dates";
+import { momentText, tripDatesText } from "../../src/shared/dates";
 import { HealthStatus } from "./health-status";
 import { Link } from "./link";
 import { useApiAfterEachTurn } from "./use-api";
