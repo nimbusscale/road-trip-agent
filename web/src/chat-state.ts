@@ -4,6 +4,7 @@ import {
   type SessionResponse,
   type ShownMessage,
 } from "../../src/shared/session.schema";
+import { shortToolName } from "../../src/shared/tool-name";
 
 // What the chat view shows: the conversation as cards, and the reply as it streams in
 // (functional spec 10.1).
@@ -150,11 +151,6 @@ function endReply(state: ChatState): ChatState {
 function withCard(state: ChatState, body: CardBody): ChatState {
   const card = { ...body, id: state.cards.length, turn: state.turn };
   return { ...state, cards: [...state.cards, card] };
-}
-
-// Such as update_trip_brief, from mcp__trip__update_trip_brief.
-function shortToolName(name: string): string {
-  return name.replace(/^mcp__[^_]+__/, "");
 }
 
 // The cards to show. The parts of each reply are one card, as a reload shows them.

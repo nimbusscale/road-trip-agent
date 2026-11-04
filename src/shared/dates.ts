@@ -1,5 +1,5 @@
 // Dates as the home screen, the trip page, and the itinerary view show them, in US
-// formats (functional spec 9.7).
+// formats (functional spec 9.7). npm run live-chat prints the itinerary with them too.
 
 const DAY = new Intl.DateTimeFormat("en-US", {
   month: "short",

@@ -6,8 +6,8 @@ import type {
   ShownSelection,
   ShownStay,
 } from "../../src/shared/itinerary.schema";
-import { dayText } from "./dates";
-import { countText, timesText } from "./itinerary-text";
+import { dayText } from "../../src/shared/dates";
+import { countText, timesText } from "../../src/shared/itinerary-text";
 
 // What the itinerary map shows (functional spec 9.2): a marker for each stay, and for
 // each attraction and restaurant with a selected place, plus each routed leg's line.

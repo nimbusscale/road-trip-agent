@@ -1,5 +1,5 @@
 import { tripPageResponseSchema } from "../../src/shared/trip.schema";
-import { momentText, tripDatesText } from "./dates";
+import { momentText, tripDatesText } from "../../src/shared/dates";
 import { ItineraryView } from "./itinerary-view";
 import { Link } from "./link";
 import { useApi } from "./use-api";

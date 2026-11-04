@@ -6,15 +6,23 @@ import {
   type ShownEntry,
   type ShownLeg,
   type ShownStay,
-  type ShownStop,
   type ShownSummary,
   type ShownWeather,
 } from "../../src/shared/itinerary.schema";
 import type { MessageRequest } from "../../src/shared/session.schema";
 import { GoogleWeatherCredit, OpenMeteoCredit } from "./credits";
-import { dayText, tripDatesText } from "./dates";
-import { countText, timesText } from "./itinerary-text";
-import { type CardActions, type CardHolder, OptionCard } from "./option-card";
+import { dayText, tripDatesText } from "../../src/shared/dates";
+import {
+  countText,
+  STOP_KIND_TEXT,
+  timesText,
+} from "../../src/shared/itinerary-text";
+import {
+  type CardHolder,
+  stayCardHolder,
+  stopCardHolder,
+} from "../../src/shared/option-card-text";
+import { type CardActions, OptionCard } from "./option-card";
 import { TripMap } from "./trip-map";
 import { useApiAfterEachTurn } from "./use-api";
 
@@ -116,7 +124,7 @@ function StayItem({
       Lodging:{" "}
       <Choice
         choice={stay.lodging}
-        holder={{ id: stay.id, label: `the lodging in ${stay.place.name}` }}
+        holder={stayCardHolder(stay)}
         cards={cards}
       />
       <WeatherBlock weather={stay.weather} />
@@ -249,29 +257,20 @@ function EntryText({ entry, dayNumber, cards }: EntryProps) {
   }
   return (
     <>
-      {KIND_TEXT[stop.kind]}, {stop.purpose}
+      {STOP_KIND_TEXT[stop.kind]}, {stop.purpose}
       {stop.setTime === null ? null : ` (set for ${stop.setTime})`}:{" "}
       {stop.kind === "checkIn" ? (
         (stop.checkInPlace?.name ?? <em>no stay to check in at</em>)
       ) : (
         <Choice
           choice={stop.choice}
-          holder={{
-            id: stop.id,
-            label: `the ${KIND_TEXT[stop.kind].toLowerCase()} "${stop.purpose}" on Day ${String(dayNumber)}`,
-          }}
+          holder={stopCardHolder(stop, dayNumber)}
           cards={cards}
         />
       )}
     </>
   );
 }
-
-const KIND_TEXT: Record<ShownStop["kind"], string> = {
-  meal: "Meal",
-  attraction: "Attraction",
-  checkIn: "Check in",
-};
 
 interface ChoiceProps {
   choice: ShownChoice;

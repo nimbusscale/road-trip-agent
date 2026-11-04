@@ -5,8 +5,8 @@ import {
 } from "./session.schema.js";
 
 // Reads a reply's Server-Sent Events as they arrive (systems design section 4). The
-// browser uses it, and so do the API's tests. Text arrives in chunks that can end
-// partway through an event, so the rest is kept for the next chunk.
+// browser uses it, and so do npm run live-chat and the API's tests. Text arrives in
+// chunks that can end partway through an event, so the rest is kept for the next chunk.
 export class ChatEventParser {
   #rest = "";
 
