@@ -126,7 +126,7 @@ echo "Read instructions.md, trip.md, and persona.md, then plan the trip." \
 
 **Run one pair at a time.** When several harness and model pairs play the same trip, start each run after the last one ends. They all use the app's Claude plan, so runs at the same time would slow each other's turns, and mix up any reading of how much of the plan a run used.
 
-**What a run takes.** The San Francisco trip, with Claude Code and Sonnet, took 30 to 36 of the simulated user's messages, and 10 to 17 minutes. The simulated user's own usage was about $0.40 a run. Measured on 2026-11-04, in #66.
+**What a run takes.** The San Francisco trip, with Claude Code and Sonnet, took 30 to 36 of the simulated user's messages, and 10 to 17 minutes. The simulated user's own usage was about $0.40 a run. Measured on 2026-11-04, in #66. Each local run used very little of the app's Claude plan, so a run's share of the plan isn't measured (#67).
 
 ## Check a run
 
@@ -140,7 +140,7 @@ echo "Read instructions.md, trip.md, and persona.md, then plan the trip." \
 
 **Expect the coordinator to handle a change in more than one good way.** On the San Francisco runs:
 
-- On "Take the second one," it sometimes picked a hotel, and sometimes asked which one was meant.
+- On "Take the second one," it sometimes picked a hotel, and sometimes asked which one was meant. Once it took the second hotel in its own list, but the simulated user meant the second on the card, and corrected it. Either reading is fine, and so is the correction.
 - Five hours at the Boardwalk sometimes came out at 4 hours 40 minutes, to keep dinner on time.
 - For the Big Sur night, it once moved the start a day earlier, instead of the arrival a day later.
 
