@@ -36,18 +36,19 @@ These are not sources:
 The coordinator may describe a well-known place from its own knowledge, the way a guidebook would: what the place is known for, its character, its history, and typical examples of what it's known for. Example: for a famous bagel shop, naming the bagels it's known for.
 
 - **Towns, neighborhoods, streets, parks, and major landmarks count as well known on their own,** such as Midtown Manhattan, Peachtree Street, or Grand Central Terminal. Examples: "Grand Central Terminal is known for the painted ceiling over its main concourse", or "Atlanta's summers are hot and humid".
+- **Well-known facts about visiting a well-known place count too,** such as that tickets sell out, that it offers a guided tour, or what's allowed there. The ferry or shuttle that's the only way to reach a well-known place counts as part of the place. Example: "Statue of Liberty crown tickets often sell out months ahead".
 - **A business counts as well known only if a tool or worker result says so,** with a word such as "famous", "well-known", "long-running", "an institution", or "iconic". "Top rated" or a high rating doesn't count. A business with no such word gets no description beyond what the sources say.
 - **Describing the area around a sourced address counts.** If a tool puts a hotel at the corner of 42nd Street and Park Avenue, the coordinator may say it's right in Midtown Manhattan.
 - **The same description must be about the same place.** If a worker calls one restaurant "a local favorite", and the reply says it about a different restaurant, that fact is not grounded.
 
 ## Facts that always need a source
 
-Specific facts that can be checked always need a tool result, a worker result, or the user's own words, even about a well-known place: hours, prices, distances, drive times, walking times, addresses, whether a business exists, and current closures. Example: "Stone Mountain is a huge granite dome" is a guidebook description, but "about 15 miles east of downtown Atlanta" is a distance, so it needs a source.
+Specific facts that can be checked always need a tool result, a worker result, or the user's own words, even about a well-known place: hours, schedules (how often or when a tour or ferry runs), prices, distances, drive times, walking times, addresses, whether a business exists, and current closures. Example: "Stone Mountain is a huge granite dome" is a guidebook description, but "about 15 miles east of downtown Atlanta" is a distance, so it needs a source.
 
 ## What counts as grounded
 
 - **Rounding and plain rewording count.** A tool's "2 h 17 m" can be "about 2¼ hours".
-- **Simple arithmetic and reading on sourced facts counts.** Adding two sourced drive times, or working out the weekday of a sourced date, is grounded. So is reading a schedule. If the schedule shows a 4-minute drive from the hotel to dinner, "dinner is a few minutes away" is grounded.
+- **Simple arithmetic and reading on sourced facts counts.** Adding two sourced drive times is grounded. So is working out a date, from a sourced date or from a fixed calendar rule: the weekday of a sourced date, the date of the trip's third day, or the date of a holiday such as Thanksgiving, the fourth Thursday in November. So is reading a schedule. If the schedule shows a 4-minute drive from the hotel to dinner, "dinner is a few minutes away" is grounded.
 - **A claim that the coordinator changed the trip or memory needs a tool call that shows the change.** If the reply says "I added the Atlanta History Center to Day 2", a tool call has to show that stop being added, and its result has to show the call worked. Use the input to see what a successful call changed when the result doesn't say, such as for a saved memory item. If no tool call shows the change, the claim is not grounded.
 
 ## What isn't a fact
@@ -58,6 +59,7 @@ These don't need a source, so don't list them as facts:
 - **Questions and offers,** such as "Would you like me to add it?"
 - **Plans,** such as "I'll look for lunch spots next". This includes a suggested visit length, such as "it only takes about 20 minutes" or "I've given it an hour". The coordinator sets visit lengths itself, and no tool gives them.
 - **General advice,** even when it's about the trip, and even when it's hedged, such as "popular restaurants often fill up on Friday nights, so you'd likely want a reservation", or "coffee shops usually have Wi-Fi, so you could check your email there before you drive on". A hedged claim about a specific place is still a fact, such as "the Met is usually closed on Wednesdays".
+- **A general mention of a kind of business,** such as "there are food carts all over Midtown", or "some rooftop bars close for the winter". A named business, or one at a specific spot, is a fact.
 - **What the app can and can't do,** such as "this app plans trips but doesn't book them", or "the schedule can't show you going back to your room". This evaluator checks facts about the trip and the world, not about the app.
 
 A sentence can hold both. In "I'd skip the Met on Wednesday, since it's closed that day", the recommendation needs no source, but the Wednesday closure does.
