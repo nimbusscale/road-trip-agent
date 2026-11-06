@@ -9,7 +9,7 @@
 //   ~/tmp/road-trip-evals/grounded/inputs/, one folder for each set of 5, such as
 //   set-01/<span ID>.md.
 // npm run grounded -- label <labeler> <set>
-//   Runs a labeler, opus-5.5 or gpt-sol-6.1, on each turn in the set, with
+//   Runs a labeler, such as opus-5.5 or gpt-sol-6.1, on each turn in the set, with
 //   evals/grounded/rubric.md as last committed. Its answers go in
 //   ~/tmp/road-trip-evals/grounded/labeling/<rubric commit>/.
 // npm run grounded -- save-labels <labeler> <set>
@@ -37,6 +37,7 @@ import {
   EVALS_DIR,
   INPUTS_DIR,
   isLabelerName,
+  LABELERS,
   type LabelerName,
   readAnswers,
   type Rubric,
@@ -185,7 +186,7 @@ function labelerAndSet(args: string[]): { labeler: LabelerName; set: number } {
   const set = Number(setText);
   if (!isLabelerName(labeler) || !Number.isInteger(set)) {
     throw new Error(
-      "Give a labeler, opus-5.5 or gpt-sol-6.1, and a set number.",
+      `Give a labeler, one of ${Object.keys(LABELERS).join(", ")}, and a set number.`,
     );
   }
   return { labeler, set };

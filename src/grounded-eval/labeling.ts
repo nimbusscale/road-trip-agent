@@ -27,20 +27,42 @@ interface HarnessFiles {
   answerPath: string;
 }
 
+type Effort = "high" | "medium";
+
+// How a labeler's harness runs one prompt.
+interface Labeler {
+  command: string;
+  // Whether the harness prints the answer on standard output, rather than writing it
+  // to the answer file itself.
+  savesStdout: boolean;
+  args: (files: HarnessFiles) => string[];
+  answerOf: (output: string) => unknown;
+}
+
 // Each labeler's identifier on its annotations, and how its harness runs one prompt.
-// Both run on high effort. Opus has no tools. Codex reads the prompt with no need for
-// commands, and its sandbox can't write outside the run folder.
+// Each runs on high effort, unless its name says medium. The Claude models have no tools. Codex reads the prompt with
+// no need for commands, and its sandbox can't write outside the run folder.
 export const LABELERS = {
-  "opus-5.5": {
+  "opus-5.5": claudeLabeler("claude-opus-5-5", "high"),
+  "sonnet-5.5": claudeLabeler("claude-sonnet-5-5", "high"),
+  "sonnet-5.5-medium": claudeLabeler("claude-sonnet-5-5", "medium"),
+  "gpt-sol-6.1": codexLabeler("gpt-6.1-sol", "high"),
+  "gpt-sol-6.1-medium": codexLabeler("gpt-6.1-sol", "medium"),
+  "gpt-terra-6.1": codexLabeler("gpt-6.1-terra", "high"),
+  "gpt-terra-6.1-medium": codexLabeler("gpt-6.1-terra", "medium"),
+};
+
+// Claude Code prints its result, with the answer in it, on standard output.
+function claudeLabeler(model: string, effort: Effort): Labeler {
+  return {
     command: "claude",
-    // Claude Code prints its result, with the answer in it, on standard output.
     savesStdout: true,
-    args: ({ answerSchema }: HarnessFiles) => [
+    args: ({ answerSchema }) => [
       "-p",
       "--model",
-      "claude-opus-5-5",
+      model,
       "--effort",
-      "high",
+      effort,
       "--tools",
       "",
       "--output-format",
@@ -48,22 +70,25 @@ export const LABELERS = {
       "--json-schema",
       answerSchema,
     ],
-    answerOf: (output: string) => claudeResultSchema.parse(JSON.parse(output)),
-  },
-  "gpt-sol-6.1": {
+    answerOf: (output) => claudeResultSchema.parse(JSON.parse(output)),
+  };
+}
+
+// codex exec writes its last message, the answer's JSON, to the -o file.
+function codexLabeler(model: string, effort: Effort): Labeler {
+  return {
     command: "codex",
-    // codex exec writes its last message, the answer's JSON, to the -o file.
     savesStdout: false,
-    args: ({ answerPath }: HarnessFiles) => [
+    args: ({ answerPath }) => [
       "exec",
       "--ignore-user-config",
       "--ignore-rules",
       "--skip-git-repo-check",
       "--ephemeral",
       "-m",
-      "gpt-6.1-sol",
+      model,
       "-c",
-      "model_reasoning_effort=high",
+      `model_reasoning_effort=${effort}`,
       "-s",
       "read-only",
       "--output-schema",
@@ -72,9 +97,9 @@ export const LABELERS = {
       answerPath,
       "-",
     ],
-    answerOf: (output: string): unknown => JSON.parse(output),
-  },
-} as const;
+    answerOf: (output): unknown => JSON.parse(output),
+  };
+}
 
 export type LabelerName = keyof typeof LABELERS;
 
