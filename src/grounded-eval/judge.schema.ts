@@ -23,6 +23,14 @@ export function judgeInvocationParameters(
   };
 }
 
+// The path of Phoenix's endpoint for one tag of a prompt.
+export function promptTagPathOf(
+  promptName: string,
+  tagName: string,
+): { prompt_identifier: string; tag_name: string } {
+  return { prompt_identifier: promptName, tag_name: tagName };
+}
+
 // The request for one turn: the Phoenix prompt with the turn's judge input in its
 // slot, and the answer's JSON schema as the structured output. The slot is filled
 // with a function, so a "$$" in the input stays as it is.

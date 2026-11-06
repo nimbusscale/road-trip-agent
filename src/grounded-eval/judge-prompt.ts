@@ -6,7 +6,7 @@ import {
   upsertPromptVersionTag,
 } from "@arizeai/phoenix-client/prompts";
 
-import { judgeInvocationParameters } from "./judge.schema.js";
+import { judgeInvocationParameters, promptTagPathOf } from "./judge.schema.js";
 import { labelPromptOf, type Rubric } from "./labeling.js";
 
 // The judge's prompt in Phoenix (#282). The repo's rubric stays the source, and each
@@ -23,6 +23,8 @@ export const CONVERSATION_SLOT = "{{conversation}}";
 // 20,000 output tokens in the Claude Code runs.
 const MAX_TOKENS = 32000;
 
+type PhoenixClient = ReturnType<typeof createClient>;
+
 export type JudgePrompt = NonNullable<Awaited<ReturnType<typeof getPrompt>>>;
 
 // Phoenix tag names can't start with a digit, as a commit can.
@@ -37,7 +39,7 @@ export async function pushJudgePrompt(
   rubric: Rubric,
 ): Promise<boolean> {
   const client = createClient({ options: { baseUrl: phoenixUrl } });
-  if ((await findJudgePrompt(client, rubric.version)) !== null) {
+  if (await tagExists(client, rubric.version)) {
     return false;
   }
   const version = await createPrompt({
@@ -73,7 +75,10 @@ export async function readJudgePrompt(
   rubricVersion: string,
 ): Promise<JudgePrompt> {
   const client = createClient({ options: { baseUrl: phoenixUrl } });
-  const prompt = await findJudgePrompt(client, rubricVersion);
+  const prompt = await getPrompt({
+    client,
+    prompt: { name: JUDGE_PROMPT, tag: tagOf(rubricVersion) },
+  });
   if (prompt === null) {
     throw new Error(
       `${JUDGE_PROMPT} has no version for rubric ${rubricVersion}. Run push-prompt first.`,
@@ -82,17 +87,20 @@ export async function readJudgePrompt(
   return prompt;
 }
 
-async function findJudgePrompt(
-  client: ReturnType<typeof createClient>,
+// Asked directly, since getPrompt logs the 404 for a tag that isn't there yet.
+async function tagExists(
+  client: PhoenixClient,
   rubricVersion: string,
-): Promise<JudgePrompt | null> {
+): Promise<boolean> {
   try {
-    return await getPrompt({
-      client,
-      prompt: { name: JUDGE_PROMPT, tag: tagOf(rubricVersion) },
+    await client.GET("/v1/prompts/{prompt_identifier}/tags/{tag_name}", {
+      params: { path: promptTagPathOf(JUDGE_PROMPT, tagOf(rubricVersion)) },
     });
-  } catch {
-    // Phoenix answers with an error, not null, before the prompt's first version.
-    return null;
+    return true;
+  } catch (error) {
+    if (error instanceof Error && "status" in error && error.status === 404) {
+      return false;
+    }
+    throw error;
   }
 }
