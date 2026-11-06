@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Grounded review</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/15.0.12/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.6/purify.min.js"></script>
+<style>
+  :root {
+    --bg: #f7f6f3; --panel: #ffffff; --text: #1f2328; --muted: #656d76;
+    --line: #d8dee4; --user: #eef4ff; --tool: #f3f3f1; --worker: #f1f7ef;
+    --judged: #fff6db; --judged-line: #d4a72c; --refused: #b42318;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #161719; --panel: #1f2124; --text: #e6e6e6; --muted: #9aa0a6;
+      --line: #34373c; --user: #1d2a3d; --tool: #26282b; --worker: #1f2b20;
+      --judged: #3a3118; --judged-line: #c49a2c; --refused: #f97066;
+    }
+  }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.5 system-ui, -apple-system, sans-serif; }
+  header { position: sticky; top: 0; background: var(--panel); border-bottom: 1px solid var(--line);
+    padding: 10px 16px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; z-index: 1; }
+  header h1 { font-size: 16px; margin: 0 12px 0 0; }
+  header button { font: inherit; padding: 4px 10px; border: 1px solid var(--line); border-radius: 6px;
+    background: var(--bg); color: var(--text); cursor: pointer; }
+  header button[aria-pressed="true"] { border-color: var(--judged-line); background: var(--judged); }
+  main { max-width: 960px; margin: 0 auto; padding: 16px; }
+  .meta { color: var(--muted); font-size: 13px; margin-bottom: 12px; }
+  .meta a { color: inherit; }
+  details.turn { background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+    margin-bottom: 10px; }
+  details.turn > summary { padding: 8px 12px; cursor: pointer; font-weight: 600; }
+  details.turn > summary span { font-weight: 400; color: var(--muted); }
+  .turn-body { padding: 0 12px 12px; }
+  .block { border-radius: 6px; padding: 8px 12px; margin-top: 8px; overflow-wrap: anywhere; }
+  .block h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted);
+    margin: 0 0 4px; }
+  .user { background: var(--user); }
+  .reply { border: 1px solid var(--line); }
+  .judged { background: var(--judged); border: 2px solid var(--judged-line); }
+  details.tool { background: var(--tool); border-radius: 6px; margin-top: 8px; }
+  details.tool.worker { background: var(--worker); }
+  details.tool > summary { padding: 6px 12px; cursor: pointer; font-family: ui-monospace, monospace;
+    font-size: 13px; }
+  details.tool .refused { color: var(--refused); font-weight: 600; }
+  pre { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; padding: 0 12px 10px;
+    font: 13px/1.45 ui-monospace, monospace; }
+  .md > :first-child { margin-top: 0; } .md > :last-child { margin-bottom: 0; }
+</style>
+</head>
+<body>
+<header id="nav"><h1>Grounded review</h1></header>
+<main id="page"></main>
+<script id="review-data" type="application/json">/*REVIEW_DATA*/</script>
+<script>
+  const data = JSON.parse(document.getElementById("review-data").textContent);
+  const nav = document.getElementById("nav");
+  const page = document.getElementById("page");
+
+  function el(tag, attrs, children) {
+    const node = document.createElement(tag);
+    Object.entries(attrs || {}).forEach(([k, v]) => node.setAttribute(k, v));
+    (children || []).forEach((c) => node.append(c));
+    return node;
+  }
+  function markdown(text) {
+    const div = el("div", { class: "md" });
+    div.innerHTML = DOMPurify.sanitize(marked.parse(text));
+    return div;
+  }
+  function block(cls, title, text) {
+    return el("div", { class: `block ${cls}` }, [el("h3", {}, [title]), markdown(text)]);
+  }
+  function toolResult(result) {
+    const name = result.worker ? `worker: ${result.worker}` : result.tool;
+    const summary = el("summary", {}, [name]);
+    if (result.refused) summary.append(" ", el("span", { class: "refused" }, ["refused"]));
+    const pre = el("pre", {}, [result.text]);
+    const details = el("details", { class: result.worker ? "tool worker" : "tool" }, [summary, pre]);
+    details.open = true;
+    return details;
+  }
+  function firstLine(text) {
+    const lines = text.split("\n").filter((l) => l.trim() && !l.startsWith("For planning this trip"));
+    const line = lines[0] || "";
+    return line.length > 90 ? `${line.slice(0, 90)}…` : line;
+  }
+  function turnView(turn) {
+    // Newest first, so the reply to judge is at the top of the page.
+    const body = el("div", { class: "turn-body" }, [
+      block(turn.judged ? "judged" : "reply", turn.judged ? "Reply to judge" : "Coordinator reply", turn.reply),
+      ...[...turn.toolResults].reverse().map(toolResult),
+      block("user", "User", turn.userMessage),
+    ]);
+    const tools = turn.toolResults.length;
+    const summary = el("summary", {}, [
+      `Turn ${turn.number} `,
+      el("span", {}, [`${tools} tool result${tools === 1 ? "" : "s"} · ${firstLine(turn.userMessage)}`]),
+    ]);
+    const details = el("details", { class: "turn" }, [summary, body]);
+    details.open = true;
+    return details;
+  }
+  function show(index) {
+    const item = data.turns[index];
+    [...nav.querySelectorAll("button")].forEach((b, i) => b.setAttribute("aria-pressed", String(i === index)));
+    page.replaceChildren(
+      el("div", { class: "meta" }, [
+        `Set ${data.set}, item ${index + 1} of ${data.turns.length} · span `,
+        el("a", { href: `http://127.0.0.1:6006/redirects/spans/${item.spanId}`, target: "_blank" }, [item.spanId]),
+        ` · judged turn is ${item.conversation.length} in its session`,
+      ]),
+      ...[...item.conversation].reverse().map(turnView),
+    );
+    window.scrollTo(0, 0);
+  }
+  data.turns.forEach((item, i) => {
+    const button = el("button", { type: "button" }, [`Item ${i + 1}`]);
+    button.addEventListener("click", () => show(i));
+    nav.append(button);
+  });
+  show(0);
+</script>
+</body>
+</html>
