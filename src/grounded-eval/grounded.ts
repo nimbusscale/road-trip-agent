@@ -14,6 +14,9 @@
 //   ~/tmp/road-trip-evals/grounded/labeling/<rubric commit>/.
 // npm run grounded -- save-labels <labeler> <set>
 //   Checks the labeler's answers for the set, and saves them as its annotations.
+// npm run grounded -- save-call <span ID> <label> ["<quote>|<why>" ...]
+//   Saves Joe's call on a turn as his `joe` annotation: its label, and each fact he
+//   found ungrounded, with why.
 // npm run grounded -- review <set>
 //   Writes the set's review page, ~/tmp/road-trip-evals/grounded/review/set-01.html, to
 //   open in a browser. It shows each turn's judge input, and no labels.
@@ -29,6 +32,7 @@ import {
   sampleFileSchema,
 } from "./grounded-files.schema.js";
 import { judgeInputOf } from "./judge-input.js";
+import { groundedLabelSchema } from "./label-answer.schema.js";
 import {
   EVALS_DIR,
   INPUTS_DIR,
@@ -69,13 +73,38 @@ async function main(): Promise<void> {
       version,
     );
     console.log(`Saved ${String(answers.size)} labels from ${labeler}.`);
+  } else if (action === "save-call") {
+    await saveCall(phoenixUrl, rest);
   } else if (action === "review") {
     await writeReviewPage(phoenixUrl, Number(rest[0]));
   } else {
     throw new Error(
-      "Give an action: sample, inputs, label, save-labels, or review.",
+      "Give an action: sample, inputs, label, save-labels, save-call, or review.",
     );
   }
+}
+
+// Joe names only the facts he found ungrounded, not every fact, so his label is taken
+// as he gives it.
+async function saveCall(phoenixUrl: string, args: string[]): Promise<void> {
+  const [spanId = "", labelText, ...factTexts] = args;
+  const label = groundedLabelSchema.parse(labelText);
+  const facts = factTexts.map((text) => {
+    const [quote = "", why = ""] = text.split("|");
+    return { quote, source: "none", grounded: false, why };
+  });
+  if ((label === "not_grounded") !== facts.length > 0) {
+    throw new Error(
+      "Give ungrounded facts when, and only when, the label is not_grounded.",
+    );
+  }
+  await saveAnnotations(
+    phoenixUrl,
+    { identifier: "joe", kind: "HUMAN" },
+    new Map([[spanId, { label, facts }]]),
+    readRubric().version,
+  );
+  console.log(`Saved Joe's call on ${spanId}: ${label}.`);
 }
 
 async function writeSample(phoenixUrl: string): Promise<void> {

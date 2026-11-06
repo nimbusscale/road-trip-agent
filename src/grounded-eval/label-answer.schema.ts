@@ -16,7 +16,13 @@ const answerSchema = z.strictObject({
 
 export type Fact = z.infer<typeof answerSchema>["facts"][number];
 
-export type GroundedLabel = "grounded" | "not_grounded" | "no_facts";
+export const groundedLabelSchema = z.enum([
+  "grounded",
+  "not_grounded",
+  "no_facts",
+]);
+
+export type GroundedLabel = z.infer<typeof groundedLabelSchema>;
 
 // Code works out the label from the facts, so it can't disagree with them (#282).
 export const labelAnswerSchema = answerSchema.transform(({ facts }) => ({
