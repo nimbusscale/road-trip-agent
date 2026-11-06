@@ -46,6 +46,9 @@ export const LABELERS = {
   "opus-5.5": claudeLabeler("claude-opus-5-5", "high"),
   "sonnet-5.5": claudeLabeler("claude-sonnet-5-5", "high"),
   "sonnet-5.5-medium": claudeLabeler("claude-sonnet-5-5", "medium"),
+  // A first look at the judge's model, run through Claude Code. The judge itself calls
+  // the API in step 8, under its own identifier, haiku-5.5.
+  "haiku-5.5-cc": claudeLabeler("claude-haiku-5-5", "high"),
   "gpt-sol-6.1": codexLabeler("gpt-6.1-sol", "high"),
   "gpt-sol-6.1-medium": codexLabeler("gpt-6.1-sol", "medium"),
   "gpt-terra-6.1": codexLabeler("gpt-6.1-terra", "high"),

@@ -8,10 +8,10 @@
 //   Writes each sampled turn's judge input to its own file, outside the repo, in
 //   ~/tmp/road-trip-evals/grounded/inputs/, one folder for each set of 5, such as
 //   set-01/<span ID>.md.
-// npm run grounded -- label <labeler> <set>
+// npm run grounded -- label <labeler> <set> [rubric file]
 //   Runs a labeler, such as opus-5.5 or gpt-sol-6.1, on each turn in the set, with
-//   evals/grounded/rubric.md as last committed. Its answers go in
-//   ~/tmp/road-trip-evals/grounded/labeling/<rubric commit>/.
+//   evals/grounded/rubric.md, or the rubric file given, as last committed. Its answers
+//   go in ~/tmp/road-trip-evals/grounded/labeling/<rubric commit>/.
 // npm run grounded -- save-labels <labeler> <set>
 //   Checks the labeler's answers for the set, and saves them as its annotations.
 // npm run grounded -- save-call <span ID> <label> ["<quote>|<why>" ...]
@@ -62,7 +62,7 @@ async function main(): Promise<void> {
     await writeInputs(phoenixUrl);
   } else if (action === "label") {
     const { labeler, set } = labelerAndSet(rest);
-    runLabeler(labeler, set, spanIdsIn(set), readRubric());
+    runLabeler(labeler, set, spanIdsIn(set), readRubric(rest[2]));
   } else if (action === "save-labels") {
     const { labeler, set } = labelerAndSet(rest);
     const { version } = readRubric();
@@ -195,25 +195,19 @@ function labelerAndSet(args: string[]): { labeler: LabelerName; set: number } {
 // The rubric, with the commit that last changed it as its version. It must be
 // committed, so `git show <version>:evals/grounded/rubric.md` gives the exact text
 // each label was made with.
-function readRubric(): Rubric {
-  const changes = execFileSync(
-    "git",
-    ["status", "--porcelain", "--", RUBRIC_PATH],
-    {
-      encoding: "utf8",
-    },
-  );
+function readRubric(path = RUBRIC_PATH): Rubric {
+  const changes = execFileSync("git", ["status", "--porcelain", "--", path], {
+    encoding: "utf8",
+  });
   if (changes.trim() !== "") {
-    throw new Error(
-      `Commit ${RUBRIC_PATH} first, so its commit names this version.`,
-    );
+    throw new Error(`Commit ${path} first, so its commit names this version.`);
   }
   const version = execFileSync(
     "git",
-    ["log", "-1", "--format=%h", "--", RUBRIC_PATH],
+    ["log", "-1", "--format=%h", "--", path],
     { encoding: "utf8" },
   ).trim();
-  return { text: readFileSync(RUBRIC_PATH, "utf8"), version };
+  return { text: readFileSync(path, "utf8"), version };
 }
 
 await main();
