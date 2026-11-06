@@ -20,6 +20,16 @@
 // npm run grounded -- review <set>
 //   Writes the set's review page, ~/tmp/road-trip-evals/grounded/review/set-01.html, to
 //   open in a browser. It shows each turn's judge input, and no labels.
+// npm run grounded -- golden
+//   Saves the golden set, each sampled turn's judge input with its settled label, as
+//   the grounded-golden dataset in Phoenix. It stops if the dataset is already there.
+// npm run grounded -- push-prompt
+//   Pushes evals/grounded/rubric.md, as last committed, as a version of the judge's
+//   prompt in Phoenix, grounded-judge, tagged rubric-<commit>.
+// npm run grounded -- experiment [rubric commit]
+//   Runs the judge, Haiku through the API, on the golden set as a Phoenix experiment,
+//   with the prompt pushed for the rubric's last commit, or the commit given. It bills
+//   the API account through JUDGE_API_KEY.
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -31,7 +41,10 @@ import {
   type SampleFile,
   sampleFileSchema,
 } from "./grounded-files.schema.js";
+import { createGoldenSet, GOLDEN_DATASET } from "./golden-set.js";
 import { judgeInputOf } from "./judge-input.js";
+import { JUDGE_PROMPT, pushJudgePrompt } from "./judge-prompt.js";
+import { runJudgeExperiment } from "./judge.js";
 import { groundedLabelSchema } from "./label-answer.schema.js";
 import {
   EVALS_DIR,
@@ -53,36 +66,68 @@ const REVIEW_TEMPLATE_PATH = join("evals", "grounded", "review-page.html");
 const SAMPLE_SIZE = 60;
 const SEED = "grounded-282";
 
+type Action = (phoenixUrl: string, args: string[]) => Promise<void> | void;
+
+const ACTIONS: Record<string, Action> = {
+  sample: writeSample,
+  inputs: writeInputs,
+  label: (phoenixUrl, args) => {
+    const { labeler, set } = labelerAndSet(args);
+    runLabeler(labeler, set, spanIdsIn(set), readRubric(args[2]));
+  },
+  "save-labels": saveLabels,
+  "save-call": saveCall,
+  review: (phoenixUrl, args) => writeReviewPage(phoenixUrl, Number(args[0])),
+  golden: writeGoldenSet,
+  "push-prompt": pushPrompt,
+  experiment: (phoenixUrl, args) =>
+    runJudgeExperiment(phoenixUrl, args[0] ?? readRubric().version),
+};
+
 async function main(): Promise<void> {
-  const [action, ...rest] = process.argv.slice(2);
-  const phoenixUrl = phoenixUrlOf(process.env);
-  if (action === "sample") {
-    await writeSample(phoenixUrl);
-  } else if (action === "inputs") {
-    await writeInputs(phoenixUrl);
-  } else if (action === "label") {
-    const { labeler, set } = labelerAndSet(rest);
-    runLabeler(labeler, set, spanIdsIn(set), readRubric(rest[2]));
-  } else if (action === "save-labels") {
-    const { labeler, set } = labelerAndSet(rest);
-    const { version } = readRubric();
-    const answers = readAnswers(labeler, set, spanIdsIn(set), version);
-    await saveAnnotations(
-      phoenixUrl,
-      { identifier: labeler, kind: "LLM" },
-      answers,
-      version,
-    );
-    console.log(`Saved ${String(answers.size)} labels from ${labeler}.`);
-  } else if (action === "save-call") {
-    await saveCall(phoenixUrl, rest);
-  } else if (action === "review") {
-    await writeReviewPage(phoenixUrl, Number(rest[0]));
-  } else {
-    throw new Error(
-      "Give an action: sample, inputs, label, save-labels, save-call, or review.",
-    );
+  const [name = "", ...rest] = process.argv.slice(2);
+  const action = ACTIONS[name];
+  if (action === undefined) {
+    throw new Error(`Give an action: ${Object.keys(ACTIONS).join(", ")}.`);
   }
+  await action(phoenixUrlOf(process.env), rest);
+}
+
+async function saveLabels(phoenixUrl: string, args: string[]): Promise<void> {
+  const { labeler, set } = labelerAndSet(args);
+  const { version } = readRubric();
+  const answers = readAnswers(labeler, set, spanIdsIn(set), version);
+  await saveAnnotations(
+    phoenixUrl,
+    { identifier: labeler, kind: "LLM" },
+    answers,
+    version,
+  );
+  console.log(`Saved ${String(answers.size)} labels from ${labeler}.`);
+}
+
+async function pushPrompt(phoenixUrl: string): Promise<void> {
+  const rubric = readRubric();
+  const pushed = await pushJudgePrompt(phoenixUrl, rubric);
+  console.log(
+    pushed
+      ? `Pushed rubric ${rubric.version} to ${JUDGE_PROMPT}.`
+      : `${JUDGE_PROMPT} already has rubric ${rubric.version}.`,
+  );
+}
+
+async function writeGoldenSet(phoenixUrl: string): Promise<void> {
+  const turns = readSample().turns.map((turn) => ({
+    set: turn.set,
+    sessionId: turn.sessionId,
+    spanId: turn.spanId,
+    judgeInput: readFileSync(
+      join(INPUTS_DIR, setFolderName(turn.set), `${turn.spanId}.md`),
+      "utf8",
+    ),
+  }));
+  const count = await createGoldenSet(phoenixUrl, turns);
+  console.log(`Saved ${String(count)} turns as ${GOLDEN_DATASET}.`);
 }
 
 // Joe names only the facts he found ungrounded, not every fact, so his label is taken
