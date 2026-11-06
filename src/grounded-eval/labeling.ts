@@ -82,6 +82,21 @@ export function isLabelerName(name: string): name is LabelerName {
   return Object.hasOwn(LABELERS, name);
 }
 
+// The rubric's text, and its version: the commit that last changed it.
+export interface Rubric {
+  text: string;
+  version: string;
+}
+
+// Each rubric version's answers are kept apart, so a rerun never mixes them.
+function answersDirOf(
+  rubricVersion: string,
+  set: number,
+  labeler: LabelerName,
+): string {
+  return join(LABELING_DIR, rubricVersion, setFolderName(set), labeler);
+}
+
 export function setFolderName(set: number): string {
   return `set-${String(set).padStart(2, "0")}`;
 }
@@ -98,9 +113,9 @@ export function runLabeler(
   labeler: LabelerName,
   set: number,
   spanIds: string[],
-  rubric: string,
+  rubric: Rubric,
 ): void {
-  const answersDir = join(LABELING_DIR, setFolderName(set), labeler);
+  const answersDir = answersDirOf(rubric.version, set, labeler);
   mkdirSync(answersDir, { recursive: true });
   writeFileSync(ANSWER_SCHEMA_PATH, labelAnswerJsonSchema());
   const { command, args, savesStdout } = LABELERS[labeler];
@@ -119,7 +134,7 @@ export function runLabeler(
       args({ answerSchema: labelAnswerJsonSchema(), answerPath }),
       {
         cwd: LABELING_DIR,
-        input: labelPromptOf(rubric, input),
+        input: labelPromptOf(rubric.text, input),
         encoding: "utf8",
         env: harnessEnv(),
         maxBuffer: 64 * 1024 * 1024,
@@ -141,8 +156,9 @@ export function readAnswers(
   labeler: LabelerName,
   set: number,
   spanIds: string[],
+  rubricVersion: string,
 ): Map<string, LabelAnswer> {
-  const answersDir = join(LABELING_DIR, setFolderName(set), labeler);
+  const answersDir = answersDirOf(rubricVersion, set, labeler);
   return new Map(
     spanIds.map((spanId) => {
       const output = readFileSync(join(answersDir, `${spanId}.txt`), "utf8");

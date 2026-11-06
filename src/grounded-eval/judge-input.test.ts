@@ -19,8 +19,9 @@ function span(fields: Partial<PhoenixSpan> & { spanId: string }): PhoenixSpan {
   };
 }
 
-// Two turns. The first called a trip tool, which was refused, and a worker, which
-// searched on its own. The second called nothing.
+// Two turns. The first called an update tool, which was refused, a read tool, and a
+// worker, which searched on its own. The second called nothing. Only the update tool's
+// input is shown, since a read's result already says what it is.
 const SPANS = [
   span({
     spanId: "turn-2",
@@ -35,13 +36,22 @@ const SPANS = [
   }),
   span({
     spanId: "refused",
-    name: "mcp__trip__add_stops",
+    name: "mcp__trip__update_day",
     kind: "TOOL",
     parentId: "turn-1",
     startTime: "2026-11-04T17:01:00Z",
     failed: true,
     input: '{"dayId":"day_1"}',
     output: "Nothing was changed.",
+  }),
+  span({
+    spanId: "read",
+    name: "mcp__trip__read_trip_brief",
+    kind: "TOOL",
+    parentId: "turn-1",
+    startTime: "2026-11-04T17:01:30Z",
+    input: "{}",
+    output: "focus: Florida",
   }),
   span({
     spanId: "agent",
@@ -70,7 +80,13 @@ describe("judgeInputOf", () => {
       [
         '<turn number="1">',
         "<user_message>\nFind a museum.\n</user_message>",
-        '<tool_result tool="add_stops" refused="true">\nNothing was changed.\n</tool_result>',
+        '<tool_call tool="update_day" refused="true">',
+        '<input>\n{"dayId":"day_1"}\n</input>',
+        "<result>\nNothing was changed.\n</result>",
+        "</tool_call>",
+        '<tool_call tool="read_trip_brief">',
+        "<result>\nfocus: Florida\n</result>",
+        "</tool_call>",
         '<worker_result worker="stay-researcher">\nSpace Museum: open daily 9:00 a.m. to 5:00 p.m.\n</worker_result>',
         "<coordinator_reply>\nThe Space Museum opens at 9:00 a.m.\n</coordinator_reply>",
         "</turn>",

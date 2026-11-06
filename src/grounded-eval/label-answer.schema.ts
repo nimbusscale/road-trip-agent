@@ -1,30 +1,37 @@
 import { z } from "zod";
 
-// A labeler's or the judge's answer for one turn, in the rubric's own field names
-// (evals/grounded/rubric.md, "What to return"). Strict, so the JSON Schema made from it
-// is one both Claude Code and Codex accept for structured output.
+// A labeler's or the judge's answer for one turn: every fact in the reply, with its
+// source (evals/grounded/rubric.md, "What to return"). Strict, so the JSON Schema made
+// from it is one both Claude Code and Codex accept for structured output.
 const answerSchema = z.strictObject({
-  label: z.enum(["grounded", "not_grounded", "no_facts"]),
-  ungrounded_facts: z.array(
-    z.strictObject({ quote: z.string(), why: z.string() }),
+  facts: z.array(
+    z.strictObject({
+      quote: z.string(),
+      source: z.string(),
+      grounded: z.boolean(),
+      why: z.string(),
+    }),
   ),
 });
 
-export const labelAnswerSchema = answerSchema
-  .refine(
-    (answer) =>
-      (answer.label === "not_grounded") === answer.ungrounded_facts.length > 0,
-    {
-      error:
-        "ungrounded_facts must list facts when, and only when, the label is not_grounded",
-    },
-  )
-  .transform((answer) => ({
-    label: answer.label,
-    ungroundedFacts: answer.ungrounded_facts,
-  }));
+export type Fact = z.infer<typeof answerSchema>["facts"][number];
+
+export type GroundedLabel = "grounded" | "not_grounded" | "no_facts";
+
+// Code works out the label from the facts, so it can't disagree with them (#282).
+export const labelAnswerSchema = answerSchema.transform(({ facts }) => ({
+  label: labelOf(facts),
+  facts,
+}));
 
 export type LabelAnswer = z.infer<typeof labelAnswerSchema>;
+
+function labelOf(facts: Fact[]): GroundedLabel {
+  if (facts.length === 0) {
+    return "no_facts";
+  }
+  return facts.every((fact) => fact.grounded) ? "grounded" : "not_grounded";
+}
 
 // The JSON Schema the harnesses check the answer against. Draft 7, since Claude Code
 // refuses the 2020-12 version Zod writes by default.

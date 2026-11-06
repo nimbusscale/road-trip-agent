@@ -10,12 +10,14 @@
 //   set-01/<span ID>.md.
 // npm run grounded -- label <labeler> <set>
 //   Runs a labeler, opus-5.5 or gpt-sol-6.1, on each turn in the set, with
-//   evals/grounded/rubric.md. Its answers go in ~/tmp/road-trip-evals/grounded/labeling/.
+//   evals/grounded/rubric.md as last committed. Its answers go in
+//   ~/tmp/road-trip-evals/grounded/labeling/<rubric commit>/.
 // npm run grounded -- save-labels <labeler> <set>
 //   Checks the labeler's answers for the set, and saves them as its annotations.
 // npm run grounded -- review <set>
 //   Writes the set's review page, ~/tmp/road-trip-evals/grounded/review/set-01.html, to
 //   open in a browser. It shows each turn's judge input, and no labels.
+import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -33,6 +35,7 @@ import {
   isLabelerName,
   type LabelerName,
   readAnswers,
+  type Rubric,
   runLabeler,
   setFolderName,
 } from "./labeling.js";
@@ -54,15 +57,16 @@ async function main(): Promise<void> {
     await writeInputs(phoenixUrl);
   } else if (action === "label") {
     const { labeler, set } = labelerAndSet(rest);
-    runLabeler(labeler, set, spanIdsIn(set), readFileSync(RUBRIC_PATH, "utf8"));
+    runLabeler(labeler, set, spanIdsIn(set), readRubric());
   } else if (action === "save-labels") {
     const { labeler, set } = labelerAndSet(rest);
-    const answers = readAnswers(labeler, set, spanIdsIn(set));
+    const { version } = readRubric();
+    const answers = readAnswers(labeler, set, spanIdsIn(set), version);
     await saveAnnotations(
       phoenixUrl,
       { identifier: labeler, kind: "LLM" },
       answers,
-      rubricVersion(),
+      version,
     );
     console.log(`Saved ${String(answers.size)} labels from ${labeler}.`);
   } else if (action === "review") {
@@ -158,15 +162,28 @@ function labelerAndSet(args: string[]): { labeler: LabelerName; set: number } {
   return { labeler, set };
 }
 
-// The version on the rubric's first lines, such as "Rubric version: v1".
-function rubricVersion(): string {
-  const version = /^Rubric version: (\S+)$/m.exec(
-    readFileSync(RUBRIC_PATH, "utf8"),
-  )?.[1];
-  if (version === undefined) {
-    throw new Error(`${RUBRIC_PATH} doesn't give its version.`);
+// The rubric, with the commit that last changed it as its version. It must be
+// committed, so `git show <version>:evals/grounded/rubric.md` gives the exact text
+// each label was made with.
+function readRubric(): Rubric {
+  const changes = execFileSync(
+    "git",
+    ["status", "--porcelain", "--", RUBRIC_PATH],
+    {
+      encoding: "utf8",
+    },
+  );
+  if (changes.trim() !== "") {
+    throw new Error(
+      `Commit ${RUBRIC_PATH} first, so its commit names this version.`,
+    );
   }
-  return version;
+  const version = execFileSync(
+    "git",
+    ["log", "-1", "--format=%h", "--", RUBRIC_PATH],
+    { encoding: "utf8" },
+  ).trim();
+  return { text: readFileSync(RUBRIC_PATH, "utf8"), version };
 }
 
 await main();

@@ -30,13 +30,8 @@ export async function saveAnnotations(
       identifier: annotator.identifier,
       label: answer.label,
       ...scoreOf(answer),
-      ...(answer.ungroundedFacts.length === 0
-        ? {}
-        : { explanation: explanationOf(answer) }),
-      metadata: {
-        rubric: rubricVersion,
-        ungroundedFacts: answer.ungroundedFacts,
-      },
+      ...explanationOf(answer),
+      metadata: { rubric: rubricVersion, facts: answer.facts },
     })),
   });
 }
@@ -49,9 +44,11 @@ function scoreOf(answer: LabelAnswer): { score?: number } {
   return { score: answer.label === "grounded" ? 1 : 0 };
 }
 
-// One line for each fact that isn't grounded: its quote, then why.
-function explanationOf(answer: LabelAnswer): string {
-  return answer.ungroundedFacts
-    .map((fact) => `"${fact.quote}": ${fact.why}`)
-    .join("\n");
+// One line for each fact that isn't grounded: its quote, then why. Every fact, with its
+// source, is in the metadata.
+function explanationOf(answer: LabelAnswer): { explanation?: string } {
+  const lines = answer.facts
+    .filter((fact) => !fact.grounded)
+    .map((fact) => `"${fact.quote}": ${fact.why}`);
+  return lines.length === 0 ? {} : { explanation: lines.join("\n") };
 }

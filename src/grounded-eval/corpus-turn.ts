@@ -1,14 +1,30 @@
 import { agentInputSchema, type PhoenixSpan } from "./phoenix-span.schema.js";
 
-// What the coordinator got back from one of its own tool calls. A worker's result is
-// the Agent call's output, as the coordinator got it. The worker's own calls aren't
-// here, since the coordinator never saw them (#282).
+// One of the coordinator's own tool calls: what it got back, and for a tool whose
+// result doesn't say what it changed, what it sent (#282). A worker's result is the
+// Agent call's output, as the coordinator got it. The worker's own calls aren't here,
+// since the coordinator never saw them.
 export interface ToolResult {
   tool: string;
   worker: string | null;
   refused: boolean;
+  // Null for every other tool, whose result already says what it did.
+  input: string | null;
   text: string;
 }
+
+// The tools whose result doesn't say what changed, such as "Added mem_x to user
+// memory." or "Changed Day 5 (day_x).".
+const INPUT_SHOWN_FOR = new Set([
+  "add_memory_item",
+  "update_memory_item",
+  "forget_memory_item",
+  "update_trip_brief",
+  "update_itinerary",
+  "update_day",
+  "update_stop",
+  "update_stay",
+]);
 
 // One coordinator.turn span, with what the judge reads from the spans under it.
 export interface CorpusTurn {
@@ -52,10 +68,12 @@ export function corpusSessionOf(
 }
 
 function toolResultOf(span: PhoenixSpan): ToolResult {
+  const tool = span.name.replace(MCP_PREFIX, "");
   return {
-    tool: span.name.replace(MCP_PREFIX, ""),
+    tool,
     worker: span.name === "Agent" ? workerOf(span.input) : null,
     refused: span.failed,
+    input: INPUT_SHOWN_FOR.has(tool) ? span.input : null,
     text: span.output,
   };
 }

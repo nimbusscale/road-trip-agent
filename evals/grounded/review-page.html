@@ -46,6 +46,8 @@
   details.tool > summary { padding: 6px 12px; cursor: pointer; font-family: ui-monospace, monospace;
     font-size: 13px; }
   details.tool .refused { color: var(--refused); font-weight: 600; }
+  details.tool h4 { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted);
+    margin: 2px 12px 2px; }
   pre { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; padding: 0 12px 10px;
     font: 13px/1.45 ui-monospace, monospace; }
   .md > :first-child { margin-top: 0; } .md > :last-child { margin-bottom: 0; }
@@ -78,8 +80,10 @@
     const name = result.worker ? `worker: ${result.worker}` : result.tool;
     const summary = el("summary", {}, [name]);
     if (result.refused) summary.append(" ", el("span", { class: "refused" }, ["refused"]));
-    const pre = el("pre", {}, [result.text]);
-    const details = el("details", { class: result.worker ? "tool worker" : "tool" }, [summary, pre]);
+    const parts = result.input === null
+      ? [el("pre", {}, [result.text])]
+      : [el("h4", {}, ["Result"]), el("pre", {}, [result.text]), el("h4", {}, ["Input"]), el("pre", {}, [result.input])];
+    const details = el("details", { class: result.worker ? "tool worker" : "tool" }, [summary, ...parts]);
     details.open = true;
     return details;
   }
