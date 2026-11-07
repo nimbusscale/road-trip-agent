@@ -22,7 +22,8 @@
 //   open in a browser. It shows each turn's judge input, and no labels.
 // npm run grounded -- golden
 //   Saves the golden set, each sampled turn's judge input with its settled label, as
-//   the grounded-golden dataset in Phoenix. It stops if the dataset is already there.
+//   the grounded-golden dataset in Phoenix. If it's already there, it updates the turns
+//   whose label or facts changed, as a new version of the dataset.
 // npm run grounded -- push-prompt
 //   Pushes evals/grounded/rubric.md, as last committed, as a version of the judge's
 //   prompt in Phoenix, grounded-judge, tagged rubric-<commit>.
@@ -41,7 +42,7 @@ import {
   type SampleFile,
   sampleFileSchema,
 } from "./grounded-files.schema.js";
-import { createGoldenSet, GOLDEN_DATASET } from "./golden-set.js";
+import { saveGoldenSet } from "./golden-set.js";
 import { judgeInputOf } from "./judge-input.js";
 import { JUDGE_PROMPT, pushJudgePrompt } from "./judge-prompt.js";
 import { runJudgeExperiment } from "./judge.js";
@@ -126,8 +127,7 @@ async function writeGoldenSet(phoenixUrl: string): Promise<void> {
       "utf8",
     ),
   }));
-  const count = await createGoldenSet(phoenixUrl, turns);
-  console.log(`Saved ${String(count)} turns as ${GOLDEN_DATASET}.`);
+  console.log(await saveGoldenSet(phoenixUrl, turns));
 }
 
 // Joe names only the facts he found ungrounded, not every fact, so his label is taken

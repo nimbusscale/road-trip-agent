@@ -1,19 +1,28 @@
+import { isDeepStrictEqual } from "node:util";
+
 import { createClient } from "@arizeai/phoenix-client";
-import { createDataset } from "@arizeai/phoenix-client/datasets";
+import {
+  createDataset,
+  getDatasetExamples,
+} from "@arizeai/phoenix-client/datasets";
 import { getSpanAnnotations } from "@arizeai/phoenix-client/spans";
 
 import { CORPUS_PROJECT } from "./corpus-reader.js";
 import {
+  type ChangedExample,
   datasetListSchema,
   type GroundedAnnotation,
   groundedAnnotationListSchema,
+  patchExamples,
+  savedExampleListSchema,
 } from "./golden-set.schema.js";
 import type { GroundedLabel } from "./label-answer.schema.js";
+
+type Example = ChangedExample["example"];
 
 export const GOLDEN_DATASET = "grounded-golden";
 
 type PhoenixClient = ReturnType<typeof createClient>;
-type Example = Parameters<typeof createDataset>[0]["examples"][number];
 
 // The two labelers whose agreement settles a turn's label (#282, step 7).
 const LABELERS = ["sonnet-5.5", "gpt-sol-6.1"] as const;
@@ -27,38 +36,65 @@ export interface GoldenTurn {
 }
 
 // Builds the golden set from the turns' `grounded` annotations, and saves it as a
-// Phoenix dataset. It stops if the dataset is already there, so a golden set that
-// experiments ran on is never replaced.
-export async function createGoldenSet(
+// Phoenix dataset. If the dataset is already there, it updates only the turns whose
+// label or facts changed, as a new version of the dataset. Replacing the dataset
+// would delete the experiments run on it.
+export async function saveGoldenSet(
   phoenixUrl: string,
   turns: GoldenTurn[],
-): Promise<number> {
+): Promise<string> {
   const client = createClient({ options: { baseUrl: phoenixUrl } });
-  if (await datasetExists(client)) {
-    throw new Error(
-      `${GOLDEN_DATASET} is already in Phoenix. Nothing was changed.`,
-    );
-  }
   const annotations = await readAnnotations(
     client,
     turns.map((turn) => turn.spanId),
   );
   const examples = turns.map((turn) => exampleOf(turn, annotations));
-  await createDataset({
-    client,
-    name: GOLDEN_DATASET,
-    description:
-      "The grounded evaluator's golden set (#282): each sampled turn's judge input, with its settled label.",
-    examples,
-  });
-  return examples.length;
+  const datasetId = await datasetIdOf(client);
+  if (datasetId === null) {
+    await createDataset({
+      client,
+      name: GOLDEN_DATASET,
+      description:
+        "The grounded evaluator's golden set (#282): each sampled turn's judge input, with its settled label.",
+      examples,
+    });
+    return `Saved ${String(examples.length)} turns as ${GOLDEN_DATASET}.`;
+  }
+  const changed = await changedExamples(client, datasetId, examples);
+  if (changed.length > 0) {
+    await patchExamples(phoenixUrl, datasetId, changed);
+  }
+  return `Updated ${String(changed.length)} turns in ${GOLDEN_DATASET}.`;
 }
 
-async function datasetExists(client: PhoenixClient): Promise<boolean> {
+async function datasetIdOf(client: PhoenixClient): Promise<string | null> {
   const response = await client.GET("/v1/datasets", {
     params: { query: { name: GOLDEN_DATASET } },
   });
-  return datasetListSchema.parse(response.data).length > 0;
+  return datasetListSchema.parse(response.data)[0]?.id ?? null;
+}
+
+// The saved examples whose label, or whose facts, differ from the annotations now.
+async function changedExamples(
+  client: PhoenixClient,
+  datasetId: string,
+  examples: Example[],
+): Promise<ChangedExample[]> {
+  const saved = savedExampleListSchema.parse(
+    (await getDatasetExamples({ client, dataset: { datasetId } })).examples,
+  );
+  return examples.flatMap((example) => {
+    const match = saved.find((s) => s.spanId === example.spanId);
+    if (match === undefined) {
+      throw new Error(
+        `${GOLDEN_DATASET} has no turn ${String(example.spanId)}.`,
+      );
+    }
+    const same =
+      isDeepStrictEqual(match.output, example.output) &&
+      isDeepStrictEqual(match.metadata, example.metadata);
+    return same ? [] : [{ id: match.id, example }];
+  });
 }
 
 async function readAnnotations(
