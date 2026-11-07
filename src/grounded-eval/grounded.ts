@@ -28,8 +28,8 @@
 //   prompt in Phoenix, grounded-judge, tagged rubric-<commit>.
 // npm run grounded -- experiment [rubric commit]
 //   Runs the judge, Haiku through the API, on the golden set as a Phoenix experiment,
-//   with the prompt pushed for the rubric's last commit, or the commit given. It bills
-//   the API account through JUDGE_API_KEY.
+//   3 times over, with the prompt pushed for the rubric's last commit, or the commit
+//   given. It bills the API account through JUDGE_API_KEY.
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";

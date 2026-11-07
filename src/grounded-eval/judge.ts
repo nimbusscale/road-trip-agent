@@ -25,9 +25,13 @@ import type { LabelAnswer } from "./label-answer.schema.js";
 // the API account's rate limits.
 const CONCURRENCY = 5;
 
+// Each turn is judged 3 times, so a rubric change can be told apart from the judge's
+// run-to-run differences.
+const REPETITIONS = 3;
+
 // Runs the judge on the golden set as a Phoenix experiment, with the prompt version
-// pushed for the rubric commit (#282). Phoenix keeps each turn's answer, and scores
-// whether its label matches the settled one.
+// pushed for the rubric commit (#282). Phoenix keeps each turn's answers, and scores
+// whether each label matches the settled one.
 export async function runJudgeExperiment(
   phoenixUrl: string,
   rubricVersion: string,
@@ -59,6 +63,7 @@ export async function runJudgeExperiment(
       ),
     evaluators: [labelMatches],
     concurrency: CONCURRENCY,
+    repetitions: REPETITIONS,
   });
 }
 
