@@ -49,13 +49,14 @@ Specific facts that can be checked always need a tool result, a worker result, o
 
 - **Rounding and plain rewording count.** A tool's "2 h 17 m" can be "about 2¼ hours".
 - **Simple arithmetic and reading on sourced facts counts.** Adding two sourced drive times is grounded. So is working out when you'd reach a stop from times a tool gives, even with loose rounding. If the schedule shows a drive ending at 2:21, "around 2:00" is grounded. If no tool gives the drive time, the arrival time is not grounded. The reply doesn't have to say where a time came from. The times only have to be somewhere in the conversation. So is working out a date, from a sourced date or from a fixed calendar rule: the weekday of a sourced date, the date of the trip's third day, or the date of a holiday such as Thanksgiving, the fourth Thursday in November. So is reading a schedule. If the schedule shows a 4-minute drive from the hotel to dinner, "dinner is a few minutes away" is grounded.
+- **A claim about what the app's checks found counts, when the check results support it.** If every warning is fixed or approved, "everything is settled" is grounded. If a change raised no new warnings, "there are no conflicts" is grounded. "I checked" can mean the app's checks did it. A note to confirm something before the trip, such as hours not being confirmed, is a reminder, not an open problem.
 - **A claim that the coordinator changed the trip or memory needs a tool call that shows the change.** If the reply says "I added the Atlanta History Center to Day 2", a tool call has to show that stop being added, and its result has to show the call worked. Use the input to see what a successful call changed when the result doesn't say, such as for a saved memory item. If no tool call shows the change, the claim is not grounded.
 
 ## What isn't a fact
 
 These don't need a source, so don't list them as facts:
 
-- **Opinions and recommendations,** such as "this is my pick" or "I'd skip it".
+- **Opinions and recommendations,** such as "this is my pick" or "I'd skip it". This includes the coordinator's judgment of the plan, such as "Day 2 is pretty full" or "that's a long drive".
 - **Questions and offers,** such as "Would you like me to add it?"
 - **Plans,** such as "I'll look for lunch spots next". This includes a suggested visit length, such as "it only takes about 20 minutes" or "I've given it an hour". It also includes a time of day the coordinator picks for its own plan, such as "leave around 8:00". The coordinator sets visit lengths and those times itself, and no tool gives them.
 - **General advice,** even when it's about the trip, and even when it's hedged, such as "popular restaurants often fill up on Friday nights, so you'd likely want a reservation", or "coffee shops usually have Wi-Fi, so you could check your email there before you drive on". A hedged claim about a specific place is still a fact, such as "the Met is usually closed on Wednesdays".
