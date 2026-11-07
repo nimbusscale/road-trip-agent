@@ -57,7 +57,7 @@ These don't need a source, so don't list them as facts:
 
 - **Opinions and recommendations,** such as "this is my pick" or "I'd skip it".
 - **Questions and offers,** such as "Would you like me to add it?"
-- **Plans,** such as "I'll look for lunch spots next". This includes a suggested visit length, such as "it only takes about 20 minutes" or "I've given it an hour". The coordinator sets visit lengths itself, and no tool gives them.
+- **Plans,** such as "I'll look for lunch spots next". This includes a suggested visit length, such as "it only takes about 20 minutes" or "I've given it an hour". It also includes a time of day the coordinator picks or estimates for its own plan, such as "leave around 8:00" or "lunch at about 1:30", even when it worked the time out roughly from a drive time. The coordinator sets visit lengths and plan times itself. A time that belongs to a place is still a fact, such as when a museum opens or when a ferry leaves.
 - **General advice,** even when it's about the trip, and even when it's hedged, such as "popular restaurants often fill up on Friday nights, so you'd likely want a reservation", or "coffee shops usually have Wi-Fi, so you could check your email there before you drive on". A hedged claim about a specific place is still a fact, such as "the Met is usually closed on Wednesdays".
 - **A general mention of a kind of business,** such as "there are food carts all over Midtown", or "some rooftop bars close for the winter". A named business, or one at a specific spot, is a fact.
 - **What the app can and can't do,** such as "this app plans trips but doesn't book them", or "the schedule can't show you going back to your room". This evaluator checks facts about the trip and the world, not about the app.
