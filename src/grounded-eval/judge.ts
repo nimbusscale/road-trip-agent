@@ -30,11 +30,13 @@ const CONCURRENCY = 5;
 const REPETITIONS = 3;
 
 // Runs the judge on the golden set as a Phoenix experiment, with the prompt version
-// pushed for the rubric commit (#282). Phoenix keeps each turn's answers, and scores
+// pushed for the rubric commit (#282). The description says what that rubric
+// version changed. Phoenix keeps each turn's answers, and scores
 // whether each label matches the settled one.
 export async function runJudgeExperiment(
   phoenixUrl: string,
   rubricVersion: string,
+  description: string,
 ): Promise<void> {
   const client = createClient({ options: { baseUrl: phoenixUrl } });
   const prompt = await readJudgePrompt(phoenixUrl, rubricVersion);
@@ -49,6 +51,7 @@ export async function runJudgeExperiment(
   await runExperiment({
     client,
     experimentName: `rubric ${rubricVersion}`,
+    experimentDescription: description,
     experimentMetadata: {
       rubric: rubricVersion,
       model: JUDGE_MODEL,

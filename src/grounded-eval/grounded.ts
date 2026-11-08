@@ -30,7 +30,8 @@
 // npm run grounded -- experiment [rubric commit]
 //   Runs the judge, Haiku through the API, on the golden set as a Phoenix experiment,
 //   3 times over, with the prompt pushed for the rubric's last commit, or the commit
-//   given. It bills the API account through JUDGE_API_KEY.
+//   given. Its description is that commit's subject line, so the subject should say
+//   what the version changed. It bills the API account through JUDGE_API_KEY.
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -81,8 +82,10 @@ const ACTIONS: Record<string, Action> = {
   review: (phoenixUrl, args) => writeReviewPage(phoenixUrl, Number(args[0])),
   golden: writeGoldenSet,
   "push-prompt": pushPrompt,
-  experiment: (phoenixUrl, args) =>
-    runJudgeExperiment(phoenixUrl, args[0] ?? readRubric().version),
+  experiment: (phoenixUrl, args) => {
+    const version = args[0] ?? readRubric().version;
+    return runJudgeExperiment(phoenixUrl, version, commitSubjectOf(version));
+  },
 };
 
 async function main(): Promise<void> {
@@ -253,6 +256,13 @@ function readRubric(path = RUBRIC_PATH): Rubric {
     { encoding: "utf8" },
   ).trim();
   return { text: readFileSync(path, "utf8"), version };
+}
+
+// The rubric commit's subject line, which says what that version changed.
+function commitSubjectOf(version: string): string {
+  return execFileSync("git", ["log", "-1", "--format=%s", version], {
+    encoding: "utf8",
+  }).trim();
 }
 
 await main();
