@@ -1,0 +1,307 @@
+{
+  "seed": "grounded-282",
+  "corpusSessions": 21,
+  "corpusTurns": 301,
+  "turns": [
+    {
+      "set": 1,
+      "sessionId": "1f5e8cec-381b-44b3-b130-030ab8e9fa40",
+      "spanId": "f00522ecaec712ea"
+    },
+    {
+      "set": 1,
+      "sessionId": "7b417a52-9ed3-46bb-8457-7705ac231aa8",
+      "spanId": "0f5c6607a087c647"
+    },
+    {
+      "set": 1,
+      "sessionId": "6a5a3840-2911-46d0-8579-aae28f06961b",
+      "spanId": "44cc94592e09bc69"
+    },
+    {
+      "set": 1,
+      "sessionId": "ac2bc8ae-104b-4be2-aa92-61e394143065",
+      "spanId": "70b3d8e506d964a6"
+    },
+    {
+      "set": 1,
+      "sessionId": "30d5cb5b-1268-4de3-b9ca-bda17f574824",
+      "spanId": "aa9e07044dd7c02c"
+    },
+    {
+      "set": 2,
+      "sessionId": "7f9743d3-b36d-477a-a1f2-b605daedbf4d",
+      "spanId": "baa18df32481f78c"
+    },
+    {
+      "set": 2,
+      "sessionId": "7b417a52-9ed3-46bb-8457-7705ac231aa8",
+      "spanId": "4fbac99ee7ebe9be"
+    },
+    {
+      "set": 2,
+      "sessionId": "52fad757-3acb-4660-a1e3-8d6beb20c720",
+      "spanId": "8147d72d81924e75"
+    },
+    {
+      "set": 2,
+      "sessionId": "d765a372-acc4-4e2b-a93c-69a9dc74e537",
+      "spanId": "5aef98452c88c0f6"
+    },
+    {
+      "set": 2,
+      "sessionId": "f029cbae-16de-4ac0-882c-4469ccd71f54",
+      "spanId": "936d76541a91e52a"
+    },
+    {
+      "set": 3,
+      "sessionId": "7f9743d3-b36d-477a-a1f2-b605daedbf4d",
+      "spanId": "bdc07de88169647a"
+    },
+    {
+      "set": 3,
+      "sessionId": "0d815c58-00a1-4728-8979-c5552b9cb146",
+      "spanId": "7d2ed44ef96ae57c"
+    },
+    {
+      "set": 3,
+      "sessionId": "0d815c58-00a1-4728-8979-c5552b9cb146",
+      "spanId": "718d75fdfd4c03c2"
+    },
+    {
+      "set": 3,
+      "sessionId": "856a680c-c793-42ae-a817-e0dea4837890",
+      "spanId": "4031392c9fbc02de"
+    },
+    {
+      "set": 3,
+      "sessionId": "700f1751-d81d-4a6d-bad8-28a817585a6c",
+      "spanId": "228dbb579b237dc1"
+    },
+    {
+      "set": 4,
+      "sessionId": "c6a920ff-5995-45c3-b8fa-6a36d521ac9b",
+      "spanId": "4bd23f8d0d941e5d"
+    },
+    {
+      "set": 4,
+      "sessionId": "dd7cba36-d36b-49f0-9ede-210c11a2285a",
+      "spanId": "0c2867c2dbd0a68e"
+    },
+    {
+      "set": 4,
+      "sessionId": "f029cbae-16de-4ac0-882c-4469ccd71f54",
+      "spanId": "990350aa5c5dbccb"
+    },
+    {
+      "set": 4,
+      "sessionId": "893d0dba-8da9-4af1-b5b2-625a33cef40e",
+      "spanId": "64dcf15deb61ea72"
+    },
+    {
+      "set": 4,
+      "sessionId": "849d0b8a-f5f2-4b4e-a321-3d4cc17c590c",
+      "spanId": "ad7b04fd445e4250"
+    },
+    {
+      "set": 5,
+      "sessionId": "30d5cb5b-1268-4de3-b9ca-bda17f574824",
+      "spanId": "4f8386549c4e8b56"
+    },
+    {
+      "set": 5,
+      "sessionId": "dd7cba36-d36b-49f0-9ede-210c11a2285a",
+      "spanId": "246b8e4b780be04f"
+    },
+    {
+      "set": 5,
+      "sessionId": "d765a372-acc4-4e2b-a93c-69a9dc74e537",
+      "spanId": "28567ba14f74dbb2"
+    },
+    {
+      "set": 5,
+      "sessionId": "89f4dea6-6cb9-4320-a917-c063620acca9",
+      "spanId": "cde692960f2380a5"
+    },
+    {
+      "set": 5,
+      "sessionId": "aed48550-a3fe-4bc9-b62b-3882576478b4",
+      "spanId": "544055e6c94410e2"
+    },
+    {
+      "set": 6,
+      "sessionId": "700f1751-d81d-4a6d-bad8-28a817585a6c",
+      "spanId": "315c0a0709d45971"
+    },
+    {
+      "set": 6,
+      "sessionId": "aed48550-a3fe-4bc9-b62b-3882576478b4",
+      "spanId": "17b4e6baf47d98bf"
+    },
+    {
+      "set": 6,
+      "sessionId": "7f9743d3-b36d-477a-a1f2-b605daedbf4d",
+      "spanId": "d9b2893f0a95a443"
+    },
+    {
+      "set": 6,
+      "sessionId": "856a680c-c793-42ae-a817-e0dea4837890",
+      "spanId": "b7ff6807ccc1bc8d"
+    },
+    {
+      "set": 6,
+      "sessionId": "d765a372-acc4-4e2b-a93c-69a9dc74e537",
+      "spanId": "08093f2034223171"
+    },
+    {
+      "set": 7,
+      "sessionId": "d765a372-acc4-4e2b-a93c-69a9dc74e537",
+      "spanId": "9e9c735c5e1d7183"
+    },
+    {
+      "set": 7,
+      "sessionId": "6a5a3840-2911-46d0-8579-aae28f06961b",
+      "spanId": "97163f6fcde40115"
+    },
+    {
+      "set": 7,
+      "sessionId": "6a5a3840-2911-46d0-8579-aae28f06961b",
+      "spanId": "c16e61a309246f78"
+    },
+    {
+      "set": 7,
+      "sessionId": "52fad757-3acb-4660-a1e3-8d6beb20c720",
+      "spanId": "4cfc97dcf5cffbc4"
+    },
+    {
+      "set": 7,
+      "sessionId": "f029cbae-16de-4ac0-882c-4469ccd71f54",
+      "spanId": "84233694897972cc"
+    },
+    {
+      "set": 8,
+      "sessionId": "6efd7bcf-6dd2-4859-9e59-1bc2cee7d5d6",
+      "spanId": "c0120cd372c02fe5"
+    },
+    {
+      "set": 8,
+      "sessionId": "7f9743d3-b36d-477a-a1f2-b605daedbf4d",
+      "spanId": "8567d8d74a27928b"
+    },
+    {
+      "set": 8,
+      "sessionId": "c6a920ff-5995-45c3-b8fa-6a36d521ac9b",
+      "spanId": "ad9f7394eff95a80"
+    },
+    {
+      "set": 8,
+      "sessionId": "6a5a3840-2911-46d0-8579-aae28f06961b",
+      "spanId": "f0e1e76b06c94b16"
+    },
+    {
+      "set": 8,
+      "sessionId": "7b417a52-9ed3-46bb-8457-7705ac231aa8",
+      "spanId": "772393ced8a29db1"
+    },
+    {
+      "set": 9,
+      "sessionId": "d765a372-acc4-4e2b-a93c-69a9dc74e537",
+      "spanId": "5103ad1628b0718b"
+    },
+    {
+      "set": 9,
+      "sessionId": "7b417a52-9ed3-46bb-8457-7705ac231aa8",
+      "spanId": "581c52510148d089"
+    },
+    {
+      "set": 9,
+      "sessionId": "bd9cf7d9-7b44-441f-acad-ab556793659c",
+      "spanId": "55eedc60562f5e21"
+    },
+    {
+      "set": 9,
+      "sessionId": "f029cbae-16de-4ac0-882c-4469ccd71f54",
+      "spanId": "0c9c2425c13219dc"
+    },
+    {
+      "set": 9,
+      "sessionId": "52fad757-3acb-4660-a1e3-8d6beb20c720",
+      "spanId": "8cf605d3907e278a"
+    },
+    {
+      "set": 10,
+      "sessionId": "700f1751-d81d-4a6d-bad8-28a817585a6c",
+      "spanId": "f28b76175e550edf"
+    },
+    {
+      "set": 10,
+      "sessionId": "52fad757-3acb-4660-a1e3-8d6beb20c720",
+      "spanId": "e00294ac740ab114"
+    },
+    {
+      "set": 10,
+      "sessionId": "30d5cb5b-1268-4de3-b9ca-bda17f574824",
+      "spanId": "92066f8fb0a1c381"
+    },
+    {
+      "set": 10,
+      "sessionId": "30d5cb5b-1268-4de3-b9ca-bda17f574824",
+      "spanId": "88821a88a8ae4b95"
+    },
+    {
+      "set": 10,
+      "sessionId": "89f4dea6-6cb9-4320-a917-c063620acca9",
+      "spanId": "b7f75d00f56c00f0"
+    },
+    {
+      "set": 11,
+      "sessionId": "89f4dea6-6cb9-4320-a917-c063620acca9",
+      "spanId": "26ee7e9b87e09b95"
+    },
+    {
+      "set": 11,
+      "sessionId": "d765a372-acc4-4e2b-a93c-69a9dc74e537",
+      "spanId": "b4af534eacf8d5a0"
+    },
+    {
+      "set": 11,
+      "sessionId": "d765a372-acc4-4e2b-a93c-69a9dc74e537",
+      "spanId": "c88777c1a5568de8"
+    },
+    {
+      "set": 11,
+      "sessionId": "89f4dea6-6cb9-4320-a917-c063620acca9",
+      "spanId": "9171ff740b8b137d"
+    },
+    {
+      "set": 11,
+      "sessionId": "dd7cba36-d36b-49f0-9ede-210c11a2285a",
+      "spanId": "2aeebf92f28e6d1c"
+    },
+    {
+      "set": 12,
+      "sessionId": "7f9743d3-b36d-477a-a1f2-b605daedbf4d",
+      "spanId": "caf02e765e0ef28b"
+    },
+    {
+      "set": 12,
+      "sessionId": "30d5cb5b-1268-4de3-b9ca-bda17f574824",
+      "spanId": "32616c175cb76b02"
+    },
+    {
+      "set": 12,
+      "sessionId": "700f1751-d81d-4a6d-bad8-28a817585a6c",
+      "spanId": "184037e5d7c37573"
+    },
+    {
+      "set": 12,
+      "sessionId": "aa5d567a-ce94-4333-8c68-9307e17c9b33",
+      "spanId": "7bc8eaedb36823f0"
+    },
+    {
+      "set": 12,
+      "sessionId": "f029cbae-16de-4ac0-882c-4469ccd71f54",
+      "spanId": "4896596e9649bed0"
+    }
+  ]
+}

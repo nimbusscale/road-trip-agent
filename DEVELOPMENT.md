@@ -111,6 +111,15 @@ npm run run-turn -- <agent session ID> <turn> --message "Can we add a night in C
 
 **Tests that need the real agent run on their own,** outside `npm run check`. Examples: the acceptance scenarios (functional spec 11) and the memory tests (technical spec 3.1). They cost money and their results vary from run to run. How they run is settled when the first one is written.
 
+**Agent evaluations run in Phoenix.** The first is the grounded evaluator (#282). It checks whether every fact in a coordinator reply came from a source the coordinator had. Its rubric is `evals/grounded/rubric.md`, and its code is in `src/grounded-eval/`, run with `npm run grounded -- <action>`. The header of `grounded.ts` lists the actions. The judge calls the Anthropic API with `JUDGE_API_KEY` from `.env`, which bills the API account, not the Claude plan. What it taught, for the evaluators that come after it:
+
+- **To score new turns, run `npm run grounded -- judge-corpus`.** It judges every turn in the corpus once with the committed rubric, at about $0.007 a turn, and saves the labels as `grounded-haiku` annotations. The corpus is the sessions with a `corpus` session annotation. Phoenix's project page shows the grounded share by the day each turn ran.
+- **A judge's prompt lives in the repo.** Each committed version is pushed to Phoenix as a prompt version, tagged with its commit (`push-prompt`). The code fills the prompt's slot itself, since Phoenix's own template filling turns a `$$` in the input into `$`.
+- **A judge is tuned on a golden set,** a Phoenix dataset of turns with settled labels. Each prompt version gets an experiment (`experiment`). An experiment runs every example 3 times, since one run's score moves by about 2 turns in 60. Its description is the prompt commit's subject line, so write that subject to say what the version changed.
+- **Change a dataset in place, never by deleting it.** Deleting a dataset deletes its experiments. The `golden` action updates only the changed examples, which makes a new dataset version. Each experiment is scored against the labels as they were when it ran, so after a label changes, score the versions again against today's labels to compare them.
+- **Each judge's labels get their own annotation name.** Phoenix's project page sums up annotations by name only, not by who made them. The labelers and Joe share `grounded`, with an identifier each, and the judge has `grounded-haiku`.
+- **Read the misses both ways, not just the score.** When one label is common, accuracy hides a lopsided judge. 42 of the 60 golden turns are not grounded, so a judge that flags every turn scores 70%. Count the false alarms and the misses apart. They also tell whether the judge's rate on the corpus runs high or low.
+
 ---
 
 ## 6. Rules for Claude Code
