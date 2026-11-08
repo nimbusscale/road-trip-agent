@@ -23,7 +23,7 @@ import type { LabelAnswer } from "./label-answer.schema.js";
 
 // Five turns at a time keeps a run of the golden set to a few minutes, well inside
 // the API account's rate limits.
-const CONCURRENCY = 5;
+export const CONCURRENCY = 5;
 
 // Each turn is judged 3 times, so a rubric change can be told apart from the judge's
 // run-to-run differences.
@@ -38,7 +38,33 @@ export async function runJudgeExperiment(
   rubricVersion: string,
   description: string,
 ): Promise<void> {
-  const client = createClient({ options: { baseUrl: phoenixUrl } });
+  const { judge, promptVersionId } = await judgeFor(phoenixUrl, rubricVersion);
+  await runExperiment({
+    client: createClient({ options: { baseUrl: phoenixUrl } }),
+    experimentName: `rubric ${rubricVersion}`,
+    experimentDescription: description,
+    experimentMetadata: {
+      rubric: rubricVersion,
+      model: JUDGE_MODEL,
+      promptVersionId,
+    },
+    dataset: { datasetName: GOLDEN_DATASET },
+    task: async (example) =>
+      judge(goldenInputSchema.parse(example.input).judgeInput),
+    evaluators: [labelMatches],
+    concurrency: CONCURRENCY,
+    repetitions: REPETITIONS,
+  });
+}
+
+export type Judge = (judgeInput: string) => Promise<LabelAnswer>;
+
+// The judge with the prompt version pushed for the rubric commit. It answers for one
+// turn's judge input, with every fact it found.
+export async function judgeFor(
+  phoenixUrl: string,
+  rubricVersion: string,
+): Promise<{ judge: Judge; promptVersionId: string }> {
   const prompt = await readJudgePrompt(phoenixUrl, rubricVersion);
   const request = toSDK({ sdk: "anthropic", prompt });
   if (request === null) {
@@ -48,29 +74,12 @@ export async function runJudgeExperiment(
     apiKey: judgeApiKeyOf(process.env),
     authToken: null,
   });
-  await runExperiment({
-    client,
-    experimentName: `rubric ${rubricVersion}`,
-    experimentDescription: description,
-    experimentMetadata: {
-      rubric: rubricVersion,
-      model: JUDGE_MODEL,
-      promptVersionId: prompt.id,
-    },
-    dataset: { datasetName: GOLDEN_DATASET },
-    task: async (example) =>
-      judgeTurn(
-        anthropic,
-        request,
-        goldenInputSchema.parse(example.input).judgeInput,
-      ),
-    evaluators: [labelMatches],
-    concurrency: CONCURRENCY,
-    repetitions: REPETITIONS,
-  });
+  return {
+    judge: (judgeInput) => judgeTurn(anthropic, request, judgeInput),
+    promptVersionId: prompt.id,
+  };
 }
 
-// One turn's answer. The fact list is what to read when the label is wrong.
 async function judgeTurn(
   anthropic: Anthropic,
   prompt: MessageCreateParams,

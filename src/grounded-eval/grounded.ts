@@ -27,6 +27,10 @@
 // npm run grounded -- push-prompt
 //   Pushes evals/grounded/rubric.md, as last committed, as a version of the judge's
 //   prompt in Phoenix, grounded-judge, tagged rubric-<commit>.
+// npm run grounded -- judge-corpus
+//   Runs the judge once on every corpus turn, with evals/grounded/rubric.md as last
+//   committed, and saves its labels as the turns' `grounded-haiku` annotations, with
+//   identifier haiku-5.5. It bills the API account through JUDGE_API_KEY.
 // npm run grounded -- experiment [rubric commit]
 //   Runs the judge, Haiku through the API, on the golden set as a Phoenix experiment,
 //   3 times over, with the prompt pushed for the rubric's last commit, or the commit
@@ -47,6 +51,7 @@ import { saveGoldenSet } from "./golden-set.js";
 import { judgeInputOf } from "./judge-input.js";
 import { JUDGE_PROMPT, pushJudgePrompt } from "./judge-prompt.js";
 import { runJudgeExperiment } from "./judge.js";
+import { judgeCorpus } from "./corpus-judge.js";
 import { groundedLabelSchema } from "./label-answer.schema.js";
 import {
   EVALS_DIR,
@@ -82,6 +87,7 @@ const ACTIONS: Record<string, Action> = {
   review: (phoenixUrl, args) => writeReviewPage(phoenixUrl, Number(args[0])),
   golden: writeGoldenSet,
   "push-prompt": pushPrompt,
+  "judge-corpus": judgeAllTurns,
   experiment: (phoenixUrl, args) => {
     const version = args[0] ?? readRubric().version;
     return runJudgeExperiment(phoenixUrl, version, commitSubjectOf(version));
@@ -103,7 +109,7 @@ async function saveLabels(phoenixUrl: string, args: string[]): Promise<void> {
   const answers = readAnswers(labeler, set, spanIdsIn(set), version);
   await saveAnnotations(
     phoenixUrl,
-    { identifier: labeler, kind: "LLM" },
+    { name: "grounded", identifier: labeler, kind: "LLM" },
     answers,
     version,
   );
@@ -118,6 +124,17 @@ async function pushPrompt(phoenixUrl: string): Promise<void> {
       ? `Pushed rubric ${rubric.version} to ${JUDGE_PROMPT}.`
       : `${JUDGE_PROMPT} already has rubric ${rubric.version}.`,
   );
+}
+
+async function judgeAllTurns(phoenixUrl: string): Promise<void> {
+  const { version } = readRubric();
+  const { labels, failed } = await judgeCorpus(phoenixUrl, version);
+  console.log(
+    `Saved the judge's labels, on rubric ${version}: ${[...labels].map(([label, count]) => `${String(count)} ${label}`).join(", ")}.`,
+  );
+  for (const { spanId, error } of failed) {
+    console.log(`No answer for ${spanId}: ${error}`);
+  }
 }
 
 async function writeGoldenSet(phoenixUrl: string): Promise<void> {
@@ -149,7 +166,7 @@ async function saveCall(phoenixUrl: string, args: string[]): Promise<void> {
   }
   await saveAnnotations(
     phoenixUrl,
-    { identifier: "joe", kind: "HUMAN" },
+    { name: "grounded", identifier: "joe", kind: "HUMAN" },
     new Map([[spanId, { label, facts }]]),
     readRubric().version,
   );

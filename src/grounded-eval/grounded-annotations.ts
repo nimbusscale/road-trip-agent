@@ -3,16 +3,24 @@ import { logSpanAnnotations } from "@arizeai/phoenix-client/spans";
 
 import type { LabelAnswer } from "./label-answer.schema.js";
 
-const ANNOTATION_NAME = "grounded";
-
-// Who made a label: a labeler, Joe, or the judge (#282).
+// Who made a label (#282). The labelers and Joe save under `grounded`. The judge saves
+// under its own name, since Phoenix's project page sums up annotations by name only,
+// and would mix the judge's labels with theirs.
 export interface Annotator {
+  name: "grounded" | "grounded-haiku";
   identifier: string;
   kind: "LLM" | "HUMAN";
 }
 
-// Saves each turn's label as its `grounded` annotation. Phoenix keeps one for each name
-// and identifier on a span, so saving again replaces only this annotator's own.
+export const JUDGE_ANNOTATOR: Annotator = {
+  name: "grounded-haiku",
+  identifier: "haiku-5.5",
+  kind: "LLM",
+};
+
+// Saves each turn's label as an annotation under the annotator's name. Phoenix keeps
+// one for each name and identifier on a span, so saving again replaces only this
+// annotator's own.
 export async function saveAnnotations(
   phoenixUrl: string,
   annotator: Annotator,
@@ -25,7 +33,7 @@ export async function saveAnnotations(
     sync: true,
     spanAnnotations: [...answers].map(([spanId, answer]) => ({
       spanId,
-      name: ANNOTATION_NAME,
+      name: annotator.name,
       annotatorKind: annotator.kind,
       identifier: annotator.identifier,
       label: answer.label,
