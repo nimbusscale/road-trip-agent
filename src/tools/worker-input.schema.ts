@@ -53,6 +53,14 @@ const timedCandidate = z.strictObject({
   visitTimeInMinutes,
 });
 
+// add_stop_candidates' two shapes are titled with their stop kind, since an evaluation
+// showed the workers sending a meal stop's candidates a visit time (#266). Lodging
+// candidates keep the plain shape, with no title.
+const mealCandidate = tieredCandidate.meta({ title: "Meal stop candidate" });
+const attractionCandidate = timedCandidate.meta({
+  title: "Attraction stop candidate",
+});
+
 export const READ_WORKER_BRIEF_FACTS_INPUT = z.strictObject({
   stopOrStayIds: z
     .array(
@@ -74,7 +82,7 @@ export const ADD_LODGING_CANDIDATES_INPUT = z.strictObject({
 export const ADD_STOP_CANDIDATES_INPUT = z.strictObject({
   stopId: z.string().describe("A stop ID, such as stop_k7m2x9qa."),
   candidates: z
-    .array(z.union([tieredCandidate, timedCandidate]))
+    .array(z.union([mealCandidate, attractionCandidate]))
     .min(1)
     .max(MAXIMUM_SET_SIZE)
     .describe(

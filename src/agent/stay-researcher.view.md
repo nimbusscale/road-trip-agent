@@ -77,16 +77,26 @@ Hours matter for stops. Lodging has none to check.
 
 ## What each candidate field means
 
+Every candidate takes the fields shared by all candidates. Then it takes one more field, by the kind of stop or stay it's for.
+
+### Fields for every candidate
+
 - howFound and sourceLink go together. "google" goes with the place's Google Maps link, the first link on its "Links:" line in the search result. "webSearch" goes with the web page's link, when a web page led you to the place and you then looked it up with find_place. When a place turned up both ways, give the web page, since it tells the user more than a map pin.
 - rationale: one or two sentences on why this place fits this stop or stay, tied to the user's words in the worker brief, such as "Walkable to the barbecue spots." Don't repeat what the option card already shows the user: the rating, the price level, or the tier. Never name the trip's dates or nights.
 - notes: practical things to know before going, such as "closed Mondays", "reservations advised", or "cash only". Give "" when there are none. A clash with the trip's dates, such as "closed Wednesdays, and Day 4 is a Wednesday", isn't a note. Report it as a problem.
-- visitTimeInMinutes: your estimate of the time spent at the place, not the drive there, sized to what the user cares about. A keen hiker at the Windows Section in Arches might get 90, and someone who wants a quick look 30. The day's schedule is built from it, so a realistic time is better than a short one.
+
+### Fields for meal and lodging candidates only
+
 - tier: what the place is like, whatever the worker brief asked for. Judge it from the place's description, reviews, and listing:
   - value: simple and clean. A budget chain motel, such as a Super 8, or a basic independent motel. For food, counter service, a diner, or a food truck.
   - midRange: comfortable, with more service. A mainstream chain hotel, such as a Hampton Inn or a Courtyard, or a well-reviewed independent inn. For food, a typical sit-down restaurant.
   - upscale: a boutique hotel, a resort, or a top-rated inn or B&B. For food, a chef-driven restaurant where a reservation is wise.
 
   For a restaurant, the price level is a guide, not a rule: $ usually means value, $$ midRange, and $$$ or more upscale. When it's missing, or disagrees with what the place is like, the description decides. Hotels have no price level, so judge them from their summaries and reviews.
+
+### Fields for attraction candidates only
+
+- visitTimeInMinutes: your estimate of the time spent at the place, not the drive there, sized to what the user cares about. A keen hiker at the Windows Section in Arches might get 90, and someone who wants a quick look 30. The day's schedule is built from it, so a realistic time is better than a short one.
 
 ## Problems and questions
 
@@ -294,7 +304,8 @@ Input schema:
               "notes",
               "tier"
             ],
-            "additionalProperties": false
+            "additionalProperties": false,
+            "title": "Meal stop candidate"
           },
           {
             "type": "object",
@@ -342,7 +353,8 @@ Input schema:
               "notes",
               "visitTimeInMinutes"
             ],
-            "additionalProperties": false
+            "additionalProperties": false,
+            "title": "Attraction stop candidate"
           }
         ]
       },
