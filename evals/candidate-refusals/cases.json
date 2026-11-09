@@ -5,7 +5,7 @@
     "workerType": "stay-researcher",
     "recordedCalls": 7,
     "recordedRefused": 3,
-    "splits": ["trial-1", "trial-2"]
+    "splits": ["trial-1", "trial-2", "visit-time"]
   },
   {
     "agentSessionId": "7b417a52-9ed3-46bb-8457-7705ac231aa8",
@@ -13,7 +13,7 @@
     "workerType": "stay-researcher",
     "recordedCalls": 13,
     "recordedRefused": 1,
-    "splits": ["trial-2"]
+    "splits": ["trial-2", "visit-time"]
   },
   {
     "agentSessionId": "7b417a52-9ed3-46bb-8457-7705ac231aa8",
@@ -29,7 +29,7 @@
     "workerType": "stay-researcher",
     "recordedCalls": 2,
     "recordedRefused": 1,
-    "splits": []
+    "splits": ["visit-time"]
   },
   {
     "agentSessionId": "6a5a3840-2911-46d0-8579-aae28f06961b",
@@ -37,7 +37,7 @@
     "workerType": "stay-researcher",
     "recordedCalls": 5,
     "recordedRefused": 2,
-    "splits": ["trial-2"]
+    "splits": ["trial-2", "visit-time"]
   },
   {
     "agentSessionId": "6a5a3840-2911-46d0-8579-aae28f06961b",
@@ -45,7 +45,7 @@
     "workerType": "stay-researcher",
     "recordedCalls": 6,
     "recordedRefused": 3,
-    "splits": []
+    "splits": ["visit-time"]
   },
   {
     "agentSessionId": "6a5a3840-2911-46d0-8579-aae28f06961b",
@@ -53,7 +53,7 @@
     "workerType": "stay-researcher",
     "recordedCalls": 5,
     "recordedRefused": 2,
-    "splits": []
+    "splits": ["visit-time"]
   },
   {
     "agentSessionId": "700f1751-d81d-4a6d-bad8-28a817585a6c",
@@ -61,7 +61,7 @@
     "workerType": "stay-researcher",
     "recordedCalls": 3,
     "recordedRefused": 1,
-    "splits": ["trial-2"]
+    "splits": ["trial-2", "visit-time"]
   },
   {
     "agentSessionId": "700f1751-d81d-4a6d-bad8-28a817585a6c",
@@ -69,7 +69,7 @@
     "workerType": "stay-researcher",
     "recordedCalls": 3,
     "recordedRefused": 1,
-    "splits": []
+    "splits": ["visit-time"]
   },
   {
     "agentSessionId": "7f9743d3-b36d-477a-a1f2-b605daedbf4d",
@@ -77,7 +77,7 @@
     "workerType": "stay-researcher",
     "recordedCalls": 5,
     "recordedRefused": 1,
-    "splits": []
+    "splits": ["visit-time"]
   },
   {
     "agentSessionId": "7f9743d3-b36d-477a-a1f2-b605daedbf4d",
@@ -93,7 +93,7 @@
     "workerType": "stay-researcher",
     "recordedCalls": 5,
     "recordedRefused": 1,
-    "splits": ["trial-2"]
+    "splits": ["trial-2", "visit-time"]
   },
   {
     "agentSessionId": "c6a920ff-5995-45c3-b8fa-6a36d521ac9b",
@@ -101,7 +101,7 @@
     "workerType": "stay-researcher",
     "recordedCalls": 6,
     "recordedRefused": 2,
-    "splits": ["trial-2"]
+    "splits": ["trial-2", "visit-time"]
   },
   {
     "agentSessionId": "dd7cba36-d36b-49f0-9ede-210c11a2285a",
@@ -109,7 +109,7 @@
     "workerType": "stay-researcher",
     "recordedCalls": 6,
     "recordedRefused": 2,
-    "splits": ["trial-1", "trial-2"]
+    "splits": ["trial-1", "trial-2", "visit-time"]
   },
   {
     "agentSessionId": "dd7cba36-d36b-49f0-9ede-210c11a2285a",
@@ -117,7 +117,7 @@
     "workerType": "stay-researcher",
     "recordedCalls": 4,
     "recordedRefused": 1,
-    "splits": []
+    "splits": ["visit-time"]
   },
   {
     "agentSessionId": "dd7cba36-d36b-49f0-9ede-210c11a2285a",
@@ -125,7 +125,7 @@
     "workerType": "stay-researcher",
     "recordedCalls": 5,
     "recordedRefused": 2,
-    "splits": []
+    "splits": ["visit-time"]
   },
   {
     "agentSessionId": "dd7cba36-d36b-49f0-9ede-210c11a2285a",
@@ -133,7 +133,7 @@
     "workerType": "stay-researcher",
     "recordedCalls": 5,
     "recordedRefused": 2,
-    "splits": []
+    "splits": ["visit-time"]
   },
   {
     "agentSessionId": "dd7cba36-d36b-49f0-9ede-210c11a2285a",
@@ -141,7 +141,7 @@
     "workerType": "stay-researcher",
     "recordedCalls": 3,
     "recordedRefused": 1,
-    "splits": []
+    "splits": ["visit-time"]
   },
   {
     "agentSessionId": "dd7cba36-d36b-49f0-9ede-210c11a2285a",
@@ -149,7 +149,7 @@
     "workerType": "stay-researcher",
     "recordedCalls": 5,
     "recordedRefused": 1,
-    "splits": []
+    "splits": ["visit-time"]
   },
   {
     "agentSessionId": "dd7cba36-d36b-49f0-9ede-210c11a2285a",
@@ -157,7 +157,7 @@
     "workerType": "stay-researcher",
     "recordedCalls": 5,
     "recordedRefused": 2,
-    "splits": []
+    "splits": ["visit-time"]
   },
   {
     "agentSessionId": "dd7cba36-d36b-49f0-9ede-210c11a2285a",
@@ -173,7 +173,7 @@
     "workerType": "stay-researcher",
     "recordedCalls": 3,
     "recordedRefused": 1,
-    "splits": ["trial-2"]
+    "splits": ["trial-2", "visit-time"]
   },
   {
     "agentSessionId": "856a680c-c793-42ae-a817-e0dea4837890",
@@ -181,7 +181,7 @@
     "workerType": "stay-researcher",
     "recordedCalls": 3,
     "recordedRefused": 1,
-    "splits": []
+    "splits": ["visit-time"]
   },
   {
     "agentSessionId": "856a680c-c793-42ae-a817-e0dea4837890",
@@ -189,7 +189,7 @@
     "workerType": "stay-researcher",
     "recordedCalls": 7,
     "recordedRefused": 3,
-    "splits": []
+    "splits": ["visit-time"]
   },
   {
     "agentSessionId": "856a680c-c793-42ae-a817-e0dea4837890",
@@ -197,7 +197,7 @@
     "workerType": "leg-scout",
     "recordedCalls": 4,
     "recordedRefused": 2,
-    "splits": ["trial-2"]
+    "splits": ["trial-2", "no-route"]
   },
   {
     "agentSessionId": "d765a372-acc4-4e2b-a93c-69a9dc74e537",
@@ -213,7 +213,7 @@
     "workerType": "stay-researcher",
     "recordedCalls": 7,
     "recordedRefused": 1,
-    "splits": []
+    "splits": ["visit-time"]
   },
   {
     "agentSessionId": "d765a372-acc4-4e2b-a93c-69a9dc74e537",
@@ -229,7 +229,7 @@
     "workerType": "stay-researcher",
     "recordedCalls": 5,
     "recordedRefused": 1,
-    "splits": ["trial-2"]
+    "splits": ["trial-2", "visit-time"]
   },
   {
     "agentSessionId": "f029cbae-16de-4ac0-882c-4469ccd71f54",
@@ -237,7 +237,7 @@
     "workerType": "stay-researcher",
     "recordedCalls": 5,
     "recordedRefused": 2,
-    "splits": []
+    "splits": ["visit-time"]
   },
   {
     "agentSessionId": "f029cbae-16de-4ac0-882c-4469ccd71f54",
@@ -245,7 +245,7 @@
     "workerType": "stay-researcher",
     "recordedCalls": 7,
     "recordedRefused": 1,
-    "splits": []
+    "splits": ["visit-time"]
   },
   {
     "agentSessionId": "f029cbae-16de-4ac0-882c-4469ccd71f54",
