@@ -144,7 +144,7 @@ The itinerary map (spec 9.2) uses the Maps JavaScript API.
 - **Each plain name in `compute_route` is one Text Search, at the Pro level,** since it asks only for the ID, name, and address. A sketch with five plain names costs five Pro calls, from the 5,000 free a month. It doesn't use the 1,000 rated searches.
 - **The number of searches per trip drives the cost,** not the fields asked for. Asking for hours adds 0.3¢ a call. At about 30 searches per test trip, a trip costs about $1.20 past the free calls.
 - **Each selection re-routes its day.** Laying out a day of five places the user names costs about a dozen Routes calls, counting the stop-order check ([technical spec](../technical-spec.md), section 8). That's accepted for the MVP. Selecting several places in one call can come later if usage shows a need.
-- **Detour times cost one Routes call per candidate.** `add_stop_candidates` works out each candidate's detour time with one Routes call apiece ([tool design](../tools.md), 2.1). A leg with four stops and three candidates each is 12 calls. The along-leg search gives none, so it makes no Routes calls.
+- **Detour times cost one Routes call per candidate.** `add_meal_candidates` and `add_attraction_candidates` work out each candidate's detour time with one Routes call apiece ([tool design](../tools.md), 2.1). A leg with four stops and three candidates each is 12 calls. The along-leg search gives none, so it makes no Routes calls.
 - **Billing data lags.** Google's billing dashboard can take up to 48 hours to show usage.
 
 ---

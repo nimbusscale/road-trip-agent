@@ -827,7 +827,7 @@ A candidate is one place offered for a stop or for a stay's lodging, with the re
 
 **Held as:** held by a stop's `candidates` or a stay's `lodgingCandidates`, with no `id`. Agents refer to one by its stop or stay plus its place (technical spec 7.1).
 
-**Created and changed by:** code creates it from what a worker passes to the tools `add_lodging_candidates` and `add_stop_candidates`, or from what the coordinator passes to the tool `select_user_place`. Then `StaysService.addLodgingCandidates()` or `StopsService.addCandidates()` adds it, in a set (sections 4.4 and 4.6). The stop or stay that adds it gives it its set number. In code, what's passed in is a `CandidateOffer`: every property but that one. The stop or stay makes the candidate from it, so a candidate never exists without one. After that it never changes. A rejection removes it (section 4.3), and so does removing its stop or stay. Nothing else does.
+**Created and changed by:** code creates it from what a worker passes to the tools `add_lodging_candidates`, `add_meal_candidates`, and `add_attraction_candidates`, or from what the coordinator passes to the tool `select_user_place`. Then `StaysService.addLodgingCandidates()` or `StopsService.addCandidates()` adds it, in a set (sections 4.4 and 4.6). The stop or stay that adds it gives it its set number. In code, what's passed in is a `CandidateOffer`: every property but that one. The stop or stay makes the candidate from it, so a candidate never exists without one. After that it never changes. A rejection removes it (section 4.3), and so does removing its stop or stay. Nothing else does.
 
 | Property | Stored or worked out | Type | Notes |
 |---|---|---|---|
