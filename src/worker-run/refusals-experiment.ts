@@ -128,28 +128,47 @@ export function runOutputOf(run: WorkerRun): Record<string, unknown> {
   };
 }
 
+// A scorer's result. The score is null for a run with no candidate calls: it has no
+// rate, and a best score would pull its case's rate down. A fix could leave a worker
+// making no candidate calls, so that run mustn't look like a good one.
+export interface RefusalScore {
+  score: number | null;
+  label: string;
+}
+
+const NO_CALLS: RefusalScore = { score: null, label: "no candidate calls" };
+
 // The share of the run's candidate calls that were refused. Lower is better.
+export function refusalRateOf(output: unknown): RefusalScore {
+  const { calls, refused } = refusalOutputSchema.parse(output);
+  if (calls === 0) {
+    return NO_CALLS;
+  }
+  return {
+    score: refused / calls,
+    label: `${String(refused)} of ${String(calls)} refused`,
+  };
+}
+
+// Whether the run had no refused candidate call at all.
+export function noRefusalsOf(output: unknown): RefusalScore {
+  const { calls, refused } = refusalOutputSchema.parse(output);
+  if (calls === 0) {
+    return NO_CALLS;
+  }
+  return refused === 0
+    ? { score: 1, label: "none refused" }
+    : { score: 0, label: "some refused" };
+}
+
 const refusalRate = asExperimentEvaluator({
   name: "refusal rate",
   kind: "CODE",
-  evaluate: ({ output }) => {
-    const { calls, refused } = refusalOutputSchema.parse(output);
-    return {
-      score: calls === 0 ? 0 : refused / calls,
-      label: `${String(refused)} of ${String(calls)} refused`,
-    };
-  },
+  evaluate: ({ output }) => refusalRateOf(output),
 });
 
-// Whether the run had no refused candidate call at all.
 const noRefusals = asExperimentEvaluator({
   name: "no refusals",
   kind: "CODE",
-  evaluate: ({ output }) => {
-    const { refused } = refusalOutputSchema.parse(output);
-    return {
-      score: refused === 0 ? 1 : 0,
-      label: refused === 0 ? "none refused" : "some refused",
-    };
-  },
+  evaluate: ({ output }) => noRefusalsOf(output),
 });

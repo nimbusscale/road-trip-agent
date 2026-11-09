@@ -18,8 +18,9 @@ import { WORKER_TYPE, type WorkerType } from "./worker-types.js";
 
 // One worker run on its own, at the top of the query, for an agent evaluation (#266).
 // The test stands in for the coordinator: it sends the worker brief the coordinator
-// sent, and nothing reads the worker's result. The worker hooks are left out, since
-// they only build that result (technical spec 6.5).
+// sent, and nothing reads the worker's result. The worker hooks are left out. They build
+// that result, and send a worker back, up to MAX_SEND_BACKS times, when it tries to end
+// without report_result (technical spec 6.5). So a worker run alone isn't sent back.
 
 // The built-in tools a worker can be sent. A worker can't start another one.
 const WORKER_BUILT_IN_TOOLS = ["WebSearch", "WebFetch"] as const;

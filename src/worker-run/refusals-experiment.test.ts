@@ -10,7 +10,11 @@ import {
 } from "../agent/fake-sdk-messages.schema.js";
 import { WORKER_TYPE } from "../agent/worker-types.js";
 import { CandidateCallCount } from "./candidate-calls.js";
-import { runOutputOf } from "./refusals-experiment.js";
+import {
+  noRefusalsOf,
+  refusalRateOf,
+  runOutputOf,
+} from "./refusals-experiment.js";
 import type { WorkerRun } from "./worker-run.js";
 
 // A worker run as runRecordedWorker() builds it, from the SDK's messages.
@@ -55,5 +59,23 @@ describe("runOutputOf", () => {
 
   it("fails the task when the run ended with no result", () => {
     expect(() => runOutputOf(workerRunOf(CANDIDATE_CALL))).toThrow("no result");
+  });
+});
+
+describe("the scorers", () => {
+  it("score a run's refused calls", () => {
+    const output = { calls: 4, refused: 1 };
+    expect(refusalRateOf(output)).toEqual({
+      score: 0.25,
+      label: "1 of 4 refused",
+    });
+    expect(noRefusalsOf(output)).toEqual({ score: 0, label: "some refused" });
+  });
+
+  it("give a run with no candidate calls no score, so it can't pass as a run with none refused", () => {
+    const output = runOutputOf(workerRunOf([successResult("Done.")]));
+    const noScore = { score: null, label: "no candidate calls" };
+    expect(refusalRateOf(output)).toEqual(noScore);
+    expect(noRefusalsOf(output)).toEqual(noScore);
   });
 });
