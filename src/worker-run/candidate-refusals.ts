@@ -4,11 +4,13 @@
 //
 // npm run candidate-refusals -- dataset
 //   Saves the cases as the candidate-refusals dataset in Phoenix, if it isn't there yet.
-// npm run candidate-refusals -- experiment
-//   Runs each case 5 times on today's code, with npm run run-worker's run, as a Phoenix
-//   experiment. Its description is the last commit's subject line, so the subject should
-//   say what the commit changed. It stops if there are uncommitted changes, since the
-//   experiment would be named for a commit that isn't the code that ran.
+// npm run candidate-refusals -- experiment <trial set or all> <runs per case>
+//   Runs the cases on today's code, with npm run run-worker's run, as a Phoenix
+//   experiment. A trial set, such as trial-1, runs only the cases tagged with it, and
+//   all runs every case. Its description is the last commit's subject line, so the
+//   subject should say what the commit changed. It stops if there are uncommitted
+//   changes, since the experiment would be named for a commit that isn't the code that
+//   ran.
 //
 // The experiment reads the live database, as npm run run-worker does, with the same
 // LIVE_POSTGRES_* values.
@@ -23,6 +25,7 @@ import { loadSettings, SETTINGS_PATH } from "../config/settings.js";
 import { createPool } from "../db/connection.js";
 import { appCommit } from "../tracing/app-commit.js";
 import {
+  type RefusalsSelection,
   runRefusalsExperiment,
   saveRefusalsDataset,
 } from "./refusals-experiment.js";
@@ -42,14 +45,28 @@ async function main(): Promise<void> {
       return;
     }
     case "experiment":
-      await experiment(env);
+      await experiment(env, selectionOf(process.argv.slice(3)));
       return;
     default:
       throw new Error("Give an action: dataset or experiment.");
   }
 }
 
-async function experiment(env: ReturnType<typeof parseEnv>): Promise<void> {
+function selectionOf(args: readonly string[]): RefusalsSelection {
+  const [set, runs] = args;
+  const runsPerCase = Number(runs);
+  if (set === undefined || !Number.isInteger(runsPerCase) || runsPerCase < 1) {
+    throw new Error(
+      "Give a trial set, such as trial-1, or all, then the runs per case.",
+    );
+  }
+  return { split: set === "all" ? null : set, runsPerCase };
+}
+
+async function experiment(
+  env: ReturnType<typeof parseEnv>,
+  selection: RefusalsSelection,
+): Promise<void> {
   const commit = appCommit(env.appCommit);
   if (commit.endsWith("-dirty")) {
     throw new Error(
@@ -73,6 +90,7 @@ async function experiment(env: ReturnType<typeof parseEnv>): Promise<void> {
         commit,
       },
       subject,
+      selection,
     );
   } finally {
     await Promise.all([localPool.end(), livePool.end()]);

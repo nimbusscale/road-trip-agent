@@ -4,223 +4,255 @@
     "agentToolUseId": "toolu_012BoNAnyXgtNJzuCcNJrFUU",
     "workerType": "stay-researcher",
     "recordedCalls": 7,
-    "recordedRefused": 3
+    "recordedRefused": 3,
+    "splits": ["trial-1", "trial-2"]
   },
   {
     "agentSessionId": "7b417a52-9ed3-46bb-8457-7705ac231aa8",
     "agentToolUseId": "toolu_01KkRY2aafbjjAtSGnLTz1Xq",
     "workerType": "stay-researcher",
     "recordedCalls": 13,
-    "recordedRefused": 1
+    "recordedRefused": 1,
+    "splits": ["trial-2"]
   },
   {
     "agentSessionId": "7b417a52-9ed3-46bb-8457-7705ac231aa8",
     "agentToolUseId": "toolu_01HWF9EdujYx6iNZzN2iCokH",
     "workerType": "stay-researcher",
     "recordedCalls": 14,
-    "recordedRefused": 1
+    "recordedRefused": 1,
+    "splits": []
   },
   {
     "agentSessionId": "7b417a52-9ed3-46bb-8457-7705ac231aa8",
     "agentToolUseId": "toolu_011hG9aPypDfaEHdudeeAsvt",
     "workerType": "stay-researcher",
     "recordedCalls": 2,
-    "recordedRefused": 1
+    "recordedRefused": 1,
+    "splits": []
   },
   {
     "agentSessionId": "6a5a3840-2911-46d0-8579-aae28f06961b",
     "agentToolUseId": "toolu_01UTMZr9HvwazBd3q8uRAu9g",
     "workerType": "stay-researcher",
     "recordedCalls": 5,
-    "recordedRefused": 2
+    "recordedRefused": 2,
+    "splits": ["trial-2"]
   },
   {
     "agentSessionId": "6a5a3840-2911-46d0-8579-aae28f06961b",
     "agentToolUseId": "toolu_01XbEEctfJfPVwAttMa9zSJa",
     "workerType": "stay-researcher",
     "recordedCalls": 6,
-    "recordedRefused": 3
+    "recordedRefused": 3,
+    "splits": []
   },
   {
     "agentSessionId": "6a5a3840-2911-46d0-8579-aae28f06961b",
     "agentToolUseId": "toolu_0123dALirYD5R8rmMtwjRvU9",
     "workerType": "stay-researcher",
     "recordedCalls": 5,
-    "recordedRefused": 2
+    "recordedRefused": 2,
+    "splits": []
   },
   {
     "agentSessionId": "700f1751-d81d-4a6d-bad8-28a817585a6c",
     "agentToolUseId": "toolu_01RmtgA4Q91EhSKmqEFgBsk7",
     "workerType": "stay-researcher",
     "recordedCalls": 3,
-    "recordedRefused": 1
+    "recordedRefused": 1,
+    "splits": ["trial-2"]
   },
   {
     "agentSessionId": "700f1751-d81d-4a6d-bad8-28a817585a6c",
     "agentToolUseId": "toolu_01X6H7tjQypTzzw5rryFo6fC",
     "workerType": "stay-researcher",
     "recordedCalls": 3,
-    "recordedRefused": 1
+    "recordedRefused": 1,
+    "splits": []
   },
   {
     "agentSessionId": "7f9743d3-b36d-477a-a1f2-b605daedbf4d",
     "agentToolUseId": "toolu_0126BRCivWmco9ZnpxEwbGf3",
     "workerType": "stay-researcher",
     "recordedCalls": 5,
-    "recordedRefused": 1
+    "recordedRefused": 1,
+    "splits": []
   },
   {
     "agentSessionId": "7f9743d3-b36d-477a-a1f2-b605daedbf4d",
     "agentToolUseId": "toolu_013dDTJyYwDh6y9u7BLB3ruG",
     "workerType": "leg-scout",
     "recordedCalls": 3,
-    "recordedRefused": 1
+    "recordedRefused": 1,
+    "splits": ["trial-1", "trial-2"]
   },
   {
     "agentSessionId": "30d5cb5b-1268-4de3-b9ca-bda17f574824",
     "agentToolUseId": "toolu_01KgW4kwiEvj6eU91XskrszX",
     "workerType": "stay-researcher",
     "recordedCalls": 5,
-    "recordedRefused": 1
+    "recordedRefused": 1,
+    "splits": ["trial-2"]
   },
   {
     "agentSessionId": "c6a920ff-5995-45c3-b8fa-6a36d521ac9b",
     "agentToolUseId": "toolu_01YMws7JehNN4hBPp8Yy6oUQ",
     "workerType": "stay-researcher",
     "recordedCalls": 6,
-    "recordedRefused": 2
+    "recordedRefused": 2,
+    "splits": ["trial-2"]
   },
   {
     "agentSessionId": "dd7cba36-d36b-49f0-9ede-210c11a2285a",
     "agentToolUseId": "toolu_019j5ESFZYHsxZby4ep2UZFR",
     "workerType": "stay-researcher",
     "recordedCalls": 6,
-    "recordedRefused": 2
+    "recordedRefused": 2,
+    "splits": ["trial-1", "trial-2"]
   },
   {
     "agentSessionId": "dd7cba36-d36b-49f0-9ede-210c11a2285a",
     "agentToolUseId": "toolu_01AEGHh7JiQNEa3V3TJEZhZ7",
     "workerType": "stay-researcher",
     "recordedCalls": 4,
-    "recordedRefused": 1
+    "recordedRefused": 1,
+    "splits": []
   },
   {
     "agentSessionId": "dd7cba36-d36b-49f0-9ede-210c11a2285a",
     "agentToolUseId": "toolu_019eN3t4aUTnzpaR2nW2EfrQ",
     "workerType": "stay-researcher",
     "recordedCalls": 5,
-    "recordedRefused": 2
+    "recordedRefused": 2,
+    "splits": []
   },
   {
     "agentSessionId": "dd7cba36-d36b-49f0-9ede-210c11a2285a",
     "agentToolUseId": "toolu_01VY8ViRdpVLF8YP5dXN1221",
     "workerType": "stay-researcher",
     "recordedCalls": 5,
-    "recordedRefused": 2
+    "recordedRefused": 2,
+    "splits": []
   },
   {
     "agentSessionId": "dd7cba36-d36b-49f0-9ede-210c11a2285a",
     "agentToolUseId": "toolu_01JepLPQaiRKr3HWqXBR3Lui",
     "workerType": "stay-researcher",
     "recordedCalls": 3,
-    "recordedRefused": 1
+    "recordedRefused": 1,
+    "splits": []
   },
   {
     "agentSessionId": "dd7cba36-d36b-49f0-9ede-210c11a2285a",
     "agentToolUseId": "toolu_01MsoGNusWt1ruq53jMTbNMM",
     "workerType": "stay-researcher",
     "recordedCalls": 5,
-    "recordedRefused": 1
+    "recordedRefused": 1,
+    "splits": []
   },
   {
     "agentSessionId": "dd7cba36-d36b-49f0-9ede-210c11a2285a",
     "agentToolUseId": "toolu_012eDvgjZ9tPSvXkFHhyYA1Y",
     "workerType": "stay-researcher",
     "recordedCalls": 5,
-    "recordedRefused": 2
+    "recordedRefused": 2,
+    "splits": []
   },
   {
     "agentSessionId": "dd7cba36-d36b-49f0-9ede-210c11a2285a",
     "agentToolUseId": "toolu_01H9K8EBs1U6eTbVyaHfd6S2",
     "workerType": "leg-scout",
     "recordedCalls": 4,
-    "recordedRefused": 1
+    "recordedRefused": 1,
+    "splits": []
   },
   {
     "agentSessionId": "856a680c-c793-42ae-a817-e0dea4837890",
     "agentToolUseId": "toolu_01YMMeBP8uo9kamJ8Qc1ZDY4",
     "workerType": "stay-researcher",
     "recordedCalls": 3,
-    "recordedRefused": 1
+    "recordedRefused": 1,
+    "splits": ["trial-2"]
   },
   {
     "agentSessionId": "856a680c-c793-42ae-a817-e0dea4837890",
     "agentToolUseId": "toolu_01MNRv4GeBEd2WntqfgbvThX",
     "workerType": "stay-researcher",
     "recordedCalls": 3,
-    "recordedRefused": 1
+    "recordedRefused": 1,
+    "splits": []
   },
   {
     "agentSessionId": "856a680c-c793-42ae-a817-e0dea4837890",
     "agentToolUseId": "toolu_01NsQ8jiAydxFLGvZjB5jLqs",
     "workerType": "stay-researcher",
     "recordedCalls": 7,
-    "recordedRefused": 3
+    "recordedRefused": 3,
+    "splits": []
   },
   {
     "agentSessionId": "856a680c-c793-42ae-a817-e0dea4837890",
     "agentToolUseId": "toolu_015m6x6uzcFw9qWArbVn6Rc4",
     "workerType": "leg-scout",
     "recordedCalls": 4,
-    "recordedRefused": 2
+    "recordedRefused": 2,
+    "splits": ["trial-2"]
   },
   {
     "agentSessionId": "d765a372-acc4-4e2b-a93c-69a9dc74e537",
     "agentToolUseId": "toolu_01TA4aN3Tzmwqp9ERfQTrTaw",
     "workerType": "stay-researcher",
     "recordedCalls": 4,
-    "recordedRefused": 1
+    "recordedRefused": 1,
+    "splits": ["trial-2"]
   },
   {
     "agentSessionId": "d765a372-acc4-4e2b-a93c-69a9dc74e537",
     "agentToolUseId": "toolu_013cN6G8FXGTCYxaPM3VXgQi",
     "workerType": "stay-researcher",
     "recordedCalls": 7,
-    "recordedRefused": 1
+    "recordedRefused": 1,
+    "splits": []
   },
   {
     "agentSessionId": "d765a372-acc4-4e2b-a93c-69a9dc74e537",
     "agentToolUseId": "toolu_015Z6gNYqwvBv2LDh4Eu4UKy",
     "workerType": "leg-scout",
     "recordedCalls": 2,
-    "recordedRefused": 1
+    "recordedRefused": 1,
+    "splits": []
   },
   {
     "agentSessionId": "f029cbae-16de-4ac0-882c-4469ccd71f54",
     "agentToolUseId": "toolu_01YDTig7HJzBrDsrp6EVeAK7",
     "workerType": "stay-researcher",
     "recordedCalls": 5,
-    "recordedRefused": 1
+    "recordedRefused": 1,
+    "splits": ["trial-2"]
   },
   {
     "agentSessionId": "f029cbae-16de-4ac0-882c-4469ccd71f54",
     "agentToolUseId": "toolu_015v7P26py1Pwowx8hVtwSAh",
     "workerType": "stay-researcher",
     "recordedCalls": 5,
-    "recordedRefused": 2
+    "recordedRefused": 2,
+    "splits": []
   },
   {
     "agentSessionId": "f029cbae-16de-4ac0-882c-4469ccd71f54",
     "agentToolUseId": "toolu_01497hU4gxV5uijf97TZR65A",
     "workerType": "stay-researcher",
     "recordedCalls": 7,
-    "recordedRefused": 1
+    "recordedRefused": 1,
+    "splits": []
   },
   {
     "agentSessionId": "f029cbae-16de-4ac0-882c-4469ccd71f54",
     "agentToolUseId": "toolu_01L4i8Z7r7XmbP1rmoddXUGc",
     "workerType": "leg-scout",
     "recordedCalls": 2,
-    "recordedRefused": 1
+    "recordedRefused": 1,
+    "splits": []
   }
 ]

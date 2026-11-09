@@ -27,13 +27,16 @@ export function placeRowFor(row: PlaceRow, tripId: string): PlaceRow {
 }
 
 // One case of the candidate refusals evaluation: a recorded worker run, by its session
-// and the Agent call that started it, with what it did when it was recorded.
+// and the Agent call that started it, with what it did when it was recorded. Its splits
+// are the trial sets it's in, such as trial-1, so an experiment can run a few cases
+// before it runs them all.
 const refusalCaseSchema = z.strictObject({
   agentSessionId: z.uuid(),
   agentToolUseId: z.string().min(1),
   workerType: z.string(),
   recordedCalls: z.number().int().nonnegative(),
   recordedRefused: z.number().int().nonnegative(),
+  splits: z.array(z.string().min(1)),
 });
 
 export type RefusalCase = z.infer<typeof refusalCaseSchema>;

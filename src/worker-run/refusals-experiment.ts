@@ -23,10 +23,6 @@ import {
 
 export const REFUSALS_DATASET = "candidate-refusals";
 
-// Each case is run 5 times, so a change can be told apart from the run-to-run
-// differences.
-const REPETITIONS = 5;
-
 // Three workers at a time keeps the runs inside the Claude plan's limits. Each one is a
 // Claude Code process with its own model calls.
 const CONCURRENCY = 3;
@@ -49,11 +45,14 @@ export async function saveRefusalsDataset(
     name: REFUSALS_DATASET,
     description:
       "The candidate refusals evaluation (#266): recorded worker runs that had a candidate call refused.",
-    examples: cases.map(({ agentSessionId, agentToolUseId, ...recorded }) => ({
-      input: { agentSessionId, agentToolUseId },
-      output: {},
-      metadata: recorded,
-    })),
+    examples: cases.map(
+      ({ agentSessionId, agentToolUseId, splits, ...recorded }) => ({
+        input: { agentSessionId, agentToolUseId },
+        output: {},
+        metadata: recorded,
+        splits,
+      }),
+    ),
   });
   return `Saved ${String(cases.length)} cases as ${REFUSALS_DATASET}.`;
 }
@@ -65,23 +64,37 @@ async function datasetIdOf(client: PhoenixClient): Promise<string | null> {
   return datasetListSchema.parse(response.data)[0]?.id ?? null;
 }
 
-// Runs every case 5 times as a Phoenix experiment. Each run's worker spans go under its
+// Which cases an experiment runs, and how many times each.
+export interface RefusalsSelection {
+  // A trial set, such as trial-1, or null for every case.
+  split: string | null;
+  runsPerCase: number;
+}
+
+// Runs the selected cases as a Phoenix experiment. Each run's worker spans go under its
 // task's span in the experiment's trace. The description says what the commit changed.
 export async function runRefusalsExperiment(
   phoenixUrl: string,
   given: WorkerRunGiven,
   description: string,
+  selection: RefusalsSelection,
 ): Promise<void> {
+  const { split, runsPerCase } = selection;
   await runExperiment({
     client: createClient({ options: { baseUrl: phoenixUrl } }),
-    experimentName: `candidate refusals ${given.commit.slice(0, 7)}`,
+    experimentName: `candidate refusals ${split ?? "all"} ${given.commit.slice(0, 7)}`,
     experimentDescription: description,
     experimentMetadata: {
       commit: given.commit,
+      split: split ?? "all",
+      runsPerCase,
       stayResearcherModel: given.settings.stayResearcherModel,
       legScoutModel: given.settings.legScoutModel,
     },
-    dataset: { datasetName: REFUSALS_DATASET },
+    dataset: {
+      datasetName: REFUSALS_DATASET,
+      ...(split === null ? {} : { splits: [split] }),
+    },
     task: async (example) =>
       runOutputOf(
         await runRecordedWorker(
@@ -91,7 +104,7 @@ export async function runRefusalsExperiment(
       ),
     evaluators: [refusalRate, noRefusals],
     concurrency: CONCURRENCY,
-    repetitions: REPETITIONS,
+    repetitions: runsPerCase,
   });
 }
 
