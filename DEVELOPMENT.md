@@ -26,6 +26,8 @@ Claude Code writes the code, Joe reviews the code he cares about, and the tools 
 | `npm run sim-setup` | Sets up a run folder for a simulated user, outside the repo, as in `-- claude-code-sonnet san-francisco easygoing local`: a bot user, a trip, a persona, and the site, `local` or `live`. Dev only. `simulated-users/README.md` says how to set up a run and start a harness |
 | `npm run rebuild-versions` | Rebuilds the trip versions of a session recorded before versions were saved (persistence design, section 8.9). One-time, dev only. It reads the live database through the SSH tunnel to the server's Postgres, and needs its login in `LIVE_POSTGRES_PORT`, `LIVE_POSTGRES_USER`, `LIVE_POSTGRES_PASSWORD`, and `LIVE_POSTGRES_DB`. The comment at the top of `src/version-rebuild/rebuild-versions.ts` gives its options |
 | `npm run run-turn` | Starts a run from one turn of a recorded session, and runs that turn on today's code, for an agent evaluation (persistence design, section 8.9). Dev only. Section 5 says how to use it |
+| `npm run run-worker` | Runs one recorded worker run on its own, on today's code, for an agent evaluation (#266). Dev only. Section 5 says how to use it |
+| `npm run candidate-refusals` | The candidate refusals evaluation (#266), as `-- dataset` or `-- experiment`. Dev only. The comment at the top of `src/worker-run/candidate-refusals.ts` says what each does |
 | `npm run build` | Builds the app into `dist/app` and the front end into `dist/web`, as the images do |
 | `npm run check` | Runs every check below, stopping at the first failure |
 | `npm run format` | Formats the code in `src/` and `web/` with Prettier |
@@ -108,6 +110,18 @@ npm run run-turn -- <agent session ID> <turn> --message "Can we add a night in C
 - **The turn runs against the local database,** so the local Postgres needs to be up, and migrated. Bring up the Phoenix tunnel too (section 2), or the turn's trace is lost.
 - **It prints the run's new user, trip, session, and agent session IDs,** each tool call, the turn's span ID, and the reply. A scorer reads what the turn saved from the local database by those IDs. Each run leaves its rows there.
 - **The session needs a trip version for the turn,** with its user message. A session recorded before versions were saved needs `npm run rebuild-versions` first.
+
+**A worker run starts the same way, with `npm run run-worker`** (#266). It runs one worker on its own, with no coordinator. The worker gets the worker brief the coordinator sent it, and the trip as the worker found it. That's the turn's trip version, with the turn's calls before the worker was sent replayed on it, since the coordinator often adds the very stops it sends the worker to fill. The calls are replayed as `npm run rebuild-versions` replays them. Then the worker runs on today's instructions and tools:
+
+```sh
+npm run run-worker -- <agent session ID> <Agent tool_use ID>
+```
+
+- **The tool_use ID is the coordinator's Agent call that started the worker.** In Phoenix, it's the `tool_call.id` on the Agent span above the worker's span.
+- **It reads the live database and runs in the local one,** with the same tunnels and login as `npm run run-turn`.
+- **The worker runs as the query's named agent,** as the coordinator does, so it gets its own definition's prompt, tools, and model. The worker hooks are left out, since they only build the result the coordinator reads. The trace is a span named for the worker, such as `stay-researcher.turn`.
+- **It prints each tool call and each refused call, then the run's test user, trip, and span ID,** the replay's counts, and how many candidate calls were refused. A call today's code replays differently shows in the replay's counts. When one does, the trip isn't quite what the worker found.
+- **The candidate refusals evaluation runs it as a Phoenix experiment** (`npm run candidate-refusals`). Its cases are `evals/candidate-refusals/cases.json`, each recorded worker run that had a candidate call refused. Each case runs 5 times, 3 at a time. Code scores the share of each run's candidate calls that were refused. The worker's spans go under each run's task span in the experiment's own trace, not in `road-trip-agent-local`.
 
 **Tests that need the real agent run on their own,** outside `npm run check`. Examples: the acceptance scenarios (functional spec 11) and the memory tests (technical spec 3.1). They cost money and their results vary from run to run. How they run is settled when the first one is written.
 

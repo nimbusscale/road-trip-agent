@@ -66,6 +66,8 @@
     "rebuild-versions": "tsx --env-file=.env src/version-rebuild/rebuild-versions.ts",
     "run-turn": "tsx --env-file=.env src/turn-run/run-turn.ts",
     "grounded": "tsx --env-file=.env src/grounded-eval/grounded.ts",
+    "run-worker": "tsx --env-file=.env src/worker-run/run-worker.ts",
+    "candidate-refusals": "tsx --env-file=.env src/worker-run/candidate-refusals.ts",
     "build": "npm run build:app && npm run build:web",
     "build:app": "esbuild src/main.ts src/migrate.ts src/ask-claude.ts --bundle --platform=node --format=esm --packages=external --sourcemap --outdir=dist/app",
     "build:web": "vite build",
