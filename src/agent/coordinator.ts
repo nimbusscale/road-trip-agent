@@ -101,7 +101,7 @@ export function coordinatorOptions(
   const { hasTranscript, timeZone } = turn;
   const tripId = session.tripId;
   const prompt = coordinatorPrompt(settings);
-  const servers = serversFor(given, conversation);
+  const servers = serversFor(given, { tripId, userId: conversation.userId });
   return {
     // The same model and effort as the coordinator's definition (technical spec 6.5).
     model: settings.coordinatorModel,
@@ -149,13 +149,12 @@ export function coordinatorOptions(
 
 // Our servers, made for this turn with its trip. Every server is in the session, and each
 // agent's definition picks the tools it's sent (technical spec 6.5).
-function serversFor(
+export function serversFor(
   given: CoordinatorGiven,
-  conversation: Conversation,
+  owner: { tripId: string; userId: string },
 ): Record<string, McpServerConfig> {
   const { trip, memory, places, routing, weather } = given;
-  const { userId } = conversation;
-  const tripId = conversation.session.tripId;
+  const { tripId, userId } = owner;
   return {
     [TRIP_SERVER_NAME]: createTripServer({ ...trip, tripId }),
     [MEMORY_SERVER_NAME]: createMemoryServer({ ...memory, userId, tripId }),
@@ -168,7 +167,7 @@ function serversFor(
 
 // The coordinator's definition, and each worker's, each with its own model and effort
 // settings. The coordinator's are the same as the query's (technical spec 6.5).
-function agentsFor(
+export function agentsFor(
   prompt: string,
   settings: Settings,
 ): Record<string, AgentDefinition> {
@@ -223,6 +222,7 @@ async function* runTurnWithSdk(
   }
   const agentSessionId = options.sessionId ?? options.resume ?? "";
   const turnTrace = new TurnTrace({
+    agentName: "coordinator",
     message,
     agentSessionId,
     ...traced,

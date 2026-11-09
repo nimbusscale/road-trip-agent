@@ -39,6 +39,9 @@ type StreamEvent = Extract<SDKMessage, { type: "stream_event" }>["event"];
 type Usage = AssistantMessage["message"]["usage"];
 
 export interface TurnTraceGiven {
+  // The agent at the top of the query: the coordinator, or a worker run on its own from a
+  // recorded worker run (#266). It names the turn's span and its model calls' spans.
+  agentName: string;
   // The message the model got, with the app's lines added.
   message: string;
   agentSessionId: string;
@@ -53,8 +56,8 @@ interface ToolCall {
   startedAt: Date;
 }
 
-// The trace of one coordinator turn, made from the SDK's messages (systems design
-// section 10). The turn's span holds the message the model got and the reply, the
+// The trace of one coordinator turn, or one worker run on its own (#266), made from the
+// SDK's messages (systems design section 10). The turn's span holds the message the model got and the reply, the
 // commit of the code that ran, and an
 // event for the turn's start and for each of the SDK's other system messages, such as a
 // retry. Under it, in order, is a span for each model call, with its thinking, text,
@@ -82,12 +85,12 @@ export class TurnTrace {
   constructor(given: TurnTraceGiven) {
     this.#given = given;
     this.#stepEndedAt = new Date();
-    this.#turn = tracer().startSpan("coordinator.turn", {
+    this.#turn = tracer().startSpan(`${given.agentName}.turn`, {
       startTime: this.#stepEndedAt,
       attributes: {
         [SemanticConventions.OPENINFERENCE_SPAN_KIND]:
           OpenInferenceSpanKind.AGENT,
-        [SemanticConventions.AGENT_NAME]: "coordinator",
+        [SemanticConventions.AGENT_NAME]: given.agentName,
         [SemanticConventions.SESSION_ID]: given.agentSessionId,
         [SemanticConventions.USER_ID]: given.userId,
         // Phoenix shows metadata on its own tab, and filters on it.
@@ -229,7 +232,7 @@ export class TurnTrace {
     this.#call = {
       id,
       span: tracer().startSpan(
-        "coordinator.model_call",
+        `${this.#given.agentName}.model_call`,
         { startTime: at },
         this.#context,
       ),

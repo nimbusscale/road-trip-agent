@@ -19,6 +19,19 @@ export function toolUse(
   };
 }
 
+// The coordinator's Agent call that starts a worker, with its worker brief.
+export function agentCall(
+  at: string,
+  id: string,
+  workerType: string,
+  workerBrief: string,
+): unknown {
+  return toolUse(at, id, "Agent", {
+    subagent_type: workerType,
+    prompt: workerBrief,
+  });
+}
+
 export function toolResult(
   at: string,
   id: string,

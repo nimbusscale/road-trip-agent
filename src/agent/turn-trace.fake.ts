@@ -57,6 +57,15 @@ export async function runTrace(
   return turnTrace;
 }
 
+// The same, with a worker at the top of the query, as in a run of one worker (#266).
+export async function runTraceAs(
+  agentName: string,
+  messages: readonly SDKMessage[],
+): Promise<void> {
+  const turnTrace = recordAll(messages, NO_WORKERS, agentName);
+  await turnTrace.end();
+}
+
 // The turn's messages, and then the SDK throws the error.
 export async function runThrowingTrace(
   messages: readonly SDKMessage[],
@@ -70,9 +79,11 @@ export async function runThrowingTrace(
 function recordAll(
   messages: readonly SDKMessage[],
   readWorkerTranscript: ReadWorkerTranscript,
+  agentName = "coordinator",
 ): TurnTrace {
   vi.setSystemTime(atSecond(0));
   const turnTrace = new TurnTrace({
+    agentName,
     message: MESSAGE,
     agentSessionId: SESSION_ID,
     userId: USER_ID,

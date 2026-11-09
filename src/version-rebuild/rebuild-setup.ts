@@ -142,7 +142,11 @@ export function newReplay(
   return {
     tripId: session.tripId,
     ownerId: trip.ownerId,
-    tools: replayTools(pool, writer, settings, { live, clock }),
+    tools: replayTools(pool, writer, settings, {
+      tripId: session.tripId,
+      userId: trip.ownerId,
+      clock,
+    }),
     clock,
     seen,
     local: new LocalRebuildRepository(pool),
@@ -159,15 +163,15 @@ export function newReplay(
   };
 }
 
-// Every trip and memory tool, by its name as the model sees it.
-function replayTools(
+// Every trip and memory tool, by its name as the model sees it, for the trip and the
+// user whose memory it reads.
+export function replayTools(
   pool: Connectable & Queryable,
   writer: TripWriter,
   settings: Settings,
-  given: { live: LiveSession; clock: ReplayClock },
+  given: { tripId: string; userId: string; clock: ReplayClock },
 ): Map<string, StrictToolDefinition> {
-  const { live, clock } = given;
-  const tripId = live.session.tripId;
+  const { tripId, userId, clock } = given;
   const trip = tripTools({
     tripId,
     writer,
@@ -180,7 +184,7 @@ function replayTools(
   });
   const memory = memoryTools({
     ...memoryAccessFor({ pool, settings, now: () => clock.at }),
-    userId: live.trip.ownerId,
+    userId,
     tripId,
   });
   return new Map([
