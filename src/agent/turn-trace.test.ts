@@ -24,6 +24,7 @@ import {
   MESSAGE,
   runThrowingTrace,
   runTrace,
+  runTraceAs,
   secondsOf,
   spanNamed,
   spans,
@@ -64,6 +65,21 @@ describe("TurnTrace", () => {
         "  mcp__trip__read_trip_brief",
         "  coordinator.model_call",
       ].join("\n"),
+    );
+  });
+
+  it("names the turn's span and its model calls' spans after the agent at the top of the query", async () => {
+    await runTraceAs("stay-researcher", ONE_TOOL_TURN);
+    expect(spanTree()).toBe(
+      [
+        "stay-researcher.turn",
+        "  stay-researcher.model_call",
+        "  mcp__trip__read_trip_brief",
+        "  stay-researcher.model_call",
+      ].join("\n"),
+    );
+    expect(spanNamed("stay-researcher.turn").attributes["agent.name"]).toBe(
+      "stay-researcher",
     );
   });
 
