@@ -29,7 +29,7 @@ export interface ChangeContext {
   trip: Trip;
   calendar: Calendar;
   services: TripServices;
-  // For detour times, which the tool add_stop_candidates works out in its change. The
+  // For detour times, which the meal and attraction candidate tools work out in its change. The
   // same service updates the legs in the finish (domain model 4.7).
   legs: LegsService;
   // Turns a place ID the change is handed into one of the trip's places, or refuses it

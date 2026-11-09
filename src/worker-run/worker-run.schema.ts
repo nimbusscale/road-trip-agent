@@ -53,4 +53,5 @@ export const refusalExampleInputSchema = z.looseObject({
 export const refusalOutputSchema = z.looseObject({
   calls: z.number().int().nonnegative(),
   refused: z.number().int().nonnegative(),
+  refusals: z.array(z.looseObject({ reply: z.string() })),
 });

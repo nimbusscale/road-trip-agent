@@ -42,7 +42,7 @@ const ROLE = `You find places for the stops along one day's drive on a road trip
 const WORK = `## Your work, in order
 
 1. Call read_worker_brief_facts once, with every ID under ${WORKER_BRIEF_HEADING.fill} in the worker brief.
-2. For each stop, search, choose up to three places, and add them all in one call with add_stop_candidates.
+2. For each stop, search, choose up to three places, and add them all in one call: add_meal_candidates for a meal stop, and add_attraction_candidates for an attraction stop.
 3. Call report_result last.
 
 ${OWN_MESSAGES}`;
@@ -59,7 +59,7 @@ const WHAT_TO_FILL = `## What to fill
 - A stop's search area, from read_worker_brief_facts, says where to look. A stop along the leg is somewhere on the day's drive. A stop near the start or end place is near that place, before the first drive or after the last one.
 - A stop's purpose says what it's for, such as "burgers and shakes" or "a viewpoint over the coast". Fit every candidate to it. When it says how long, such as "a long hike, about 3 hours", fit the candidates and their visit times to that.
 - Fit each stop along the leg to where it falls in the drive. read_worker_brief_facts gives the day's other stops, in order, and ${WORKER_BRIEF_HEADING.when} says roughly when yours falls. search_along_leg gives how far into the drive each place is. That counts the driving only, not the time spent at stops before it. Example: on a day that leaves at 9:00, with a 2-hour stop on the way, lunch around noon is about an hour into the drive.
-- add_stop_candidates works out each candidate's detour time: the extra driving it adds to the day. The user sees it on the option card. So prefer places close to the route. Offer a long detour only when the place is worth it to this user, such as one that fits their interests far better than anything on the way.
+- The add candidate tools work out each candidate's detour time: the extra driving it adds to the day. The user sees it on the option card. So prefer places close to the route. Offer a long detour only when the place is worth it to this user, such as one that fits their interests far better than anything on the way.
 - ${MEALS_GET_OWN_PLACES}
 - ${threeCandidates("stop")}
 - ${skipOfferedPlaces("stop")}

@@ -18,10 +18,12 @@ import { stayIn, stopIn } from "./trip-items.js";
 import type { TripSession } from "./trip-session.js";
 import { refuseCheckInForWorker } from "./worker-brief-facts-tool.js";
 import {
+  ADD_ATTRACTION_CANDIDATES_INPUT,
   ADD_LODGING_CANDIDATES_INPUT,
-  ADD_STOP_CANDIDATES_INPUT,
+  ADD_MEAL_CANDIDATES_INPUT,
+  type AddAttractionCandidatesInput,
   type AddLodgingCandidatesInput,
-  type AddStopCandidatesInput,
+  type AddMealCandidatesInput,
   type CandidateInput,
 } from "./worker-input.schema.js";
 
@@ -32,7 +34,12 @@ const SET_AND_NAME =
 
 export const ADD_LODGING_CANDIDATES_DESCRIPTION = `Adds one set of 1 to 3 lodging candidates to a stay, each with its tier. ${SET_AND_NAME}`;
 
-export const ADD_STOP_CANDIDATES_DESCRIPTION = `Adds one set of 1 to 3 candidates to a stop. A meal stop's candidates each take a tier, and an attraction stop's each take visitTimeInMinutes, the estimate of how long a visit takes. For a stop along the leg, the tool works out each candidate's detour time itself, from the day's route as it is now. ${SET_AND_NAME}`;
+const DETOUR =
+  "For a stop along the leg, the tool works out each candidate's detour time itself, from the day's route as it is now.";
+
+export const ADD_MEAL_CANDIDATES_DESCRIPTION = `Adds one set of 1 to 3 candidates to a meal stop, each with its tier. An attraction stop's candidates go in add_attraction_candidates. ${DETOUR} ${SET_AND_NAME}`;
+
+export const ADD_ATTRACTION_CANDIDATES_DESCRIPTION = `Adds one set of 1 to 3 candidates to an attraction stop, each with visitTimeInMinutes, the estimate of how long a visit takes. A meal stop's candidates go in add_meal_candidates. ${DETOUR} ${SET_AND_NAME}`;
 
 export function addLodgingCandidatesTool(
   session: TripSession,
@@ -48,15 +55,31 @@ export function addLodgingCandidatesTool(
   );
 }
 
-export function addStopCandidatesTool(
+export function addMealCandidatesTool(
   session: TripSession,
 ): StrictToolDefinition {
   return strictTool(
-    "add_stop_candidates",
-    ADD_STOP_CANDIDATES_DESCRIPTION,
-    ADD_STOP_CANDIDATES_INPUT,
+    "add_meal_candidates",
+    ADD_MEAL_CANDIDATES_DESCRIPTION,
+    ADD_MEAL_CANDIDATES_INPUT,
     (input) =>
-      workerWriteReply(session, (context) => addStopCandidates(input, context)),
+      workerWriteReply(session, (context) =>
+        addStopCandidates("meal", input, context),
+      ),
+  );
+}
+
+export function addAttractionCandidatesTool(
+  session: TripSession,
+): StrictToolDefinition {
+  return strictTool(
+    "add_attraction_candidates",
+    ADD_ATTRACTION_CANDIDATES_DESCRIPTION,
+    ADD_ATTRACTION_CANDIDATES_INPUT,
+    (input) =>
+      workerWriteReply(session, (context) =>
+        addStopCandidates("attraction", input, context),
+      ),
   );
 }
 
@@ -96,14 +119,15 @@ function addLodgingCandidates(
 // The detour times take a call to Google for each place, so the places are checked
 // first, and a refused call costs none.
 async function addStopCandidates(
-  input: AddStopCandidatesInput,
+  kind: CandidateStopKind,
+  input: AddMealCandidatesInput | AddAttractionCandidatesInput,
   context: ChangeContext,
 ): Promise<string[]> {
   const itinerary = context.trip.itinerary;
   const stop = stopIn(itinerary, input.stopId);
   const positions = { itinerary, calendar: context.calendar };
   refuseCheckInForWorker(stop);
-  refuseUnfitShapes(positions, stop, input.candidates);
+  refuseOtherKind(positions, stop, kind);
   const given = withPlaces(context, input.candidates);
   refuseUnfitPlaces(itinerary, {
     where: stopName(positions, stop),
@@ -148,20 +172,27 @@ function withPlaces(
   });
 }
 
-// A meal's candidates take a tier, and an attraction's a visit time (tool design 2.1).
-function refuseUnfitShapes(
+// The stop kinds a worker fills, each with its own tool.
+type CandidateStopKind = "meal" | "attraction";
+
+const TOOL_FOR_KIND: Record<CandidateStopKind, string> = {
+  meal: "add_meal_candidates",
+  attraction: "add_attraction_candidates",
+};
+
+// The stop ID doesn't show its kind, so a stop of the other kind is refused here, and
+// the error names its tool (tool design 2.1). A check-in is refused before this.
+function refuseOtherKind(
   positions: Positions,
   stop: Stop,
-  candidates: readonly CandidateInput[],
+  kind: CandidateStopKind,
 ): void {
-  const isAttraction = stop.kind === "attraction";
-  if (candidates.every((candidate) => "tier" in candidate !== isAttraction)) {
+  if (stop.kind === kind) {
     return;
   }
+  const other: CandidateStopKind = kind === "meal" ? "attraction" : "meal";
   throw new RuleError(
-    isAttraction
-      ? `${stopName(positions, stop)} is an attraction stop, so each candidate takes visitTimeInMinutes, and no tier.`
-      : `${stopName(positions, stop)} is a meal stop, so each candidate takes a tier, and no visitTimeInMinutes.`,
+    `${stopName(positions, stop)} is ${other === "meal" ? "a meal" : "an attraction"} stop, so its candidates go in ${TOOL_FOR_KIND[other]}.`,
   );
 }
 

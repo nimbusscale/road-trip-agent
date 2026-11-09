@@ -4,8 +4,9 @@ import {
 } from "@anthropic-ai/claude-agent-sdk";
 
 import {
+  addAttractionCandidatesTool,
   addLodgingCandidatesTool,
-  addStopCandidatesTool,
+  addMealCandidatesTool,
 } from "./candidate-tools.js";
 import { setWaypointsTool, updateDayTool } from "./day-tools.js";
 import { findInTripTool } from "./find-in-trip-tool.js";
@@ -68,7 +69,8 @@ export function tripTools(session: TripSession): StrictToolDefinition[] {
     // coordinator doesn't see these (tool design, section 3).
     readWorkerBriefFactsTool(session),
     addLodgingCandidatesTool(session),
-    addStopCandidatesTool(session),
+    addMealCandidatesTool(session),
+    addAttractionCandidatesTool(session),
     setStayWeatherTool(session),
   ];
 }

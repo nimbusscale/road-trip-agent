@@ -11,7 +11,11 @@ import { TRIP_SERVER_NAME } from "../tools/trip-server.js";
 
 // The tools the candidate refusals evaluation counts (#266).
 const CANDIDATE_TOOLS: ReadonlySet<string> = new Set(
-  toolsOn(TRIP_SERVER_NAME, ["add_stop_candidates", "add_lodging_candidates"]),
+  toolsOn(TRIP_SERVER_NAME, [
+    "add_meal_candidates",
+    "add_attraction_candidates",
+    "add_lodging_candidates",
+  ]),
 );
 
 export interface CandidateRefusal {

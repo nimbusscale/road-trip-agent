@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 
 import {
-  ADD_STOP,
+  ADD_MEAL,
   moabHooks,
   READ_FACTS,
   RESEARCHER,
@@ -55,13 +55,13 @@ describe("the result in place of a worker's last message", () => {
     });
     await trip.call(
       RESEARCHER,
-      ADD_STOP,
+      ADD_MEAL,
       { stopId: stops.milts.id },
       "Set 2 for the burgers stop: 1 candidate.\n- Milt's Stop & Eat",
     );
     await trip.call(
       RESEARCHER,
-      ADD_STOP,
+      ADD_MEAL,
       { stopId: stops.milts.id },
       "Set 3 for the burgers stop: 1 candidate.\n- Moab Grill",
     );
@@ -95,7 +95,7 @@ describe("the result in place of a worker's last message", () => {
     await trip.call(RESEARCHER, READ_FACTS, {
       stopOrStayIds: [stops.milts.id],
     });
-    await trip.call(RESEARCHER, ADD_STOP, { stopId: stops.milts.id }, "Set 2.");
+    await trip.call(RESEARCHER, ADD_MEAL, { stopId: stops.milts.id }, "Set 2.");
     await trip.report(RESEARCHER, [], []);
     expect(await trip.result("stay-researcher", "a1")).toBe(
       "Set 2.\n\nProblems: none\nQuestions for the user: none",
@@ -112,7 +112,7 @@ describe("the result in place of a worker's last message", () => {
         stops.delicateArch.id,
       ],
     });
-    await trip.call(RESEARCHER, ADD_STOP, { stopId: stops.milts.id }, "Set 2.");
+    await trip.call(RESEARCHER, ADD_MEAL, { stopId: stops.milts.id }, "Set 2.");
     await trip.report(RESEARCHER, [], []);
     expect(await trip.result("stay-researcher", "a1")).toBe(
       [
@@ -138,7 +138,7 @@ describe("the result in place of a worker's last message", () => {
     await trip.call(RESEARCHER, READ_FACTS, {
       stopOrStayIds: [stops.milts.id],
     });
-    await trip.call(RESEARCHER, ADD_STOP, { stopId: stops.milts.id }, "Set 2.");
+    await trip.call(RESEARCHER, ADD_MEAL, { stopId: stops.milts.id }, "Set 2.");
     expect(await trip.result("stay-researcher", "a1")).toBe(
       "Set 2.\n\nThe worker stopped without reporting its problems and questions.",
     );
@@ -174,8 +174,8 @@ describe("the result in place of a worker's last message", () => {
   it("gives each of two workers only its own calls", async () => {
     const trip = await moabTrip();
     const legScout = { agentId: "l1", agentType: "leg-scout" };
-    await trip.call(RESEARCHER, ADD_STOP, { stopId: "stop_aaaaaaaa" }, "Moab.");
-    await trip.call(legScout, ADD_STOP, { stopId: "stop_bbbbbbbb" }, "Leg.");
+    await trip.call(RESEARCHER, ADD_MEAL, { stopId: "stop_aaaaaaaa" }, "Moab.");
+    await trip.call(legScout, ADD_MEAL, { stopId: "stop_bbbbbbbb" }, "Leg.");
     await trip.report(legScout, [], []);
     expect(await trip.result("leg-scout", "l1")).toBe(
       "Leg.\n\nProblems: none\nQuestions for the user: none",
@@ -186,13 +186,13 @@ describe("the result in place of a worker's last message", () => {
     const trip = await moabTrip();
     await trip.call(
       { agentType: "coordinator" },
-      ADD_STOP,
+      ADD_MEAL,
       { stopId: "x" },
       "C",
     );
     await trip.call(
       { agentId: "a1", agentType: "general-purpose" },
-      ADD_STOP,
+      ADD_MEAL,
       { stopId: "x" },
       "G",
     );

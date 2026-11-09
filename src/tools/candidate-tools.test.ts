@@ -4,8 +4,9 @@ import { placeNamed } from "../domain/example-trip-parts.fake.js";
 import { present } from "../domain/itinerary.fake.js";
 import { exampleAddress } from "../domain/place.fake.js";
 import {
+  addAttractionCandidatesTool,
   addLodgingCandidatesTool,
-  addStopCandidatesTool,
+  addMealCandidatesTool,
 } from "./candidate-tools.js";
 import { plannedMoab } from "./skeleton-tools.fake.js";
 import { textOf } from "./stored-trip.fake.js";
@@ -14,7 +15,7 @@ import type { ToolReply } from "./tool-reply.js";
 import type { TripSession } from "./trip-session.js";
 import { ADD_LODGING_CANDIDATES_INPUT } from "./worker-input.schema.js";
 
-// add_lodging_candidates and add_stop_candidates over the Moab example as planned
+// add_lodging_candidates, add_meal_candidates, and add_attraction_candidates over the Moab example as planned
 // (domain model 5.2), in the fake store. Each stop and stay there already has a set:
 // the place selected for it. The fake route finder gives each segment 30 minutes.
 
@@ -41,7 +42,8 @@ async function moabWithPlaces(names: readonly string[]) {
     placeId: (name: string) =>
       present(stored.find((each) => each.name === name)).id,
     addLodging: call(addLodgingCandidatesTool),
-    addStop: call(addStopCandidatesTool),
+    addMeal: call(addMealCandidatesTool),
+    addAttraction: call(addAttractionCandidatesTool),
   };
 }
 
@@ -194,7 +196,7 @@ describe("add_lodging_candidates", () => {
   });
 });
 
-describe("add_stop_candidates", () => {
+describe("add_meal_candidates and add_attraction_candidates", () => {
   it("saves a set to a meal stop along the leg, each with its detour time, worked out against the day's leg", async () => {
     const trip = await moabWithPlaces(["Pie shop", "Bakery"]);
     const { gifford } = trip.example.stops;
@@ -209,7 +211,7 @@ describe("add_stop_candidates", () => {
       )
         ? [60, 60, 60, 60, 60]
         : null;
-    const reply = await trip.addStop({
+    const reply = await trip.addMeal({
       stopId: gifford.id,
       candidates: [
         { ...found(pieId, "Famous pie."), tier: "value" },
@@ -241,7 +243,7 @@ describe("add_stop_candidates", () => {
   it("saves an attraction's candidates with their visit times, and no detour time near a stay", async () => {
     const trip = await moabWithPlaces(["Dark sky park"]);
     const { panoramaPoint } = trip.example.stops;
-    const reply = await trip.addStop({
+    const reply = await trip.addAttraction({
       stopId: panoramaPoint.id,
       candidates: [
         { ...found(trip.placeId("Dark sky park")), visitTimeInMinutes: 90 },
@@ -256,36 +258,29 @@ describe("add_stop_candidates", () => {
     ]);
   });
 
-  it("refuses a candidate whose shape doesn't fit the stop's kind", async () => {
+  it("refuses a stop of the other kind, and names its tool", async () => {
     const trip = await moabWithPlaces(["Pie shop"]);
     const { gifford, fisherTowers } = trip.example.stops;
     const pie = found(trip.placeId("Pie shop"));
-    expect(
+    const timed = [{ ...pie, visitTimeInMinutes: 30 }];
+    const tiered = [{ ...pie, tier: "value" }];
+    expect([
       textOf(
-        await trip.addStop({
-          stopId: gifford.id,
-          candidates: [{ ...pie, visitTimeInMinutes: 30 }],
-        }),
+        await trip.addAttraction({ stopId: gifford.id, candidates: timed }),
       ),
-    ).toBe(
-      `Nothing was changed. Day 4, Stop 2 (${gifford.id}), meal: "pie" is a meal stop, so each candidate takes a tier, and no visitTimeInMinutes.`,
-    );
-    expect(
       textOf(
-        await trip.addStop({
-          stopId: fisherTowers.id,
-          candidates: [{ ...pie, tier: "value" }],
-        }),
+        await trip.addMeal({ stopId: fisherTowers.id, candidates: tiered }),
       ),
-    ).toBe(
-      `Nothing was changed. Day 1, Stop 2 (${fisherTowers.id}), attraction: "towers" is an attraction stop, so each candidate takes visitTimeInMinutes, and no tier.`,
-    );
+    ]).toEqual([
+      `Nothing was changed. Day 4, Stop 2 (${gifford.id}), meal: "pie" is a meal stop, so its candidates go in add_meal_candidates.`,
+      `Nothing was changed. Day 1, Stop 2 (${fisherTowers.id}), attraction: "towers" is an attraction stop, so its candidates go in add_attraction_candidates.`,
+    ]);
   });
 
   it("refuses a repeat before routing anything, and saves nothing", async () => {
     const trip = await moabWithPlaces(["Pie shop"]);
     const { gifford } = trip.example.stops;
-    const reply = await trip.addStop({
+    const reply = await trip.addMeal({
       stopId: gifford.id,
       candidates: [
         { ...found(trip.placeId("Pie shop")), tier: "value" },
@@ -312,7 +307,7 @@ describe("add_stop_candidates", () => {
     const checkInId = present(/\((stop_\w+)\), checkIn/.exec(added))[1] ?? "";
     const pie = { ...found(trip.placeId("Pie shop")), tier: "value" };
     const add = async (stopId: string, candidates = [pie]) =>
-      textOf(await trip.addStop({ stopId, candidates }));
+      textOf(await trip.addMeal({ stopId, candidates }));
     expect(await add(checkInId)).toBe(
       `Nothing was changed. ${checkInId} is a check-in. A check-in has no candidates, so no worker fills it.`,
     );

@@ -68,18 +68,19 @@ export const ADD_LODGING_CANDIDATES_INPUT = z.strictObject({
   candidates: z.array(tieredCandidate).min(1).max(MAXIMUM_SET_SIZE),
 });
 
-// A meal's candidates take a tier, and an attraction's a visit time. The stop ID doesn't
-// show its kind, so each candidate is one shape or the other, with every field
-// required, and the tool refuses a shape that doesn't fit the stop (tool design 2.1).
-export const ADD_STOP_CANDIDATES_INPUT = z.strictObject({
-  stopId: z.string().describe("A stop ID, such as stop_k7m2x9qa."),
-  candidates: z
-    .array(z.union([tieredCandidate, timedCandidate]))
-    .min(1)
-    .max(MAXIMUM_SET_SIZE)
-    .describe(
-      "For a meal stop, each with a tier. For an attraction stop, each with visitTimeInMinutes.",
-    ),
+// A meal's candidates take a tier, and an attraction's a visit time, so each kind of
+// stop has its own tool, with one shape each. The stop ID doesn't show its kind, so the
+// tool refuses a stop of the other kind (tool design 2.1, and #266).
+const stopId = z.string().describe("A stop ID, such as stop_k7m2x9qa.");
+
+export const ADD_MEAL_CANDIDATES_INPUT = z.strictObject({
+  stopId,
+  candidates: z.array(tieredCandidate).min(1).max(MAXIMUM_SET_SIZE),
+});
+
+export const ADD_ATTRACTION_CANDIDATES_INPUT = z.strictObject({
+  stopId,
+  candidates: z.array(timedCandidate).min(1).max(MAXIMUM_SET_SIZE),
 });
 
 // The stay input is stayId, as in add_lodging_candidates. The Agent hook reads the stay
@@ -97,5 +98,8 @@ export type CandidateInput = z.infer<
 export type AddLodgingCandidatesInput = z.infer<
   typeof ADD_LODGING_CANDIDATES_INPUT
 >;
-export type AddStopCandidatesInput = z.infer<typeof ADD_STOP_CANDIDATES_INPUT>;
+export type AddMealCandidatesInput = z.infer<typeof ADD_MEAL_CANDIDATES_INPUT>;
+export type AddAttractionCandidatesInput = z.infer<
+  typeof ADD_ATTRACTION_CANDIDATES_INPUT
+>;
 export type SetStayWeatherInput = z.infer<typeof SET_STAY_WEATHER_INPUT>;

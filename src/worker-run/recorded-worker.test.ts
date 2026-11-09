@@ -9,7 +9,7 @@ import {
 import { recordedWorkerOf } from "./recorded-worker.js";
 
 const ADD_STOPS = "mcp__trip__add_stops";
-const ADD_CANDIDATES = "mcp__trip__add_stop_candidates";
+const ADD_CANDIDATES = "mcp__trip__add_meal_candidates";
 
 // Turn 2 adds a stop, sends a weather worker that saves its weather, then the stay
 // researcher, and then adds another stop while the stay researcher runs.

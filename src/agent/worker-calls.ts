@@ -25,7 +25,8 @@ const REPORT_RESULT = `mcp__${WORKER_SERVER_NAME}__${REPORT_RESULT_NAME}`;
 // as add_lodging_candidates does.
 const FILLS: Readonly<Record<string, z.ZodType<string>>> = {
   [`mcp__${TRIP_SERVER_NAME}__add_lodging_candidates`]: filledStayIdSchema,
-  [`mcp__${TRIP_SERVER_NAME}__add_stop_candidates`]: filledStopIdSchema,
+  [`mcp__${TRIP_SERVER_NAME}__add_meal_candidates`]: filledStopIdSchema,
+  [`mcp__${TRIP_SERVER_NAME}__add_attraction_candidates`]: filledStopIdSchema,
   [`mcp__${TRIP_SERVER_NAME}__set_stay_weather`]: filledStayIdSchema,
 };
 
