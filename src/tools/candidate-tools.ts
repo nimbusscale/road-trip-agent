@@ -4,7 +4,9 @@ import type { Itinerary } from "../domain/itinerary.js";
 import type { Place } from "../domain/place.js";
 import { RuleError } from "../domain/rule-error.js";
 import type { Stop } from "../domain/stop.js";
+import { NoDrivingRouteError } from "../google/routes-client.js";
 import type { ChangeContext } from "../persistence/trip-writer.js";
+import { dayNumber } from "./day-lines.js";
 import { refuseWrongKind } from "./id-kind.js";
 import { type Positions, stayName, stopName } from "./spot-names.js";
 import { addedCandidateLine } from "./stop-lines.js";
@@ -134,14 +136,7 @@ async function addStopCandidates(
     held: stop.candidates,
     given,
   });
-  const detours =
-    stop.searchArea === "alongLeg"
-      ? await context.legs.detourTimesOf(
-          itinerary,
-          stop,
-          given.map((each) => each.place),
-        )
-      : [];
+  const detours = await detourTimesFor(context, stop, given);
   const offers = given.map((each, index) =>
     offerOf(each, detours[index] ?? null),
   );
@@ -150,6 +145,83 @@ async function addStopCandidates(
     `Set ${setNumberText(stop.candidates)} for ${stopName(positions, stop)}`,
     stop.candidates.slice(-offers.length),
   );
+}
+
+// Each place's detour time, or null for a stop that isn't along the leg. Each place is
+// routed on its own, so a place with no driving route doesn't hide the others' routes,
+// and the refusal names every place with none (#266). Any other failed call refuses as
+// it is.
+async function detourTimesFor(
+  context: ChangeContext,
+  stop: Stop,
+  given: readonly GivenCandidate[],
+): Promise<(number | null)[]> {
+  if (stop.searchArea !== "alongLeg") {
+    return given.map(() => null);
+  }
+  const itinerary = context.trip.itinerary;
+  const results = await Promise.allSettled(
+    given.map(({ place }) =>
+      context.legs.detourTimesOf(itinerary, stop, [place]),
+    ),
+  );
+  const unroutable: Place[] = [];
+  const times = results.map((result, index): number | null => {
+    if (result.status === "fulfilled") {
+      return result.value[0] ?? null;
+    }
+    const reason: unknown = result.reason;
+    if (!(reason instanceof NoDrivingRouteError)) {
+      throw reason;
+    }
+    const place = given[index]?.place;
+    if (place !== undefined) {
+      unroutable.push(place);
+    }
+    return null;
+  });
+  if (unroutable.length > 0) {
+    const positions = { itinerary, calendar: context.calendar };
+    const day = dayNumber(positions, context.calendar.dayOf(itinerary, stop));
+    throw new RuleError(noRouteText(day, unroutable, given.length));
+  }
+  return times;
+}
+
+// Such as "Google found no driving route to Hurricane Ridge (place_…) on Day 2's drive,
+// so it has no detour time." The route's waypoints aren't named: a worker can't change
+// them.
+function noRouteText(
+  day: string,
+  unroutable: readonly Place[],
+  givenCount: number,
+): string {
+  const one = unroutable.length === 1;
+  const names = orList(
+    unroutable.map((place) => `${placeText(place)} (${place.id})`),
+  );
+  const found = `Google found no driving route to ${names} on ${day}'s drive, so ${one ? "it has no detour time" : "they have no detour times"}.`;
+  const why = `Google doesn't say why, but often ${one ? "the" : "a"} place's pin isn't on a road.`;
+  const routed = givenCount - unroutable.length;
+  if (routed === 0) {
+    return `${found} ${why} Add the set again with ${givenCount === 1 ? "another place" : "other places"}.`;
+  }
+  const others =
+    routed === 1
+      ? "The other candidate has a route."
+      : "The other candidates have routes.";
+  const again = one
+    ? "Add the set again without it, or with another place in its place."
+    : "Add the set again without them, or with other places in their place.";
+  return `${found} ${why} ${others} ${again}`;
+}
+
+// Such as "A", "A or B", or "A, B, or C".
+function orList(items: readonly string[]): string {
+  if (items.length <= 2) {
+    return items.join(" or ");
+  }
+  return `${items.slice(0, -1).join(", ")}, or ${items.at(-1) ?? ""}`;
 }
 
 // A candidate as given, with the place its ID names.
