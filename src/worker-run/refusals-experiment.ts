@@ -102,7 +102,7 @@ export async function runRefusalsExperiment(
           refusalExampleInputSchema.parse(example.input),
         ),
       ),
-    evaluators: [refusalRate, noRefusals],
+    evaluators: [refusalRate, visitTimeRefusalRate, noRefusals],
     concurrency: CONCURRENCY,
     repetitions: runsPerCase,
   });
@@ -150,6 +150,32 @@ export function refusalRateOf(output: unknown): RefusalScore {
   };
 }
 
+// The ways a reply says visitTimeInMinutes was sent where it doesn't go: the MCP SDK's
+// input validation error for a key the shape doesn't have, or the tool's own message
+// for a meal stop (#266).
+const VISIT_TIME_REFUSALS = [
+  'Unrecognized key: \\"visitTimeInMinutes\\"',
+  'Unrecognized key: "visitTimeInMinutes"',
+  "and no visitTimeInMinutes",
+];
+
+// The share of the run's candidate calls refused for visitTimeInMinutes, the mistake
+// the fixes for #266 aim at. The rest of the refusal rate is other kinds, such as no
+// driving route. Lower is better.
+export function visitTimeRefusalRateOf(output: unknown): RefusalScore {
+  const { calls, refusals } = refusalOutputSchema.parse(output);
+  if (calls === 0) {
+    return NO_CALLS;
+  }
+  const refused = refusals.filter(({ reply }) =>
+    VISIT_TIME_REFUSALS.some((text) => reply.includes(text)),
+  ).length;
+  return {
+    score: refused / calls,
+    label: `${String(refused)} of ${String(calls)} refused for visitTimeInMinutes`,
+  };
+}
+
 // Whether the run had no refused candidate call at all.
 export function noRefusalsOf(output: unknown): RefusalScore {
   const { calls, refused } = refusalOutputSchema.parse(output);
@@ -165,6 +191,12 @@ const refusalRate = asExperimentEvaluator({
   name: "refusal rate",
   kind: "CODE",
   evaluate: ({ output }) => refusalRateOf(output),
+});
+
+const visitTimeRefusalRate = asExperimentEvaluator({
+  name: "visit time refusal rate",
+  kind: "CODE",
+  evaluate: ({ output }) => visitTimeRefusalRateOf(output),
 });
 
 const noRefusals = asExperimentEvaluator({
