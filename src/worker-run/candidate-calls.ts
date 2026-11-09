@@ -2,7 +2,11 @@ import type { SDKMessage } from "@anthropic-ai/claude-agent-sdk";
 
 import { toolsOn } from "../agent/tool-names.js";
 import { callBlocksOf } from "../agent/trace-spans.js";
-import { toolResultsOf, toolResultText } from "../agent/turn-event.js";
+import {
+  failureOf,
+  toolResultsOf,
+  toolResultText,
+} from "../agent/turn-event.js";
 import { TRIP_SERVER_NAME } from "../tools/trip-server.js";
 
 // The tools the candidate refusals evaluation counts (#266).
@@ -29,9 +33,12 @@ export interface CandidateCalls {
 export class CandidateCallCount {
   readonly #waiting = new Map<string, string>();
   readonly #counted: CandidateCalls = { calls: 0, refused: 0, refusals: [] };
+  #failure: string | null = "The run ended with no result.";
 
   record(message: SDKMessage): void {
-    if (message.type === "assistant") {
+    if (message.type === "result") {
+      this.#failure = failureOf(message);
+    } else if (message.type === "assistant") {
       for (const block of callBlocksOf(message.message.content)) {
         if (block.type === "toolUse" && CANDIDATE_TOOLS.has(block.name)) {
           this.#waiting.set(block.id, block.name);
@@ -46,6 +53,12 @@ export class CandidateCallCount {
 
   get counted(): CandidateCalls {
     return this.#counted;
+  }
+
+  // Why the run failed, such as when the Claude API failed, or null when it ended well.
+  // A failed run's counts say nothing about the worker.
+  get failure(): string | null {
+    return this.#failure;
   }
 
   #recordResult(block: ReturnType<typeof toolResultsOf>[number]): void {

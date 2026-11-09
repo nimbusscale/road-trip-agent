@@ -83,7 +83,7 @@ export async function runRefusalsExperiment(
     },
     dataset: { datasetName: REFUSALS_DATASET },
     task: async (example) =>
-      outputOf(
+      runOutputOf(
         await runRecordedWorker(
           given,
           refusalExampleInputSchema.parse(example.input),
@@ -96,8 +96,15 @@ export async function runRefusalsExperiment(
 }
 
 // What Phoenix keeps for each run: the counts, each refusal's reply, and where to look,
-// the run's trip and span.
-function outputOf(run: WorkerRun): Record<string, unknown> {
+// the run's trip and span. A run that failed, such as on the Claude plan's limit, fails
+// its task, so Phoenix shows it as an error and its evaluators give it no score. Its
+// counts would score it as a run with no refusals.
+export function runOutputOf(run: WorkerRun): Record<string, unknown> {
+  if (run.failure !== null) {
+    throw new Error(
+      `The worker run failed: ${run.failure} (span ${run.spanId}).`,
+    );
+  }
   return {
     calls: run.candidates.calls,
     refused: run.candidates.refused,

@@ -60,10 +60,13 @@ export interface WorkerRun {
   // RebuildReport.summary(). Nothing from the trip itself.
   replay: string[];
   candidates: CandidateCalls;
+  // Why the run failed, from the SDK's result, or null when it ended well.
+  failure: string | null;
 }
 
-// The replay's IDs come from a hook on newId() that lasts the whole replay, so two
-// replays at once would take each other's IDs. Runs of the worker itself can overlap.
+// Replays run one at a time. Each write's IDs come from a chooser on newId() that only
+// that write's own calls see (withIds()), so a worker's tools running alongside a replay
+// still make random IDs, and runs of the worker itself can overlap.
 let replays: Promise<unknown> = Promise.resolve();
 
 export async function runRecordedWorker(
@@ -107,6 +110,7 @@ export async function runRecordedWorker(
     spanId,
     replay: report.summary(),
     candidates: count.counted,
+    failure: count.failure,
   };
 }
 

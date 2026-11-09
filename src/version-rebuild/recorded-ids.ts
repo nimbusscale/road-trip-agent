@@ -56,20 +56,15 @@ export async function withIds<T>(
 ): Promise<WithIds<T>> {
   const waiting = [...ids];
   const random: IdKind[] = [];
-  chooseNewIdsWith((kind) => {
+  const result = await chooseNewIdsWith((kind) => {
     const index = waiting.findIndex((id) => kindOf(id) === kind);
     if (index === -1) {
       random.push(kind);
       return undefined;
     }
     return waiting.splice(index, 1)[0];
-  });
-  try {
-    const result = await work();
-    return { result, unused: waiting, random };
-  } finally {
-    chooseNewIdsWith(null);
-  }
+  }, work);
+  return { result, unused: waiting, random };
 }
 
 function kindOf(id: string): string | undefined {

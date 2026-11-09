@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 import { randomInt } from "node:crypto";
 
 // The prefix for each kind of item (technical spec 7.1). A user's ID is Supabase's
@@ -24,17 +25,19 @@ export const ID_RANDOM_LENGTH = 8;
 // Chooses the ID for a new item, or leaves it random by returning undefined.
 export type IdChooser = (kind: IdKind) => string | undefined;
 
-let idChooser: IdChooser | null = null;
+const idChooser = new AsyncLocalStorage<IdChooser>();
 
 // Only for rebuilding a session's trip versions (#244), which replays its recorded calls
 // and gives each new item the ID its recorded reply gave it. The app never sets one.
-export function chooseNewIdsWith(chooser: IdChooser | null): void {
-  idChooser = chooser;
+// Only the work's own calls see the chooser, so a worker's tools running alongside a
+// replay (#266) still make random IDs.
+export function chooseNewIdsWith<T>(chooser: IdChooser, work: () => T): T {
+  return idChooser.run(chooser, work);
 }
 
 // Random, not counted, so an ID an agent makes up doesn't land on a real item.
 export function newId(kind: IdKind): string {
-  const chosen = idChooser?.(kind);
+  const chosen = idChooser.getStore()?.(kind);
   if (chosen !== undefined) {
     return chosen;
   }

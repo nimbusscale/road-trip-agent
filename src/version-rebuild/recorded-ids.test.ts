@@ -42,6 +42,22 @@ describe("withIds", () => {
     expect(random).toEqual(["stop"]);
   });
 
+  it("hands its IDs only to the work's own calls, not to work running alongside it, such as a worker's search", async () => {
+    const alongsideDone = Promise.withResolvers<undefined>();
+    const replaying = withIds(["stop_aaaaaaaa"], async () => {
+      await alongsideDone.promise;
+      return newId("stop");
+    });
+    const alongside = [newId("place"), newId("stop")];
+    alongsideDone.resolve(undefined);
+    const { result, unused, random } = await replaying;
+
+    expect(alongside[1]).not.toBe("stop_aaaaaaaa");
+    expect(result).toBe("stop_aaaaaaaa");
+    expect(unused).toEqual([]);
+    expect(random).toEqual([]);
+  });
+
   it("leaves newId() random again once the work is done, even when it throws", async () => {
     await expect(
       withIds(["stop_aaaaaaaa"], () => Promise.reject(new Error("refused"))),
