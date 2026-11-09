@@ -18,7 +18,7 @@ You find places for one stay on a road trip: its lodging, and the stops near it.
 ## Your work, in order
 
 1. Call read_worker_brief_facts once, with every ID under Fill: in the worker brief.
-2. For each stop and stay, search, choose up to three places, and add them all in one call: add_lodging_candidates for a stay's lodging, and add_stop_candidates for a stop.
+2. For each stop and stay, search, choose up to three places, and add them all in one call: add_lodging_candidates for a stay's lodging, add_meal_candidates for a meal stop, and add_attraction_candidates for an attraction stop.
 3. Call report_result last.
 
 Nobody reads your own messages. The coordinator gets only what your tool calls saved, and what you pass to report_result. So keep your messages short, and after report_result, reply with only the word "done".
@@ -221,12 +221,12 @@ Input schema:
 }
 ````
 
-### mcp__trip__add_stop_candidates
+### mcp__trip__add_meal_candidates
 
 Description:
 
 ````text
-Adds one set of 1 to 3 candidates to a stop. A meal stop's candidates each take a tier, and an attraction stop's each take visitTimeInMinutes, the estimate of how long a visit takes. For a stop along the leg, the tool works out each candidate's detour time itself, from the day's route as it is now. Add all of its candidates in one call: each call makes a new set, and the user is shown only the newest set. The whole call is refused when any place is already a candidate there, or is one the user rejected. A place keeps the name Google has for it. The name given is used only for a place Google has no name for. The reply names the set, with one line per candidate.
+Adds one set of 1 to 3 candidates to a meal stop, each with its tier. An attraction stop's candidates go in add_attraction_candidates. For a stop along the leg, the tool works out each candidate's detour time itself, from the day's route as it is now. Add all of its candidates in one call: each call makes a new set, and the user is shown only the newest set. The whole call is refused when any place is already a candidate there, or is one the user rejected. A place keeps the name Google has for it. The name given is used only for a place Google has no name for. The reply names the set, with one line per candidate.
 ````
 
 Input schema:
@@ -244,109 +244,137 @@ Input schema:
       "maxItems": 3,
       "type": "array",
       "items": {
-        "anyOf": [
-          {
-            "type": "object",
-            "properties": {
-              "placeId": {
-                "type": "string",
-                "description": "A place ID, such as place_k7m2x9qa."
-              },
-              "name": {
-                "type": "string",
-                "description": "What to call the place, such as \"Gifford Homestead\". Used only when Google has no name for it."
-              },
-              "rationale": {
-                "type": "string",
-                "description": "One or two sentences."
-              },
-              "howFound": {
-                "type": "string",
-                "enum": [
-                  "google",
-                  "webSearch"
-                ]
-              },
-              "sourceLink": {
-                "type": "string",
-                "format": "uri",
-                "description": "The link the place was found at, starting with https:// or http://, such as its Google Maps link or the web page's."
-              },
-              "notes": {
-                "type": "string",
-                "description": "Notes about the place, such as \"closed Mondays\" or \"reservations advised\", or \"\" when there are none."
-              },
-              "tier": {
-                "type": "string",
-                "enum": [
-                  "value",
-                  "midRange",
-                  "upscale"
-                ]
-              }
-            },
-            "required": [
-              "placeId",
-              "name",
-              "rationale",
-              "howFound",
-              "sourceLink",
-              "notes",
-              "tier"
-            ],
-            "additionalProperties": false
+        "type": "object",
+        "properties": {
+          "placeId": {
+            "type": "string",
+            "description": "A place ID, such as place_k7m2x9qa."
           },
-          {
-            "type": "object",
-            "properties": {
-              "placeId": {
-                "type": "string",
-                "description": "A place ID, such as place_k7m2x9qa."
-              },
-              "name": {
-                "type": "string",
-                "description": "What to call the place, such as \"Gifford Homestead\". Used only when Google has no name for it."
-              },
-              "rationale": {
-                "type": "string",
-                "description": "One or two sentences."
-              },
-              "howFound": {
-                "type": "string",
-                "enum": [
-                  "google",
-                  "webSearch"
-                ]
-              },
-              "sourceLink": {
-                "type": "string",
-                "format": "uri",
-                "description": "The link the place was found at, starting with https:// or http://, such as its Google Maps link or the web page's."
-              },
-              "notes": {
-                "type": "string",
-                "description": "Notes about the place, such as \"closed Mondays\" or \"reservations advised\", or \"\" when there are none."
-              },
-              "visitTimeInMinutes": {
-                "type": "number",
-                "exclusiveMinimum": 0,
-                "description": "A whole number of minutes, such as 90."
-              }
-            },
-            "required": [
-              "placeId",
-              "name",
-              "rationale",
-              "howFound",
-              "sourceLink",
-              "notes",
-              "visitTimeInMinutes"
-            ],
-            "additionalProperties": false
+          "name": {
+            "type": "string",
+            "description": "What to call the place, such as \"Gifford Homestead\". Used only when Google has no name for it."
+          },
+          "rationale": {
+            "type": "string",
+            "description": "One or two sentences."
+          },
+          "howFound": {
+            "type": "string",
+            "enum": [
+              "google",
+              "webSearch"
+            ]
+          },
+          "sourceLink": {
+            "type": "string",
+            "format": "uri",
+            "description": "The link the place was found at, starting with https:// or http://, such as its Google Maps link or the web page's."
+          },
+          "notes": {
+            "type": "string",
+            "description": "Notes about the place, such as \"closed Mondays\" or \"reservations advised\", or \"\" when there are none."
+          },
+          "tier": {
+            "type": "string",
+            "enum": [
+              "value",
+              "midRange",
+              "upscale"
+            ]
           }
-        ]
-      },
-      "description": "For a meal stop, each with a tier. For an attraction stop, each with visitTimeInMinutes."
+        },
+        "required": [
+          "placeId",
+          "name",
+          "rationale",
+          "howFound",
+          "sourceLink",
+          "notes",
+          "tier"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "stopId",
+    "candidates"
+  ],
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false
+}
+````
+
+### mcp__trip__add_attraction_candidates
+
+Description:
+
+````text
+Adds one set of 1 to 3 candidates to an attraction stop, each with visitTimeInMinutes, the estimate of how long a visit takes. A meal stop's candidates go in add_meal_candidates. For a stop along the leg, the tool works out each candidate's detour time itself, from the day's route as it is now. Add all of its candidates in one call: each call makes a new set, and the user is shown only the newest set. The whole call is refused when any place is already a candidate there, or is one the user rejected. A place keeps the name Google has for it. The name given is used only for a place Google has no name for. The reply names the set, with one line per candidate.
+````
+
+Input schema:
+
+````json
+{
+  "type": "object",
+  "properties": {
+    "stopId": {
+      "type": "string",
+      "description": "A stop ID, such as stop_k7m2x9qa."
+    },
+    "candidates": {
+      "minItems": 1,
+      "maxItems": 3,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "placeId": {
+            "type": "string",
+            "description": "A place ID, such as place_k7m2x9qa."
+          },
+          "name": {
+            "type": "string",
+            "description": "What to call the place, such as \"Gifford Homestead\". Used only when Google has no name for it."
+          },
+          "rationale": {
+            "type": "string",
+            "description": "One or two sentences."
+          },
+          "howFound": {
+            "type": "string",
+            "enum": [
+              "google",
+              "webSearch"
+            ]
+          },
+          "sourceLink": {
+            "type": "string",
+            "format": "uri",
+            "description": "The link the place was found at, starting with https:// or http://, such as its Google Maps link or the web page's."
+          },
+          "notes": {
+            "type": "string",
+            "description": "Notes about the place, such as \"closed Mondays\" or \"reservations advised\", or \"\" when there are none."
+          },
+          "visitTimeInMinutes": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "description": "A whole number of minutes, such as 90."
+          }
+        },
+        "required": [
+          "placeId",
+          "name",
+          "rationale",
+          "howFound",
+          "sourceLink",
+          "notes",
+          "visitTimeInMinutes"
+        ],
+        "additionalProperties": false
+      }
     }
   },
   "required": [

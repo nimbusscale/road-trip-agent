@@ -59,7 +59,8 @@ describe("createTripServer", () => {
       "reject_places",
       "read_worker_brief_facts",
       "add_lodging_candidates",
-      "add_stop_candidates",
+      "add_meal_candidates",
+      "add_attraction_candidates",
       "set_stay_weather",
     ]);
     expect(
@@ -77,7 +78,7 @@ describe("createTripServer", () => {
     expect(COORDINATOR_TOOLS).not.toEqual(
       expect.arrayContaining([
         expect.stringMatching(
-          /__(read_worker_brief_facts|add_lodging_candidates|add_stop_candidates|set_stay_weather)$/,
+          /__(read_worker_brief_facts|add_lodging_candidates|add_meal_candidates|add_attraction_candidates|set_stay_weather)$/,
         ),
       ]),
     );

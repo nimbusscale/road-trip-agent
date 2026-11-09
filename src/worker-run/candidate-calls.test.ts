@@ -7,7 +7,7 @@ import {
 } from "../agent/fake-sdk-messages.schema.js";
 import { CandidateCallCount } from "./candidate-calls.js";
 
-const STOP_CANDIDATES = "mcp__trip__add_stop_candidates";
+const STOP_CANDIDATES = "mcp__trip__add_meal_candidates";
 
 describe("CandidateCallCount", () => {
   it("counts each candidate call that got a reply, and keeps each refusal's reply", () => {

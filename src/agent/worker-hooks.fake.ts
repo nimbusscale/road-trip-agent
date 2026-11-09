@@ -19,7 +19,7 @@ import { workerHooks } from "./worker-hooks.js";
 // inputs the Agent SDK sends (technical spec 6.5), for worker-hooks.test.ts.
 
 export const READ_FACTS = "mcp__trip__read_worker_brief_facts";
-export const ADD_STOP = "mcp__trip__add_stop_candidates";
+export const ADD_MEAL = "mcp__trip__add_meal_candidates";
 export const SET_STAY_WEATHER = "mcp__trip__set_stay_weather";
 const REPORT_RESULT = "mcp__worker__report_result";
 

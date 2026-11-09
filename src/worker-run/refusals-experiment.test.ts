@@ -38,7 +38,7 @@ function workerRunOf(messages: readonly SDKMessage[]): WorkerRun {
 
 const CANDIDATE_CALL = [
   assistant("call-1", [
-    toolUse("meal", "mcp__trip__add_stop_candidates", { stopId: "stop_a" }),
+    toolUse("meal", "mcp__trip__add_meal_candidates", { stopId: "stop_a" }),
   ]),
   toolResult("meal", "Added 3 candidates."),
 ];

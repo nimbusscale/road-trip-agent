@@ -20,7 +20,8 @@ export const STAY_RESEARCHER_TOOLS: readonly string[] = [
   ...toolsOn(TRIP_SERVER_NAME, [
     "read_worker_brief_facts",
     "add_lodging_candidates",
-    "add_stop_candidates",
+    "add_meal_candidates",
+    "add_attraction_candidates",
   ]),
   ...toolsOn(PLACES_SERVER_NAME, ["find_place", "search_near"]),
   ...toolsOn(WORKER_SERVER_NAME, [REPORT_RESULT_NAME]),

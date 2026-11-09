@@ -40,7 +40,7 @@ const ROLE = `You find places for one stay on a road trip: its lodging, and the 
 const WORK = `## Your work, in order
 
 1. Call read_worker_brief_facts once, with every ID under ${WORKER_BRIEF_HEADING.fill} in the worker brief.
-2. For each stop and stay, search, choose up to three places, and add them all in one call: add_lodging_candidates for a stay's lodging, and add_stop_candidates for a stop.
+2. For each stop and stay, search, choose up to three places, and add them all in one call: add_lodging_candidates for a stay's lodging, add_meal_candidates for a meal stop, and add_attraction_candidates for an attraction stop.
 3. Call report_result last.
 
 ${OWN_MESSAGES}`;

@@ -18,7 +18,8 @@ import { toolsOn } from "./tool-names.js";
 export const LEG_SCOUT_TOOLS: readonly string[] = [
   ...toolsOn(TRIP_SERVER_NAME, [
     "read_worker_brief_facts",
-    "add_stop_candidates",
+    "add_meal_candidates",
+    "add_attraction_candidates",
   ]),
   ...toolsOn(PLACES_SERVER_NAME, [
     "find_place",
