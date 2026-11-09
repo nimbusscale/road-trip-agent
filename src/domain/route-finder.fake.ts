@@ -9,11 +9,12 @@ import type {
 // A route finder for tests, in place of Google Routes (DEVELOPMENT.md section 5). It
 // records each call. By default each segment takes 30 minutes, and the best order is
 // the order given. A test sets `driveTimesFor` or `bestOrderFor` to answer otherwise,
-// or `failure` to make every call fail.
+// `failure` to make every call fail, or `failureFor` to make some routes fail.
 export class FakeRouteFinder implements RouteFinder {
   readonly routes: RoutePath[] = [];
   readonly bestOrders: StopsPath[] = [];
   failure: Error | null = null;
+  failureFor: (path: RoutePath) => Error | null = () => null;
   driveTimesFor: (path: RoutePath) => readonly number[] | null = () => null;
   bestOrderFor: (
     path: StopsPath,
@@ -22,8 +23,9 @@ export class FakeRouteFinder implements RouteFinder {
 
   route(path: RoutePath): Promise<FoundRoute> {
     this.routes.push(path);
-    if (this.failure !== null) {
-      return Promise.reject(this.failure);
+    const failure = this.failure ?? this.failureFor(path);
+    if (failure !== null) {
+      return Promise.reject(failure);
     }
     const stopCount = path.through.filter(
       (point) => !point.isPassThrough,
