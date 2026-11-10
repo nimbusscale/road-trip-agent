@@ -56,7 +56,7 @@ export async function saveGoldenDataset(
   return `Updated ${String(changed.length)} turns in ${dataset.name}.`;
 }
 
-async function datasetIdOf(
+export async function datasetIdOf(
   client: PhoenixClient,
   name: string,
 ): Promise<string | null> {

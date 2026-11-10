@@ -6,8 +6,12 @@ import { createClient } from "@arizeai/phoenix-client";
 import { getDatasetExamples } from "@arizeai/phoenix-client/datasets";
 import {
   asExperimentEvaluator,
+  getExperimentRuns,
+  listExperiments,
   runExperiment,
 } from "@arizeai/phoenix-client/experiments";
+
+import { datasetIdOf } from "../grounded-eval/golden-dataset.js";
 
 import {
   JUDGE_MODEL,
@@ -46,6 +50,7 @@ const JUDGE_DIR = join(EVALS_DIR, "judge");
 export const JUDGE_ACTIONS = {
   "push-prompt": pushSavingJudgePrompt,
   experiment: runExperimentAction,
+  report: reportAction,
   "try-judge": tryJudgeAction,
 };
 
@@ -115,34 +120,89 @@ async function runSavingJudgeExperiment(
     rubricVersion,
   );
   const judged: JudgedTurn[] = [];
-  const experiment = await runExperiment({
-    client: createClient({ options: { baseUrl: phoenixUrl } }),
-    experimentName: `rubric ${rubricVersion}`,
-    experimentDescription: description,
-    experimentMetadata: {
-      rubric: rubricVersion,
-      model: JUDGE_MODEL,
-      promptVersionId,
-    },
-    dataset: { datasetName: GOLDEN_DATASET },
-    task: async (example) => {
-      const run = await judgeTurn(judge, goldenExampleSchema.parse(example));
-      judged.push(run);
-      return run.answer;
-    },
-    evaluators: [
-      ...savingCheckSchema.options.map(checkEvaluatorOf),
-      turnMatches,
-    ],
-    concurrency: CONCURRENCY,
-    repetitions: REPETITIONS,
+  let runsAsked = 0;
+  // The report is written from the answers here even when Phoenix fails at the end,
+  // after every run is saved. `report` rebuilds it from Phoenix.
+  try {
+    await runExperiment({
+      client: createClient({ options: { baseUrl: phoenixUrl } }),
+      experimentName: `rubric ${rubricVersion}`,
+      experimentDescription: description,
+      experimentMetadata: {
+        rubric: rubricVersion,
+        model: JUDGE_MODEL,
+        promptVersionId,
+      },
+      dataset: { datasetName: GOLDEN_DATASET },
+      task: async (example) => {
+        runsAsked += 1;
+        const run = await judgeTurn(judge, goldenExampleSchema.parse(example));
+        judged.push(run);
+        return run.answer;
+      },
+      evaluators: [
+        ...savingCheckSchema.options.map(checkEvaluatorOf),
+        turnMatches,
+      ],
+      concurrency: CONCURRENCY,
+      repetitions: REPETITIONS,
+    });
+  } finally {
+    writeRunFiles(
+      rubricVersion,
+      reportOf(`Rubric ${rubricVersion}: ${description}`, judged, runsAsked),
+      judged,
+    );
+  }
+}
+
+// npm run saving -- report [rubric commit]
+// Rebuilds the report from the latest experiment on the rubric commit, from the
+// answers Phoenix saved, scored against the golden set's labels as they are now.
+async function reportAction(
+  phoenixUrl: string,
+  [version]: readonly string[],
+): Promise<void> {
+  const rubricVersion = version ?? readRubric(RUBRIC_PATH).version;
+  const client = createClient({ options: { baseUrl: phoenixUrl } });
+  const datasetId = await datasetIdOf(client, GOLDEN_DATASET);
+  const experiment = (
+    await listExperiments({ client, datasetId: datasetId ?? "" })
+  )
+    .filter((e) => e.metadata.rubric === rubricVersion)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+  if (experiment === undefined) {
+    throw new Error(`${GOLDEN_DATASET} has no experiment on ${rubricVersion}.`);
+  }
+  const turns = new Map(
+    (
+      await getDatasetExamples({
+        client,
+        dataset: { datasetId: experiment.datasetId },
+      })
+    ).examples.map((example) => [
+      example.id,
+      goldenExampleSchema.parse(example),
+    ]),
+  );
+  const { runs } = await getExperimentRuns({
+    client,
+    experimentId: experiment.id,
+  });
+  const judged = runs.flatMap((run): JudgedTurn[] => {
+    const turn = turns.get(run.datasetExampleId);
+    if (turn === undefined || run.error !== null) {
+      return [];
+    }
+    const answer = savingAnswerSchema.parse(run.output);
+    return [{ turn, answer, diffs: judgeDiffsOf(turn.expected, answer) }];
   });
   writeRunFiles(
     rubricVersion,
     reportOf(
-      `Rubric ${rubricVersion}: ${description}`,
+      `Rubric ${rubricVersion}: ${commitSubjectOf(rubricVersion)}`,
       judged,
-      experiment.exampleCount * REPETITIONS,
+      runs.length,
     ),
     judged,
   );

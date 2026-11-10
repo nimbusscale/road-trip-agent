@@ -48,6 +48,9 @@
 //   what the version changed. It prints each check's misses and false alarms, and
 //   writes them, with the answers, to ~/tmp/road-trip-evals/saving/judge/. It bills
 //   the API account through JUDGE_API_KEY.
+// npm run saving -- report [rubric commit]
+//   Writes the same report from the latest experiment on the rubric commit, from the
+//   answers Phoenix saved, against the golden set's labels as they are now.
 // npm run saving -- try-judge <rubric file> <runs> <set.item> [<set.item> ...]
 //   Runs the judge on a few saving-golden turns, such as 4.2 for set 4 item 2, each the
 //   number of runs given, with the rubric file on disk, committed or not, and prints
