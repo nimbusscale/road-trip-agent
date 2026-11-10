@@ -48,12 +48,16 @@ Run each check that fits the save. A memory save gets checks 1, 2, 3, 4, and 6. 
 
 The test: if the user forgot this item in the app, would they lose more than one thing? Each choice, wish, open item, or habit can change, or be forgotten, on its own. When several share an item, forgetting one loses them all, and changing one means rewriting the item, which can squeeze the others, since an item holds at most 300 characters.
 
-A thing's reason and details stay with it, and don't make it more than one thing. A fact and what it leads to are one thing, whether or not a "so" joins them, such as an arrival time and the stops it rules out. The test: if the first part changed, would the rest change with it? A route plan that names the kind of each stretch of the trip is one thing.
+A thing's reason and details stay with it, and don't make it more than one thing. A fact and what it leads to are one thing, whether or not a "so" joins them, such as an arrival time and the stops it rules out. The test: if the first part changed, would the rest change with it? A route plan that names the kind of each stretch of the trip is one thing. So is what the user said about one stay or stop, such as who they stay with, when they want to get there, and how exact the address needs to be.
+
+Two habits stay two things even when they're about the same part of the day, such as a start time and how they like breakfast. Each can change while the other stays.
 
 - Fails: "Lunch around noon each day. Fine to skip a museum if the weather is nice, so leave room to swap one for a walk." The lunch time and the museum swap are two things.
 - Fails: "Chose the Lakeview Inn in Gatlinburg for its porch rockers; the cabins felt too remote, so the Smokies stay moved into town. Chose the Blue Note Motel in Asheville for its retro sign. Chose Hen & Biscuit for the shrimp and grits." Three choices, so it should be three items. The part about the cabins is the reason for the Lakeview Inn choice, so it stays with that one.
 - Fails: "Route: Austin to Fredericksburg is places-first (pick towns, then route). Fredericksburg to Marfa is a fixed road, US-290 then I-10. Skipped San Antonio on purpose, since they've been." The route plan is one thing. Skipping San Antonio is a second choice.
+- Fails: "Up early: on the road by 7:30. Wants a bakery for breakfast, not a hotel buffet, and will drive 20 minutes for a good one." The start time and the breakfast habit are two habits. A later start wouldn't change the bakery.
 - Passes: "Train home from Santa Fe is Sunday morning, so Saturday evening is free for a nice dinner on the Plaza." A fact and the wish it leads to.
+- Passes: "Staying with their cousin in Boulder at the end, and wants to get there by dinner on Sunday, June 13. The neighborhood is enough, no exact address needed." All of it is about the one stay with the cousin.
 - Passes: "Route is fixed: the Blue Ridge Parkway from Waynesboro to Asheville, then I-40 west to the Smokies. Stops are found along that road."
 - Passes: "Checking in at the cabin near Lake Placid by 4 p.m. on Friday for the key handoff. No stops after Albany that day." The no-stops rule is there because of the check-in time, and would change with it.
 
@@ -71,13 +75,19 @@ A part that repeats the itinerary passes when the rest of the note needs it, suc
 
 **A date in memory passes when it would stay true if the plan moved.** It passes when it's what the user asked for, when it's a limit fixed by something outside the plan, such as an event, or when it says what a fact was based on. It fails when it only says when something in the plan happens.
 
+A date or weekday set next to a part of the plan, to say which day it is, fails, even when the note needs that part. Example: "the Taos rest day (Monday, June 7)". The note can name the day by what happens on it, such as "the Taos rest day", which stays true if the plan moves. Look for these in every note, including one whose point is a reason or an open item, since they're easy to read past.
+
 - Fails: "Wants the second day in Fredericksburg (Monday, April 12) as a rest day. Only meals in town that day." The itinerary marks the rest day, and the note gives no reason for it.
 - Fails: "Big Bend morning: coffee at Espresso y Poco Mas, decide on the day about a picnic lunch." The coffee stop is in the itinerary. "Decide on the day about a picnic lunch" is an open item, and passes on its own.
+- Fails: "Taos rest day (Monday, June 7): no driving, so meals should be walkable from the inn." The rest day is what the note is about, so it passes, but "(Monday, June 7)" only says when it is. "The Taos rest day: no driving, so meals should be walkable from the inn" would pass.
+- Fails: "Wants to see sunrise from the canyon rim one morning. Planned for Mather Point on the Tuesday morning; set the time from a sunrise table." The wish and the open item pass. "Planned for Mather Point on the Tuesday morning" copies the plan, and the open item doesn't need it.
 - Fails: "Lunch at Kreuz Market around 1 is fine after a big breakfast." The itinerary holds the lunch time, and the note goes wrong as soon as it moves. "A late lunch at Kreuz Market is fine, after a big breakfast" would pass.
 - Fails: "Knows the Enchanted Rock trail will be crowded on the hike day (now Saturday, April 10) and chose to keep the hike anyway." It says when the hike is, which is the itinerary's. Written to pass, it would say what the crowd check was based on, such as "checked the crowds for Saturday, April 10, the day the hike was planned for then".
 - Passes: "Big Sur night: an early dinner, then rest at the cabin until 11 p.m. and watch the stars at Pfeiffer Beach at midnight. Set the cabin check-in's length once dinner's place is picked." The evening plan is in the itinerary, but the open item needs it: how long the check-in runs depends on the rest before the stars. In the Big Bend example, the picnic decision doesn't need the coffee stop.
 - Passes: "Hoover Dam through sunset on the Kingman-to-Las Vegas day, so a later dinner in Boulder City is fine. Dropped the ghost town stop to make room for the dam." The dam visit is in the itinerary, but it's the reason the late dinner is fine and the ghost town was dropped. If the visit moved, both would change with it.
 - Passes: "Lunch at 11:30 a.m. every day." It's a rule the itinerary was built from, not a copy of one stop.
+- Passes: "Friday's lunch in Fredericksburg is now at the Old German Bakery, the only German bakery on the route, so Saturday's breakfast should be something else." The lunch is in the itinerary, but the note is about what follows from it for another meal.
+- Passes: "Staying with their cousin in Boulder at the end, and wants to get there by dinner on Sunday, June 13." The user asked for the arrival day and time, and the itinerary can't say who they're staying with.
 - Passes: "Driving home from Denver; agreed to leave Monday instead of Sunday to fit the Red Rocks show." Denver is where the trip ends, but the note is about the agreed day and why.
 - Passes: "Wants one day off in Fredericksburg, with no clock, to wander the Main Street wine rooms (the partner has wanted to for years)." It gives the reason, and leaves the day open.
 - Passes: "Friday evening in Nashville: check in at the hotel first, then take a rideshare downtown and walk to dinner. No driving after check-in, since they'll drink at dinner." The itinerary can't say they'll take a rideshare, or why.
@@ -113,9 +123,12 @@ This check is for trip memory only. A habit can be in both user memory and the t
 
 A preference about one part of the trip passes in trip memory, such as dinner on one evening, or a lodging wish for one stay. So does one no trip brief item covers, such as what time they like to eat dinner.
 
+Judge against the trip brief as it stood when the save was made, as in check 3: what `<before>` holds, plus what earlier saves in the same turn set. Any trip brief item can hold the thing, such as the focus. So before failing a save, read every `update_trip_brief` save above it in `<turn>`.
+
 - Fails: "Must spend a night in a fire lookout tower in the Bitterroot, a childhood dream." The user said "I really want to make sure we sleep in a fire lookout." That's a must-see, and only memory has it.
 - Fails: "Route is fixed: the Blue Ridge Parkway from Waynesboro to Asheville, then I-40 west to the Smokies", when the user said "we want to take the Blue Ridge Parkway" and the trip brief doesn't hold it. The note is fine as a route plan, but the parkway is only in memory.
 - Fails: "Hotel breakfast is fine every morning on this trip." That's hotel breakfast vs local food for the whole trip, which the meal preferences cover.
+- Passes: "Route is fixed: follow the coast from Monterey to Santa Barbara, and find stops along it", when the user said "we want to drive down the coast" and an earlier save in the same turn set the focus to "The coast, Monterey to Santa Barbara". The focus holds the coast route.
 - Passes: "Chose the Point Reyes lighthouse overlook over the lighthouse tour, since they've been up plenty of lighthouses." The coordinator offered the overlook and the tour as options, and the user picked one. That's a choice, not a must-see.
 - Passes: "Not interested in the LBJ Ranch tour." It's not a must-see or a preference the trip brief covers. The user only said it wasn't for them, so a note fits better than rejecting the place for good.
 
@@ -131,7 +144,7 @@ A hedge about whether something fits the trip stops being a wish once the user p
 
 The test: when the trip is done, would leaving it out make the trip a failure?
 
-Something the user asked for by name passes, including a route, such as a ferry or a named road. A route is an anchor of the trip, as a must-see is.
+Something the user asked for by name passes, including a route, such as a ferry or a named road. A route is an anchor of the trip, as a must-see is. So does a food the user says they have to try, such as a dish in a certain town. Eating it is something to do.
 
 Only the must-sees get this check. A wish is fine in the interests.
 
@@ -142,6 +155,7 @@ Only the must-sees get this check. A wish is fine in the interests.
 - Fails: "Might want a night in San Antonio too, but if we have to cut a stop, it's San Antonio." The user named it as the first stop to cut.
 - Fails: "Old Faithful. Wolves were brought back to the park in the 1990s." The user said "I know they brought the wolves back, not sure that matters." It's a fact, not something to see.
 - Passes: "Taking the Blue Ridge Parkway rather than the interstate." The user asked for the parkway by name.
+- Passes: "A green chile cheeseburger in New Mexico." The user said "I have to get a green chile cheeseburger while we're there."
 - Passes: "Old Faithful, which their dad took them to as a kid." It says why the must-see matters to them.
 - Passes: "Glacier National Park." The user first said "maybe we could even get up to Glacier." The coordinator offered two plans with two nights there, and the user picked one.
 - Passes: "a night at a lodge inside Glacier National Park, like Many Glacier". The user said "we're happy to splurge on a park lodge", which reads as definite.
