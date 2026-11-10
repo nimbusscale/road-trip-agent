@@ -122,11 +122,11 @@ Settled 2026-11-10, in chat, from set 3 item 2.
 
 The Bar Harbor turn 1 item (mem_xdwvj5e6) saved the alumni event to trip memory while the must-sees were empty. The coordinator put the event in the must-sees in turn 2. Joe first wanted a memory save to pass whenever the trip brief didn't have the thing yet, since the coordinator may still be finding out what goes in the brief. That would leave nothing for F4 to check. He kept F4: without it, the coordinator could keep everything in memory and never fill the trip brief. So the item fails F4 in turn 1. Its dates still pass F2, as #209 says, and it still passes F3 (decision 7).
 
-## 11. A road the user asked for by name belongs in the must-sees
+## 11. A road the user asked for by name belongs in the trip brief
 
 Settled 2026-11-10, in chat, from set 1 item 9.
 
-The user wrote "scenic, including highway 128 by dewey bridge on day 1." The coordinator saved the road only in the trip memory route note (mem_ng52y7j6). That fails F4. A named road can be a must-see (decision 6), so it's a must-see that's only in memory. The route note can still hold it. Check 4 now says so, since only check 5 said a named road counts.
+The user wrote "scenic, including highway 128 by dewey bridge on day 1." The coordinator saved the road only in the trip memory route note (mem_ng52y7j6). That fails F4. A named road can be a must-see (decision 6), so it's a must-see that's only in memory. The route note can still hold it. Check 4 now says so, since only check 5 said a named road counts. Any trip brief item can hold it, such as the focus, as decision 6 says. The first wording said the must-sees, and Sol then failed set 2 item 9, where Highway 1 is in the focus.
 
 ## 12. A planning rule in memory, and the part of a note that sets the scene, pass F2
 

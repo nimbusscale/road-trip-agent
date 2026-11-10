@@ -104,13 +104,13 @@ This check is for trip memory only. A habit can be in both user memory and the t
 
 **Fails when** a memory save holds something a trip brief item is meant for, and the trip brief doesn't have it, so memory is the only place it's saved. When the trip brief has it too, this check passes, and check 3 decides whether the memory copy adds anything. Two kinds of things a trip brief item is meant for:
 
-- **A must-see:** something the user says the trip has to include, so that leaving it out would make the trip a failure once it's done. This includes a road or route the user asked for by name, as in check 5. The route note in trip memory can still hold it, but the must-sees need it too.
+- **A must-see:** something the user says the trip has to include, so that leaving it out would make the trip a failure once it's done. This includes a road or route the user asked for by name, as in check 5. The route note in trip memory can still hold it, but the trip brief needs it too, in the must-sees or another item, such as the focus.
 - **A trip-wide preference a trip brief item covers,** such as hotel breakfast vs local food for the whole trip, in the meal preferences.
 
 A preference about one part of the trip passes in trip memory, such as dinner on one evening, or a lodging wish for one stay. So does one no trip brief item covers, such as what time they like to eat dinner.
 
 - Fails: "Must spend a night in a fire lookout tower in the Bitterroot, a childhood dream." The user said "I really want to make sure we sleep in a fire lookout." That's a must-see, and only memory has it.
-- Fails: "Route is fixed: the Blue Ridge Parkway from Waynesboro to Asheville, then I-40 west to the Smokies", when the user said "we want to take the Blue Ridge Parkway" and the must-sees don't hold it. The note is fine as a route plan, but the parkway is only in memory.
+- Fails: "Route is fixed: the Blue Ridge Parkway from Waynesboro to Asheville, then I-40 west to the Smokies", when the user said "we want to take the Blue Ridge Parkway" and the trip brief doesn't hold it. The note is fine as a route plan, but the parkway is only in memory.
 - Fails: "Hotel breakfast is fine every morning on this trip." That's hotel breakfast vs local food for the whole trip, which the meal preferences cover.
 - Passes: "Not interested in the LBJ Ranch tour." It's not a must-see or a preference the trip brief covers. The user only said it wasn't for them, so a note fits better than rejecting the place for good.
 
