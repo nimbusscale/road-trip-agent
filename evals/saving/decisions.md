@@ -86,7 +86,7 @@ Settled 2026-11-10, in chat, from set 1 item 3 and set 2 items 4 and 8. It repla
 What matters is that each thing goes to the right kind of place: the trip brief, trip memory, user memory, or the itinerary. Which trip brief item holds it matters much less. Many things fit two items, and even a person would have trouble putting them in one box. Requiring one would turn into chasing the right free text field. So one trip brief item repeating another never fails, general or specific.
 
 - Passes: fish and chips in Astoria in both the must-sees and the meal preferences (set 1 item 3).
-- Passes: breakfast in Port Townsend on the first day in both the must-sees and the meal preferences, and the night at a park lodge in both the must-sees and the lodging preferences (set 1 item 3). "We're happy to splurge on the park lodge" reads as definite, so it's a must-see too.
+- Passes: breakfast in Port Townsend on the first day in both the must-sees and the meal preferences, and the night at a park lodge in both the must-sees and the lodging preferences (set 1 item 3). "We're happy to splurge on the park lodge" reads as definite, so it's a must-see too. Since decision 16, "on the first day" in the must-sees fails F5, as when the breakfast happens. The repeat still passes.
 - Passes: "the Miami food scene is the thing I'm really most interested in" in both the must-sees and the meal preferences (set 2 item 4).
 - Passes: "maybe the Hemingway house" in both the interests and the must-sees, as a repeat (set 2 item 8). The must-sees copy still fails F5, since a "maybe" isn't a must-see.
 
@@ -160,7 +160,7 @@ The coordinator offered two ways to see the Montauk lighthouse, and the user wro
 
 Settled 2026-11-10, in chat, from set 6 item 3 and set 10 item 3.
 
-"Also take the cog railway up Pikes Peak on the last day" was in the must-sees (span `cc87d721bb9cf409`). The user had asked for Pikes Peak on the last day. "On the last day" fails F5: it's when the stop happens, which the itinerary holds. The Route 66 turn 1 must-sees had "breakfast at Lou Mitchell's first thing on Day 1" (span `6aa93502c671f724`), also the user's own words. It fails F5 the same way. Joe first thought Day 1 might be different, since that's where the trip starts, but kept the two the same. The food spots pass as must-sees: the user named them on their own, and "breakfast" says what the place is for, as "sunset at the rim" does. Check 5 now names which day something happens as a plan choice.
+"Also take the cog railway up Pikes Peak on the last day" was in the must-sees (span `cc87d721bb9cf409`). The user had asked for Pikes Peak on the last day. "On the last day" fails F5: it's when the stop happens, which the itinerary holds. The Route 66 turn 1 must-sees had "breakfast at Lou Mitchell's first thing on Day 1" (span `6aa93502c671f724`), also the user's own words. It fails F5 the same way. Joe first thought Day 1 might be different, since that's where the trip starts, but kept the two the same. The food spots pass as must-sees: the user named them on their own, and "breakfast" says what the place is for, as "sunset at the rim" does. Check 5 now names which day something happens as a plan choice. After the 36-turn check on rubric `03e5bfe`, Joe changed his calibration label for set 1 item 3 save 1 to F5, for "breakfast in Port Townsend on the first day" in the must-sees, the same pattern.
 
 ## 17. The part a note is about passes F2 and F3, but a detail it doesn't need fails
 
