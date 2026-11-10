@@ -55,12 +55,15 @@ import { judgeCorpus } from "./corpus-judge.js";
 import { groundedLabelSchema } from "./label-answer.schema.js";
 import {
   EVALS_DIR,
+  GROUNDED_LABELING,
   INPUTS_DIR,
+} from "./grounded-labeling.js";
+import {
   isLabelerName,
   LABELERS,
   type LabelerName,
   readAnswers,
-  type Rubric,
+  readRubric,
   runLabeler,
   setFolderName,
 } from "./labeling.js";
@@ -80,7 +83,11 @@ const ACTIONS: Record<string, Action> = {
   inputs: writeInputs,
   label: (phoenixUrl, args) => {
     const { labeler, set } = labelerAndSet(args);
-    runLabeler(labeler, set, spanIdsIn(set), readRubric(args[2]));
+    runLabeler(
+      GROUNDED_LABELING,
+      { labeler, set, spanIds: spanIdsIn(set) },
+      readRubric(args[2] ?? RUBRIC_PATH),
+    );
   },
   "save-labels": saveLabels,
   "save-call": saveCall,
@@ -89,7 +96,7 @@ const ACTIONS: Record<string, Action> = {
   "push-prompt": pushPrompt,
   "judge-corpus": judgeAllTurns,
   experiment: (phoenixUrl, args) => {
-    const version = args[0] ?? readRubric().version;
+    const version = args[0] ?? readRubric(RUBRIC_PATH).version;
     return runJudgeExperiment(phoenixUrl, version, commitSubjectOf(version));
   },
 };
@@ -105,8 +112,12 @@ async function main(): Promise<void> {
 
 async function saveLabels(phoenixUrl: string, args: string[]): Promise<void> {
   const { labeler, set } = labelerAndSet(args);
-  const { version } = readRubric();
-  const answers = readAnswers(labeler, set, spanIdsIn(set), version);
+  const { version } = readRubric(RUBRIC_PATH);
+  const answers = readAnswers(
+    GROUNDED_LABELING,
+    { labeler, set, spanIds: spanIdsIn(set) },
+    version,
+  );
   await saveAnnotations(
     phoenixUrl,
     { name: "grounded", identifier: labeler, kind: "LLM" },
@@ -117,7 +128,7 @@ async function saveLabels(phoenixUrl: string, args: string[]): Promise<void> {
 }
 
 async function pushPrompt(phoenixUrl: string): Promise<void> {
-  const rubric = readRubric();
+  const rubric = readRubric(RUBRIC_PATH);
   const pushed = await pushJudgePrompt(phoenixUrl, rubric);
   console.log(
     pushed
@@ -127,7 +138,7 @@ async function pushPrompt(phoenixUrl: string): Promise<void> {
 }
 
 async function judgeAllTurns(phoenixUrl: string): Promise<void> {
-  const { version } = readRubric();
+  const { version } = readRubric(RUBRIC_PATH);
   const { labels, failed } = await judgeCorpus(phoenixUrl, version);
   console.log(
     `Saved the judge's labels, on rubric ${version}: ${[...labels].map(([label, count]) => `${String(count)} ${label}`).join(", ")}.`,
@@ -168,7 +179,7 @@ async function saveCall(phoenixUrl: string, args: string[]): Promise<void> {
     phoenixUrl,
     { name: "grounded", identifier: "joe", kind: "HUMAN" },
     new Map([[spanId, { label, facts }]]),
-    readRubric().version,
+    readRubric(RUBRIC_PATH).version,
   );
   console.log(`Saved Joe's call on ${spanId}: ${label}.`);
 }
@@ -255,24 +266,6 @@ function labelerAndSet(args: string[]): { labeler: LabelerName; set: number } {
     );
   }
   return { labeler, set };
-}
-
-// The rubric, with the commit that last changed it as its version. It must be
-// committed, so `git show <version>:evals/grounded/rubric.md` gives the exact text
-// each label was made with.
-function readRubric(path = RUBRIC_PATH): Rubric {
-  const changes = execFileSync("git", ["status", "--porcelain", "--", path], {
-    encoding: "utf8",
-  });
-  if (changes.trim() !== "") {
-    throw new Error(`Commit ${path} first, so its commit names this version.`);
-  }
-  const version = execFileSync(
-    "git",
-    ["log", "-1", "--format=%h", "--", path],
-    { encoding: "utf8" },
-  ).trim();
-  return { text: readFileSync(path, "utf8"), version };
 }
 
 // The rubric commit's subject line, which says what that version changed.

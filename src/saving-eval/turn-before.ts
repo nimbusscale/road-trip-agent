@@ -76,6 +76,50 @@ export function versionTurnOf(
   return found.turn;
 }
 
+// What's wrong with how a session's turns match its trip versions, from #287's review:
+// each turn should match a later version than the turn before it. A failed turn reuses
+// its version's number, and two turns with the same words, such as "yes", can match the
+// wrong ones when a trace is missing. Then a reading page or a labeler's input shows the
+// trip as it stood before a different turn. The messages are the session's
+// coordinator.turn spans' messages, in order.
+export function versionOrderProblems(
+  agentSessionId: string,
+  spanMessages: readonly string[],
+  versions: readonly VersionMessage[],
+): string[] {
+  const problems: string[] = [];
+  let last: { span: number; turn: number } | null = null;
+  for (const [index, message] of spanMessages.entries()) {
+    const span = index + 1;
+    const turn = matchedTurnOf(
+      { agentSessionId, spanPosition: span, message },
+      versions,
+    );
+    if (turn === null) {
+      problems.push(`Span ${String(span)} has no trip version with its words.`);
+      continue;
+    }
+    if (last !== null && turn <= last.turn) {
+      problems.push(
+        `Span ${String(span)} matched version turn ${String(turn)}, but span ${String(last.span)} matched turn ${String(last.turn)}.`,
+      );
+    }
+    last = { span, turn };
+  }
+  return problems;
+}
+
+function matchedTurnOf(
+  ref: RecordedTurnRef,
+  versions: readonly VersionMessage[],
+): number | null {
+  try {
+    return versionTurnOf(ref, versions);
+  } catch {
+    return null;
+  }
+}
+
 // The version's trip is built only to be read, so its ID and owner are never used.
 function stateOf(
   version: VersionRow,

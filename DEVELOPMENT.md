@@ -28,7 +28,7 @@ Claude Code writes the code, Joe reviews the code he cares about, and the tools 
 | `npm run run-turn` | Starts a run from one turn of a recorded session, and runs that turn on today's code, for an agent evaluation (persistence design, section 8.9). Dev only. Section 5 says how to use it |
 | `npm run run-worker` | Runs one recorded worker run on its own, on today's code, for an agent evaluation (#266). Dev only. Section 5 says how to use it |
 | `npm run candidate-refusals` | The candidate refusals evaluation (#266), as `-- dataset` or `-- experiment`. Dev only. The comment at the top of `src/worker-run/candidate-refusals.ts` says what each does |
-| `npm run saving` | The saving to the right place evaluation (#209), as `-- turns` or `-- review <set>`. Dev only. Section 5 says how it's used, and the comment at the top of `src/saving-eval/saving.ts` says what each does |
+| `npm run saving` | The saving to the right place evaluation (#209), as `-- turns`, `-- review <set>`, `-- inputs <set> ...`, `-- label <labeler> <set> ...`, or `-- check-versions`. Dev only. Section 5 says how it's used, and the comment at the top of `src/saving-eval/saving.ts` says what each does |
 | `npm run build` | Builds the app into `dist/app` and the front end into `dist/web`, as the images do |
 | `npm run check` | Runs every check below, stopping at the first failure |
 | `npm run format` | Formats the code in `src/` and `web/` with Prettier |
@@ -140,6 +140,9 @@ npm run run-worker -- <agent session ID> <Agent tool_use ID>
 - **The page shows each turn as it happened,** with its saves marked, and the trip brief, memory, and whole itinerary as they stood when it started. Those come from the turn's trip version in the live database, shown as `read_trip_brief` and `read_itinerary` would show them on today's code.
 - **A turn's version is found by the user's words, not by counting spans.** Phoenix can be missing a turn's trace, so its place among the session's spans can come before its version's turn. The page gives the version's turn number.
 - **The notes file is never written over,** so a set's page can be rebuilt without losing Joe's notes.
+- **A labeler reads each turn as the rubric's "What you're given" says,** built by `src/saving-eval/labeler-input.ts`: `<before>`, the trip as the reading page shows it; `<earlier_turns>`, with only each turn's user message and reply; and `<turn>`, with every call that went through and the saves numbered. Refused calls are left out, so a turn whose saves were all refused isn't labeled. `npm run saving -- inputs <set> ...` writes the inputs, to read what a labeler gets, in `~/tmp/road-trip-evals/saving/inputs/`.
+- **`npm run saving -- label <labeler> <set> ...` writes the sets' inputs, then runs the labeler on them,** with the committed rubric, as the grounded evaluator's `label` does. `src/grounded-eval/labeling.ts` runs both evaluators' labelers. The answers stay in local JSON files, in `~/tmp/road-trip-evals/saving/labeling/<rubric commit>/`, through the pilot, since the batch may be relabeled. They go to Phoenix when the golden set is built. It says which answers don't have one entry for each save.
+- **`npm run saving -- check-versions` checks that each session's turns match trip versions that only go up.** A match can go wrong after a failed turn, or with two turns of the same words when a trace is missing.
 
 ---
 

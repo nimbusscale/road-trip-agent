@@ -1,29 +1,48 @@
-import { spawnSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
-import {
-  claudeResultSchema,
-  type LabelAnswer,
-  labelAnswerJsonSchema,
-  labelAnswerSchema,
-} from "./label-answer.schema.js";
+import { claudeResultSchema } from "./label-answer.schema.js";
 
-// Everything a labeler reads or writes is outside the repo, so a harness started there
-// doesn't load the repo's CLAUDE.md (#282, step 4).
-export const EVALS_DIR = join(homedir(), "tmp", "road-trip-evals", "grounded");
-export const INPUTS_DIR = join(EVALS_DIR, "inputs");
-const LABELING_DIR = join(EVALS_DIR, "labeling");
-const ANSWER_SCHEMA_PATH = join(LABELING_DIR, "answer-schema.json");
+// What sets one evaluator's labeling apart from another's (#282, #209): where its files
+// go, the heading its input goes under after the rubric, and its answer's schema.
+export interface LabelingTask<Answer> {
+  // The evaluator's folder outside the repo, such as ~/tmp/road-trip-evals/grounded.
+  // Everything a labeler reads or writes is there, so a harness started there doesn't
+  // load the repo's CLAUDE.md (#282, step 4).
+  evalsDir: string;
+  inputHeading: string;
+  // The answer's JSON Schema, which the harnesses check the answer against.
+  answerJsonSchema: string;
+  parseAnswer: (answer: unknown) => Answer;
+}
+
+// One labeler on one set's turns.
+export interface LabelingRun {
+  labeler: LabelerName;
+  set: number;
+  spanIds: string[];
+}
+
+// Each turn's input, as the labeler reads it after the rubric, goes in its set's folder
+// here, such as inputs/set-01/<span ID>.md.
+export function inputsDirOf(evalsDir: string): string {
+  return join(evalsDir, "inputs");
+}
+
+function labelingDirOf(evalsDir: string): string {
+  return join(evalsDir, "labeling");
+}
 
 // Claude Code signs in once in the simulated users' config folder, which keeps out
 // Joe's own CLAUDE.md, settings, and memory (simulated-users/README.md).
 const CLAUDE_CONFIG_DIR = join(homedir(), "tmp", "road-trip-sims", ".claude");
 
-// The answer's JSON Schema, and where the answer goes.
+// The answer's JSON Schema, as text and as a file, and where the answer goes.
 interface HarnessFiles {
   answerSchema: string;
+  answerSchemaPath: string;
   answerPath: string;
 }
 
@@ -82,7 +101,7 @@ function codexLabeler(model: string, effort: Effort): Labeler {
   return {
     command: "codex",
     savesStdout: false,
-    args: ({ answerPath }) => [
+    args: ({ answerSchemaPath, answerPath }) => [
       "exec",
       "--ignore-user-config",
       "--ignore-rules",
@@ -95,7 +114,7 @@ function codexLabeler(model: string, effort: Effort): Labeler {
       "-s",
       "read-only",
       "--output-schema",
-      ANSWER_SCHEMA_PATH,
+      answerSchemaPath,
       "-o",
       answerPath,
       "-",
@@ -118,82 +137,112 @@ export interface Rubric {
 
 // Each rubric version's answers are kept apart, so a rerun never mixes them.
 function answersDirOf(
+  evalsDir: string,
   rubricVersion: string,
-  set: number,
-  labeler: LabelerName,
+  { set, labeler }: LabelingRun,
 ): string {
-  return join(LABELING_DIR, rubricVersion, setFolderName(set), labeler);
+  return join(
+    labelingDirOf(evalsDir),
+    rubricVersion,
+    setFolderName(set),
+    labeler,
+  );
 }
 
 export function setFolderName(set: number): string {
   return `set-${String(set).padStart(2, "0")}`;
 }
 
-// The labeler's prompt: the rubric, then the turn's judge input. The judge gets the
-// same text in step 8.
-export function labelPromptOf(rubric: string, judgeInput: string): string {
-  return `${rubric.trim()}\n\n## The conversation\n\n${judgeInput.trim()}\n`;
+// The labeler's prompt: the rubric, then the turn's input under the task's heading.
+// The judge gets the same text.
+export function labelPromptOf(
+  task: Pick<LabelingTask<unknown>, "inputHeading">,
+  rubric: string,
+  input: string,
+): string {
+  return `${rubric.trim()}\n\n## ${task.inputHeading}\n\n${input.trim()}\n`;
+}
+
+// The rubric at a path, with the commit that last changed it as its version. It must
+// be committed, so `git show <version>:<path>` gives the exact text each label was made
+// with.
+export function readRubric(path: string): Rubric {
+  const changes = execFileSync("git", ["status", "--porcelain", "--", path], {
+    encoding: "utf8",
+  });
+  if (changes.trim() !== "") {
+    throw new Error(`Commit ${path} first, so its commit names this version.`);
+  }
+  const version = execFileSync(
+    "git",
+    ["log", "-1", "--format=%h", "--", path],
+    { encoding: "utf8" },
+  ).trim();
+  return { text: readFileSync(path, "utf8"), version };
 }
 
 // Runs the labeler on each turn in the set that has no answer yet, and saves what its
 // harness printed. An answer already there is kept, so a run cut off partway can go on.
-export function runLabeler(
-  labeler: LabelerName,
-  set: number,
-  spanIds: string[],
+export function runLabeler<Answer>(
+  task: LabelingTask<Answer>,
+  run: LabelingRun,
   rubric: Rubric,
 ): void {
-  const answersDir = answersDirOf(rubric.version, set, labeler);
+  const answersDir = answersDirOf(task.evalsDir, rubric.version, run);
   mkdirSync(answersDir, { recursive: true });
-  writeFileSync(ANSWER_SCHEMA_PATH, labelAnswerJsonSchema());
-  const { command, args, savesStdout } = LABELERS[labeler];
-  for (const spanId of spanIds) {
+  const answerSchemaPath = join(
+    labelingDirOf(task.evalsDir),
+    "answer-schema.json",
+  );
+  writeFileSync(answerSchemaPath, task.answerJsonSchema);
+  const { command, args, savesStdout } = LABELERS[run.labeler];
+  for (const spanId of run.spanIds) {
     const answerPath = join(answersDir, `${spanId}.txt`);
     if (existsSync(answerPath)) {
       continue;
     }
     const input = readFileSync(
-      join(INPUTS_DIR, setFolderName(set), `${spanId}.md`),
+      join(inputsDirOf(task.evalsDir), setFolderName(run.set), `${spanId}.md`),
       "utf8",
     );
-    console.log(`${labeler}: labeling ${spanId}`);
-    const run = spawnSync(
+    console.log(`${run.labeler}: labeling ${spanId}`);
+    const result = spawnSync(
       command,
-      args({ answerSchema: labelAnswerJsonSchema(), answerPath }),
+      args({
+        answerSchema: task.answerJsonSchema,
+        answerSchemaPath,
+        answerPath,
+      }),
       {
-        cwd: LABELING_DIR,
-        input: labelPromptOf(rubric.text, input),
+        cwd: labelingDirOf(task.evalsDir),
+        input: labelPromptOf(task, rubric.text, input),
         encoding: "utf8",
         env: harnessEnv(),
         maxBuffer: 64 * 1024 * 1024,
       },
     );
-    if (run.status !== 0) {
-      throw new Error(`${labeler} failed on ${spanId}: ${run.stderr}`);
+    if (result.status !== 0) {
+      throw new Error(`${run.labeler} failed on ${spanId}: ${result.stderr}`);
     }
     // Codex's log shows each command it ran, to check it read nothing else.
     writeFileSync(
       savesStdout ? answerPath : join(answersDir, `${spanId}.log`),
-      savesStdout ? run.stdout : `${run.stdout}${run.stderr}`,
+      savesStdout ? result.stdout : `${result.stdout}${result.stderr}`,
     );
   }
 }
 
 // Reads and checks the labeler's answer for each turn in the set.
-export function readAnswers(
-  labeler: LabelerName,
-  set: number,
-  spanIds: string[],
+export function readAnswers<Answer>(
+  task: LabelingTask<Answer>,
+  run: LabelingRun,
   rubricVersion: string,
-): Map<string, LabelAnswer> {
-  const answersDir = answersDirOf(rubricVersion, set, labeler);
+): Map<string, Answer> {
+  const answersDir = answersDirOf(task.evalsDir, rubricVersion, run);
   return new Map(
-    spanIds.map((spanId) => {
+    run.spanIds.map((spanId) => {
       const output = readFileSync(join(answersDir, `${spanId}.txt`), "utf8");
-      return [
-        spanId,
-        labelAnswerSchema.parse(LABELERS[labeler].answerOf(output)),
-      ];
+      return [spanId, task.parseAnswer(LABELERS[run.labeler].answerOf(output))];
     }),
   );
 }
