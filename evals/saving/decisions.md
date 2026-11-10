@@ -149,3 +149,35 @@ Key West and the Dry Tortugas pass. The user's "maybe even making it down to Key
 Settled 2026-11-10, in chat, from set 3 item 1.
 
 "Staying with their friend Mike in Silver Lake at the end, and wants to be at Mike's by noon on Saturday, May 15. No lunch stop that day, and no other plane stops on the last day." (mem_5sud5c48) is one thing. The user said to skip the other plane stops because "we want to be at mikes by noon". The coordinator read "no lunch stop" from the same answer. Both would change with the arrival time. The test: if the first part changed, would the rest change with it?
+
+## 15. A place the user picked from the coordinator's options isn't a must-see
+
+Settled 2026-11-10, in chat, from set 7 item 4, after the full labeling on rubric `49b4a5c`.
+
+The coordinator offered two ways to see the Montauk lighthouse, and the user wrote "Option 2 for the lighthouse." The trip memory item (in span `38873afd637d5031`) saved the choice of Montauk Point State Park, and why. Sol failed it F4, as a must-see that's only in memory. Joe passed it. A must-see is something the user brings up on their own, as one of the reasons for the trip. Picking from the coordinator's options, or keeping a pick after hearing it's closed, is the user agreeing to an option. Check 4's must-see now says so.
+
+## 16. Which day a must-see happens is the itinerary's, even when the user picked the day
+
+Settled 2026-11-10, in chat, from set 6 item 3 and set 10 item 3.
+
+"Also take the cog railway up Pikes Peak on the last day" was in the must-sees (span `cc87d721bb9cf409`). The user had asked for Pikes Peak on the last day. "On the last day" fails F5: it's when the stop happens, which the itinerary holds. The Route 66 turn 1 must-sees had "breakfast at Lou Mitchell's first thing on Day 1" (span `6aa93502c671f724`), also the user's own words. It fails F5 the same way. Joe first thought Day 1 might be different, since that's where the trip starts, but kept the two the same. The food spots pass as must-sees: the user named them on their own, and "breakfast" says what the place is for, as "sunset at the rim" does. Check 5 now names which day something happens as a plan choice.
+
+## 17. The part a note is about passes F2 and F3, but a detail it doesn't need fails
+
+Settled 2026-11-10, in chat, from set 5 item 5, set 7 item 9, and set 8 item 3.
+
+- Passes F2: "Torrey night: they want to rest at the motel after an early dinner until about 12:30 a.m., then stargaze in Capitol Reef at 1 a.m. Adjust the check-in's length once dinner's place and time are known." (span `819bdbf27c9274f2`). The point of the note is the open item in the second sentence. The first sentence sets the scene for it.
+- Passes F2 and F3: "Grand Canyon South Rim on the Holbrook-to-Williams day, staying through sunset; a later dinner in Williams is fine. Dropped the Flagstaff roadhouse stop to make room for the canyon." (span `bd77ef559f460de7`). The canyon visit is the reason the late dinner is fine and the roadhouse was dropped. If the visit moved, both would change. The coordinator suggested dropping the roadhouse, and the user agreed. The item still fails F1, since "They'll book their own room near LAX for Friday night, October 15" is a second thing.
+- Fails F3: "(Delicate Arch at sunrise)" in the route plan (span `e3c82ef5ccb36427`), when the must-sees hold Delicate Arch at sunrise. The route needs Arches, not the sunrise.
+
+## 18. The other splits from the full labeling follow the rubric as written
+
+Settled 2026-11-10, in chat, from set 9 item 3.
+
+"Prefer earlier dinners, ideally 6:00 to 6:30 p.m. and no later than 7:00. Lobster ice cream at Ben & Bill's on Friday, not Thursday: no ice cream after the alumni event." (span `e88b1eac11c1c052`, Bar Harbor turn 10) fails F1 and F6. The user said "we would prefer earlier dinners in general", which is a standing habit, so it belongs in user memory.
+
+## 19. Opus is the only labeler from here, and the rubric change is checked on 36 turns, not a full relabel
+
+Settled 2026-11-10, in chat.
+
+Sol was there to give a second, independent reading, so the splits would show where the rubric was unclear. It did that on the full labeling. From here, Opus labels alone. The full labeling stays on rubric `49b4a5c`, with Joe's calls on its splits. Decisions 15 to 17 changed checks 2 to 5, so Opus labels again, on the new rubric, the 6 split turns those decisions are about and the 30 calibration turns in sets 1 to 3, to check the change fixed the splits and loosened nothing. The other 67 turns aren't relabeled.
