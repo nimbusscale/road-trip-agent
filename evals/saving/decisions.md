@@ -181,3 +181,5 @@ Settled 2026-11-10, in chat, from set 9 item 3.
 Settled 2026-11-10, in chat.
 
 Sol was there to give a second, independent reading, so the splits would show where the rubric was unclear. It did that on the full labeling. From here, Opus labels alone. The full labeling stays on rubric `49b4a5c`, with Joe's calls on its splits. Decisions 15 to 17 changed checks 2 to 5, so Opus labels again, on the new rubric, the 6 split turns those decisions are about and the 30 calibration turns in sets 1 to 3, to check the change fixed the splits and loosened nothing. The other 67 turns aren't relabeled.
+
+The golden set is built from the full labeling, not from the 36-turn check. Joe's calls on its splits are in `split-calls.json`, in the same shape as `calibration.json`, with each called save's full checks. A save the labelers agreed on takes their label, and a calibration save takes Joe's.

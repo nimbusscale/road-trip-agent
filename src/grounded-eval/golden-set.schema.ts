@@ -82,7 +82,7 @@ export async function patchExamples(
         input: {
           datasetId,
           operations,
-          versionDescription: `Updated ${String(changed.length)} turns from the grounded annotations.`,
+          versionDescription: `Updated ${String(changed.length)} turns.`,
         },
       },
     }),
