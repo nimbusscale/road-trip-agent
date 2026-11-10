@@ -11,6 +11,7 @@ import {
 import {
   comparisonOf,
   comparisonReportOf,
+  type LabeledSave,
   labeledSavesOf,
   type SaveRef,
 } from "./label-compare.js";
@@ -28,6 +29,7 @@ import { EVALS_DIR, SAVING_LABELING } from "./saving-labeling.js";
 export const TURNS_PATH = join("evals", "saving", "turns.json");
 export const RUBRIC_PATH = join("evals", "saving", "rubric.md");
 const CALIBRATION_PATH = join("evals", "saving", "calibration.json");
+const SPLIT_CALLS_PATH = join("evals", "saving", "split-calls.json");
 
 export function readTurnsFile(): TurnsFile {
   return turnsFileSchema.parse(JSON.parse(readFileSync(TURNS_PATH, "utf8")));
@@ -51,8 +53,34 @@ export function joeLabelsOf(set: number): Map<string, CalibrationTurn> {
 }
 
 function readCalibration(): CalibrationFile {
-  return calibrationFileSchema.parse(
-    JSON.parse(readFileSync(CALIBRATION_PATH, "utf8")),
+  return readLabelsFile(CALIBRATION_PATH);
+}
+
+// Joe's labels in calibration.json or split-calls.json, which share a shape.
+function readLabelsFile(path: string): CalibrationFile {
+  return calibrationFileSchema.parse(JSON.parse(readFileSync(path, "utf8")));
+}
+
+// Every save in the sets, with the labelers' answers on the given rubric version, and
+// Joe's labels: the calibration sets' in calibration.json, and his calls on the full
+// labeling's splits in split-calls.json, for the saves he called.
+export function goldenSavesOf(
+  sets: readonly number[],
+  labelers: readonly LabelerName[],
+  rubricVersion: string,
+): LabeledSave[] {
+  const joe = {
+    turns: [
+      ...readCalibration().turns,
+      ...readLabelsFile(SPLIT_CALLS_PATH).turns,
+    ],
+  };
+  return sets.flatMap((set) =>
+    labeledSavesOf(
+      saveRefsOf(set),
+      answersAt(set, labelers, rubricVersion),
+      joe,
+    ),
   );
 }
 
@@ -89,8 +117,15 @@ export function labelsOf(
   if (labelers.length === 0) {
     return {};
   }
+  return answersAt(set, labelers, readRubric(RUBRIC_PATH).version);
+}
+
+function answersAt(
+  set: number,
+  labelers: readonly LabelerName[],
+  version: string,
+): Record<string, Map<string, SavingAnswer>> {
   const spanIds = labeledTurnsOf(set).map((turn) => turn.spanId);
-  const { version } = readRubric(RUBRIC_PATH);
   return Object.fromEntries(
     labelers.map((labeler) => [
       labeler,

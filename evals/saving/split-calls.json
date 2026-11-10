@@ -1,0 +1,99 @@
+{
+  "turns": [
+    {
+      "set": 5,
+      "spanId": "e3c82ef5ccb36427",
+      "saves": [
+        {
+          "n": 2,
+          "tool": "add_memory_item",
+          "checks": [
+            "F3"
+          ],
+          "note": "\"(Delicate Arch at sunrise)\" repeats the must-sees, and the route plan needs Arches, not the sunrise (decision 17)."
+        }
+      ]
+    },
+    {
+      "set": 6,
+      "spanId": "cc87d721bb9cf409",
+      "saves": [
+        {
+          "n": 1,
+          "tool": "update_trip_brief",
+          "checks": [
+            "F5"
+          ],
+          "note": "\"On the last day\" is when the cog railway happens, which the itinerary holds, though the user picked the day (decision 16)."
+        }
+      ]
+    },
+    {
+      "set": 7,
+      "spanId": "38873afd637d5031",
+      "saves": [
+        {
+          "n": 1,
+          "tool": "add_memory_item",
+          "checks": [],
+          "note": "The user picked the state park from the coordinator's options, so it isn't a must-see (decision 15)."
+        }
+      ]
+    },
+    {
+      "set": 7,
+      "spanId": "819bdbf27c9274f2",
+      "saves": [
+        {
+          "n": 1,
+          "tool": "add_memory_item",
+          "checks": [],
+          "note": "The evening plan sets the scene for the open item about the check-in's length (decision 17)."
+        }
+      ]
+    },
+    {
+      "set": 8,
+      "spanId": "bd77ef559f460de7",
+      "saves": [
+        {
+          "n": 2,
+          "tool": "add_memory_item",
+          "checks": [
+            "F1"
+          ],
+          "note": "The canyon visit is the reason the late dinner is fine and the roadhouse was dropped. The LAX room is a second thing (decision 17)."
+        }
+      ]
+    },
+    {
+      "set": 9,
+      "spanId": "e88b1eac11c1c052",
+      "saves": [
+        {
+          "n": 1,
+          "tool": "add_memory_item",
+          "checks": [
+            "F1",
+            "F6"
+          ],
+          "note": "Two things in one item, and \"we would prefer earlier dinners in general\" is a standing habit, for user memory (decision 18)."
+        }
+      ]
+    },
+    {
+      "set": 10,
+      "spanId": "6aa93502c671f724",
+      "saves": [
+        {
+          "n": 1,
+          "tool": "update_trip_brief",
+          "checks": [
+            "F5"
+          ],
+          "note": "\"First thing on Day 1\" is when the breakfast happens, which the itinerary holds (decision 16)."
+        }
+      ]
+    }
+  ]
+}

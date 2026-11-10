@@ -32,6 +32,12 @@
 // npm run saving -- check-versions
 //   Checks that each session's turns match trip versions that only go up, for every
 //   session in evals/saving/turns.json, and says which don't.
+// npm run saving -- golden
+//   Saves the golden set as the saving-golden dataset in Phoenix: each turn's labeler
+//   input, with each save's settled checks. A save's label is Joe's, from
+//   evals/saving/calibration.json or evals/saving/split-calls.json, or else the checks
+//   both labelers fail on the full labeling's rubric. It stops if they split on a save
+//   Joe didn't call. If the dataset is already there, it updates the turns that changed.
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -64,6 +70,7 @@ import {
   TURNS_PATH,
   turnsIn,
 } from "./label-files.js";
+import { writeGoldenSet } from "./golden-set.js";
 import { labelerInputOf, savesIn } from "./labeler-input.js";
 import { notesFileOf, type ReviewItem, reviewPageOf } from "./review-page.js";
 import { type SaveTurn, saveTurnsOf } from "./save-turns.js";
@@ -96,6 +103,7 @@ const ACTIONS: Record<string, Action> = {
   },
   label,
   "check-versions": checkVersions,
+  golden: writeGoldenSet,
 };
 
 async function main(): Promise<void> {
