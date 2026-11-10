@@ -4,15 +4,11 @@ import type {
   MessageCreateParamsNonStreaming,
 } from "@anthropic-ai/sdk/resources/messages/messages";
 import type { AnthropicInvocationParameters } from "@arizeai/phoenix-client/types/prompts";
+import { z } from "zod";
 
-import {
-  answerJsonSchema,
-  type LabelAnswer,
-  labelAnswerSchema,
-} from "./label-answer.schema.js";
-
-// The judge's model settings, as the Phoenix prompt stores them (#282). Haiku takes
-// only adaptive thinking. High effort matched the Claude Code runs on the golden set.
+// The judge's model settings, as the Phoenix prompt stores them (#282, #209). Haiku
+// takes only adaptive thinking. High effort matched the Claude Code runs on the grounded
+// golden set.
 export function judgeInvocationParameters(
   maxTokens: number,
 ): AnthropicInvocationParameters {
@@ -32,12 +28,13 @@ export function promptTagPathOf(
 }
 
 // The request for one turn: the Phoenix prompt with the turn's judge input in its
-// slot, and the answer's JSON schema as the structured output. The slot is filled
-// with a function, so a "$$" in the input stays as it is.
+// slot, and the answer's JSON Schema, as the labelers get it, as the structured
+// output. The slot is filled with a function, so a "$$" in the input stays as it is.
 export function judgeRequestOf(
   prompt: MessageCreateParams,
   slot: string,
   judgeInput: string,
+  answerJsonSchema: string,
 ): MessageCreateParamsNonStreaming {
   return {
     ...prompt,
@@ -55,20 +52,31 @@ export function judgeRequestOf(
     })),
     output_config: {
       ...prompt.output_config,
-      format: { type: "json_schema", schema: judgeAnswerSchema() },
+      format: {
+        type: "json_schema",
+        schema: apiSchemaOf(answerJsonSchema),
+      },
     },
   };
 }
 
 // The answer's schema without its "$schema" line, which the API doesn't need.
-function judgeAnswerSchema(): Record<string, unknown> {
+function apiSchemaOf(answerJsonSchema: string): Record<string, unknown> {
   return Object.fromEntries(
-    Object.entries(answerJsonSchema()).filter(([key]) => key !== "$schema"),
+    Object.entries(jsonSchemaSchema.parse(JSON.parse(answerJsonSchema))).filter(
+      ([key]) => key !== "$schema",
+    ),
   );
 }
 
-// The judge's answer, or an error that says why there's none.
-export function judgeAnswerOf(message: Message): LabelAnswer {
+const jsonSchemaSchema = z.record(z.string(), z.unknown());
+
+// The judge's answer, parsed with the evaluator's answer schema, or an error that
+// says why there's none.
+export function judgeAnswerOf<Answer>(
+  message: Message,
+  parseAnswer: (answer: unknown) => Answer,
+): Answer {
   if (message.stop_reason !== "end_turn") {
     throw new Error(`The judge stopped with ${String(message.stop_reason)}.`);
   }
@@ -76,5 +84,5 @@ export function judgeAnswerOf(message: Message): LabelAnswer {
   if (text === undefined) {
     throw new Error("The judge's reply has no text.");
   }
-  return labelAnswerSchema.parse(JSON.parse(text.text));
+  return parseAnswer(JSON.parse(text.text));
 }

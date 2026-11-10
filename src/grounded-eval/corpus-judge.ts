@@ -1,5 +1,6 @@
 import { readCorpus } from "./corpus-reader.js";
 import { JUDGE_ANNOTATOR, saveAnnotations } from "./grounded-annotations.js";
+import { GROUNDED_JUDGE } from "./grounded-labeling.js";
 import { CONCURRENCY, judgeFor } from "./judge.js";
 import { judgeInputOf } from "./judge-input.js";
 import type { GroundedLabel, LabelAnswer } from "./label-answer.schema.js";
@@ -17,7 +18,7 @@ export async function judgeCorpus(
   phoenixUrl: string,
   rubricVersion: string,
 ): Promise<CorpusRun> {
-  const { judge } = await judgeFor(phoenixUrl, rubricVersion);
+  const { judge } = await judgeFor(phoenixUrl, GROUNDED_JUDGE, rubricVersion);
   const turns = (await readCorpus(phoenixUrl)).flatMap((session) =>
     session.turns.map((turn) => ({
       spanId: turn.spanId,

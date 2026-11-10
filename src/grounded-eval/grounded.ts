@@ -49,12 +49,13 @@ import {
 } from "./grounded-files.schema.js";
 import { saveGoldenSet } from "./golden-set.js";
 import { judgeInputOf } from "./judge-input.js";
-import { JUDGE_PROMPT, pushJudgePrompt } from "./judge-prompt.js";
+import { pushJudgePrompt } from "./judge-prompt.js";
 import { runJudgeExperiment } from "./judge.js";
 import { judgeCorpus } from "./corpus-judge.js";
 import { groundedLabelSchema } from "./label-answer.schema.js";
 import {
   EVALS_DIR,
+  GROUNDED_JUDGE,
   GROUNDED_LABELING,
   INPUTS_DIR,
 } from "./grounded-labeling.js";
@@ -71,7 +72,7 @@ import { reviewPageOf } from "./review-page.js";
 import { pickSample } from "./sample.js";
 
 const SAMPLE_PATH = join("evals", "grounded", "sample.json");
-const RUBRIC_PATH = join("evals", "grounded", "rubric.md");
+const RUBRIC_PATH = GROUNDED_JUDGE.rubricPath;
 const REVIEW_TEMPLATE_PATH = join("evals", "grounded", "review-page.html");
 const SAMPLE_SIZE = 60;
 const SEED = "grounded-282";
@@ -129,11 +130,12 @@ async function saveLabels(phoenixUrl: string, args: string[]): Promise<void> {
 
 async function pushPrompt(phoenixUrl: string): Promise<void> {
   const rubric = readRubric(RUBRIC_PATH);
-  const pushed = await pushJudgePrompt(phoenixUrl, rubric);
+  const pushed = await pushJudgePrompt(phoenixUrl, GROUNDED_JUDGE, rubric);
+  const { promptName } = GROUNDED_JUDGE;
   console.log(
     pushed
-      ? `Pushed rubric ${rubric.version} to ${JUDGE_PROMPT}.`
-      : `${JUDGE_PROMPT} already has rubric ${rubric.version}.`,
+      ? `Pushed rubric ${rubric.version} to ${promptName}.`
+      : `${promptName} already has rubric ${rubric.version}.`,
   );
 }
 
