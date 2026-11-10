@@ -7,6 +7,7 @@ import {
 } from "@arizeai/phoenix-client/prompts";
 
 import { judgeInvocationParameters, promptTagPathOf } from "./judge.schema.js";
+import { GROUNDED_LABELING } from "./grounded-labeling.js";
 import { labelPromptOf, type Rubric } from "./labeling.js";
 
 // The judge's prompt in Phoenix (#282). The repo's rubric stays the source, and each
@@ -55,7 +56,11 @@ export async function pushJudgePrompt(
       template: [
         {
           role: "user",
-          content: labelPromptOf(rubric.text, CONVERSATION_SLOT),
+          content: labelPromptOf(
+            GROUNDED_LABELING,
+            rubric.text,
+            CONVERSATION_SLOT,
+          ),
         },
       ],
       invocationParameters: judgeInvocationParameters(MAX_TOKENS),
