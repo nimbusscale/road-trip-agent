@@ -28,6 +28,7 @@ Claude Code writes the code, Joe reviews the code he cares about, and the tools 
 | `npm run run-turn` | Starts a run from one turn of a recorded session, and runs that turn on today's code, for an agent evaluation (persistence design, section 8.9). Dev only. Section 5 says how to use it |
 | `npm run run-worker` | Runs one recorded worker run on its own, on today's code, for an agent evaluation (#266). Dev only. Section 5 says how to use it |
 | `npm run candidate-refusals` | The candidate refusals evaluation (#266), as `-- dataset` or `-- experiment`. Dev only. The comment at the top of `src/worker-run/candidate-refusals.ts` says what each does |
+| `npm run saving` | The saving to the right place evaluation (#209), as `-- turns` or `-- review <set>`. Dev only. Section 5 says how it's used, and the comment at the top of `src/saving-eval/saving.ts` says what each does |
 | `npm run build` | Builds the app into `dist/app` and the front end into `dist/web`, as the images do |
 | `npm run check` | Runs every check below, stopping at the first failure |
 | `npm run format` | Formats the code in `src/` and `web/` with Prettier |
@@ -133,6 +134,12 @@ npm run run-worker -- <agent session ID> <Agent tool_use ID>
 - **Change a dataset in place, never by deleting it.** Deleting a dataset deletes its experiments. The `golden` action updates only the changed examples, which makes a new dataset version. Each experiment is scored against the labels as they were when it ran, so after a label changes, score the versions again against today's labels to compare them.
 - **Each judge's labels get their own annotation name.** Phoenix's project page sums up annotations by name only, not by who made them. The labelers and Joe share `grounded`, with an identifier each, and the judge has `grounded-haiku`.
 - **Read the misses both ways, not just the score.** When one label is common, accuracy hides a lopsided judge. 42 of the 60 golden turns are not grounded, so a judge that flags every turn scores 70%. Count the false alarms and the misses apart. They also tell whether the judge's rate on the corpus runs high or low.
+
+**The saving to the right place evaluation starts with Joe reading the turns** (#209). It asks whether what the coordinator saves goes to the right place: the trip brief, trip memory, or user memory. Before any rubric, Joe reads the corpus turns where the coordinator saved there, and writes a free note on each. `npm run saving -- turns` found them once, and wrote them to `evals/saving/turns.json` in sets of 10, mixed across sessions. `npm run saving -- review <set>` writes the set's reading page and notes file, in `~/tmp/road-trip-evals/saving/`. It needs both tunnels, to Phoenix and to the live database.
+
+- **The page shows each turn as it happened,** with its saves marked, and the trip brief, memory, and whole itinerary as they stood when it started. Those come from the turn's trip version in the live database, shown as `read_trip_brief` and `read_itinerary` would show them on today's code.
+- **A turn's version is found by the user's words, not by counting spans.** Phoenix can be missing a turn's trace, so its place among the session's spans can come before its version's turn. The page gives the version's turn number.
+- **The notes file is never written over,** so a set's page can be rebuilt without losing Joe's notes.
 
 ---
 

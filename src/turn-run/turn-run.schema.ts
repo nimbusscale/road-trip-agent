@@ -27,6 +27,13 @@ export const versionRowSchema = z
 
 export type VersionRow = z.infer<typeof versionRowSchema>;
 
+// A trip version's turn and the user's words, for finding a turn by its message.
+export const versionMessageRowSchema = z
+  .object({ turn: z.int().positive(), user_message: z.string() })
+  .transform((row) => ({ turn: row.turn, userMessage: row.user_message }));
+
+export type VersionMessage = z.infer<typeof versionMessageRowSchema>;
+
 // A transcript line row, with its place in the order of the whole session. pg returns a
 // bigint as text.
 export const transcriptRowSchema = z

@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Saving review</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/15.0.12/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.6/purify.min.js"></script>
+<style>
+  :root {
+    --bg: #f7f6f3; --panel: #ffffff; --text: #1f2328; --muted: #656d76;
+    --line: #d8dee4; --user: #eef4ff; --tool: #f3f3f1; --save: #fff6db;
+    --save-line: #d4a72c; --refused: #b42318; --before: #f1f7ef;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #161719; --panel: #1f2124; --text: #e6e6e6; --muted: #9aa0a6;
+      --line: #34373c; --user: #1d2a3d; --tool: #26282b; --save: #3a3118;
+      --save-line: #c49a2c; --refused: #f97066; --before: #1f2b20;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.5 system-ui, -apple-system, sans-serif; }
+  header { position: sticky; top: 0; background: var(--panel); border-bottom: 1px solid var(--line);
+    padding: 10px 16px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; z-index: 2; }
+  header h1 { font-size: 16px; margin: 0 12px 0 0; }
+  header button { font: inherit; padding: 4px 10px; border: 1px solid var(--line); border-radius: 6px;
+    background: var(--bg); color: var(--text); cursor: pointer; }
+  header button[aria-pressed="true"] { border-color: var(--save-line); background: var(--save); }
+  main { max-width: 1500px; margin: 0 auto; padding: 16px;
+    display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  @media (min-width: 1100px) {
+    main { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); }
+    #before { position: sticky; top: 64px; max-height: calc(100vh - 80px); overflow-y: auto; }
+  }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 16px 0 6px; }
+  h2:first-child { margin-top: 0; }
+  .meta { color: var(--muted); font-size: 13px; margin-bottom: 8px; }
+  .meta a { color: inherit; }
+  .block { border-radius: 6px; padding: 8px 12px; margin-top: 8px; overflow-wrap: anywhere; background: var(--panel); }
+  .block h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 4px; }
+  .user { background: var(--user); }
+  .reply { border: 1px solid var(--line); }
+  .save { background: var(--save); border: 2px solid var(--save-line); }
+  .save .field { margin: 4px 0; }
+  .save .field b { font-family: ui-monospace, monospace; font-size: 13px; }
+  .was { color: var(--muted); font-size: 13px; margin-top: 4px; }
+  .refused { color: var(--refused); font-weight: 600; }
+  details.tool { background: var(--tool); border-radius: 6px; margin-top: 6px; }
+  details.tool > summary { padding: 4px 12px; cursor: pointer; font-family: ui-monospace, monospace; font-size: 13px; }
+  details.turn { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; margin-top: 8px; }
+  details.turn > summary { padding: 8px 12px; cursor: pointer; font-weight: 600; }
+  details.turn > summary span { font-weight: 400; color: var(--muted); }
+  .turn-body { padding: 0 12px 12px; }
+  #before .block { background: var(--before); }
+  .brief div { margin: 3px 0; }
+  .brief b { font-family: ui-monospace, monospace; font-size: 13px; }
+  .memory div { margin: 6px 0; }
+  .memory code { color: var(--muted); font-size: 12px; }
+  .none { color: var(--muted); font-style: italic; }
+  pre { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; padding: 4px 12px 10px;
+    font: 13px/1.45 ui-monospace, monospace; }
+  .md > :first-child { margin-top: 0; } .md > :last-child { margin-bottom: 0; }
+</style>
+</head>
+<body>
+<header id="nav"><h1>Saving review</h1></header>
+<main>
+  <section id="turn"></section>
+  <aside id="before"></aside>
+</main>
+<script id="review-data" type="application/json">/*REVIEW_DATA*/</script>
+<script>
+  const data = JSON.parse(document.getElementById("review-data").textContent);
+  const SAVE_TOOLS = new Set(data.saveTools);
+  const nav = document.getElementById("nav");
+  const turnPane = document.getElementById("turn");
+  const beforePane = document.getElementById("before");
+  nav.querySelector("h1").textContent = `Saving review · set ${data.set}`;
+
+  function el(tag, attrs, children) {
+    const node = document.createElement(tag);
+    Object.entries(attrs || {}).forEach(([k, v]) => node.setAttribute(k, v));
+    (children || []).forEach((c) => node.append(c));
+    return node;
+  }
+  function markdown(text) {
+    const div = el("div", { class: "md" });
+    div.innerHTML = DOMPurify.sanitize(marked.parse(text));
+    return div;
+  }
+  function block(cls, title, children) {
+    return el("div", { class: `block ${cls}` }, [el("h3", {}, [title]), ...children]);
+  }
+  function parsed(input) {
+    try { return JSON.parse(input); } catch { return null; }
+  }
+  // A save shows each field it sent, and for a memory update, the text it replaced.
+  // The page has memory only as it stood before the current turn, so an earlier turn's
+  // save passes null, and shows no replaced text.
+  function saveView(result, memoryBefore) {
+    const input = result.input === null ? null : parsed(result.input);
+    const fields = input === null
+      ? [el("pre", {}, [result.input || ""])]
+      : Object.entries(input).map(([key, value]) =>
+          el("div", { class: "field" }, [el("b", {}, [`${key}: `]), String(value)]));
+    if (result.tool === "update_memory_item" && input !== null && memoryBefore !== null) {
+      const old = memoryBefore.find((item) => item.id === input.itemId);
+      fields.push(el("div", { class: "was" }, [old
+        ? `It replaced (${old.kind} memory): ${old.text}`
+        : "The item it replaced was added in this turn, or isn't in the version."]));
+    }
+    const resultLine = el("div", { class: result.refused ? "was refused" : "was" },
+      [result.refused ? `Refused: ${result.text}` : result.text]);
+    return block("save", result.tool, [...fields, resultLine]);
+  }
+  function otherCall(result) {
+    const name = result.worker ? `worker: ${result.worker}` : result.tool;
+    const summary = el("summary", {}, [name]);
+    if (result.refused) summary.append(" ", el("span", { class: "refused" }, ["refused"]));
+    const parts = result.input === null ? [] : [el("pre", {}, [result.input])];
+    return el("details", { class: "tool" }, [summary, ...parts, el("pre", {}, [result.text])]);
+  }
+  function callView(result) {
+    return !result.worker && SAVE_TOOLS.has(result.tool) ? saveView(result, null) : otherCall(result);
+  }
+  function firstLine(text) {
+    const appLine = (l) => /^(For planning this trip|Today is|From an option card:|This session was resumed|The user forgot memory items)/.test(l);
+    const lines = text.split("\n").filter((l) => l.trim() && !appLine(l));
+    const line = lines[0] || "";
+    return line.length > 90 ? `${line.slice(0, 90)}…` : line;
+  }
+  function earlierTurn(turn) {
+    const body = el("div", { class: "turn-body" }, [
+      block("user", "User", [markdown(turn.userMessage)]),
+      ...turn.toolResults.map(callView),
+      block("reply", "Coordinator reply", [markdown(turn.reply)]),
+    ]);
+    return el("details", { class: "turn" }, [
+      el("summary", {}, [el("span", {}, [firstLine(turn.userMessage)])]), body]);
+  }
+  function briefView(lines) {
+    return block("brief", "Trip brief", lines.map((line) => {
+      const at = line.indexOf(": ");
+      return el("div", {}, [el("b", {}, [`${line.slice(0, at)}: `]), line.slice(at + 2)]);
+    }));
+  }
+  function memoryView(title, items) {
+    const rows = items.length === 0
+      ? [el("div", { class: "none" }, ["Empty."])]
+      : items.map((item) => el("div", {}, [el("code", {}, [`${item.id} `]), item.text]));
+    return block("memory", title, rows);
+  }
+  function showBefore(item) {
+    const memory = item.before.memory;
+    const itinerary = el("details", { class: "tool" }, [
+      el("summary", {}, ["Itinerary (whole read_itinerary)"]),
+      el("pre", {}, [item.before.itineraryLines.join("\n")]),
+    ]);
+    beforePane.replaceChildren(
+      el("h2", {}, [`Before turn ${item.before.turn}`]),
+      briefView(item.before.briefLines),
+      memoryView("Trip memory", memory.filter((m) => m.kind === "trip")),
+      memoryView("User memory", memory.filter((m) => m.kind === "user")),
+      itinerary,
+    );
+  }
+  function showTurn(index, item) {
+    const current = item.current;
+    const memory = item.before.memory;
+    const saves = current.toolResults.filter((r) => !r.worker && SAVE_TOOLS.has(r.tool));
+    const others = current.toolResults.filter((r) => r.worker || !SAVE_TOOLS.has(r.tool));
+    const earlier = [...item.earlier].reverse().map(earlierTurn);
+    turnPane.replaceChildren(
+      el("div", { class: "meta" }, [
+        `Item ${index + 1} of ${data.items.length} · "${item.before.sessionTitle}" · turn ${item.before.turn} of ${item.before.turnsInSession} · span `,
+        el("a", { href: `http://127.0.0.1:6006/redirects/spans/${item.spanId}`, target: "_blank" }, [item.spanId]),
+      ]),
+      el("h2", {}, ["This turn"]),
+      block("user", "User", [markdown(current.userMessage)]),
+      el("h2", {}, ["Saves"]),
+      ...saves.map((r) => saveView(r, memory)),
+      el("h2", {}, [`Other calls (${others.length}), in order`]),
+      ...others.map(otherCall),
+      block("reply", "Coordinator reply", [markdown(current.reply)]),
+      el("h2", {}, [`Earlier turns in Phoenix (${item.earlier.length}), newest first`]),
+      ...earlier,
+    );
+  }
+  function show(index) {
+    const item = data.items[index];
+    [...nav.querySelectorAll("button")].forEach((b, i) => b.setAttribute("aria-pressed", String(i === index)));
+    showTurn(index, item);
+    showBefore(item);
+    window.scrollTo(0, 0);
+    beforePane.scrollTop = 0;
+  }
+  data.items.forEach((item, i) => {
+    const button = el("button", { type: "button" }, [`Item ${i + 1}`]);
+    button.addEventListener("click", () => show(i));
+    nav.append(button);
+  });
+  show(0);
+</script>
+</body>
+</html>
