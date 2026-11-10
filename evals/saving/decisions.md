@@ -98,7 +98,7 @@ The route plan in trip memory (mem_6u7usug4) also names the ferry, and passes. I
 
 Settled 2026-11-10, in chat.
 
-The rubric's worked examples follow the patterns in this log, but use made-up trips, not quotes from the corpus. Sets 1 and 2 are the calibration set the labelers and the judge are checked against. If the rubric quoted those turns, a labeler could match Joe's labels by copying the rubric, and the check would show less than it seems. The real examples stay in this log and in `calibration.md`, which the labelers don't see.
+The rubric's worked examples follow the patterns in this log, but use made-up trips, not quotes from the corpus. Sets 1 to 3 are the calibration set the labelers and the judge are checked against (set 3 since decision 9). If the rubric quoted those turns, a labeler could match Joe's labels by copying the rubric, and the check would show less than it seems. The real examples stay in this log and in `calibration.md`, which the labelers don't see.
 
 Check 3 (F3) judges a trip memory save against the trip brief and user memory as they stood when the save was made, plus what earlier saves in the same turn set. Passes: the Bar Harbor alumni event item (mem_xdwvj5e6). It was saved in turn 1, and the event went into the must-sees in turn 2, so it repeated nothing when it was saved. What happens to it after that is memory going stale, which isn't graded (decision 4). A coordinator that copied each trip brief item into memory would still fail F3 each time, as "keep 8:30 starts" does.
 
@@ -109,3 +109,43 @@ Settled 2026-11-10, in chat, from Joe's review of the rubric.
 The labelers and the judge get the trip as it stood before the turn, the earlier turns' user messages and replies, and the turn itself in full. The earlier turns' tool calls are left out, since the state before the turn already shows what they did. The user's words stay in, since the coordinator's text can hide a mistake. If the user says "maybe whale watching" and the must-sees get "whale watching", only the user's words show the wish. The earlier replies show what a short answer means, such as the user's "yes" when the Bar Harbor coordinator asked whether the dinner times hold for every trip.
 
 A refused save saved nothing, so it isn't judged. The labelers and the judge don't see refused calls at all, saves or not, since none of them changed anything. When the coordinator tries again and the call goes through, that call is judged, so the same mistake isn't counted twice. Example: in set 1 item 4, the first update to mem_makeytbn was refused for length, and only the retry is labeled.
+
+## 9. Set 3 joins the calibration set
+
+Settled 2026-11-10, in chat, after the pilot labeling on rubric `34eee57`.
+
+Opus and Sol labeled sets 1 to 3. Joe read every label on set 3, both labelers', and accepted the ones they agreed on. Where they split, he made the call. So set 3's labels are in `calibration.md` too, and the labelers are checked against Joe on all three sets.
+
+## 10. F4 stays: a must-see saved only to memory fails, even early in a trip
+
+Settled 2026-11-10, in chat, from set 3 item 2.
+
+The Bar Harbor turn 1 item (mem_xdwvj5e6) saved the alumni event to trip memory while the must-sees were empty. The coordinator put the event in the must-sees in turn 2. Joe first wanted a memory save to pass whenever the trip brief didn't have the thing yet, since the coordinator may still be finding out what goes in the brief. That would leave nothing for F4 to check. He kept F4: without it, the coordinator could keep everything in memory and never fill the trip brief. So the item fails F4 in turn 1. Its dates still pass F2, as #209 says, and it still passes F3 (decision 7).
+
+## 11. A road the user asked for by name belongs in the trip brief
+
+Settled 2026-11-10, in chat, from set 1 item 9.
+
+The user wrote "scenic, including highway 128 by dewey bridge on day 1." The coordinator saved the road only in the trip memory route note (mem_ng52y7j6). That fails F4. A named road can be a must-see (decision 6), so it's a must-see that's only in memory. The route note can still hold it. Check 4 now says so, since only check 5 said a named road counts. Any trip brief item can hold it, such as the focus, as decision 6 says. The first wording said the must-sees, and Sol then failed set 2 item 9, where Highway 1 is in the focus.
+
+## 12. A planning rule in memory, and the part of a note that sets the scene, pass F2
+
+Settled 2026-11-10, in chat, from set 1 item 1 and set 2 item 8.
+
+"Dinner at 6:30 p.m. each night" (mem_2tsnydza) is a rule the plan is built from, not a copy of a stop. It stays true when the plan moves, and shows when the plan breaks it. So it passes F2, even when the itinerary's dinners are at 6:30. Only a note about one stop or one day fails.
+
+"Flying home from Miami; agreed to fly home Sunday, January 31 (instead of Saturday) to fit a night at the Breakers" (mem_nz4fa8fk) is about the agreed date and its reason. "Flying home from Miami" repeats the itinerary's end place, but the rest of the note needs it. A part is judged on its own only when it's a separate note, as the coffee stop is next to the picnic open item in the rubric's Big Bend example.
+
+## 13. The must-sees fail F5 on a fact, but not on a hedge the user settled
+
+Settled 2026-11-10, in chat, from set 2 item 4.
+
+"SpaceX is launching out of there now" was in the must-sees. The user had said "I know SpaceX is launching out of there now, so I don't know if that makes any big deal." It's a fact, not something to see or do, so it fails F5. Check 5 now names a fact as a third kind. Context that says why a must-see matters stays with it, such as Julia wanting to go back for a popover.
+
+Key West and the Dry Tortugas pass. The user's "maybe even making it down to Key West" was about whether it would fit. Every plan the coordinator offered had 3 nights there, and the user picked one. A hedge about whether something fits stops being a wish once the user picks a plan that has it. "Maybe whale watching, if it's a thing at that time" (Bar Harbor) stays a wish, since no plan the user picked had one.
+
+## 14. A fact and what it leads to are one thing, with or without a "so"
+
+Settled 2026-11-10, in chat, from set 3 item 1.
+
+"Staying with their friend Mike in Silver Lake at the end, and wants to be at Mike's by noon on Saturday, May 15. No lunch stop that day, and no other plane stops on the last day." (mem_5sud5c48) is one thing. The user said to skip the other plane stops because "we want to be at mikes by noon". The coordinator read "no lunch stop" from the same answer. Both would change with the arrival time. The test: if the first part changed, would the rest change with it?

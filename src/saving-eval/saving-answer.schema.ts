@@ -6,6 +6,8 @@ import { z } from "zod";
 // output.
 export const savingCheckSchema = z.enum(["F1", "F2", "F3", "F4", "F5", "F6"]);
 
+export type SavingCheck = z.infer<typeof savingCheckSchema>;
+
 const failureSchema = z.strictObject({
   check: savingCheckSchema,
   quote: z.string(),
