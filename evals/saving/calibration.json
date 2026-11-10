@@ -1,0 +1,555 @@
+{
+  "turns": [
+    {
+      "set": 1,
+      "spanId": "21571dea611b65f4",
+      "saves": [
+        {
+          "n": 1,
+          "tool": "add_memory_item",
+          "checks": [
+            "F1"
+          ],
+          "note": "Dinner at 6:30 p.m. each night, and leaving afternoons free, in one item."
+        }
+      ]
+    },
+    {
+      "set": 1,
+      "spanId": "2870d8f5317f11a7",
+      "saves": [
+        {
+          "n": 1,
+          "tool": "update_trip_brief",
+          "checks": [],
+          "note": ""
+        },
+        {
+          "n": 2,
+          "tool": "update_memory_item",
+          "checks": [
+            "F2"
+          ],
+          "note": "\"Now Wednesday night, October 13\" says when the stargazing is (decision 2)."
+        }
+      ]
+    },
+    {
+      "set": 1,
+      "spanId": "b7ff6807ccc1bc8d",
+      "saves": [
+        {
+          "n": 1,
+          "tool": "update_trip_brief",
+          "checks": [],
+          "note": "Fish and chips, the Port Townsend breakfast, and the park lodge are each in two trip brief items, which passes, and the ferry the user named can be a must-see (decision 6)."
+        },
+        {
+          "n": 2,
+          "tool": "add_memory_item",
+          "checks": [],
+          "note": "The arrival date is what the user asked for (decision 2)."
+        },
+        {
+          "n": 3,
+          "tool": "add_memory_item",
+          "checks": [],
+          "note": "It names the ferry as part of the whole route plan (decision 6)."
+        }
+      ]
+    },
+    {
+      "set": 1,
+      "spanId": "2b2f3b957db47f44",
+      "saves": [
+        {
+          "n": 1,
+          "tool": "add_memory_item",
+          "checks": [
+            "F1"
+          ],
+          "note": "Three hotel choices in one item (decision 3)."
+        },
+        {
+          "n": 2,
+          "tool": "add_memory_item",
+          "checks": [],
+          "note": "Not a rejection, since the user only said it wasn't for them."
+        },
+        {
+          "n": 3,
+          "tool": "update_memory_item",
+          "checks": [
+            "F1",
+            "F2"
+          ],
+          "note": "The snorkel plan and the Dry Tortugas morning in one item, and \"coffee at Cuban Coffee Queen\" is in the itinerary (decision 4)."
+        }
+      ]
+    },
+    {
+      "set": 1,
+      "spanId": "0c2867c2dbd0a68e",
+      "saves": [
+        {
+          "n": 1,
+          "tool": "update_trip_brief",
+          "checks": [],
+          "note": ""
+        },
+        {
+          "n": 2,
+          "tool": "add_memory_item",
+          "checks": [],
+          "note": "It gives the reason, and leaves the day open."
+        },
+        {
+          "n": 3,
+          "tool": "add_memory_item",
+          "checks": [
+            "F4"
+          ],
+          "note": "The Wigwam Motel night is a must-see, and is only in memory."
+        }
+      ]
+    },
+    {
+      "set": 1,
+      "spanId": "54f1eb281e66224a",
+      "saves": [
+        {
+          "n": 1,
+          "tool": "update_trip_brief",
+          "checks": [],
+          "note": ""
+        }
+      ]
+    },
+    {
+      "set": 1,
+      "spanId": "e8ff5e9c4d6022a6",
+      "saves": [
+        {
+          "n": 1,
+          "tool": "add_memory_item",
+          "checks": [],
+          "note": ""
+        },
+        {
+          "n": 2,
+          "tool": "add_memory_item",
+          "checks": [
+            "F1"
+          ],
+          "note": "The Portland dinner, the whale watch, and where they sleep mattering less, in one item."
+        }
+      ]
+    },
+    {
+      "set": 1,
+      "spanId": "a524f4d65cf4c50d",
+      "saves": [
+        {
+          "n": 1,
+          "tool": "add_memory_item",
+          "checks": [],
+          "note": "The itinerary can't say they'll take a rideshare and walk to dinner."
+        }
+      ]
+    },
+    {
+      "set": 1,
+      "spanId": "557ea2a79f840f66",
+      "saves": [
+        {
+          "n": 1,
+          "tool": "update_trip_brief",
+          "checks": [],
+          "note": ""
+        },
+        {
+          "n": 2,
+          "tool": "add_memory_item",
+          "checks": [
+            "F3",
+            "F4"
+          ],
+          "note": "\"Scenic preferred\" repeats the route preference. UT-128 past Dewey Bridge is a road the user asked for by name, so it's a must-see, and it's only in memory (changed 2026-11-10, after the pilot labeling)."
+        }
+      ]
+    },
+    {
+      "set": 1,
+      "spanId": "ad9f7394eff95a80",
+      "saves": [
+        {
+          "n": 1,
+          "tool": "add_memory_item",
+          "checks": [
+            "F2",
+            "F4"
+          ],
+          "note": "Hotel or quick breakfasts being fine belongs in the meal preferences, and the Boulder caf\u00e9 is in the itinerary."
+        }
+      ]
+    },
+    {
+      "set": 2,
+      "spanId": "39d32f7cb8cf8d58",
+      "saves": [
+        {
+          "n": 1,
+          "tool": "update_trip_brief",
+          "checks": [],
+          "note": ""
+        },
+        {
+          "n": 2,
+          "tool": "update_memory_item",
+          "checks": [
+            "F1",
+            "F2",
+            "F3"
+          ],
+          "note": "Several notes in one item, Foxtail Coffee is in the itinerary, and \"too much Cuban food\" repeats the meal preferences the same turn changed."
+        }
+      ]
+    },
+    {
+      "set": 2,
+      "spanId": "172d6164cd2432e2",
+      "saves": [
+        {
+          "n": 1,
+          "tool": "add_memory_item",
+          "checks": [],
+          "note": "The user said \"I always like dropping the bags first\"."
+        },
+        {
+          "n": 2,
+          "tool": "add_memory_item",
+          "checks": [
+            "F1",
+            "F2",
+            "F3"
+          ],
+          "note": "Several notes in one item, \"Cozy Dog around 3\" is the itinerary's (and already wrong), and \"keep 8:30 starts\" repeats the usual start time. The flight date passes, and \"they aren't early birds\" passes as the reason for Day 1's start."
+        }
+      ]
+    },
+    {
+      "set": 2,
+      "spanId": "82aeeec52e039f23",
+      "saves": [
+        {
+          "n": 1,
+          "tool": "update_trip_brief",
+          "checks": [],
+          "note": ""
+        }
+      ]
+    },
+    {
+      "set": 2,
+      "spanId": "772393ced8a29db1",
+      "saves": [
+        {
+          "n": 1,
+          "tool": "update_trip_brief",
+          "checks": [
+            "F5"
+          ],
+          "note": "\"SpaceX is launching out of there now\" is a fact, not something to see or do, and \"Snorkeling in the Keys\" is a wish (changed 2026-11-10, after the pilot labeling). Key West and the Dry Tortugas pass: the user's \"maybe\" was about whether they'd fit, and the user picked a plan with them. \"I'm a huge foodie person\" and \"the Miami food scene\" are each in two trip brief items, which passes (decision 6)."
+        },
+        {
+          "n": 2,
+          "tool": "add_memory_item",
+          "checks": [
+            "F1"
+          ],
+          "note": "\"Skipped St. Augustine on purpose\" is a separate choice from the route plan."
+        },
+        {
+          "n": 3,
+          "tool": "add_memory_item",
+          "checks": [
+            "F1",
+            "F6"
+          ],
+          "note": "Four notes in one item, and \"early-morning person\" is a habit for user memory."
+        }
+      ]
+    },
+    {
+      "set": 2,
+      "spanId": "b9e01abc9362b54f",
+      "saves": [
+        {
+          "n": 1,
+          "tool": "update_trip_brief",
+          "checks": [],
+          "note": ""
+        }
+      ]
+    },
+    {
+      "set": 2,
+      "spanId": "1ad14f5d464fd514",
+      "saves": [
+        {
+          "n": 1,
+          "tool": "add_memory_item",
+          "checks": [
+            "F2"
+          ],
+          "note": "It says the day is a rest day, which the itinerary holds, and gives no reason."
+        }
+      ]
+    },
+    {
+      "set": 2,
+      "spanId": "d166ae54f4b36d18",
+      "saves": [
+        {
+          "n": 1,
+          "tool": "update_trip_brief",
+          "checks": [],
+          "note": ""
+        }
+      ]
+    },
+    {
+      "set": 2,
+      "spanId": "4fbac99ee7ebe9be",
+      "saves": [
+        {
+          "n": 1,
+          "tool": "update_trip_brief",
+          "checks": [
+            "F5"
+          ],
+          "note": "\"Maybe the Hemingway house\" is in the must-sees. Its copy in the interests is fine (decision 6)."
+        },
+        {
+          "n": 2,
+          "tool": "add_memory_item",
+          "checks": [
+            "F1"
+          ],
+          "note": "The 7:00 a.m. start and the coffee routine are two habits that can change on their own (changed 2026-11-10, after the pilot labeling)."
+        },
+        {
+          "n": 3,
+          "tool": "add_memory_item",
+          "checks": [],
+          "note": "The user agreed to the January 31 date (decision 2)."
+        }
+      ]
+    },
+    {
+      "set": 2,
+      "spanId": "122a298ff08f51f3",
+      "saves": [
+        {
+          "n": 1,
+          "tool": "update_trip_brief",
+          "checks": [],
+          "note": ""
+        },
+        {
+          "n": 2,
+          "tool": "add_memory_item",
+          "checks": [],
+          "note": ""
+        }
+      ]
+    },
+    {
+      "set": 2,
+      "spanId": "ae7339647f5362b1",
+      "saves": [
+        {
+          "n": 1,
+          "tool": "update_trip_brief",
+          "checks": [],
+          "note": ""
+        }
+      ]
+    },
+    {
+      "set": 3,
+      "spanId": "c16e61a309246f78",
+      "saves": [
+        {
+          "n": 1,
+          "tool": "update_trip_brief",
+          "checks": [],
+          "note": ""
+        },
+        {
+          "n": 2,
+          "tool": "update_memory_item",
+          "checks": [],
+          "note": "Getting to Mike's by noon, no lunch stop, and no other plane stops are one plan: the stops would change with the arrival time. Sol's F1 was overruled."
+        },
+        {
+          "n": 3,
+          "tool": "update_memory_item",
+          "checks": [
+            "F3"
+          ],
+          "note": "\"Keep the trip at 3 days\" repeats the trip length the same turn set."
+        }
+      ]
+    },
+    {
+      "set": 3,
+      "spanId": "a53c23974a3185c3",
+      "saves": [
+        {
+          "n": 1,
+          "tool": "update_trip_brief",
+          "checks": [],
+          "note": ""
+        },
+        {
+          "n": 2,
+          "tool": "add_memory_item",
+          "checks": [
+            "F1",
+            "F4"
+          ],
+          "note": "The slow drive home is a second thing beside the alumni event, and the event is a must-see that's only in memory. Its dates still pass F2, as #209 says."
+        }
+      ]
+    },
+    {
+      "set": 3,
+      "spanId": "c1cb5d314223e008",
+      "saves": [
+        {
+          "n": 1,
+          "tool": "add_memory_item",
+          "checks": [],
+          "note": ""
+        }
+      ]
+    },
+    {
+      "set": 3,
+      "spanId": "bbf87d50381a4e0f",
+      "saves": [
+        {
+          "n": 1,
+          "tool": "update_trip_brief",
+          "checks": [],
+          "note": ""
+        }
+      ]
+    },
+    {
+      "set": 3,
+      "spanId": "6c2d643f61c8165e",
+      "saves": [
+        {
+          "n": 1,
+          "tool": "update_trip_brief",
+          "checks": [],
+          "note": ""
+        },
+        {
+          "n": 2,
+          "tool": "add_memory_item",
+          "checks": [
+            "F1",
+            "F4"
+          ],
+          "note": "The lobster shack preference and Thursday's lunch are two things, and the lobster shack preference is for the whole trip, which the meal preferences cover."
+        },
+        {
+          "n": 3,
+          "tool": "add_memory_item",
+          "checks": [
+            "F1",
+            "F2"
+          ],
+          "note": "The departure time, no dinner on event day, the hotel check-in, and Sunday's dinner are separate things, and the check-in stop is in the itinerary with no reason given."
+        }
+      ]
+    },
+    {
+      "set": 3,
+      "spanId": "fba07788ec3d875c",
+      "saves": [
+        {
+          "n": 1,
+          "tool": "add_memory_item",
+          "checks": [
+            "F1"
+          ],
+          "note": "The Sunday breakfast at the B&B and the Saturday stop there are two choices."
+        }
+      ]
+    },
+    {
+      "set": 3,
+      "spanId": "72314938e36e8da9",
+      "saves": [
+        {
+          "n": 1,
+          "tool": "update_trip_brief",
+          "checks": [],
+          "note": ""
+        }
+      ]
+    },
+    {
+      "set": 3,
+      "spanId": "4bd23f8d0d941e5d",
+      "saves": [
+        {
+          "n": 1,
+          "tool": "update_trip_brief",
+          "checks": [],
+          "note": ""
+        }
+      ]
+    },
+    {
+      "set": 3,
+      "spanId": "246b8e4b780be04f",
+      "saves": [
+        {
+          "n": 1,
+          "tool": "update_trip_brief",
+          "checks": [],
+          "note": ""
+        },
+        {
+          "n": 2,
+          "tool": "add_memory_item",
+          "checks": [],
+          "note": ""
+        }
+      ]
+    },
+    {
+      "set": 3,
+      "spanId": "6edc86d6dcec4bd3",
+      "saves": [
+        {
+          "n": 1,
+          "tool": "update_trip_brief",
+          "checks": [],
+          "note": ""
+        },
+        {
+          "n": 2,
+          "tool": "add_memory_item",
+          "checks": [],
+          "note": ""
+        }
+      ]
+    }
+  ]
+}

@@ -21,6 +21,14 @@
 //   The answers go in
 //   ~/tmp/road-trip-evals/saving/labeling/<rubric commit>/set-01/<labeler>/, and an
 //   answer already there is kept. It says which answers skip a save.
+// npm run saving -- compare <labeler> <labeler> <set> [<set> ...]
+//   Compares the two labelers' answers, from evals/saving/rubric.md as last committed,
+//   on every save and check in the sets. Then it compares each one with Joe's labels in
+//   evals/saving/calibration.json, on the sets that have them. It prints each split.
+// npm run saving -- review <set> <labeler> [<labeler> ...]
+//   With labelers, the reading page also shows each one's failures under each save,
+//   from the committed rubric's answers, and Joe's labels on a calibration set, in
+//   set-01-labels.html. It marks each save they split on. It writes no notes file.
 // npm run saving -- check-versions
 //   Checks that each session's turns match trip versions that only go up, for every
 //   session in evals/saving/turns.json, and says which don't.
@@ -37,6 +45,7 @@ import { phoenixUrlOf } from "../grounded-eval/grounded-files.schema.js";
 import {
   inputsDirOf,
   isLabelerName,
+  type LabelerName,
   LABELERS,
   type LabelingRun,
   readAnswers,
@@ -46,24 +55,42 @@ import {
   setFolderName,
 } from "../grounded-eval/labeling.js";
 import { RecordedSessionRepository } from "../turn-run/turn-run-repositories.js";
+import {
+  comparisonReportsOf,
+  joeLabelsOf,
+  labelsOf,
+  readTurnsFile,
+  RUBRIC_PATH,
+  TURNS_PATH,
+  turnsIn,
+} from "./label-files.js";
 import { labelerInputOf, savesIn } from "./labeler-input.js";
 import { notesFileOf, type ReviewItem, reviewPageOf } from "./review-page.js";
 import { type SaveTurn, saveTurnsOf } from "./save-turns.js";
 import { answerFitsSaves } from "./saving-answer.schema.js";
-import { type TurnsFile, turnsFileSchema } from "./saving-files.schema.js";
+import type { TurnsFile } from "./saving-files.schema.js";
 import { EVALS_DIR, SAVING_LABELING } from "./saving-labeling.js";
 import { turnBeforeOf, versionOrderProblems } from "./turn-before.js";
 
-const TURNS_PATH = join("evals", "saving", "turns.json");
 const REVIEW_TEMPLATE_PATH = join("evals", "saving", "review-page.html");
-const RUBRIC_PATH = join("evals", "saving", "rubric.md");
 const SEED = "saving-209";
 
 type Action = (phoenixUrl: string, args: string[]) => Promise<void>;
 
 const ACTIONS: Record<string, Action> = {
   turns: writeTurns,
-  review: (phoenixUrl, args) => writeReview(phoenixUrl, setOf(args[0])),
+  review: (phoenixUrl, [set, ...labelers]) =>
+    writeReview(phoenixUrl, setOf(set), labelers.map(labelerOf)),
+  compare: (phoenixUrl, [first, second, ...sets]) => {
+    for (const report of comparisonReportsOf(
+      labelerOf(first),
+      labelerOf(second),
+      setsOf(sets),
+    )) {
+      console.log(report);
+    }
+    return Promise.resolve();
+  },
   inputs: async (phoenixUrl, args) => {
     await writeInputs(phoenixUrl, setsOf(args));
   },
@@ -98,19 +125,32 @@ async function writeTurns(phoenixUrl: string): Promise<void> {
   );
 }
 
-async function writeReview(phoenixUrl: string, set: number): Promise<void> {
+async function writeReview(
+  phoenixUrl: string,
+  set: number,
+  labelers: readonly LabelerName[],
+): Promise<void> {
   const turns = turnsIn(set);
+  const labels = labelsOf(set, labelers);
   const sessions = new Map(
     (await readCorpus(phoenixUrl)).map((s) => [s.sessionId, s]),
   );
   const livePool = new Pool(livePoolConfigOf(process.env));
   try {
     const items = await reviewItemsOf(turns, sessions, livePool);
-    const name = `set-${String(set).padStart(2, "0")}`;
-    const pagePath = writeOut("review", `${name}.html`, () =>
-      reviewPageOf(readFileSync(REVIEW_TEMPLATE_PATH, "utf8"), set, items),
+    const name = setFolderName(set);
+    const pageName = labelers.length === 0 ? name : `${name}-labels`;
+    const pagePath = writeOut("review", `${pageName}.html`, () =>
+      reviewPageOf(readFileSync(REVIEW_TEMPLATE_PATH, "utf8"), set, {
+        items,
+        labels,
+        joe: labelers.length === 0 ? new Map() : joeLabelsOf(set),
+      }),
     );
     console.log(`Wrote ${pagePath}.`);
+    if (labelers.length > 0) {
+      return;
+    }
     const notesPath = join(EVALS_DIR, "notes", `${name}.md`);
     if (existsSync(notesPath)) {
       console.log(`${notesPath} is already there, so it was left as it is.`);
@@ -130,12 +170,8 @@ interface SetToLabel {
 }
 
 async function label(phoenixUrl: string, args: string[]): Promise<void> {
-  const [labeler = "", ...setTexts] = args;
-  if (!isLabelerName(labeler)) {
-    throw new Error(
-      `Give a labeler, one of ${Object.keys(LABELERS).join(", ")}, then the set numbers.`,
-    );
-  }
+  const [labelerText, ...setTexts] = args;
+  const labeler = labelerOf(labelerText);
   const rubric = readRubric(RUBRIC_PATH);
   const sets = await writeInputs(phoenixUrl, setsOf(setTexts));
   for (const { set, saveCounts } of sets) {
@@ -286,16 +322,13 @@ function writeOut(folder: string, file: string, text: () => string): string {
   return path;
 }
 
-function readTurnsFile(): TurnsFile {
-  return turnsFileSchema.parse(JSON.parse(readFileSync(TURNS_PATH, "utf8")));
-}
-
-function turnsIn(set: number): SaveTurn[] {
-  const turns = readTurnsFile().turns.filter((turn) => turn.set === set);
-  if (turns.length === 0) {
-    throw new Error(`${TURNS_PATH} has no set ${String(set)}.`);
+function labelerOf(text: string | undefined): LabelerName {
+  if (text === undefined || !isLabelerName(text)) {
+    throw new Error(
+      `Give a labeler, one of ${Object.keys(LABELERS).join(", ")}.`,
+    );
   }
-  return turns;
+  return text;
 }
 
 function setsOf(texts: readonly string[]): number[] {
