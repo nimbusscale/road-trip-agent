@@ -75,7 +75,9 @@ A part that repeats the itinerary passes when the rest of the note needs it, suc
 
 **A date in memory passes when it would stay true if the plan moved.** It passes when it's what the user asked for, when it's a limit fixed by something outside the plan, such as an event, or when it says what a fact was based on. It fails when it only says when something in the plan happens.
 
-A date or weekday set next to a part of the plan, to say which day it is, fails, even when the note needs that part. Example: "the Taos rest day (Monday, June 7)". The note can name the day by what happens on it, such as "the Taos rest day", which stays true if the plan moves. Look for these in every note, including one whose point is a reason or an open item, since they're easy to read past.
+A date or weekday the coordinator put next to a part of the plan, only to say which day it falls on, fails, even when the note needs that part. Example: "the Taos rest day (Monday, June 7)", when the user asked for a rest day in Taos and never named the day. The note can name the day by what happens on it, such as "the Taos rest day", which stays true if the plan moves.
+
+A day the user named or picked passes, whether the note gives it as a weekday, a date, or both. Example: "dinner at the oyster bar on Saturday, June 12", when the user said "let's do the oyster bar Saturday". It's what the user asked for.
 
 - Fails: "Wants the second day in Fredericksburg (Monday, April 12) as a rest day. Only meals in town that day." The itinerary marks the rest day, and the note gives no reason for it.
 - Fails: "Big Bend morning: coffee at Espresso y Poco Mas, decide on the day about a picnic lunch." The coffee stop is in the itinerary. "Decide on the day about a picnic lunch" is an open item, and passes on its own.
@@ -95,6 +97,7 @@ A date or weekday set next to a part of the plan, to say which day it is, fails,
 - Passes: "plan to reach the cousins' house in Denver by Thursday evening, June 10". It's what the user asked for.
 - Passes: "agreed to fly home Monday, June 14 (instead of Sunday) to fit a night in Telluride". The user agreed to that date, and the note gives the reason.
 - Passes: "Saturday, June 12: be at the church in Durango by 2 p.m. for the wedding, so no long drive that morning". The wedding fixes the day, and the note gives the reason.
+- Passes: "Flying home from Albuquerque at 6 p.m. on Sunday, June 20 (moved with the trip's new dates). The last day has to reach the airport by 4." The flight is outside the plan, and it sets a limit on the last day.
 
 ### Check 3 (F3): trip memory doesn't repeat the trip brief or user memory
 
