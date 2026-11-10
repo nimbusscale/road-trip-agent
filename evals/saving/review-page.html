@@ -97,13 +97,15 @@
     try { return JSON.parse(input); } catch { return null; }
   }
   // A save shows each field it sent, and for a memory update, the text it replaced.
+  // The page has memory only as it stood before the current turn, so an earlier turn's
+  // save passes null, and shows no replaced text.
   function saveView(result, memoryBefore) {
     const input = result.input === null ? null : parsed(result.input);
     const fields = input === null
       ? [el("pre", {}, [result.input || ""])]
       : Object.entries(input).map(([key, value]) =>
           el("div", { class: "field" }, [el("b", {}, [`${key}: `]), String(value)]));
-    if (result.tool === "update_memory_item" && input !== null) {
+    if (result.tool === "update_memory_item" && input !== null && memoryBefore !== null) {
       const old = memoryBefore.find((item) => item.id === input.itemId);
       fields.push(el("div", { class: "was" }, [old
         ? `It replaced (${old.kind} memory): ${old.text}`
@@ -120,8 +122,8 @@
     const parts = result.input === null ? [] : [el("pre", {}, [result.input])];
     return el("details", { class: "tool" }, [summary, ...parts, el("pre", {}, [result.text])]);
   }
-  function callView(result, memoryBefore) {
-    return !result.worker && SAVE_TOOLS.has(result.tool) ? saveView(result, memoryBefore) : otherCall(result);
+  function callView(result) {
+    return !result.worker && SAVE_TOOLS.has(result.tool) ? saveView(result, null) : otherCall(result);
   }
   function firstLine(text) {
     const appLine = (l) => /^(For planning this trip|Today is|From an option card:|This session was resumed|The user forgot memory items)/.test(l);
@@ -129,10 +131,10 @@
     const line = lines[0] || "";
     return line.length > 90 ? `${line.slice(0, 90)}…` : line;
   }
-  function earlierTurn(turn, memoryBefore) {
+  function earlierTurn(turn) {
     const body = el("div", { class: "turn-body" }, [
       block("user", "User", [markdown(turn.userMessage)]),
-      ...turn.toolResults.map((r) => callView(r, memoryBefore)),
+      ...turn.toolResults.map(callView),
       block("reply", "Coordinator reply", [markdown(turn.reply)]),
     ]);
     return el("details", { class: "turn" }, [
@@ -169,7 +171,7 @@
     const memory = item.before.memory;
     const saves = current.toolResults.filter((r) => !r.worker && SAVE_TOOLS.has(r.tool));
     const others = current.toolResults.filter((r) => r.worker || !SAVE_TOOLS.has(r.tool));
-    const earlier = [...item.earlier].reverse().map((t) => earlierTurn(t, memory));
+    const earlier = [...item.earlier].reverse().map(earlierTurn);
     turnPane.replaceChildren(
       el("div", { class: "meta" }, [
         `Item ${index + 1} of ${data.items.length} · "${item.before.sessionTitle}" · turn ${item.before.turn} of ${item.before.turnsInSession} · span `,
