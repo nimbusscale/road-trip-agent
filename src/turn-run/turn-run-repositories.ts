@@ -4,6 +4,8 @@ import { Session } from "../persistence/session.js";
 import {
   type TranscriptRow,
   transcriptRowSchema,
+  type VersionMessage,
+  versionMessageRowSchema,
   type VersionRow,
   versionRowSchema,
 } from "./turn-run.schema.js";
@@ -40,6 +42,16 @@ export class RecordedSessionRepository {
       );
     }
     return versionRowSchema.parse(rows[0]);
+  }
+
+  // Each trip version's turn and message, in turn order.
+  async versionMessages(sessionId: string): Promise<VersionMessage[]> {
+    const { rows } = await this.connection.query(
+      `SELECT turn, user_message FROM trip_versions
+       WHERE session_id = $1 ORDER BY turn`,
+      [sessionId],
+    );
+    return rows.map((row) => versionMessageRowSchema.parse(row));
   }
 
   // Every transcript line of the session, the coordinator's and the workers', in the

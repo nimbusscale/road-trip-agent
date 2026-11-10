@@ -57,7 +57,12 @@ function quotasOf(sessions: CorpusSession[], size: number): number[] {
   return quotas;
 }
 
-function byHash<T extends { spanId: string }>(items: T[], salt: string): T[] {
+// Sorts by a hash of the salt and each span ID, so the order looks random but is the
+// same every time.
+export function byHash<T extends { spanId: string }>(
+  items: readonly T[],
+  salt: string,
+): T[] {
   const keyOf = (item: T) =>
     createHash("sha256").update(`${salt}:${item.spanId}`).digest("hex");
   return [...items].sort((a, b) => keyOf(a).localeCompare(keyOf(b)));

@@ -66,6 +66,7 @@
     "rebuild-versions": "tsx --env-file=.env src/version-rebuild/rebuild-versions.ts",
     "run-turn": "tsx --env-file=.env src/turn-run/run-turn.ts",
     "grounded": "tsx --env-file=.env src/grounded-eval/grounded.ts",
+    "saving": "tsx --env-file=.env src/saving-eval/saving.ts",
     "run-worker": "tsx --env-file=.env src/worker-run/run-worker.ts",
     "candidate-refusals": "tsx --env-file=.env src/worker-run/candidate-refusals.ts",
     "build": "npm run build:app && npm run build:web",
