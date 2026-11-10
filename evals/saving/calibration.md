@@ -16,7 +16,7 @@ A refused call saved nothing, so it isn't labeled (decision 8).
 - update_memory_item mem_y8yskyyh (trip): **F2**. "Now Wednesday night, October 13" says when the stargazing is (decision 2).
 
 **Item 3** · span `b7ff6807ccc1bc8d` · Olympic Peninsula, turn 1
-- update_trip_brief: fine. Fish and chips, the Port Townsend breakfast, and the park lodge are each in two trip brief items, which passes, and the ferry the user named can be a must-see (decision 6).
+- update_trip_brief: **F5**. "On the first day", in the must-sees, is when the breakfast happens, which the itinerary holds (decision 16, changed 2026-11-10). Fish and chips, the Port Townsend breakfast, and the park lodge are each in two trip brief items, which passes, and the ferry the user named can be a must-see (decision 6).
 - add_memory_item mem_937uf5kr (trip): fine. The arrival date is what the user asked for (decision 2).
 - add_memory_item mem_6u7usug4 (trip): fine. It names the ferry as part of the whole route plan (decision 6).
 

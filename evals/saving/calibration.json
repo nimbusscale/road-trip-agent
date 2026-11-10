@@ -41,8 +41,10 @@
         {
           "n": 1,
           "tool": "update_trip_brief",
-          "checks": [],
-          "note": "Fish and chips, the Port Townsend breakfast, and the park lodge are each in two trip brief items, which passes, and the ferry the user named can be a must-see (decision 6)."
+          "checks": [
+            "F5"
+          ],
+          "note": "\"On the first day\", in the must-sees, is when the breakfast happens, which the itinerary holds (decision 16, changed 2026-11-10). Fish and chips, the Port Townsend breakfast, and the park lodge are each in two trip brief items, which passes, and the ferry the user named can be a must-see (decision 6)."
         },
         {
           "n": 2,
@@ -189,7 +191,7 @@
             "F2",
             "F4"
           ],
-          "note": "Hotel or quick breakfasts being fine belongs in the meal preferences, and the Boulder caf\u00e9 is in the itinerary."
+          "note": "Hotel or quick breakfasts being fine belongs in the meal preferences, and the Boulder café is in the itinerary."
         }
       ]
     },
