@@ -55,15 +55,35 @@
 //   Runs the judge on a few saving-golden turns, such as 4.2 for set 4 item 2, each the
 //   number of runs given, with the rubric file on disk, committed or not, and prints
 //   the same counts. Nothing is saved in Phoenix.
+// npm run saving -- replay-dataset
+//   Saves the replays' cases as the saving-replays dataset in Phoenix, if it isn't there
+//   yet: each saving-golden turn that fails a check, with its recorded session and turn,
+//   and its judge input up to the turn. The first case of each of the first 3 sessions
+//   is in the trial-1 split.
+// npm run saving -- replay <trial set or all> <runs per case>
+//   Runs the cases on today's code, each with run-turn's run, as a Phoenix experiment,
+//   and the judge, Haiku through the API, checks each run's saves, with the prompt
+//   pushed for the rubric's last commit. A trial set, such as trial-1, runs only its
+//   cases, and all runs every case. Its description is the last commit's subject line.
+//   It stops if there are uncommitted changes, since the experiment would be named for
+//   a commit that isn't the code that ran. It needs both tunnels and the local
+//   Postgres, and bills the API account through JUDGE_API_KEY for the judge. At the
+//   end it writes the report, as replay-report does.
+// npm run saving -- replay-resume <experiment ID>
+//   Runs again an experiment's runs that failed or never ran, such as on the Claude
+//   plan's limit, and writes the report.
+// npm run saving -- replay-report [experiment ID]
+//   Writes the report for the experiment, or the latest one on saving-replays, from
+//   what Phoenix saved, to ~/tmp/road-trip-evals/saving/replays/<experiment ID>/: each
+//   case's runs, how many passed, passed the checks its golden turn failed, and saved
+//   nothing, the failures the judge found, and every run's output.
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { Pool } from "pg";
 
 import { livePoolConfigOf } from "../config/live-env.schema.js";
-import { loadSettings, SETTINGS_PATH } from "../config/settings.js";
 import { readCorpus } from "../grounded-eval/corpus-reader.js";
-import type { CorpusSession } from "../grounded-eval/corpus-turn.js";
 import { phoenixUrlOf } from "../grounded-eval/grounded-files.schema.js";
 import {
   inputsDirOf,
@@ -89,13 +109,15 @@ import {
 } from "./label-files.js";
 import { writeGoldenSet } from "./golden-set.js";
 import { JUDGE_ACTIONS } from "./saving-judge.js";
+import { REPLAY_ACTIONS } from "./replay-actions.js";
 import { labelerInputOf, savesIn } from "./labeler-input.js";
 import { notesFileOf, type ReviewItem, reviewPageOf } from "./review-page.js";
-import { type SaveTurn, saveTurnsOf } from "./save-turns.js";
+import { saveTurnsOf } from "./save-turns.js";
 import { answerFitsSaves } from "./saving-answer.schema.js";
 import type { TurnsFile } from "./saving-files.schema.js";
 import { EVALS_DIR, SAVING_LABELING } from "./saving-labeling.js";
-import { turnBeforeOf, versionOrderProblems } from "./turn-before.js";
+import { reviewItemsOf } from "./review-items.js";
+import { versionOrderProblems } from "./turn-before.js";
 
 const REVIEW_TEMPLATE_PATH = join("evals", "saving", "review-page.html");
 const SEED = "saving-209";
@@ -123,6 +145,7 @@ const ACTIONS: Record<string, Action> = {
   "check-versions": checkVersions,
   golden: writeGoldenSet,
   ...JUDGE_ACTIONS,
+  ...REPLAY_ACTIONS,
 };
 
 async function main(): Promise<void> {
@@ -312,33 +335,6 @@ async function checkVersions(phoenixUrl: string): Promise<void> {
   } finally {
     await livePool.end();
   }
-}
-
-async function reviewItemsOf(
-  turns: readonly SaveTurn[],
-  sessions: ReadonlyMap<string, CorpusSession>,
-  livePool: Pool,
-): Promise<ReviewItem[]> {
-  const live = new RecordedSessionRepository(livePool);
-  const settings = loadSettings(SETTINGS_PATH);
-  const items: ReviewItem[] = [];
-  for (const turn of turns) {
-    const session = sessions.get(turn.sessionId);
-    const index =
-      session?.turns.findIndex((recorded) => recorded.spanId === turn.spanId) ??
-      -1;
-    const recorded = session?.turns[index];
-    if (session === undefined || recorded === undefined) {
-      throw new Error(`Turn ${turn.spanId} isn't in the corpus.`);
-    }
-    const before = await turnBeforeOf(live, settings, {
-      agentSessionId: turn.sessionId,
-      spanPosition: index + 1,
-      message: recorded.userMessage,
-    });
-    items.push({ turn, session, before });
-  }
-  return items;
 }
 
 function writeOut(folder: string, file: string, text: () => string): string {

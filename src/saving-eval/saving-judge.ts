@@ -273,7 +273,9 @@ async function judgeTurn(
   return { turn, answer, diffs: judgeDiffsOf(turn.expected, answer) };
 }
 
-async function readGoldenTurns(phoenixUrl: string): Promise<GoldenTurn[]> {
+export async function readGoldenTurns(
+  phoenixUrl: string,
+): Promise<GoldenTurn[]> {
   const client = createClient({ options: { baseUrl: phoenixUrl } });
   const { examples } = await getDatasetExamples({
     client,

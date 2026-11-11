@@ -17,16 +17,22 @@ export function labelerInputOf(
   spanId: string,
   before: TurnBefore,
 ): string {
-  const turns = turnsUpTo(session, spanId);
-  const current = turns.at(-1);
+  const current = turnsUpTo(session, spanId).at(-1);
   if (current === undefined) {
     throw new Error(`Session ${session.sessionId} has no turn ${spanId}.`);
   }
-  return [
-    beforeText(before),
-    earlierText(turns.slice(0, -1)),
-    turnText(current),
-  ].join("\n\n");
+  return `${labelerContextOf(session, spanId, before)}\n\n${turnInputOf(current)}`;
+}
+
+// The input up to the turn: <before> and <earlier_turns>. A replay of the turn (#209)
+// starts from the same trip and conversation, so its input is this with its own turn.
+export function labelerContextOf(
+  session: CorpusSession,
+  spanId: string,
+  before: TurnBefore,
+): string {
+  const earlier = turnsUpTo(session, spanId).slice(0, -1);
+  return [beforeText(before), earlierText(earlier)].join("\n\n");
 }
 
 // The turn's saves that went through, which the labeler judges one by one.
@@ -71,7 +77,9 @@ function earlierText(turns: readonly CorpusTurn[]): string {
   return tagged("earlier_turns", "", listed(shown));
 }
 
-function turnText(turn: CorpusTurn): string {
+// The turn itself, <turn>, which follows the input up to it. Its saves are numbered
+// from 1, as savesIn() lists them.
+export function turnInputOf(turn: CorpusTurn): string {
   let saves = 0;
   const calls = turn.toolResults
     .filter((result) => !result.refused)
