@@ -1,7 +1,11 @@
 import { createClient } from "@arizeai/phoenix-client";
 import { getSpans, type GetSpansParams } from "@arizeai/phoenix-client/spans";
 
-import { type CorpusSession, corpusSessionOf } from "./corpus-turn.js";
+import {
+  type CorpusSession,
+  corpusSessionOf,
+  type CorpusTurn,
+} from "./corpus-turn.js";
 import {
   type PhoenixSpan,
   phoenixSpanListSchema,
@@ -102,6 +106,25 @@ async function sessionSpans(
     );
   }
   return spans;
+}
+
+// One coordinator.turn span in a project, with the spans in its trace, built as a
+// corpus turn is. Null when Phoenix doesn't have the turn's span yet, such as just
+// after it was sent: Phoenix saves spans a moment after they arrive.
+export async function traceTurnOf(
+  phoenixUrl: string,
+  projectName: string,
+  spanId: string,
+): Promise<CorpusTurn | null> {
+  const client = createClient({ options: { baseUrl: phoenixUrl } });
+  const project = { projectName };
+  const [turn] = await allSpans({ client, project, spanIds: [spanId] });
+  if (turn === undefined) {
+    return null;
+  }
+  const spans = await allSpans({ client, project, traceIds: [turn.traceId] });
+  const session = corpusSessionOf(turn.sessionId ?? "", spans);
+  return session.turns.find((t) => t.spanId === spanId) ?? null;
 }
 
 async function allSpans(params: GetSpansParams): Promise<PhoenixSpan[]> {
