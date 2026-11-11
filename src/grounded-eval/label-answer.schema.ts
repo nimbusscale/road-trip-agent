@@ -40,12 +40,11 @@ function labelOf(facts: Fact[]): GroundedLabel {
 // The JSON Schema the harnesses check the answer against. Draft 7, since Claude Code
 // refuses the 2020-12 version Zod writes by default.
 export function labelAnswerJsonSchema(): string {
-  return JSON.stringify(answerJsonSchema(), null, 2);
-}
-
-// The same schema as an object, for the judge's structured output.
-export function answerJsonSchema(): Record<string, unknown> {
-  return z.toJSONSchema(answerSchema, { target: "draft-07" });
+  return JSON.stringify(
+    z.toJSONSchema(answerSchema, { target: "draft-07" }),
+    null,
+    2,
+  );
 }
 
 // Claude Code's --output-format json result, with only the fields read. With

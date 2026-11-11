@@ -17,7 +17,9 @@ const failureSchema = z.strictObject({
 export const savingAnswerSchema = z.strictObject({
   saves: z.array(
     z.strictObject({
-      n: z.int(),
+      // A plain number, since the API's structured output refuses the bounds Zod
+      // writes for an integer. answerFitsSaves checks the numbers.
+      n: z.number(),
       failures: z.array(failureSchema),
     }),
   ),

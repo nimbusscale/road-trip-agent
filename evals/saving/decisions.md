@@ -183,3 +183,20 @@ Settled 2026-11-10, in chat.
 Sol was there to give a second, independent reading, so the splits would show where the rubric was unclear. It did that on the full labeling. From here, Opus labels alone. The full labeling stays on rubric `49b4a5c`, with Joe's calls on its splits. Decisions 15 to 17 changed checks 2 to 5, so Opus labels again, on the new rubric, the 6 split turns those decisions are about and the 30 calibration turns in sets 1 to 3, to check the change fixed the splits and loosened nothing. The other 67 turns aren't relabeled.
 
 The golden set is built from the full labeling, not from the 36-turn check. Joe's calls on its splits are in `split-calls.json`, in the same shape as `calibration.json`, with each called save's full checks. A save the labelers agreed on takes their label, and a calibration save takes Joe's.
+
+## 20. Each version of a memory item takes the label Joe gave another version
+
+Settled 2026-11-10, in chat, while tuning the Haiku judge.
+
+The Florida trip's user memory item mem_smbe2mrx holds the 7:00 a.m. start and the coffee routine. Joe labeled its first version F1 (set 2 item 8, save 2): they're two habits that can change on their own. In turn 8 (set 6 item 1, save 1), the coordinator updated it with a new coffee-stop rule, and kept the start time and the coffee routine together. Both labelers passed that update, so it took "passes" in the golden set. The judge failed it on F1 in every run, which matches Joe's call on the first version. Joe labeled the update F1, in `split-calls.json`, though it wasn't a split.
+
+The same turn's new trip memory item, mem_fhnbyya3 (set 6 item 1, save 2), had the same problem. It says "a quick coffee and bite at Foxtail Coffee", after the same turn picked Foxtail Coffee as Day 2's first stop. Joe failed the item's next version F2 (set 2 item 1, save 2), since Foxtail Coffee is in the itinerary. Both labelers left F2 off this first version, and the judge failed it on F2 in 2 of 3 runs. Joe added F2 to it, so it fails F1, F2, and F4.
+
+## 21. Check 4 is for trip memory only
+
+Settled 2026-11-10, in chat, while tuning the Haiku judge.
+
+On the Florida trip, the user said they live in New England and have lobster rolls all the time, and aren't a huge fan of fried seafood. The coordinator saved it to user memory (set 9 item 6, save 1). The trip brief's meal preferences didn't mention seafood. Both labelers failed it F4: a trip-wide food preference, with memory the only place it's saved. The judge passed it on F4 in most runs.
+
+Joe passed it on F4. A habit in user memory is in the right place, and leaving it out of the trip brief isn't a missed save either. User memory can hold a habit from another trip, and the coordinator isn't expected to copy it into the trip brief. So check 4 covers trip memory saves only, as decision 10 kept it for: without it, the coordinator could keep everything in trip memory and never fill the trip brief. The save still fails F1, since the lobster rolls and the fried seafood are two dislikes. No other user memory save in the golden set failed F4, so no other label changed.
+

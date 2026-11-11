@@ -57,3 +57,33 @@ export const calibrationFileSchema = z.object({
 export type CalibrationFile = z.infer<typeof calibrationFileSchema>;
 
 export type CalibrationTurn = CalibrationFile["turns"][number];
+
+// A saving-golden example's output: each save's settled checks.
+export const goldenOutputSchema = z.object({
+  saves: z.array(
+    z.object({
+      n: z.number(),
+      tool: z.string(),
+      checks: z.array(savingCheckSchema),
+    }),
+  ),
+});
+
+// A saving-golden example as Phoenix gives it back (#209): the turn's labeler input,
+// which the judge reads, each save's settled checks, and where the turn is in the
+// turns file.
+export const goldenExampleSchema = z
+  .object({
+    input: z.object({ spanId: z.string(), labelerInput: z.string() }),
+    output: goldenOutputSchema,
+    metadata: z.object({ set: z.number(), item: z.number() }),
+  })
+  .transform((example) => ({
+    set: example.metadata.set,
+    item: example.metadata.item,
+    spanId: example.input.spanId,
+    labelerInput: example.input.labelerInput,
+    expected: example.output.saves,
+  }));
+
+export type GoldenTurn = z.output<typeof goldenExampleSchema>;

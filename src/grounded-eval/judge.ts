@@ -13,13 +13,13 @@ import {
   goldenInputSchema,
   judgeApiKeyOf,
 } from "./golden-set.schema.js";
+import { GROUNDED_JUDGE } from "./grounded-labeling.js";
 import {
-  CONVERSATION_SLOT,
   JUDGE_MODEL,
+  type JudgeSpec,
   readJudgePrompt,
 } from "./judge-prompt.js";
 import { judgeAnswerOf, judgeRequestOf } from "./judge.schema.js";
-import type { LabelAnswer } from "./label-answer.schema.js";
 
 // Five turns at a time keeps a run of the golden set to a few minutes, well inside
 // the API account's rate limits.
@@ -27,7 +27,7 @@ export const CONCURRENCY = 5;
 
 // Each turn is judged 3 times, so a rubric change can be told apart from the judge's
 // run-to-run differences.
-const REPETITIONS = 3;
+export const REPETITIONS = 3;
 
 // Runs the judge on the golden set as a Phoenix experiment, with the prompt version
 // pushed for the rubric commit (#282). The description says what that rubric
@@ -38,7 +38,11 @@ export async function runJudgeExperiment(
   rubricVersion: string,
   description: string,
 ): Promise<void> {
-  const { judge, promptVersionId } = await judgeFor(phoenixUrl, rubricVersion);
+  const { judge, promptVersionId } = await judgeFor(
+    phoenixUrl,
+    GROUNDED_JUDGE,
+    rubricVersion,
+  );
   await runExperiment({
     client: createClient({ options: { baseUrl: phoenixUrl } }),
     experimentName: `rubric ${rubricVersion}`,
@@ -57,38 +61,45 @@ export async function runJudgeExperiment(
   });
 }
 
-export type Judge = (judgeInput: string) => Promise<LabelAnswer>;
+export type Judge<Answer> = (judgeInput: string) => Promise<Answer>;
 
 // The judge with the prompt version pushed for the rubric commit. It answers for one
-// turn's judge input, with every fact it found.
-export async function judgeFor(
+// turn's judge input.
+export async function judgeFor<Answer>(
   phoenixUrl: string,
+  spec: JudgeSpec<Answer>,
   rubricVersion: string,
-): Promise<{ judge: Judge; promptVersionId: string }> {
-  const prompt = await readJudgePrompt(phoenixUrl, rubricVersion);
+): Promise<{ judge: Judge<Answer>; promptVersionId: string }> {
+  const prompt = await readJudgePrompt(phoenixUrl, spec, rubricVersion);
   const request = toSDK({ sdk: "anthropic", prompt });
   if (request === null) {
     throw new Error("The judge's prompt isn't a chat prompt.");
   }
+  return { judge: judgeOf(spec, request), promptVersionId: prompt.id };
+}
+
+// The judge with a given prompt, such as one built from a rubric not yet pushed.
+export function judgeOf<Answer>(
+  spec: JudgeSpec<Answer>,
+  prompt: MessageCreateParams,
+): Judge<Answer> {
   const anthropic = new Anthropic({
     apiKey: judgeApiKeyOf(process.env),
     authToken: null,
   });
-  return {
-    judge: (judgeInput) => judgeTurn(anthropic, request, judgeInput),
-    promptVersionId: prompt.id,
+  return async (judgeInput) => {
+    const message = await anthropic.messages
+      .stream(
+        judgeRequestOf(
+          prompt,
+          spec.slot,
+          judgeInput,
+          spec.labeling.answerJsonSchema,
+        ),
+      )
+      .finalMessage();
+    return judgeAnswerOf(message, spec.labeling.parseAnswer);
   };
-}
-
-async function judgeTurn(
-  anthropic: Anthropic,
-  prompt: MessageCreateParams,
-  judgeInput: string,
-): Promise<LabelAnswer> {
-  const message = await anthropic.messages
-    .stream(judgeRequestOf(prompt, CONVERSATION_SLOT, judgeInput))
-    .finalMessage();
-  return judgeAnswerOf(message);
 }
 
 const labelMatches = asExperimentEvaluator({

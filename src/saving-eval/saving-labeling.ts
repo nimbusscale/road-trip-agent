@@ -1,6 +1,7 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
 
+import type { JudgeSpec } from "../grounded-eval/judge-prompt.js";
 import type { LabelingTask } from "../grounded-eval/labeling.js";
 import {
   type SavingAnswer,
@@ -19,4 +20,15 @@ export const SAVING_LABELING: LabelingTask<SavingAnswer> = {
   inputHeading: "The turn",
   answerJsonSchema: savingAnswerJsonSchema(),
   parseAnswer: (answer) => savingAnswerSchema.parse(answer),
+};
+
+// The saving evaluation's judge (#209), on Haiku through the API. It reads the
+// labelers' prompt.
+export const SAVING_JUDGE: JudgeSpec<SavingAnswer> = {
+  promptName: "saving-judge",
+  description:
+    "The saving evaluator's judge (#209). Pushed from evals/saving/rubric.md.",
+  rubricPath: join("evals", "saving", "rubric.md"),
+  slot: "{{turn}}",
+  labeling: SAVING_LABELING,
 };

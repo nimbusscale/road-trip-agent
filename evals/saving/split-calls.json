@@ -94,6 +94,44 @@
           "note": "\"First thing on Day 1\" is when the breakfast happens, which the itinerary holds (decision 16)."
         }
       ]
+    },
+    {
+      "set": 6,
+      "spanId": "5cad2857ad2fbc45",
+      "saves": [
+        {
+          "n": 1,
+          "tool": "update_memory_item",
+          "checks": [
+            "F1"
+          ],
+          "note": "The 7:00 a.m. start and the coffee routine are two habits that can change on their own, as in this item's first version in set 2 item 8 (decision 20)."
+        },
+        {
+          "n": 2,
+          "tool": "add_memory_item",
+          "checks": [
+            "F1",
+            "F2",
+            "F4"
+          ],
+          "note": "Several notes in one item, and Foxtail Coffee is in the itinerary: the same turn picked it as Day 2's first stop. As in this item's update in set 2 item 1 (decision 20)."
+        }
+      ]
+    },
+    {
+      "set": 9,
+      "spanId": "265869b694109e99",
+      "saves": [
+        {
+          "n": 1,
+          "tool": "add_memory_item",
+          "checks": [
+            "F1"
+          ],
+          "note": "The lobster rolls and the fried seafood are two dislikes. A habit in user memory is in the right place, and the trip brief isn't expected to copy it, so it passes F4 (decision 21)."
+        }
+      ]
     }
   ]
 }

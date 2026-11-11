@@ -38,6 +38,23 @@
 //   evals/saving/calibration.json or evals/saving/split-calls.json, or else the checks
 //   both labelers fail on the full labeling's rubric. It stops if they split on a save
 //   Joe didn't call. If the dataset is already there, it updates the turns that changed.
+// npm run saving -- push-prompt
+//   Pushes evals/saving/rubric.md, as last committed, as a version of the judge's
+//   prompt in Phoenix, saving-judge, tagged rubric-<commit>.
+// npm run saving -- experiment [rubric commit]
+//   Runs the judge, Haiku through the API, on saving-golden as a Phoenix experiment, 3
+//   times over, with the prompt pushed for the rubric's last commit, or the commit
+//   given. Its description is that commit's subject line, so the subject should say
+//   what the version changed. It prints each check's misses and false alarms, and
+//   writes them, with the answers, to ~/tmp/road-trip-evals/saving/judge/. It bills
+//   the API account through JUDGE_API_KEY.
+// npm run saving -- report [rubric commit]
+//   Writes the same report from the latest experiment on the rubric commit, from the
+//   answers Phoenix saved, against the golden set's labels as they are now.
+// npm run saving -- try-judge <rubric file> <runs> <set.item> [<set.item> ...]
+//   Runs the judge on a few saving-golden turns, such as 4.2 for set 4 item 2, each the
+//   number of runs given, with the rubric file on disk, committed or not, and prints
+//   the same counts. Nothing is saved in Phoenix.
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -71,6 +88,7 @@ import {
   turnsIn,
 } from "./label-files.js";
 import { writeGoldenSet } from "./golden-set.js";
+import { JUDGE_ACTIONS } from "./saving-judge.js";
 import { labelerInputOf, savesIn } from "./labeler-input.js";
 import { notesFileOf, type ReviewItem, reviewPageOf } from "./review-page.js";
 import { type SaveTurn, saveTurnsOf } from "./save-turns.js";
@@ -104,6 +122,7 @@ const ACTIONS: Record<string, Action> = {
   label,
   "check-versions": checkVersions,
   golden: writeGoldenSet,
+  ...JUDGE_ACTIONS,
 };
 
 async function main(): Promise<void> {
