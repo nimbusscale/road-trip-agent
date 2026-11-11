@@ -69,9 +69,11 @@
 //   a commit that isn't the code that ran. It needs both tunnels and the local
 //   Postgres, and bills the API account through JUDGE_API_KEY for the judge. At the
 //   end it writes the report, as replay-report does.
-// npm run saving -- replay-resume <experiment ID>
+// npm run saving -- replay-resume <experiment ID> [most runs]
 //   Runs again an experiment's runs that failed or never ran, such as on the Claude
-//   plan's limit, and writes the report.
+//   plan's limit, and writes the report. With a number, it runs at most that many, to
+//   see how much of the plan's limit they use, and the rest stay failed for the next
+//   resume.
 // npm run saving -- replay-report [experiment ID]
 //   Writes the report for the experiment, or the latest one on saving-replays, from
 //   what Phoenix saved, to ~/tmp/road-trip-evals/saving/replays/<experiment ID>/: each

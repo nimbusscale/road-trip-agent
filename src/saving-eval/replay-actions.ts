@@ -85,16 +85,22 @@ async function replayAction(
   });
 }
 
-// npm run saving -- replay-resume <experiment ID>
+// npm run saving -- replay-resume <experiment ID> [most runs]
 async function resumeAction(
   phoenixUrl: string,
-  [experimentId]: readonly string[],
+  [experimentId, most]: readonly string[],
 ): Promise<void> {
-  if (experimentId === undefined) {
-    throw new Error("Give the experiment's ID.");
+  const mostRuns = most === undefined ? null : Number(most);
+  if (
+    experimentId === undefined ||
+    (mostRuns !== null && (!Number.isInteger(mostRuns) || mostRuns < 1))
+  ) {
+    throw new Error(
+      "Give the experiment's ID, and optionally the most runs to run.",
+    );
   }
   await withReplayGiven(phoenixUrl, async (given) => {
-    await resumeReplayExperiment(given, experimentId);
+    await resumeReplayExperiment(given, experimentId, mostRuns);
   });
 }
 

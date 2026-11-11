@@ -101,16 +101,27 @@ export async function runReplayExperiment(
   });
 }
 
-// Runs again the runs of an experiment that failed, or never ran.
+// Runs again the runs of an experiment that failed, or never ran. With a most, the
+// runs past it fail at once without running a turn, so they stay failed for the next
+// resume.
 export async function resumeReplayExperiment(
   given: ReplayGiven,
   experimentId: string,
+  mostRuns: number | null,
 ): Promise<void> {
+  let started = 0;
   await resumeExperiment({
     client: createClient({ options: { baseUrl: given.phoenixUrl } }),
     experimentId,
-    task: (example) =>
-      replayRunOf(given, replayInputSchema.parse(example.input)),
+    task: async (example) => {
+      if (mostRuns !== null && started >= mostRuns) {
+        throw new Error(
+          `Not run: this resume ran at most ${String(mostRuns)} runs.`,
+        );
+      }
+      started += 1;
+      return replayRunOf(given, replayInputSchema.parse(example.input));
+    },
     evaluators: EVALUATORS,
     concurrency: CONCURRENCY,
     setGlobalTracerProvider: false,
