@@ -9,6 +9,12 @@ import { CLOCK_TIME_ERROR, CLOCK_TIME_TEXT } from "./clock-time.js";
 
 export const READ_TRIP_BRIEF_INPUT = z.strictObject({});
 
+// "In the user's words" alone pushed the coordinator to copy a whole message into one
+// item, such as a "maybe" into the must-sees (#209). The coordinator's instructions say
+// how to sort a message into the items.
+const USER_WORDS =
+  "In the user's words. Leave out the parts of their message that belong in other items.";
+
 // Each input says only how to pass its value: its format, units, and limits. What
 // each item means, with examples, is in the coordinator's instructions (tool design,
 // section 4). Said in both places, the two drift apart. The
@@ -28,8 +34,8 @@ export function updateTripBriefInput(limits: TripBriefSettings) {
       .describe(
         `A whole number, from 1 to ${String(limits.maximumTripLengthDays)}.`,
       ),
-    interestsText: z.string().optional().describe("In the user's words."),
-    mustSeesText: z.string().optional().describe("In the user's words."),
+    interestsText: z.string().optional().describe(USER_WORDS),
+    mustSeesText: z.string().optional().describe(USER_WORDS),
     comfortableDrivingInHours: z
       .number()
       .positive()
@@ -43,11 +49,8 @@ export function updateTripBriefInput(limits: TripBriefSettings) {
       .regex(CLOCK_TIME_TEXT, { error: CLOCK_TIME_ERROR })
       .optional()
       .describe('A clock time, such as "8:00 a.m.".'),
-    mealPreferencesText: z.string().optional().describe("In the user's words."),
-    lodgingPreferencesText: z
-      .string()
-      .optional()
-      .describe("In the user's words."),
+    mealPreferencesText: z.string().optional().describe(USER_WORDS),
+    lodgingPreferencesText: z.string().optional().describe(USER_WORDS),
   });
 }
 
