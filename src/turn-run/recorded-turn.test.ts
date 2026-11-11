@@ -75,6 +75,40 @@ describe("recordedTurnStart", () => {
       "Turn 3's message has text before the user's words that isn't the app's lines.",
     );
   });
+
+  it("leaves out the prompt snapshots, and gives a line whose parent was one the snapshot's parent", () => {
+    const snapshot = (uuid: string, parentUuid: string) => ({
+      type: "attachment",
+      uuid,
+      parentUuid,
+      attachment: {
+        type: "prompt_snapshot",
+        systemPrompt: ["Old instructions"],
+      },
+    });
+    const rows: TranscriptRow[] = [
+      {
+        id: 1,
+        workerKey: COORDINATOR_KEY,
+        line: { ...user("Plan it."), uuid: "u1", parentUuid: null },
+      },
+      { id: 2, workerKey: COORDINATOR_KEY, line: snapshot("s1", "u1") },
+      { id: 3, workerKey: COORDINATOR_KEY, line: snapshot("s2", "s1") },
+      {
+        id: 4,
+        workerKey: COORDINATOR_KEY,
+        line: { ...reply("Done."), uuid: "a1", parentUuid: "s2" },
+      },
+      { id: 5, workerKey: COORDINATOR_KEY, line: user("Five days.") },
+    ];
+    const start = recordedTurnStart(rows, 2, "Five days.");
+    expect(
+      start.rowsBefore.map((row) => [row.id, row.line.parentUuid]),
+    ).toEqual([
+      [1, null],
+      [4, "u1"],
+    ]);
+  });
 });
 
 describe("copiedLine", () => {

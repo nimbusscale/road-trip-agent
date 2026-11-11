@@ -56,3 +56,12 @@ export const userTextLineSchema = z.looseObject({
   type: z.literal("user"),
   message: z.looseObject({ content: z.string() }),
 });
+
+// Claude Code's saved copy of the request it built for a session: the system prompt,
+// with the tools (recorded-turn.ts).
+export const promptSnapshotLineSchema = z.looseObject({
+  type: z.literal("attachment"),
+  uuid: z.string(),
+  parentUuid: z.string().nullable(),
+  attachment: z.looseObject({ type: z.literal("prompt_snapshot") }),
+});
