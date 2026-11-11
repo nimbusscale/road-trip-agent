@@ -69,12 +69,17 @@
 //   a commit that isn't the code that ran. It needs both tunnels and the local
 //   Postgres, and bills the API account through JUDGE_API_KEY for the judge. At the
 //   end it writes the report, as replay-report does.
-// npm run saving -- replay-resume <experiment ID> [most runs]
+// npm run saving -- replay-split <split> <case to leave out> ...
+//   Saves a split of every case but the ones named by set and item, such as 8.3. It's
+//   how the cases whose turn starts many workers are left out, since each uses as much
+//   of the Claude plan's limit as dozens of other turns.
+// npm run saving -- replay-resume <experiment ID> <split or all> [most runs]
 //   Runs again an experiment's runs that failed or never ran, such as on the Claude
-//   plan's limit, and writes the report. With a number, it runs at most that many, to
-//   see how much of the plan's limit they use, and the rest stay failed for the next
-//   resume.
-// npm run saving -- replay-report [experiment ID]
+//   plan's limit, and writes the report. With a split, it runs only that split's cases,
+//   and the report counts only them. With a number, it runs at most that many, to see
+//   how much of the plan's limit they use. The runs it leaves out stay failed for the
+//   next resume.
+// npm run saving -- replay-report [experiment ID [split]]
 //   Writes the report for the experiment, or the latest one on saving-replays, from
 //   what Phoenix saved, to ~/tmp/road-trip-evals/saving/replays/<experiment ID>/: each
 //   case's runs, how many passed, passed the checks its golden turn failed, and saved

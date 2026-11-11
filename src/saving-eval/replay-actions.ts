@@ -23,10 +23,16 @@ import { readRubric } from "../grounded-eval/labeling.js";
 import { appCommit } from "../tracing/app-commit.js";
 import { startTracing } from "../tracing/phoenix.js";
 import { RUBRIC_PATH } from "./label-files.js";
-import { REPLAY_DATASET, saveReplayDataset } from "./replay-cases.js";
+import {
+  REPLAY_DATASET,
+  saveReplayDataset,
+  saveReplaySplit,
+  splitCasesOf,
+} from "./replay-cases.js";
 import {
   type ReplayExperiment,
   type ReplayGiven,
+  type ReplayResume,
   resumeReplayExperiment,
   runReplayExperiment,
 } from "./replay-experiment.js";
@@ -52,17 +58,18 @@ const REPLAYS_DIR = join(EVALS_DIR, "replays");
 // The replays' actions for npm run saving (saving.ts), which lists what each does.
 export const REPLAY_ACTIONS = {
   "replay-dataset": saveReplayDataset,
+  "replay-split": saveReplaySplit,
   replay: replayAction,
   "replay-resume": resumeAction,
   "replay-report": reportAction,
 };
 
-// npm run saving -- replay-report [experiment ID]
+// npm run saving -- replay-report [experiment ID [split]]
 function reportAction(
   phoenixUrl: string,
-  [experimentId]: readonly string[],
+  [experimentId, split]: readonly string[],
 ): Promise<void> {
-  return writeReplayReport(phoenixUrl, experimentId ?? null);
+  return writeReplayReport(phoenixUrl, experimentId ?? null, split ?? null);
 }
 
 // npm run saving -- replay <trial set or all> <runs per case>
@@ -76,31 +83,34 @@ async function replayAction(
       "Give a trial set, such as trial-1, or all, then the runs per case.",
     );
   }
-  await withReplayGiven(phoenixUrl, async (given, experiment) => {
-    await runReplayExperiment(given, {
-      ...experiment,
-      split: set === "all" ? null : set,
-      runsPerCase,
-    });
+  const split = set === "all" ? null : set;
+  await withReplayGiven(phoenixUrl, split, async (given, experiment) => {
+    await runReplayExperiment(given, { ...experiment, split, runsPerCase });
   });
 }
 
-// npm run saving -- replay-resume <experiment ID> [most runs]
+// npm run saving -- replay-resume <experiment ID> <split or all> [most runs]
 async function resumeAction(
   phoenixUrl: string,
-  [experimentId, most]: readonly string[],
+  [experimentId, set, most]: readonly string[],
 ): Promise<void> {
   const mostRuns = most === undefined ? null : Number(most);
   if (
     experimentId === undefined ||
+    set === undefined ||
     (mostRuns !== null && (!Number.isInteger(mostRuns) || mostRuns < 1))
   ) {
     throw new Error(
-      "Give the experiment's ID, and optionally the most runs to run.",
+      "Give the experiment's ID, a split or all, and optionally the most runs to run.",
     );
   }
-  await withReplayGiven(phoenixUrl, async (given) => {
-    await resumeReplayExperiment(given, experimentId, mostRuns);
+  const split = set === "all" ? null : set;
+  const resume: ReplayResume = {
+    cases: split === null ? null : await splitCasesOf(phoenixUrl, split),
+    mostRuns,
+  };
+  await withReplayGiven(phoenixUrl, split, async (given) => {
+    await resumeReplayExperiment(given, experimentId, resume);
   });
 }
 
@@ -110,6 +120,7 @@ async function resumeAction(
 // it again.
 async function withReplayGiven(
   phoenixUrl: string,
+  split: string | null,
   run: (
     given: ReplayGiven,
     experiment: Omit<ReplayExperiment, "split" | "runsPerCase">,
@@ -148,7 +159,7 @@ async function withReplayGiven(
   } finally {
     await Promise.all([localPool.end(), livePool.end()]);
     await tracing.shutdown();
-    await writeReplayReport(phoenixUrl, null).catch((error: unknown) => {
+    await writeReplayReport(phoenixUrl, null, split).catch((error: unknown) => {
       console.error(
         `The report wasn't written: ${String(error)}. Run replay-report to write it.`,
       );
@@ -174,18 +185,23 @@ function commitSubjectOf(commit: string): string {
   }).trim();
 }
 
-// npm run saving -- replay-report [experiment ID]
+// npm run saving -- replay-report [experiment ID [split]]
 // Writes the report for the experiment, or the latest one on saving-replays, from what
-// Phoenix saved: the report, each failure the judge found, and every run's output.
+// Phoenix saved: the report, each failure the judge found, and every run's output. With
+// a split, it counts only the split's cases.
 export async function writeReplayReport(
   phoenixUrl: string,
   experimentId: string | null,
+  split: string | null,
 ): Promise<void> {
   const client = createClient({ options: { baseUrl: phoenixUrl } });
   const experiment = await experimentOf(client, experimentId);
   const { examples } = await getDatasetExamples({
     client,
-    dataset: { datasetId: experiment.datasetId },
+    dataset: {
+      datasetId: experiment.datasetId,
+      ...(split === null ? {} : { splits: [split] }),
+    },
   });
   const { runs } = await getExperimentRuns({
     client,
@@ -197,8 +213,8 @@ export async function writeReplayReport(
   for (const run of runs) {
     cases.get(run.datasetExampleId)?.add(run);
   }
-  const title = titleOf(experiment.id, experiment.metadata);
-  const dir = join(REPLAYS_DIR, experiment.id);
+  const title = `${titleOf(experiment.id, experiment.metadata)}${split === null ? "" : `, counting only split ${split}`}`;
+  const dir = join(REPLAYS_DIR, experiment.id, split ?? "");
   mkdirSync(dir, { recursive: true });
   const ran = [...cases.values()].filter((c) => c.runs.runs.length > 0);
   const report = replayReportOf(

@@ -32,6 +32,12 @@ export const replayMetadataSchema = z.looseObject({
   item: z.number(),
 });
 
+// A case's name in the report, by set and item, such as 8.3.
+export function caseNameOf(metadata: unknown): string {
+  const { set, item } = replayMetadataSchema.parse(metadata);
+  return `${String(set)}.${String(item)}`;
+}
+
 // What one run of a case returns to the experiment. The turn input is the run's <turn>,
 // which follows the case's context in the judge input, so the run can be judged again
 // later without running the turn again. Each save is named by its tool, in the order
