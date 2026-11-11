@@ -58,7 +58,7 @@ Memory isn't part of a road trip, so it isn't in the domain model, like sessions
 
 **Whose memory comes from the session,** like the trip for every tool ([tool design](tools.md), section 4). No memory tool takes a user ID or a trip ID. Updating or forgetting an item works only on the session user's own items, and for a trip item, only on this trip's.
 
-**Memory has a size cap.** User memory and each trip's memory hold at most the maximum memory items, and each item is at most the maximum memory item length (section 10). An add over either limit is refused, and the error says why. When memory is full, the coordinator merges or forgets items first. The caps are settings so they can be tuned while watching how the coordinator manages memory.
+**Memory has a size cap.** User memory and each trip's memory hold at most the maximum memory items, and each item is at most the maximum memory item length (section 10). An add over either limit is refused, and the error says why. When memory is full, the coordinator forgets items that no longer apply first. It doesn't merge items, since each holds one thing (5.2). The caps are settings so they can be tuned while watching how the coordinator manages memory.
 
 **A started trip's memory can't be changed.** Adding, updating, or forgetting a trip memory item on a started trip is refused, like changes to the plan (section 8). User memory can still change, since it isn't about that trip. The chat is closed by then (functional spec 2), so in practice this catches a turn still running at midnight.
 

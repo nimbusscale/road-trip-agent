@@ -102,7 +102,7 @@ describe("MemoryWriter.add", () => {
     });
     await expect(writer.add(USER_A, null, "one more")).rejects.toThrow(
       new RuleError(
-        "User memory already holds 3 items, the most it can. Merge or forget items first.",
+        "User memory already holds 3 items, the most it can. Forget items that no longer apply first.",
       ),
     );
     expect(store.rows).toHaveLength(3);
@@ -115,7 +115,7 @@ describe("MemoryWriter.add", () => {
     });
     await expect(writer.add(USER_A, TRIP_1, "one more")).rejects.toThrow(
       new RuleError(
-        "This trip's memory already holds 3 items, the most it can. Merge or forget items first.",
+        "This trip's memory already holds 3 items, the most it can. Forget items that no longer apply first.",
       ),
     );
   });
