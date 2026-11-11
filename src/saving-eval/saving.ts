@@ -69,10 +69,15 @@
 //   a commit that isn't the code that ran. It needs both tunnels and the local
 //   Postgres, and bills the API account through JUDGE_API_KEY for the judge. At the
 //   end it writes the report, as replay-report does.
-// npm run saving -- replay-split <split> <case to leave out> ...
-//   Saves a split of every case but the ones named by set and item, such as 8.3. It's
-//   how the cases whose turn starts many workers are left out, since each uses as much
-//   of the Claude plan's limit as dozens of other turns.
+// npm run saving -- replay-add <case> ...
+//   Adds golden turns, named by set and item such as 5.2, as cases, in a new version of
+//   the dataset. It's how turns that saved and passed every check join the cases, to
+//   catch a change that breaks saving that works.
+// npm run saving -- replay-split <split> <with or without> <case> ...
+//   Saves a split of the cases named by set and item, such as 8.3, or of every case but
+//   them. It's how the dev and holdout cases are picked, and how the cases whose turn
+//   starts many workers are left out, since each uses as much of the Claude plan's
+//   limit as dozens of other turns.
 // npm run saving -- replay-resume <experiment ID> <split or all> [most runs]
 //   Runs again an experiment's runs that failed or never ran, such as on the Claude
 //   plan's limit, and writes the report. With a split, it runs only that split's cases,

@@ -24,6 +24,7 @@ import { appCommit } from "../tracing/app-commit.js";
 import { startTracing } from "../tracing/phoenix.js";
 import { RUBRIC_PATH } from "./label-files.js";
 import {
+  addReplayCases,
   REPLAY_DATASET,
   saveReplayDataset,
   saveReplaySplit,
@@ -58,6 +59,7 @@ const REPLAYS_DIR = join(EVALS_DIR, "replays");
 // The replays' actions for npm run saving (saving.ts), which lists what each does.
 export const REPLAY_ACTIONS = {
   "replay-dataset": saveReplayDataset,
+  "replay-add": addReplayCases,
   "replay-split": saveReplaySplit,
   replay: replayAction,
   "replay-resume": resumeAction,

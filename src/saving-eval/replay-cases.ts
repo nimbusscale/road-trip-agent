@@ -1,5 +1,6 @@
 import { createClient } from "@arizeai/phoenix-client";
 import {
+  appendDatasetExamples,
   createDataset,
   createDatasetSplit,
   getDatasetExamples,
@@ -19,7 +20,9 @@ import { readGoldenTurns } from "./saving-judge.js";
 import { caseNameOf, type ReplayInput } from "./replay.schema.js";
 
 // The saving replays' cases (#209, "The cases, and how many runs"): every saving-golden
-// turn that fails a check. Nothing outside the golden set is a case.
+// turn that fails a check, and a few that saved and passed every check, added later to
+// catch a change that breaks saving that works (replay-add). Nothing outside the golden
+// set is a case.
 
 export const REPLAY_DATASET = "saving-replays";
 
@@ -51,16 +54,7 @@ export async function saveReplayDataset(phoenixUrl: string): Promise<void> {
   const failing = (await readGoldenTurns(phoenixUrl))
     .filter((turn) => turn.expected.some((save) => save.checks.length > 0))
     .sort((a, b) => a.set - b.set || a.item - b.item);
-  const items = await reviewItemsFor(phoenixUrl, failing);
-  const examples = withTrialSplit(
-    failing.map((golden, index) => {
-      const item = items[index];
-      if (item === undefined) {
-        throw new Error(`Turn ${golden.spanId} has no review item.`);
-      }
-      return replayExampleOf(golden, item);
-    }),
-  );
+  const examples = withTrialSplit(await examplesOf(phoenixUrl, failing));
   await createDataset({
     client,
     name: REPLAY_DATASET,
@@ -71,16 +65,63 @@ export async function saveReplayDataset(phoenixUrl: string): Promise<void> {
   console.log(`Saved ${String(examples.length)} cases as ${REPLAY_DATASET}.`);
 }
 
-// npm run saving -- replay-split <split> <case to leave out> ... (saving.ts). Saves a
-// split of every case but the ones named, such as 8.3, by set and item. It's how the
-// cases whose turn starts many workers are left out of a run (#209), since one of them
-// uses as much of the Claude plan's limit as dozens of other turns.
+// npm run saving -- replay-add <case> ... (saving.ts). Adds golden turns, named by set
+// and item such as 5.2, as cases, in a new version of the dataset. Its experiments stay
+// on the version they ran on.
+export async function addReplayCases(
+  phoenixUrl: string,
+  cases: readonly string[],
+): Promise<void> {
+  const client = createClient({ options: { baseUrl: phoenixUrl } });
+  const { examples } = await getDatasetExamples({
+    client,
+    dataset: { datasetName: REPLAY_DATASET },
+  });
+  const there = new Set(examples.map((e) => caseNameOf(e.metadata)));
+  const golden = await readGoldenTurns(phoenixUrl);
+  const named = cases.map((c) => {
+    const turn = golden.find((t) => `${String(t.set)}.${String(t.item)}` === c);
+    if (turn === undefined || there.has(c)) {
+      throw new Error(
+        `${c} isn't a golden turn, or is already a case in ${REPLAY_DATASET}.`,
+      );
+    }
+    return turn;
+  });
+  const added = await examplesOf(phoenixUrl, named);
+  await appendDatasetExamples({
+    client,
+    dataset: { datasetName: REPLAY_DATASET },
+    examples: added,
+  });
+  console.log(`Added ${cases.join(", ")} to ${REPLAY_DATASET}.`);
+}
+
+async function examplesOf(
+  phoenixUrl: string,
+  golden: readonly GoldenTurn[],
+): Promise<ReplayExample[]> {
+  const items = await reviewItemsFor(phoenixUrl, golden);
+  return golden.map((turn, index) => {
+    const item = items[index];
+    if (item === undefined) {
+      throw new Error(`Turn ${turn.spanId} has no review item.`);
+    }
+    return replayExampleOf(turn, item);
+  });
+}
+
+// npm run saving -- replay-split <split> <with or without> <case> ... (saving.ts).
+// Saves a split of the cases named by set and item, such as 8.3, or of every case but
+// them. It's how the dev and holdout cases are picked, and how the cases whose turn
+// starts many workers are left out of a run (#209), since one of them uses as much of
+// the Claude plan's limit as dozens of other turns.
 export async function saveReplaySplit(
   phoenixUrl: string,
-  [split, ...leftOut]: readonly string[],
+  [split, mode, ...cases]: readonly string[],
 ): Promise<void> {
-  if (split === undefined) {
-    throw new Error("Give the split's name, then the cases to leave out.");
+  if (split === undefined || (mode !== "with" && mode !== "without")) {
+    throw new Error("Give the split's name, with or without, then the cases.");
   }
   const client = createClient({ options: { baseUrl: phoenixUrl } });
   const { examples } = await getDatasetExamples({
@@ -91,25 +132,28 @@ export async function saveReplaySplit(
     id: example.id,
     name: caseNameOf(example.metadata),
   }));
-  const unknown = leftOut.filter((c) => !named.some((n) => n.name === c));
+  const unknown = cases.filter((c) => !named.some((n) => n.name === c));
   if (unknown.length > 0) {
     throw new Error(`${REPLAY_DATASET} has no case ${unknown.join(", ")}.`);
   }
-  const kept = named.filter((n) => !leftOut.includes(n.name));
+  const kept = named.filter(
+    (n) => cases.includes(n.name) === (mode === "with"),
+  );
+  const description = `${mode === "with" ? "The cases" : "Every case but"} ${cases.join(", ")}.`;
   await createDatasetSplit({
     client,
     dataset: { datasetName: REPLAY_DATASET },
     name: split,
-    description: `Every case but ${leftOut.join(", ")}.`,
+    description,
     exampleIds: kept.map((n) => n.id),
   });
   console.log(
-    `Saved split ${split}: ${String(kept.length)} cases, leaving out ${leftOut.join(", ")}.`,
+    `Saved split ${split}, ${String(kept.length)} cases: ${description}`,
   );
 }
 
-export // The cases in a split, by set and item.
-async function splitCasesOf(
+// The cases in a split, by set and item.
+export async function splitCasesOf(
   phoenixUrl: string,
   split: string,
 ): Promise<Set<string>> {
