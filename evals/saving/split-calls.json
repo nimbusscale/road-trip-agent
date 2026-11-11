@@ -94,6 +94,20 @@
           "note": "\"First thing on Day 1\" is when the breakfast happens, which the itinerary holds (decision 16)."
         }
       ]
+    },
+    {
+      "set": 6,
+      "spanId": "5cad2857ad2fbc45",
+      "saves": [
+        {
+          "n": 1,
+          "tool": "update_memory_item",
+          "checks": [
+            "F1"
+          ],
+          "note": "The 7:00 a.m. start and the coffee routine are two habits that can change on their own, as in this item's first version in set 2 item 8 (decision 20)."
+        }
+      ]
     }
   ]
 }

@@ -63,7 +63,8 @@ function readLabelsFile(path: string): CalibrationFile {
 
 // Every save in the sets, with the labelers' answers on the given rubric version, and
 // Joe's labels: the calibration sets' in calibration.json, and his calls on the full
-// labeling's splits in split-calls.json, for the saves he called.
+// labeling's splits, and on a save the judge showed was labeled wrong, in
+// split-calls.json, for the saves he called.
 export function goldenSavesOf(
   sets: readonly number[],
   labelers: readonly LabelerName[],

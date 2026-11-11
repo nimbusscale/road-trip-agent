@@ -183,3 +183,10 @@ Settled 2026-11-10, in chat.
 Sol was there to give a second, independent reading, so the splits would show where the rubric was unclear. It did that on the full labeling. From here, Opus labels alone. The full labeling stays on rubric `49b4a5c`, with Joe's calls on its splits. Decisions 15 to 17 changed checks 2 to 5, so Opus labels again, on the new rubric, the 6 split turns those decisions are about and the 30 calibration turns in sets 1 to 3, to check the change fixed the splits and loosened nothing. The other 67 turns aren't relabeled.
 
 The golden set is built from the full labeling, not from the 36-turn check. Joe's calls on its splits are in `split-calls.json`, in the same shape as `calibration.json`, with each called save's full checks. A save the labelers agreed on takes their label, and a calibration save takes Joe's.
+
+## 20. A later version of a memory item takes the label its first version got
+
+Settled 2026-11-10, in chat, while tuning the Haiku judge.
+
+The Florida trip's user memory item mem_smbe2mrx holds the 7:00 a.m. start and the coffee routine. Joe labeled its first version F1 (set 2 item 8, save 2): they're two habits that can change on their own. In turn 8 (set 6 item 1, save 1), the coordinator updated it with a new coffee-stop rule, and kept the start time and the coffee routine together. Both labelers passed that update, so it took "passes" in the golden set. The judge failed it on F1 in every run, which matches Joe's call on the first version. Joe labeled the update F1, in `split-calls.json`, though it wasn't a split.
+
