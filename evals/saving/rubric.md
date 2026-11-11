@@ -40,7 +40,7 @@ Don't judge:
 
 ## The checks
 
-Run each check that fits the save. A memory save gets checks 1, 2, 3, 4, and 6. A trip brief save gets check 5. A save that fails no check passes.
+Run each check that fits the save. A trip memory save gets checks 1, 2, 3, 4, and 6. A user memory save gets checks 1, 2, and 6. A trip brief save gets check 5. A save that fails no check passes.
 
 ### Check 1 (F1): one thing per memory item
 
@@ -119,10 +119,12 @@ This check is for trip memory only. A habit can be in both user memory and the t
 
 ### Check 4 (F4): memory doesn't hold what belongs in the trip brief
 
-**Fails when** a memory save holds something a trip brief item is meant for, and the trip brief doesn't have it, so memory is the only place it's saved. When the trip brief has it too, this check passes, and check 3 decides whether the memory copy adds anything. Two kinds of things a trip brief item is meant for:
+**Fails when** a trip memory save holds something a trip brief item is meant for, and the trip brief doesn't have it, so trip memory is the only place it's saved. When the trip brief has it too, this check passes, and check 3 decides whether the memory copy adds anything. Two kinds of things a trip brief item is meant for:
 
 - **A must-see:** something the user says the trip has to include, so that leaving it out would make the trip a failure once it's done. The user brings it up on their own. A place the coordinator offered, which the user picked from its options, isn't one, even when the user says they still want it. This includes a road or route the user asked for by name, as in check 5. The route note in trip memory can still hold it, but the trip brief needs it too, in the must-sees or another item, such as the focus.
 - **A trip-wide preference a trip brief item covers,** such as hotel breakfast vs local food for the whole trip, in the meal preferences.
+
+This check is for trip memory only. A habit in user memory is in the right place, even when the trip brief doesn't have it. User memory can hold a habit from another trip, and the coordinator isn't expected to copy it into the trip brief.
 
 A preference about one part of the trip passes in trip memory, such as dinner on one evening, or a lodging wish for one stay. So does one no trip brief item covers, such as what time they like to eat dinner.
 
@@ -132,6 +134,7 @@ Judge against the trip brief as it stood when the save was made, as in check 3: 
 - Fails: "Route is fixed: the Blue Ridge Parkway from Waynesboro to Asheville, then I-40 west to the Smokies", when the user said "we want to take the Blue Ridge Parkway" and the trip brief doesn't hold it. The note is fine as a route plan, but the parkway is only in memory.
 - Fails: "Hotel breakfast is fine every morning on this trip." That's hotel breakfast vs local food for the whole trip, which the meal preferences cover.
 - Passes: "Route is fixed: follow the coast from Monterey to Santa Barbara, and find stops along it", when the user said "we want to drive down the coast" and an earlier save in the same turn set the focus to "The coast, Monterey to Santa Barbara". The focus holds the coast route.
+- Passes: "Doesn't like spicy food; keep meals mild", in user memory, when the trip brief's meal preferences don't mention it. It's a habit, and user memory is where a habit goes.
 - Passes: "Chose the Point Reyes lighthouse overlook over the lighthouse tour, since they've been up plenty of lighthouses." The coordinator offered the overlook and the tour as options, and the user picked one. That's a choice, not a must-see.
 - Passes: "Not interested in the LBJ Ranch tour." It's not a must-see or a preference the trip brief covers. The user only said it wasn't for them, so a note fits better than rejecting the place for good.
 

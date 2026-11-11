@@ -192,3 +192,11 @@ The Florida trip's user memory item mem_smbe2mrx holds the 7:00 a.m. start and t
 
 The same turn's new trip memory item, mem_fhnbyya3 (set 6 item 1, save 2), had the same problem. It says "a quick coffee and bite at Foxtail Coffee", after the same turn picked Foxtail Coffee as Day 2's first stop. Joe failed the item's next version F2 (set 2 item 1, save 2), since Foxtail Coffee is in the itinerary. Both labelers left F2 off this first version, and the judge failed it on F2 in 2 of 3 runs. Joe added F2 to it, so it fails F1, F2, and F4.
 
+## 21. Check 4 is for trip memory only
+
+Settled 2026-11-10, in chat, while tuning the Haiku judge.
+
+On the Florida trip, the user said they live in New England and have lobster rolls all the time, and aren't a huge fan of fried seafood. The coordinator saved it to user memory (set 9 item 6, save 1). The trip brief's meal preferences didn't mention seafood. Both labelers failed it F4: a trip-wide food preference, with memory the only place it's saved. The judge passed it on F4 in most runs.
+
+Joe passed it on F4. A habit in user memory is in the right place, and leaving it out of the trip brief isn't a missed save either. User memory can hold a habit from another trip, and the coordinator isn't expected to copy it into the trip brief. So check 4 covers trip memory saves only, as decision 10 kept it for: without it, the coordinator could keep everything in trip memory and never fill the trip brief. The save still fails F1, since the lobster rolls and the fried seafood are two dislikes. No other user memory save in the golden set failed F4, so no other label changed.
+
