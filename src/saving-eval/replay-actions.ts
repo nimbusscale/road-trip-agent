@@ -86,7 +86,7 @@ async function replayAction(
     );
   }
   const split = set === "all" ? null : set;
-  await withReplayGiven(phoenixUrl, split, async (given, experiment) => {
+  await withReplayGiven(phoenixUrl, null, split, async (given, experiment) => {
     await runReplayExperiment(given, { ...experiment, split, runsPerCase });
   });
 }
@@ -111,17 +111,19 @@ async function resumeAction(
     cases: split === null ? null : await splitCasesOf(phoenixUrl, split),
     mostRuns,
   };
-  await withReplayGiven(phoenixUrl, split, async (given) => {
+  await withReplayGiven(phoenixUrl, experimentId, split, async (given) => {
     await resumeReplayExperiment(given, experimentId, resume);
   });
 }
 
-// Sets up what a run needs, runs it, and then writes the report from Phoenix. Every
+// Sets up what a run needs, runs it, and then writes the report from Phoenix: for the
+// experiment a resume names, or the latest one when it's null, as after a new run. Every
 // full judge run lost its Phoenix connection at its very end, after its runs were saved
 // (#209), so the report is built from what Phoenix saved, and `replay-report` can build
 // it again.
 async function withReplayGiven(
   phoenixUrl: string,
+  experimentId: string | null,
   split: string | null,
   run: (
     given: ReplayGiven,
@@ -161,7 +163,8 @@ async function withReplayGiven(
   } finally {
     await Promise.all([localPool.end(), livePool.end()]);
     await tracing.shutdown();
-    await writeReplayReport(phoenixUrl, null, split).catch((error: unknown) => {
+    const report = writeReplayReport(phoenixUrl, experimentId, split);
+    await report.catch((error: unknown) => {
       console.error(
         `The report wasn't written: ${String(error)}. Run replay-report to write it.`,
       );
