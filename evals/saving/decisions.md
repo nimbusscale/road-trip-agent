@@ -184,9 +184,11 @@ Sol was there to give a second, independent reading, so the splits would show wh
 
 The golden set is built from the full labeling, not from the 36-turn check. Joe's calls on its splits are in `split-calls.json`, in the same shape as `calibration.json`, with each called save's full checks. A save the labelers agreed on takes their label, and a calibration save takes Joe's.
 
-## 20. A later version of a memory item takes the label its first version got
+## 20. Each version of a memory item takes the label Joe gave another version
 
 Settled 2026-11-10, in chat, while tuning the Haiku judge.
 
 The Florida trip's user memory item mem_smbe2mrx holds the 7:00 a.m. start and the coffee routine. Joe labeled its first version F1 (set 2 item 8, save 2): they're two habits that can change on their own. In turn 8 (set 6 item 1, save 1), the coordinator updated it with a new coffee-stop rule, and kept the start time and the coffee routine together. Both labelers passed that update, so it took "passes" in the golden set. The judge failed it on F1 in every run, which matches Joe's call on the first version. Joe labeled the update F1, in `split-calls.json`, though it wasn't a split.
+
+The same turn's new trip memory item, mem_fhnbyya3 (set 6 item 1, save 2), had the same problem. It says "a quick coffee and bite at Foxtail Coffee", after the same turn picked Foxtail Coffee as Day 2's first stop. Joe failed the item's next version F2 (set 2 item 1, save 2), since Foxtail Coffee is in the itinerary. Both labelers left F2 off this first version, and the judge failed it on F2 in 2 of 3 runs. Joe added F2 to it, so it fails F1, F2, and F4.
 
