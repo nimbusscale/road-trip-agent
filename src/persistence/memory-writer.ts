@@ -109,7 +109,7 @@ export class MemoryWriter {
     }
     const memory = tripId === null ? "User memory" : "This trip's memory";
     throw new RuleError(
-      `${memory} already holds ${String(maximum)} items, the most it can. Merge or forget items first.`,
+      `${memory} already holds ${String(maximum)} items, the most it can. Forget items that no longer apply first.`,
     );
   }
 

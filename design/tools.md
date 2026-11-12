@@ -242,7 +242,7 @@ Coordinator only. Workers never see memory (technical spec 6.4). What memory hol
 
 **Whose memory comes from the session.** No memory tool takes a user ID or trip ID (section 4). `add_memory_item` saves to the session user's memory, or to this trip's. `update_memory_item` and `forget_memory_item` work only on the session user's own items, and for a trip item, only on this trip's. Any other item ID gets "no such memory item," the same error as an ID that doesn't exist, so the error doesn't say whether another user's item exists.
 
-**Refusals.** An add over the maximum memory items is refused, and so is text over the maximum memory item length (technical spec section 10). The error gives the limit, so the coordinator can merge or forget items, or shorten the text. Adding, updating, or forgetting a trip item on a started trip is refused (section 4).
+**Refusals.** An add over the maximum memory items is refused, and so is text over the maximum memory item length (technical spec section 10). The error gives the limit, so the coordinator can forget items that no longer apply, or shorten the text. It doesn't merge items, since each holds one thing (technical spec section 5.2). Adding, updating, or forgetting a trip item on a started trip is refused (section 4).
 
 ### 2.3 Places
 

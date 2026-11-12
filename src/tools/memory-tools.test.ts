@@ -104,7 +104,7 @@ describe("add_memory_item", () => {
       await added(tools, "user", text);
     }
     expect(errorText(await tools.add({ memory: "user", text: "four" }))).toBe(
-      "Nothing was changed. User memory already holds 3 items, the most it can. Merge or forget items first.",
+      "Nothing was changed. User memory already holds 3 items, the most it can. Forget items that no longer apply first.",
     );
     expect(store.rows).toHaveLength(3);
     // Trip memory has its own limit.

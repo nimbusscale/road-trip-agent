@@ -4,7 +4,11 @@ import { appLinesOf } from "../agent/app-lines.js";
 import { turnMessageIndex } from "../agent/shown-messages.js";
 import { transcriptLineSchema } from "../persistence/session.schema.js";
 import { COORDINATOR_KEY } from "../persistence/transcript-repository.js";
-import { type TranscriptRow, userTextLineSchema } from "./turn-run.schema.js";
+import {
+  promptSnapshotLineSchema,
+  type TranscriptRow,
+  userTextLineSchema,
+} from "./turn-run.schema.js";
 
 // Where a recorded turn starts in its session's transcript (#245).
 export interface RecordedTurnStart {
@@ -46,11 +50,41 @@ export function recordedTurnStart(
     );
   }
   return {
-    rowsBefore: withoutQueueMarkers(
-      rows.filter((row) => row.id < messageRow.id),
+    rowsBefore: withoutPromptSnapshots(
+      withoutQueueMarkers(rows.filter((row) => row.id < messageRow.id)),
     ),
     appLines: lines,
   };
+}
+
+// Claude Code saves the request it built, the system prompt with the tools, as a
+// prompt_snapshot line, and a resumed session sends that again. So a run would get the
+// instructions and tools the session was recorded with, not today's code's (#209). The
+// snapshots are left out, and a line whose parent was one takes the snapshot's parent,
+// so the chain of lines stays whole.
+function withoutPromptSnapshots(rows: TranscriptRow[]): TranscriptRow[] {
+  const snapshotParents = new Map<string, unknown>();
+  for (const row of rows) {
+    const snapshot = promptSnapshotLineSchema.safeParse(row.line);
+    if (snapshot.success) {
+      snapshotParents.set(snapshot.data.uuid, snapshot.data.parentUuid);
+    }
+  }
+  const parentFor = (parent: unknown): unknown => {
+    let kept = parent;
+    while (typeof kept === "string" && snapshotParents.has(kept)) {
+      kept = snapshotParents.get(kept);
+    }
+    return kept;
+  };
+  return rows
+    .filter((row) => !promptSnapshotLineSchema.safeParse(row.line).success)
+    .map((row) => {
+      const { parentUuid } = row.line;
+      return typeof parentUuid === "string" && snapshotParents.has(parentUuid)
+        ? { ...row, line: { ...row.line, parentUuid: parentFor(parentUuid) } }
+        : row;
+    });
 }
 
 // The SDK marks a message's place in its queue with lines just before the message. The
